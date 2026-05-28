@@ -172,7 +172,7 @@ body{
 /* ── Note Palette ── */
 #palette{
   background:var(--bg-palette-glass);
-  border-top:1px solid rgba(255,255,255,0.07);
+  border-top:1px solid rgba(192,86,33,0.06);
   padding:7px 10px;
   flex-shrink:0;
   display:flex;
@@ -205,7 +205,7 @@ body{
 .pal-btn.active{background:rgba(192,86,33,0.15);border-color:rgba(192,86,33,0.60);color:#c05621;font-weight:600;box-shadow:0 0 0 1px rgba(192,86,33,0.20)}
 #btn-flat.active{background:rgba(90,158,224,0.22)!important;border-color:rgba(90,158,224,0.50)!important;color:#5a9ee0!important}
 #btn-nat.active{background:rgba(100,200,140,0.20)!important;border-color:rgba(100,200,140,0.50)!important;color:#64c88c!important}
-.note-key{background:rgba(255,255,255,0.07)!important;border-color:rgba(255,255,255,0.12)!important;flex:1.2!important}
+.note-key{background:rgba(192,86,33,0.06)!important;border-color:rgba(255,255,255,0.12)!important;flex:1.2!important}
 .note-key .pal-sym{font-size:20px!important;font-weight:700!important;letter-spacing:0.5px}
 .note-key:active{background:rgba(192,86,33,0.20)!important}
 .pal-btn.active-accent{background:rgba(224,104,80,0.22);border-color:rgba(224,104,80,0.55);color:var(--danger)}
@@ -312,7 +312,7 @@ body{
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
 }
 .panel-section-label{
-  font-size:9.5px;color:rgba(200,192,176,0.50);
+  font-size:9.5px;color:rgba(74,85,104,0.50);
   text-transform:uppercase;letter-spacing:0.4px;
   margin:8px 0 4px;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
@@ -322,10 +322,10 @@ body{
   margin-bottom:4px;
 }
 .panel-btn{
-  background:rgba(255,255,255,0.07);
+  background:rgba(192,86,33,0.06);
   border:1px solid rgba(192,86,33,0.18);
   border-radius:8px;
-  color:#a0aec0;
+  color:#718096;
   padding:8px 4px;
   font-size:11px;
   cursor:pointer;
@@ -346,9 +346,9 @@ body{
 .panel-lbl{font-size:9px;opacity:0.7}
 .panel-btn-wide{
   width:100%;padding:9px;
-  background:rgba(255,255,255,0.07);
+  background:rgba(192,86,33,0.06);
   border:1px solid rgba(192,86,33,0.18);
-  border-radius:8px;color:#a0aec0;
+  border-radius:8px;color:#718096;
   font-size:12px;cursor:pointer;
   text-align:center;margin-bottom:5px;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
@@ -362,9 +362,9 @@ body{
 }
 .panel-select{
   width:100%;padding:7px 8px;
-  background:rgba(255,255,255,0.07);
+  background:rgba(192,86,33,0.06);
   border:1px solid rgba(192,86,33,0.18);
-  border-radius:8px;color:#a0aec0;
+  border-radius:8px;color:#718096;
   font-size:12px;outline:none;
   -webkit-appearance:none;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
@@ -380,7 +380,7 @@ body{
 .picker-grid.cols-4{ grid-template-columns:repeat(4,1fr); }
 .picker-grid.cols-8{ grid-template-columns:repeat(8,1fr); }
 .picker-btn{
-  background:rgba(255,255,255,0.07);
+  background:rgba(192,86,33,0.06);
   border:1px solid rgba(192,86,33,0.18);
   border-radius:10px;
   color:#8de0c8;
@@ -406,7 +406,7 @@ body{
 .picker-btn.key-flat.selected{ background:rgba(240,192,112,0.22); border-color:rgba(240,192,112,0.6); color:#f0c070; }
 .picker-btn.key-sharp.selected{ background:rgba(128,224,176,0.22); border-color:rgba(128,224,176,0.6); color:#80e0b0; }
 .picker-section-label{
-  color:rgba(200,192,176,0.50);
+  color:rgba(74,85,104,0.50);
   font-size:10px;
   letter-spacing:0.4px;
   text-transform:uppercase;
@@ -416,7 +416,7 @@ body{
 /* ── Modals ── */
 .modal-overlay{
   position:fixed;inset:0;
-  background:rgba(10,5,25,0.75);
+  background:rgba(45,55,72,0.60);
   display:flex;align-items:center;justify-content:center;
   z-index:100;
   backdrop-filter:blur(4px);
@@ -424,48 +424,49 @@ body{
 }
 .modal{
   background:var(--bg-panel-glass);
-  border:1px solid rgba(192,86,33,0.18);
+  border:1px solid rgba(192,86,33,0.20);
   border-radius:20px 20px 0 0;
   padding:22px;
   width:min(92vw,380px);
   display:flex;
   flex-direction:column;
   gap:12px;
-  box-shadow:0 24px 60px rgba(0,0,0,0.6);
+  box-shadow:0 24px 60px rgba(0,0,0,0.30);
 }
 .modal h2{font-size:17px;font-weight:700;color:var(--text-title);letter-spacing:-0.2px;font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;}
 .dropdown-overlay{position:fixed;inset:0;z-index:99}
 .dropdown{
   position:fixed;z-index:100;
   background:var(--bg-panel-glass);
-  border:1px solid rgba(192,86,33,0.18);
+  border:1px solid rgba(192,86,33,0.20);
   border-radius:14px;
   padding:8px;
   min-width:180px;
   display:flex;flex-direction:column;gap:4px;
-  box-shadow:0 12px 40px rgba(0,0,0,0.5);
+  box-shadow:0 12px 40px rgba(0,0,0,0.25);
 }
 .dropdown .dd-btn{
   display:flex;align-items:center;gap:8px;
   padding:10px 12px;border-radius:10px;
   border:none;background:transparent;
-  color:#a0aec0;font-size:13px;
+  color:#4a5568;font-size:13px;font-weight:500;
   font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
   cursor:pointer;text-align:left;
   -webkit-tap-highlight-color:transparent;
   white-space:nowrap;
+  transition:background 0.12s ease;
 }
-.dropdown .dd-btn:active{background:rgba(192,86,33,0.15)}
+.dropdown .dd-btn:active{background:rgba(192,86,33,0.12)}
 .dropdown .dd-btn.danger{color:var(--danger,#e07060)}
-.dropdown .dd-sep{height:1px;background:rgba(192,86,33,0.10);margin:2px 4px}
-.modal-sep{height:1px;background:rgba(255,255,255,0.08);margin:2px 0}
+.dropdown .dd-sep{height:1px;background:rgba(192,86,33,0.12);margin:2px 4px}
+.modal-sep{height:1px;background:rgba(192,86,33,0.10);margin:2px 0}
 .modal input,.modal select{
   width:100%;
   padding:10px 13px;
-  border:1px solid rgba(255,255,255,0.14);
+  border:1px solid rgba(192,86,33,0.20);
   border-radius:10px;
   font-size:14px;
-  background:rgba(255,255,255,0.07);
+  background:rgba(192,86,33,0.06);
   color:#2d3748;
   outline:none;
   -webkit-appearance:none;
@@ -728,9 +729,9 @@ body{
   <div class="status-item">Time <b id="st-time">4/4</b></div>
   <div class="zoom-controls" style="display:flex;gap:4px;align-items:center;margin-left:16px">
     <button class="zoom-btn" onclick="zoomOut()" aria-label="Zoom out" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
-    <span id="zoom-pct" style="color:rgba(200,192,176,0.6);font-size:11px;min-width:34px;text-align:center">100%</span>
+    <span id="zoom-pct" style="color:rgba(74,85,104,0.6);font-size:11px;min-width:34px;text-align:center">100%</span>
     <button class="zoom-btn" onclick="zoomIn()" aria-label="Zoom in" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
-    <button class="zoom-btn" onclick="zoomReset()" aria-label="Reset zoom" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.15);background:transparent;color:rgba(200,192,176,0.4);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">⟲</button>
+    <button class="zoom-btn" onclick="zoomReset()" aria-label="Reset zoom" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.15);background:transparent;color:rgba(74,85,104,0.4);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">⟲</button>
   </div>
   <div id="st-mode" class="status-item">Select</div>
 </div>
@@ -1075,7 +1076,7 @@ body{
   <div class="panel-page" id="panel-search">
     <div class="panel-title">Search Palette</div>
     <div style="margin:6px 0 8px">
-      <input id="search-input" type="text" placeholder="Search notation elements…" oninput="filterSearchPanels(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(192,86,33,0.30);background:rgba(255,255,255,0.07);color:#a0aec0;font-size:13px;outline:none;-webkit-appearance:none">
+      <input id="search-input" type="text" placeholder="Search notation elements…" oninput="filterSearchPanels(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(192,86,33,0.30);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;outline:none;-webkit-appearance:none">
     </div>
     <div id="search-results" style="display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
   </div>
@@ -1442,7 +1443,7 @@ body{
       <button class="panel-btn" id="btn-lyric-bold"   onclick="toggleLyricStyle('bold')"   style="flex:1;font-weight:700">B</button>
       <button class="panel-btn" id="btn-lyric-italic" onclick="toggleLyricStyle('italic')" style="flex:1;font-style:italic">I</button>
     </div>
-    <p style="color:rgba(200,192,176,0.4);font-size:10px;margin-top:8px;line-height:1.4;text-align:center">
+    <p style="color:rgba(74,85,104,0.4);font-size:10px;margin-top:8px;line-height:1.4;text-align:center">
       Select a note, tap Edit Lyric.<br>
       Dash (–) → next syllable<br>
       Space → next word
@@ -6035,7 +6036,7 @@ function toggleTempoDisplay() {
   const btn = document.getElementById('btn-tempo-toggle');
   if (btn) {
     btn.textContent = APP.showTempoOnScore ? '✓ Show on score' : '○ Show on score';
-    btn.style.color = APP.showTempoOnScore ? '#c05621' : 'rgba(200,192,176,0.50)';
+    btn.style.color = APP.showTempoOnScore ? '#c05621' : 'rgba(74,85,104,0.50)';
     btn.style.borderColor = APP.showTempoOnScore ? 'rgba(192,86,33,0.45)' : 'rgba(192,86,33,0.12)';
     btn.style.background  = APP.showTempoOnScore ? 'rgba(192,86,33,0.14)' : 'rgba(192,86,33,0.07)';
   }
@@ -7411,7 +7412,7 @@ function openInlineLyricEditor(mi, si, ni) {
   const mkSel = (opts, cur, onChange) => {
     const s = document.createElement('select');
     opts.forEach(([v,l]) => { const o=document.createElement('option'); o.value=v; o.textContent=l; if(v===cur||v==cur)o.selected=true; s.appendChild(o); });
-    Object.assign(s.style,{background:'transparent',border:'none',color:'#a0aec0',fontSize:'11px',cursor:'pointer',outline:'none'});
+    Object.assign(s.style,{background:'transparent',border:'none',color:'#718096',fontSize:'11px',cursor:'pointer',outline:'none'});
     s.onchange = () => onChange(s.value);
     return s;
   };
@@ -7424,7 +7425,7 @@ function openInlineLyricEditor(mi, si, ni) {
     const b=document.createElement('button');
     b.textContent=lbl;
     let act=act0;
-    const upd=()=>{ b.style.background=act?'rgba(192,86,33,0.20)':'transparent'; b.style.color=act?'#c05621':'#a0aec0'; b.style.border=act?'1px solid rgba(192,86,33,0.50)':'1px solid transparent'; };
+    const upd=()=>{ b.style.background=act?'rgba(192,86,33,0.20)':'transparent'; b.style.color=act?'#c05621':'#718096'; b.style.border=act?'1px solid rgba(192,86,33,0.50)':'1px solid transparent'; };
     Object.assign(b.style,{borderRadius:'4px',fontSize:'11px',fontWeight:lbl==='B'?'700':'400',fontStyle:lbl==='I'?'italic':'normal',padding:'0 5px',cursor:'pointer',lineHeight:'18px'});
     upd();
     b.onmousedown=ev=>{ ev.preventDefault(); act=!act; onToggle(act); upd(); };
@@ -7519,7 +7520,7 @@ function editChordSymbol() {
   const cur = n.chordSymbol || '';
   makeModal(`
     <h2>Chord Symbol</h2>
-    <p style="color:rgba(200,192,176,0.50);font-size:11px;margin-top:-6px">
+    <p style="color:rgba(74,85,104,0.50);font-size:11px;margin-top:-6px">
       e.g. C, Am, F7, Gmaj7, Bdim, E♭sus4</p>
     <input id="cs-input" value="${cur.replace(/"/g,'&quot;')}"
       placeholder="e.g. Am7"
@@ -7585,7 +7586,7 @@ function editRehearsalMark() {
   const cur = APP.score.rehearsalMarks?.find(r => r.mi === APP.selectedMeasure)?.label || '';
   makeModal(`
     <h2>Rehearsal Mark</h2>
-    <p style="color:rgba(200,192,176,0.50);font-size:11px;margin-top:-6px">
+    <p style="color:rgba(74,85,104,0.50);font-size:11px;margin-top:-6px">
       Select a measure first, then type a letter or number</p>
     <input id="rm-input" value="${cur}" placeholder="e.g. A, B, 1, Coda"
       style="font-size:22px;font-weight:700;text-align:center;
@@ -7668,24 +7669,24 @@ function addStaffText() {
 
   makeModal(`
     <h2>Staff Text</h2>
-    <p style="color:rgba(200,192,176,0.50);font-size:11px;margin-top:-6px">
+    <p style="color:rgba(74,85,104,0.50);font-size:11px;margin-top:-6px">
       Free annotation — appears above the staff at this position</p>
     <input id="st-input" value="${cur.replace(/"/g,'&quot;')}"
       placeholder="e.g. Solo, Watch conductor, p dolce"
       spellcheck="true" autocorrect="on">
-    <label style="color:rgba(200,192,176,0.55);font-size:10px;text-transform:uppercase;
+    <label style="color:rgba(74,85,104,0.55);font-size:10px;text-transform:uppercase;
                   letter-spacing:0.3px;margin-top:2px;display:block">Style</label>
     <div style="display:flex;gap:6px">
-      <select id="st-style" style="flex:1;padding:7px;background:rgba(255,255,255,0.07);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:12px;
+      <select id="st-style" style="flex:1;padding:7px;background:rgba(192,86,33,0.06);
+        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:12px;
         -webkit-appearance:none">
         <option value="normal">Normal</option>
         <option value="italic">Italic</option>
         <option value="bold">Bold</option>
         <option value="bold-italic">Bold Italic</option>
       </select>
-      <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(255,255,255,0.07);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:12px;
+      <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(192,86,33,0.06);
+        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:12px;
         -webkit-appearance:none">
         <option value="12" selected>12</option>
         <option value="13">13</option>
@@ -7885,7 +7886,7 @@ function showPartsDialog() {
 
   makeModal(`
     <h2>Parts</h2>
-    <p style="color:rgba(200,192,176,0.50);font-size:11px;margin-top:-6px">
+    <p style="color:rgba(74,85,104,0.50);font-size:11px;margin-top:-6px">
       Tap 🔊/🔇 to mute a part during playback</p>
     ${partBtns}
     <div class="modal-sep"></div>
@@ -7985,11 +7986,11 @@ function showPickupDialog() {
     ${!isPickup ? `
       <div class="panel-section-label" style="margin:8px 0 4px">Pickup duration</div>
       <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px">
-        <select id="pu-num" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <select id="pu-num" style="background:rgba(192,86,33,0.06);color:#718096;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
           ${Array.from({length: maxPickup}, (_, i) => i + 1).map(n => `<option value="${n}">${n}</option>`).join('')}
         </select>
-        <span style="color:rgba(200,192,176,0.40);font-size:18px">/</span>
-        <select id="pu-den" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <span style="color:rgba(74,85,104,0.40);font-size:18px">/</span>
+        <select id="pu-den" style="background:rgba(192,86,33,0.06);color:#718096;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
           <option value="4">4</option>
           <option value="8">8</option>
         </select>
@@ -8094,8 +8095,8 @@ function _renderAddInstrumentDialog() {
   const famBtns = families.map(f => `
     <button onclick="selectAIFamily('${f}')"
       style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_aiFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
-             background:${f===_aiFamily?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
-             color:${f===_aiFamily?'#c05621':'#a0aec0'};font-size:11px;font-weight:${f===_aiFamily?'700':'400'};
+             background:${f===_aiFamily?'rgba(192,86,33,0.15)':'rgba(192,86,33,0.04)'};
+             color:${f===_aiFamily?'#c05621':'#718096'};font-size:11px;font-weight:${f===_aiFamily?'700':'500'};
              cursor:pointer;white-space:nowrap;font-family:'Helvetica Neue',Helvetica,sans-serif">
       ${f}
     </button>`).join('');
@@ -8108,7 +8109,7 @@ function _renderAddInstrumentDialog() {
                      this.classList.add('nd-sel')"
       class="ai-instr-btn"
       style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
-             background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;
+             background:rgba(192,86,33,0.04);color:#4a5568;font-size:11px;cursor:pointer;
              text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
              -webkit-tap-highlight-color:transparent">
       ${i.name}${staveLabel}
@@ -8117,7 +8118,7 @@ function _renderAddInstrumentDialog() {
 
   makeModal(`
     <h2>Add Instrument</h2>
-    <p style="color:rgba(200,192,176,0.50);font-size:11px;margin-top:-6px">
+    <p style="color:rgba(74,85,104,0.60);font-size:11px;margin-top:-6px">
       Adds a new stave below existing score</p>
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">${famBtns}</div>
     <input type="hidden" id="ai-instr" value="${firstInstr}">
@@ -8162,7 +8163,7 @@ function showTimeSigDialog() {
 
   makeModal(`
     <h2>Time Signature</h2>
-    <p style="color:rgba(200,192,176,0.50);font-size:11px;margin-top:-6px">
+    <p style="color:rgba(74,85,104,0.50);font-size:11px;margin-top:-6px">
       From measure ${APP.selectedMeasure + 1} onward</p>
 
     <div style="display:flex;align-items:center;justify-content:center;
@@ -8175,7 +8176,7 @@ function showTimeSigDialog() {
              style="font-size:42px;font-weight:700;color:#2d3748;
                     font-family:'Georgia',serif;line-height:1">${curDen}</div>
       </div>
-      <div style="color:rgba(200,192,176,0.4);font-size:12px;margin-left:10px"
+      <div style="color:rgba(74,85,104,0.4);font-size:12px;margin-left:10px"
            id="ts-beat-label">
         ${beatDescLabel(curNum, curDen)}
       </div>
@@ -8183,7 +8184,7 @@ function showTimeSigDialog() {
 
     <div class="modal-sep"></div>
 
-    <label style="color:rgba(200,192,176,0.6);font-size:11px;
+    <label style="color:rgba(74,85,104,0.6);font-size:11px;
                   letter-spacing:0.3px;text-transform:uppercase">
       Beats per measure: <b id="ts-num-val" style="color:#2d3748">${curNum}</b>
     </label>
@@ -8191,7 +8192,7 @@ function showTimeSigDialog() {
            style="width:100%;margin:2px 0 8px"
            oninput="tsSliderChange()">
 
-    <label style="color:rgba(200,192,176,0.6);font-size:11px;
+    <label style="color:rgba(74,85,104,0.6);font-size:11px;
                   letter-spacing:0.3px;text-transform:uppercase">
       Beat unit: <b id="ts-den-val" style="color:#2d3748">${curDen} (${DEN_NAMES[curDen]})</b>
     </label>
@@ -8293,7 +8294,7 @@ function showKeySigDialog() {
 
   makeModal(`
     <h2>Key Signature</h2>
-    <p style="color:rgba(200,192,176,0.50);font-size:11px;margin-top:-6px">
+    <p style="color:rgba(74,85,104,0.50);font-size:11px;margin-top:-6px">
       From measure ${APP.selectedMeasure + 1} onward · minor keys shown below</p>
     <div class="picker-grid cols-4" style="max-height:60vh;overflow-y:auto">${btns}</div>
     <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
@@ -8486,7 +8487,7 @@ function _renderNewScoreDialog() {
     <button onclick="selectNDFamily('${f}')"
       style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_ndFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
              background:${f===_ndFamily?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
-             color:${f===_ndFamily?'#c05621':'#a0aec0'};font-size:11px;font-weight:${f===_ndFamily?'700':'400'};
+             color:${f===_ndFamily?'#c05621':'#718096'};font-size:11px;font-weight:${f===_ndFamily?'700':'500'};
              cursor:pointer;white-space:nowrap;font-family:'Helvetica Neue',Helvetica,sans-serif">
       ${f}
     </button>`).join('');
@@ -8501,7 +8502,7 @@ function _renderNewScoreDialog() {
       class="nd-instr-btn"
       data-name="${i.name}"
       style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
-             background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;
+             background:rgba(192,86,33,0.04);color:#4a5568;font-size:11px;cursor:pointer;
              text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
              -webkit-tap-highlight-color:transparent">
       ${i.name}${staveLabel}
@@ -8528,8 +8529,8 @@ function _renderNewScoreDialog() {
     <input id="nd-title" placeholder="Title" value="${prevTitle.replace(/"/g,'&quot;')}">
     <input id="nd-composer" placeholder="Composer (optional)" value="${prevComposer.replace(/"/g,'&quot;')}">
 
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(192,86,33,0.10);border-radius:10px;padding:8px 6px;margin-top:6px">
-      <label style="color:rgba(200,192,176,0.55);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;display:block;text-align:center;margin-bottom:4px">Key &amp; Time Signature</label>
+    <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
+      <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;display:block;text-align:center;margin-bottom:4px;font-weight:600">Key &amp; Time Signature</label>
       <div style="display:flex;gap:4px;align-items:stretch">
         <!-- Key Signature -->
         <div style="flex:1;background:rgba(255,255,255,0.03);border-radius:8px;padding:4px 2px">
@@ -8540,11 +8541,11 @@ function _renderNewScoreDialog() {
               <span id="nd-ks-label" style="font-size:10px;color:#c05621;font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-              <button id="nd-ks-next" onclick="ndKSAdj(1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <button id="nd-ks-prev" onclick="ndKSAdj(-1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button id="nd-ks-next" onclick="ndKSAdj(1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button id="nd-ks-prev" onclick="ndKSAdj(-1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
-          <div id="nd-ks-accel" style="text-align:center;font-size:9px;color:rgba(200,192,176,0.40)"></div>
+          <div id="nd-ks-accel" style="text-align:center;font-size:9px;color:rgba(74,85,104,0.50)"></div>
         </div>
         <!-- Time Signature -->
         <div style="flex:1;background:rgba(255,255,255,0.03);border-radius:8px;padding:4px 2px;display:flex;align-items:center;justify-content:center">
@@ -8552,15 +8553,15 @@ function _renderNewScoreDialog() {
           <input type="hidden" id="nd-ts-den" value="${initTSden}">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button onclick="ndTSNumAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button onclick="ndTSNumAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
               <span id="nd-ts-num-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSnum}</span>
-              <button onclick="ndTSNumAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button onclick="ndTSNumAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
-            <span style="font-size:24px;color:rgba(200,192,176,0.35);font-weight:100;line-height:1">/</span>
+            <span style="font-size:24px;color:rgba(74,85,104,0.40);font-weight:100;line-height:1">/</span>
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button onclick="ndTSDenAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button onclick="ndTSDenAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
               <span id="nd-ts-den-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSden}</span>
-              <button onclick="ndTSDenAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button onclick="ndTSDenAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
         </div>
@@ -8573,18 +8574,18 @@ function _renderNewScoreDialog() {
         style="accent-color:#c05621;width:14px;height:14px;cursor:pointer" ${prevPickup ? 'checked' : ''}>
       <label for="nd-pickup" style="color:var(--pal-label);font-size:10px;cursor:pointer">Pickup measure</label>
       <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:4px;margin-left:auto">
-        <select id="nd-pu-num" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
+        <select id="nd-pu-num" style="background:rgba(192,86,33,0.06);color:#4a5568;border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
           ${[1,2,3,4,5,6,7].map(v => `<option value="${v}" ${String(v) === prevPuNum ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
-        <span style="color:rgba(200,192,176,0.30);font-size:14px">/</span>
-        <select id="nd-pu-den" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
+        <span style="color:rgba(74,85,104,0.40);font-size:14px">/</span>
+        <select id="nd-pu-den" style="background:rgba(192,86,33,0.06);color:#4a5568;border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
           ${['4','8'].map(v => `<option value="${v}" ${v === prevPuDen ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
       </span>
     </div>
 
-    <label style="color:rgba(200,192,176,0.55);font-size:10px;text-transform:uppercase;
-                  letter-spacing:0.3px;margin-top:4px;display:block">Instrument</label>
+    <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;
+                  letter-spacing:0.3px;margin-top:4px;display:block;font-weight:600">Instrument</label>
 
     <!-- Family tabs -->
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
@@ -8747,14 +8748,14 @@ function showTitleDialog() {
     <h2>Title & Composer</h2>
     <input id="td-title" value="${curTitle.replace(/"/g,'&quot;')}" placeholder="Title">
     <input id="td-composer" value="${curComp.replace(/"/g,'&quot;')}" placeholder="Composer">
-    <label style="color:rgba(200,192,176,0.6);font-size:11px;text-transform:uppercase;letter-spacing:0.3px">
+    <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Font</label>
-    <select id="td-font" style="width:100%;padding:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:13px;-webkit-appearance:none">
+    <select id="td-font" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:13px;-webkit-appearance:none">
       ${fontOpts}
     </select>
-    <label style="color:rgba(200,192,176,0.6);font-size:11px;text-transform:uppercase;letter-spacing:0.3px">
+    <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Size</label>
-    <select id="td-size" style="width:100%;padding:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:13px;-webkit-appearance:none">
+    <select id="td-size" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:13px;-webkit-appearance:none">
       ${sizeOpts}
     </select>
     <button class="modal-btn primary" onclick="applyTitleDialog()">Apply</button>
