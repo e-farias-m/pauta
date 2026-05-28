@@ -16,36 +16,36 @@
   src: url('https://cdn.jsdelivr.net/npm/@vexflow-fonts/bravura@1.0.2/bravura.woff2') format('woff2');
 }
 :root{
-  --bg-body:           #1e2430;
-  --bg-topbar-glass:   rgba(24,30,42,0.94);
-  --bg-transport-glass:rgba(24,30,42,0.94);
-  --bg-status-glass:   rgba(24,30,42,0.82);
-  --bg-palette-glass:  rgba(22,28,38,0.98);
-  --bg-sidebar-glass:  rgba(26,32,44,0.96);
-  --bg-panel-glass:    rgba(26,32,44,0.99);
-  --bg-modal-glass:    rgba(26,32,44,0.99);
-  --bg-score-area:     #1e2430;
-  --bg-score:          #f8f2e8;
-  --btn-bg:            rgba(212,152,74,0.09);
-  --border-subtle:     rgba(212,152,74,0.12);
-  --border-mid:        rgba(212,152,74,0.18);
-  --border-input:      rgba(212,152,74,0.26);
-  --text-title:        #e8e0d0;
-  --text-btn:          #c8c0b0;
-  --text-status:       rgba(200,192,176,0.80);
-  --text-status-b:     #e8e0d0;
-  --text-mode:         #d4984a;
-  --text-panel:        #c8c0b0;
-  --text-modal:        #e8e0d0;
-  --accent:            #d4984a;
-  --accent-bg:         rgba(212,152,74,0.18);
-  --accent-border:     rgba(212,152,74,0.50);
-  --pal-btn-bg:        rgba(212,152,74,0.07);
-  --pal-btn-border:    rgba(212,152,74,0.16);
-  --pal-label:         rgba(200,192,176,0.50);
-  --score-shadow:      0 4px 28px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.3);
+  --bg-body:           #f0ebe3;
+  --bg-topbar-glass:   rgba(240,235,227,0.94);
+  --bg-transport-glass:rgba(240,235,227,0.94);
+  --bg-status-glass:   rgba(240,235,227,0.82);
+  --bg-palette-glass:  rgba(247,243,237,0.98);
+  --bg-sidebar-glass:  rgba(247,243,237,0.96);
+  --bg-panel-glass:    rgba(247,243,237,0.99);
+  --bg-modal-glass:    rgba(247,243,237,0.99);
+  --bg-score-area:     #f0ebe3;
+  --bg-score:          #ffffff;
+  --btn-bg:            rgba(192,86,33,0.08);
+  --border-subtle:     rgba(192,86,33,0.12);
+  --border-mid:        rgba(192,86,33,0.18);
+  --border-input:      rgba(192,86,33,0.26);
+  --text-title:        #2d3748;
+  --text-btn:          #4a5568;
+  --text-status:       rgba(74,85,104,0.80);
+  --text-status-b:     #2d3748;
+  --text-mode:         #c05621;
+  --text-panel:        #4a5568;
+  --text-modal:        #2d3748;
+  --accent:            #c05621;
+  --accent-bg:         rgba(192,86,33,0.12);
+  --accent-border:     rgba(192,86,33,0.50);
+  --pal-btn-bg:        rgba(192,86,33,0.06);
+  --pal-btn-border:    rgba(192,86,33,0.16);
+  --pal-label:         rgba(74,85,104,0.50);
+  --score-shadow:      0 4px 28px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.06);
   --danger:            #e06850;
-  --v1-col:            #d4984a;
+  --v1-col:            #c05621;
   --v2-col:            #e06850;
 }
 
@@ -81,9 +81,9 @@ body            { background:var(--bg-body); }
 .modal h2       { color:var(--text-modal); }
 .modal input,
 .modal select   { background:var(--pal-btn-bg); border-color:var(--border-input); color:var(--text-modal); }
-.modal-btn.primary  { background:var(--accent); color:#061410; border-color:var(--accent); }
+.modal-btn.primary  { background:var(--accent); color:#fff; border-color:var(--accent); }
 .modal-btn.secondary{ background:var(--pal-btn-bg); color:var(--text-panel); border-color:var(--border-input); }
-#btn-play  { background:var(--accent); color:#061410; }
+#btn-play  { background:var(--accent); color:#fff; }
 #tempo-slider::-webkit-slider-thumb { background:var(--accent); }
 #play-pos   { color:var(--text-status); margin-left:28px; }
 #tempo-input{ background:var(--pal-btn-bg); border:1px solid var(--border-input); border-radius:6px; color:var(--text-panel); font-size:12px; padding:2px 6px; width:48px; text-align:center; outline:none; }
@@ -158,14 +158,14 @@ body{
   flex-shrink:0;
 }
 .btn-circle:active{transform:scale(0.88);opacity:0.85}
-#btn-play{background:#d4984a}
+#btn-play{background:#c05621}
 #btn-stop{background:#e07060;color:#fff;font-size:11px}
 #btn-rewind{background:rgba(255,255,255,0.1);color:#bbb;font-size:11px}
 .tempo-wrap{display:flex;align-items:center;gap:6px;flex:1;max-width:160px}
 #tempo-label{color:rgba(200,192,176,0.6);font-size:10px;white-space:nowrap}
 #tempo-slider{flex:1;-webkit-appearance:none;height:6px;background:rgba(255,255,255,0.15);border-radius:3px;outline:none}
-#tempo-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#d4984a;cursor:pointer}
-#tempo-val{color:#c8c0b0;font-size:12px;min-width:32px;text-align:right}
+#tempo-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#c05621;cursor:pointer}
+#tempo-val{color:#a0aec0;font-size:12px;min-width:32px;text-align:right}
 #play-pos{color:rgba(200,192,176,0.50);font-size:11px;font-variant-numeric:tabular-nums;min-width:38px;text-align:center;margin-left:25px}
 
 /* ── Note Palette ── */
@@ -186,7 +186,7 @@ body{
   background:rgba(255,255,255,0.06);
   border:1px solid rgba(255,255,255,0.1);
   border-radius:8px;
-  color:#c8c0b0;
+  color:#a0aec0;
   font-size:11px;
   cursor:pointer;
   display:flex;
@@ -200,12 +200,12 @@ body{
   padding:2px;
 }
 .pal-btn:active{opacity:0.6}
-.pal-btn.active{background:rgba(212,152,74,0.18);border-color:rgba(212,152,74,0.50);color:#d4984a}
+.pal-btn.active{background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621}
 #btn-flat.active{background:rgba(90,158,224,0.22)!important;border-color:rgba(90,158,224,0.50)!important;color:#5a9ee0!important}
 #btn-nat.active{background:rgba(100,200,140,0.20)!important;border-color:rgba(100,200,140,0.50)!important;color:#64c88c!important}
 .note-key{background:rgba(255,255,255,0.07)!important;border-color:rgba(255,255,255,0.12)!important;flex:1.2!important}
 .note-key .pal-sym{font-size:20px!important;font-weight:700!important;letter-spacing:0.5px}
-.note-key:active{background:rgba(212,152,74,0.20)!important}
+.note-key:active{background:rgba(192,86,33,0.20)!important}
 .pal-btn.active-accent{background:rgba(224,104,80,0.22);border-color:rgba(224,104,80,0.55);color:var(--danger)}
 .pal-sym{font-size:17px;line-height:1}
 .pal-lbl{font-size:8.5px;opacity:0.75;letter-spacing:0.2px}
@@ -286,7 +286,7 @@ body{
   background:var(--bg-panel-glass);
   backdrop-filter:saturate(160%) blur(20px);
   -webkit-backdrop-filter:saturate(160%) blur(20px);
-  border:1px solid rgba(212,152,74,0.18);
+  border:1px solid rgba(192,86,33,0.18);
   border-radius:14px 0 0 14px;
   padding:14px 12px;
   z-index:49;
@@ -301,7 +301,7 @@ body{
   transform:translateY(-50%) translateX(20px);
 }
 .panel-title{
-  font-size:13px;font-weight:600;color:#e8e0d0;
+  font-size:13px;font-weight:600;color:#2d3748;
   margin-bottom:10px;letter-spacing:0.2px;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
 }
@@ -317,9 +317,9 @@ body{
 }
 .panel-btn{
   background:rgba(255,255,255,0.07);
-  border:1px solid rgba(212,152,74,0.18);
+  border:1px solid rgba(192,86,33,0.18);
   border-radius:8px;
-  color:#c8c0b0;
+  color:#a0aec0;
   padding:8px 4px;
   font-size:11px;
   cursor:pointer;
@@ -332,17 +332,17 @@ body{
 }
 .panel-btn:active{opacity:0.6}
 .panel-btn.active{
-  background:rgba(212,152,74,0.18);
-  border-color:rgba(212,152,74,0.50);
-  color:#d4984a;
+  background:rgba(192,86,33,0.18);
+  border-color:rgba(192,86,33,0.50);
+  color:#c05621;
 }
 .panel-sym{font-size:16px;line-height:1.2}
 .panel-lbl{font-size:9px;opacity:0.7}
 .panel-btn-wide{
   width:100%;padding:9px;
   background:rgba(255,255,255,0.07);
-  border:1px solid rgba(212,152,74,0.18);
-  border-radius:8px;color:#c8c0b0;
+  border:1px solid rgba(192,86,33,0.18);
+  border-radius:8px;color:#a0aec0;
   font-size:12px;cursor:pointer;
   text-align:center;margin-bottom:5px;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
@@ -357,8 +357,8 @@ body{
 .panel-select{
   width:100%;padding:7px 8px;
   background:rgba(255,255,255,0.07);
-  border:1px solid rgba(212,152,74,0.18);
-  border-radius:8px;color:#c8c0b0;
+  border:1px solid rgba(192,86,33,0.18);
+  border-radius:8px;color:#a0aec0;
   font-size:12px;outline:none;
   -webkit-appearance:none;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
@@ -375,7 +375,7 @@ body{
 .picker-grid.cols-8{ grid-template-columns:repeat(8,1fr); }
 .picker-btn{
   background:rgba(255,255,255,0.07);
-  border:1px solid rgba(212,152,74,0.18);
+  border:1px solid rgba(192,86,33,0.18);
   border-radius:10px;
   color:#8de0c8;
   padding:10px 4px;
@@ -389,13 +389,13 @@ body{
 }
 .picker-btn:active{opacity:0.6}
 .picker-btn.selected{
-  background:rgba(212,152,74,0.18);
-  border-color:rgba(212,152,74,0.55);
-  color:#d4984a;
+  background:rgba(192,86,33,0.18);
+  border-color:rgba(192,86,33,0.55);
+  color:#c05621;
   font-weight:700;
 }
 .picker-btn.key-flat{ color:#f0c070; border-color:rgba(240,192,112,0.2); }
-.picker-btn.key-nat { color:#e8e0d0; }
+.picker-btn.key-nat { color:#2d3748; }
 .picker-btn.key-sharp{ color:#80e0b0; border-color:rgba(128,224,176,0.2); }
 .picker-btn.key-flat.selected{ background:rgba(240,192,112,0.22); border-color:rgba(240,192,112,0.6); color:#f0c070; }
 .picker-btn.key-sharp.selected{ background:rgba(128,224,176,0.22); border-color:rgba(128,224,176,0.6); color:#80e0b0; }
@@ -418,7 +418,7 @@ body{
 }
 .modal{
   background:var(--bg-panel-glass);
-  border:1px solid rgba(212,152,74,0.18);
+  border:1px solid rgba(192,86,33,0.18);
   border-radius:20px 20px 0 0;
   padding:22px;
   width:min(92vw,380px);
@@ -432,7 +432,7 @@ body{
 .dropdown{
   position:fixed;z-index:100;
   background:var(--bg-panel-glass);
-  border:1px solid rgba(212,152,74,0.18);
+  border:1px solid rgba(192,86,33,0.18);
   border-radius:14px;
   padding:8px;
   min-width:180px;
@@ -443,15 +443,15 @@ body{
   display:flex;align-items:center;gap:8px;
   padding:10px 12px;border-radius:10px;
   border:none;background:transparent;
-  color:#c8c0b0;font-size:13px;
+  color:#a0aec0;font-size:13px;
   font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
   cursor:pointer;text-align:left;
   -webkit-tap-highlight-color:transparent;
   white-space:nowrap;
 }
-.dropdown .dd-btn:active{background:rgba(212,152,74,0.15)}
+.dropdown .dd-btn:active{background:rgba(192,86,33,0.15)}
 .dropdown .dd-btn.danger{color:var(--danger,#e07060)}
-.dropdown .dd-sep{height:1px;background:rgba(212,152,74,0.10);margin:2px 4px}
+.dropdown .dd-sep{height:1px;background:rgba(192,86,33,0.10);margin:2px 4px}
 .modal-sep{height:1px;background:rgba(255,255,255,0.08);margin:2px 0}
 .modal input,.modal select{
   width:100%;
@@ -460,12 +460,12 @@ body{
   border-radius:10px;
   font-size:14px;
   background:rgba(255,255,255,0.07);
-  color:#e8e0d0;
+  color:#2d3748;
   outline:none;
   -webkit-appearance:none;
 }
 .modal input::placeholder{color:rgba(200,192,176,0.35)}
-.modal select option{background:#0c1c18;color:#e8e0d0}
+.modal select option{background:#0c1c18;color:#2d3748}
 .modal-btn{
   padding:12px;
   border:1px solid transparent;
@@ -479,7 +479,7 @@ body{
 .modal-btn:active{opacity:0.75}
 .modal-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 .modal-btn.danger{background:#ff453a;color:#fff;border-color:#ff453a}
-.modal-btn.secondary{background:rgba(255,255,255,0.08);color:#c8c0b0;border-color:rgba(255,255,255,0.12)}
+.modal-btn.secondary{background:rgba(255,255,255,0.08);color:#a0aec0;border-color:rgba(255,255,255,0.12)}
 
 
 /* ── Toast ── */
@@ -518,8 +518,8 @@ body{
 #loading.hidden{opacity:0;pointer-events:none}
 .loading-spinner{
   width:36px;height:36px;
-  border:3px solid rgba(212,152,74,0.18);
-  border-top-color:#d4984a;
+  border:3px solid rgba(192,86,33,0.18);
+  border-top-color:#c05621;
   border-radius:50%;
   animation:spin 0.9s linear infinite;
 }
@@ -599,7 +599,7 @@ body{
 <body>
 
 <div id="loading">
-  <div style="font-size:28px;color:#d4984a;font-weight:300;letter-spacing:2px"><span style="color:#d4984a;font-weight:700">p</span><span style="color:#fff">auta</span></div>
+  <div style="font-size:28px;color:#c05621;font-weight:300;letter-spacing:2px"><span style="color:#c05621;font-weight:700">p</span><span style="color:#2d3748">auta</span></div>
   <div class="loading-spinner"></div>
   <p>Loading notation engine…</p>
 </div>
@@ -643,7 +643,7 @@ body{
   </button>
   <div id="score-title" ondblclick="showTitleDialog()" title="Double-tap to edit">Untitled Score</div>
   <div style="margin-left:auto;display:flex;align-items:center;opacity:0.35;font-size:28px;letter-spacing:0.5px;padding-right:6px">
-    <span style="color:#d4984a;font-weight:700">P</span><span style="color:#fff;font-weight:300">auta</span>
+    <span style="color:#c05621;font-weight:700">P</span><span style="color:#2d3748;font-weight:300">auta</span>
   </div>
 </div>
 
@@ -678,10 +678,10 @@ body{
   </div>
   <span id="play-pos">0:00</span>
   <button id="btn-countin" onclick="toggleCountIn()" aria-label="Toggle count-in clicks" style="
-    background:rgba(212,152,74,0.14);
-    border:1px solid rgba(212,152,74,0.30);
+    background:rgba(192,86,33,0.14);
+    border:1px solid rgba(192,86,33,0.30);
     border-radius:8px;
-    color:#d4984a;
+    color:#c05621;
     font-size:10px;
     padding:6px 10px;
     cursor:pointer;
@@ -692,10 +692,10 @@ body{
     min-height:32px;
   ">Count-in</button>
   <button id="btn-metronome" onclick="toggleMetronome()" aria-label="Toggle metronome" style="
-    background:rgba(212,152,74,0.14);
-    border:1px solid rgba(212,152,74,0.30);
+    background:rgba(192,86,33,0.14);
+    border:1px solid rgba(192,86,33,0.30);
     border-radius:8px;
-    color:#d4984a;
+    color:#c05621;
     font-size:10px;
     padding:6px 10px;
     cursor:pointer;
@@ -720,10 +720,10 @@ body{
   <div class="status-item">Key <b id="st-key">C</b></div>
   <div class="status-item">Time <b id="st-time">4/4</b></div>
   <div class="zoom-controls" style="display:flex;gap:4px;align-items:center;margin-left:16px">
-    <button class="zoom-btn" onclick="zoomOut()" aria-label="Zoom out" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(212,152,74,0.3);background:rgba(212,152,74,0.1);color:#d4984a;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+    <button class="zoom-btn" onclick="zoomOut()" aria-label="Zoom out" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
     <span id="zoom-pct" style="color:rgba(200,192,176,0.6);font-size:11px;min-width:34px;text-align:center">100%</span>
-    <button class="zoom-btn" onclick="zoomIn()" aria-label="Zoom in" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(212,152,74,0.3);background:rgba(212,152,74,0.1);color:#d4984a;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
-    <button class="zoom-btn" onclick="zoomReset()" aria-label="Reset zoom" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(212,152,74,0.15);background:transparent;color:rgba(200,192,176,0.4);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">⟲</button>
+    <button class="zoom-btn" onclick="zoomIn()" aria-label="Zoom in" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+    <button class="zoom-btn" onclick="zoomReset()" aria-label="Reset zoom" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.15);background:transparent;color:rgba(200,192,176,0.4);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">⟲</button>
   </div>
   <div id="st-mode" class="status-item">Select</div>
 </div>
@@ -768,7 +768,7 @@ body{
       <span class="pal-lbl">Triplet</span>
     </button>
     <button class="pal-btn" id="btn-chord" onclick="toggleChordMode()"><span class="pal-sym" style="font-size:12px">♩+</span><span class="pal-lbl">Chord</span></button>
-    <button class="pal-btn" id="btn-voice1" onclick="setVoice(1)" style="background:rgba(212,152,74,0.18);border-color:rgba(212,152,74,0.50);color:#d4984a"><span class="pal-sym" style="font-size:12px;font-weight:700">V1</span><span class="pal-lbl">Voice</span></button>
+    <button class="pal-btn" id="btn-voice1" onclick="setVoice(1)" style="background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621"><span class="pal-sym" style="font-size:12px;font-weight:700">V1</span><span class="pal-lbl">Voice</span></button>
     <button class="pal-btn" id="btn-voice2" onclick="setVoice(2)"><span class="pal-sym" style="font-size:12px;font-weight:700">V2</span><span class="pal-lbl">Voice</span></button>
   </div>
   <!-- Row 2: Durations -->
@@ -897,7 +897,7 @@ body{
     </span><span class="pal-lbl">Rest</span></button>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 3px">
-    <span id="oct-display" style="color:rgba(212,152,74,0.65);font-size:11px;letter-spacing:0.3px">Octave 4</span>
+    <span id="oct-display" style="color:rgba(192,86,33,0.65);font-size:11px;letter-spacing:0.3px">Octave 4</span>
     <span style="display:flex;gap:6px;align-items:center">
       <button id="btn-bw-names" onclick="toggleBWNoteNames()" style="
         display:none;
@@ -978,10 +978,10 @@ body{
         </svg>
         Measure</button>
       <button id="btn-linebreak" onclick="toggleLineBreak()" style="
-        background:rgba(212,152,74,0.14);
-        border:1px solid rgba(212,152,74,0.40);
+        background:rgba(192,86,33,0.14);
+        border:1px solid rgba(192,86,33,0.40);
         border-radius:8px;
-        color:#d4984a;
+        color:#c05621;
         font-size:10px;
         padding:6px 10px;
         cursor:pointer;
@@ -998,10 +998,10 @@ body{
         </svg>
         Line Break</button>
       <button id="btn-continuous" onclick="toggleContinuousView()" style="
-        background:rgba(212,152,74,0.14);
-        border:1px solid rgba(212,152,74,0.40);
+        background:rgba(192,86,33,0.14);
+        border:1px solid rgba(192,86,33,0.40);
         border-radius:8px;
-        color:#d4984a;
+        color:#c05621;
         font-size:10px;
         padding:6px 10px;
         cursor:pointer;
@@ -1068,7 +1068,7 @@ body{
   <div class="panel-page" id="panel-search">
     <div class="panel-title">Search Palette</div>
     <div style="margin:6px 0 8px">
-      <input id="search-input" type="text" placeholder="Search notation elements…" oninput="filterSearchPanels(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(212,152,74,0.30);background:rgba(255,255,255,0.07);color:#c8c0b0;font-size:13px;outline:none;-webkit-appearance:none">
+      <input id="search-input" type="text" placeholder="Search notation elements…" oninput="filterSearchPanels(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(192,86,33,0.30);background:rgba(255,255,255,0.07);color:#a0aec0;font-size:13px;outline:none;-webkit-appearance:none">
     </div>
     <div id="search-results" style="display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
   </div>
@@ -1268,7 +1268,7 @@ body{
       <button class="panel-btn" aria-label="Key of D major 2 sharps" onclick="applyKeySig(2)"><span class="panel-sym" style="font-size:13px;font-weight:700">D</span><span class="panel-lbl">2♯</span></button>
       <button class="panel-btn" aria-label="Key of A major 3 sharps" onclick="applyKeySig(3)"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">3♯</span></button>
       <button class="panel-btn" aria-label="Key of E major 4 sharps" onclick="applyKeySig(4)"><span class="panel-sym" style="font-size:13px;font-weight:700">E</span><span class="panel-lbl">4♯</span></button>
-      <button class="panel-btn" aria-label="More key signatures" onclick="showKeySigDialog()" style="background:rgba(212,152,74,0.1);border-color:rgba(212,152,74,0.3);color:#d4984a">
+      <button class="panel-btn" aria-label="More key signatures" onclick="showKeySigDialog()" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
         <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
       </button>
     </div>
@@ -1316,7 +1316,7 @@ body{
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
         </svg>
       </span><span class="panel-lbl">6/8</span></button>
-      <button class="panel-btn" aria-label="More time signatures" onclick="showTimeSigDialog()" style="background:rgba(212,152,74,0.1);border-color:rgba(212,152,74,0.3);color:#d4984a">
+      <button class="panel-btn" aria-label="More time signatures" onclick="showTimeSigDialog()" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
         <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
       </button>
     </div>
@@ -1360,7 +1360,7 @@ body{
   <div class="panel-page" id="panel-tempo" style="display:none">
     <div class="panel-title">Tempo</div>
     <button class="panel-btn-wide" id="btn-tempo-toggle" onclick="toggleTempoDisplay()"
-      style="margin-bottom:6px;background:rgba(212,152,74,0.12);border-color:rgba(212,152,74,0.45);color:#d4984a">
+      style="margin-bottom:6px;background:rgba(192,86,33,0.12);border-color:rgba(192,86,33,0.45);color:#c05621">
       ✓ Show on score
     </button>
     <div class="panel-section-label">Slow</div>
@@ -1450,7 +1450,7 @@ body{
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.7.0
+//  v0.8.0
 // ================================================================
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
@@ -2710,8 +2710,8 @@ function renderScore() {
           rect.setAttribute('width', mWidth);
           rect.setAttribute('height', lineBot - lineTop + 4);
           rect.setAttribute('rx', 4);
-          rect.setAttribute('fill', 'rgba(212,152,74,0.18)');
-          rect.setAttribute('stroke', 'rgba(212,152,74,0.55)');
+          rect.setAttribute('fill', 'rgba(192,86,33,0.18)');
+          rect.setAttribute('stroke', 'rgba(192,86,33,0.55)');
           rect.setAttribute('stroke-width', '2');
           rect.setAttribute('pointer-events', 'none');
           svgEl2.appendChild(rect);
@@ -3016,7 +3016,7 @@ function renderScore() {
   const lbBtn = document.getElementById('btn-linebreak');
   if (lbBtn) {
     const m = APP.score?.parts?.[0]?.staves?.[0]?.measures?.[APP.selectedMeasure];
-    lbBtn.style.borderColor = m?.lineBreak ? '#d4984a' : 'rgba(212,152,74,0.40)';
+    lbBtn.style.borderColor = m?.lineBreak ? '#c05621' : 'rgba(192,86,33,0.40)';
   }
 
   // ── Multi-measure rests ────────────────────────────────────────
@@ -3657,7 +3657,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
 
       // Colour: selection → teal, voice 2 → coral, BW → colour+black stem, BR → normal+black stem
       if (isNoteSelected(mi, si, ni)) {
-        vfNote.setStyle({ fillStyle: '#d4984a', strokeStyle: '#d4984a' });
+        vfNote.setStyle({ fillStyle: '#c05621', strokeStyle: '#c05621' });
       } else if ((note.voice||1) === 2) {
         vfNote.setStyle({ fillStyle: '#f07860', strokeStyle: '#f07860' });
       } else if (isBW && note.type === 'note') {
@@ -4508,8 +4508,8 @@ function renderWoodwindDiagram(fing, type) {
     ? 'M 18,28 L 30,28 Q 24,24 18,24 Z M 30,28 Q 30,32 24,32 Z M 30,28 L 164,28 Q 164,24 170,20 L 190,16 Q 192,20 192,24 L 192,32 Q 192,36 190,40 L 170,36 Q 164,32 164,28 Z M 170,36 L 170,20'
     : (WOODWIND_BODY_PATHS[type] || WOODWIND_BODY_PATHS.clarinet);
 
-  const bodyFill = type === 'bassoon' ? '#d4c4a0' : '#c8b898';
-  const bodyStroke = '#8a7a60';
+  const bodyFill = type === 'bassoon' ? '#f0e0c8' : '#e8d8c0';
+  const bodyStroke = '#b8a080';
 
   const body = document.createElementNS(ns, 'path');
   body.setAttribute('d', bodyD);
@@ -4541,7 +4541,7 @@ function renderWoodwindDiagram(fing, type) {
       const inner = document.createElementNS(ns, 'circle');
       inner.setAttribute('cx', px); inner.setAttribute('cy', py);
       inner.setAttribute('r', isFlute ? 2.5 : 3);
-      inner.setAttribute('fill', '#1e2430');
+      inner.setAttribute('fill', '#f0ebe3');
       inner.setAttribute('stroke', 'none');
       svg.appendChild(inner);
     }
@@ -4552,7 +4552,7 @@ function renderWoodwindDiagram(fing, type) {
   lbl.setAttribute('x', w / 2); lbl.setAttribute('y', isFlute ? 52 : 232);
   lbl.setAttribute('text-anchor', 'middle');
   lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
-  lbl.setAttribute('fill', '#d4984a');
+  lbl.setAttribute('fill', '#c05621');
   lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
   lbl.textContent = name;
   svg.appendChild(lbl);
@@ -4602,9 +4602,9 @@ const BRASS_BODY_PATHS = {
   tuba: 'M 54,12 L 52,12 Q 50,6 52,4 L 54,2 Q 58,0 60,4 L 60,10 L 60,38 L 40,38 L 40,90 Q 38,104 30,120 Q 20,138 6,164 L 16,184 Q 32,190 50,192 Q 60,193 70,193 Q 82,193 94,192 Q 110,190 126,184 L 136,164 Q 122,138 112,120 Q 104,104 102,90 L 102,38 L 82,38 L 82,10 Q 84,10 86,12 L 90,14 L 90,10 L 86,8 L 84,8 L 78,6 Q 76,4 74,2 Q 72,0 68,0 Q 62,0 60,4 Q 58,6 56,10 Z',
   trombone: 'M 8,24 L 2,18 Q 0,22 0,28 Q 0,34 2,38 L 8,32 Q 10,30 12,28 L 12,24 Q 10,26 8,24 Z M 12,28 L 148,28 Q 148,24 150,22 L 166,20 Q 172,18 176,14 Q 180,10 182,8 L 186,14 Q 188,18 188,22 L 188,34 Q 188,38 186,42 L 182,48 Q 180,46 176,42 Q 172,38 166,36 L 150,34 Q 148,32 148,28 Z M 150,34 L 150,22 M 188,30 L 196,30 Q 200,30 200,26 Q 200,22 196,22 L 188,22 Z'
 };
-const BRASS_BODY_COLOR = '#c8b898';
-const BRASS_BODY_STROKE = '#8a7a60';
-const BRASS_MP_COLOR = '#2a2a2a';
+const BRASS_BODY_COLOR = '#e8d8c0';
+const BRASS_BODY_STROKE = '#b8a080';
+const BRASS_MP_COLOR = '#5a4a3a';
 
 function renderBrassDiagram(fing, type) {
   const ns = 'http://www.w3.org/2000/svg';
@@ -4622,8 +4622,8 @@ function renderBrassDiagram(fing, type) {
   const bodyD = BRASS_BODY_PATHS[type] || BRASS_BODY_PATHS.trumpet;
   const bodyEl = document.createElementNS(ns, 'path');
   bodyEl.setAttribute('d', bodyD);
-  bodyEl.setAttribute('fill', type === 'trombone' ? '#d8c8a0' : BRASS_BODY_COLOR);
-  bodyEl.setAttribute('stroke', type === 'trombone' ? '#8a7a60' : BRASS_BODY_STROKE);
+  bodyEl.setAttribute('fill', type === 'trombone' ? '#f0e0c8' : BRASS_BODY_COLOR);
+  bodyEl.setAttribute('stroke', type === 'trombone' ? '#b8a080' : BRASS_BODY_STROKE);
   bodyEl.setAttribute('stroke-width', '0.8');
   svg.appendChild(bodyEl);
 
@@ -4644,7 +4644,7 @@ function renderBrassDiagram(fing, type) {
       num.setAttribute('y', 14);
       num.setAttribute('text-anchor', 'middle');
       num.setAttribute('font-size', '7');
-      num.setAttribute('fill', i === slidePos ? '#d4984a' : '#888');
+      num.setAttribute('fill', i === slidePos ? '#c05621' : '#888');
       num.setAttribute('font-family', 'Georgia,serif');
       num.textContent = String(i);
       svg.appendChild(num);
@@ -4706,7 +4706,7 @@ function renderBrassDiagram(fing, type) {
   lbl.setAttribute('x', w / 2); lbl.setAttribute('y', isTrombone ? 74 : 228);
   lbl.setAttribute('text-anchor', 'middle');
   lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
-  lbl.setAttribute('fill', '#d4984a');
+  lbl.setAttribute('fill', '#c05621');
   lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
   lbl.textContent = name;
   svg.appendChild(lbl);
@@ -4914,7 +4914,7 @@ function renderBWNoteheads() {
       const isOpen = fill === '#ffffff' || fill === 'white' || fill === '#fff';
       const ks = getResolvedKeySig(matched.mi, matched.si);
       const letter = noteLetter(n, ks);
-      addNoteLabel(svgEl, letter, cx, cy, bbox.height, isOpen ? '#000' : '#f8f2e8');
+      addNoteLabel(svgEl, letter, cx, cy, bbox.height, isOpen ? '#000' : '#ffffff');
     });
   }
 }
@@ -5108,7 +5108,7 @@ function _showStrokeDot(x, y) {
     dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
     dot.setAttribute('id','stroke-dot');
     dot.setAttribute('r','5');
-    dot.setAttribute('fill','rgba(212,152,74,0.50)');
+    dot.setAttribute('fill','rgba(192,86,33,0.50)');
     dot.setAttribute('pointer-events','none');
     svgEl.appendChild(dot);
   }
@@ -6018,9 +6018,9 @@ function toggleTempoDisplay() {
   const btn = document.getElementById('btn-tempo-toggle');
   if (btn) {
     btn.textContent = APP.showTempoOnScore ? '✓ Show on score' : '○ Show on score';
-    btn.style.color = APP.showTempoOnScore ? '#d4984a' : 'rgba(200,192,176,0.50)';
-    btn.style.borderColor = APP.showTempoOnScore ? 'rgba(212,152,74,0.45)' : 'rgba(212,152,74,0.12)';
-    btn.style.background  = APP.showTempoOnScore ? 'rgba(212,152,74,0.14)' : 'rgba(212,152,74,0.07)';
+    btn.style.color = APP.showTempoOnScore ? '#c05621' : 'rgba(200,192,176,0.50)';
+    btn.style.borderColor = APP.showTempoOnScore ? 'rgba(192,86,33,0.45)' : 'rgba(192,86,33,0.12)';
+    btn.style.background  = APP.showTempoOnScore ? 'rgba(192,86,33,0.14)' : 'rgba(192,86,33,0.07)';
   }
   renderScore();
 }
@@ -6136,9 +6136,9 @@ function setVoice(v) {
   // Reset voice button highlight colours
   const v1 = document.getElementById('btn-voice1');
   const v2 = document.getElementById('btn-voice2');
-  v1.style.background    = v===1 ? 'rgba(212,152,74,0.18)' : '';
-  v1.style.borderColor   = v===1 ? 'rgba(212,152,74,0.50)' : '';
-  v1.style.color         = v===1 ? '#d4984a' : '';
+  v1.style.background    = v===1 ? 'rgba(192,86,33,0.18)' : '';
+  v1.style.borderColor   = v===1 ? 'rgba(192,86,33,0.50)' : '';
+  v1.style.color         = v===1 ? '#c05621' : '';
   v2.style.background    = v===2 ? 'rgba(240,120,96,0.22)'  : '';
   v2.style.borderColor   = v===2 ? 'rgba(240,120,96,0.55)'  : '';
   v2.style.color         = v===2 ? '#f07860' : '';
@@ -6574,9 +6574,9 @@ function toggleLineBreak() {
 function toggleContinuousView() {
   APP.continuousView = !APP.continuousView;
   document.getElementById('btn-continuous').style.background =
-    APP.continuousView ? 'rgba(212,152,74,0.30)' : 'rgba(212,152,74,0.14)';
+    APP.continuousView ? 'rgba(192,86,33,0.30)' : 'rgba(192,86,33,0.14)';
   document.getElementById('btn-continuous').style.borderColor =
-    APP.continuousView ? 'rgba(212,152,74,0.60)' : 'rgba(212,152,74,0.40)';
+    APP.continuousView ? 'rgba(192,86,33,0.60)' : 'rgba(192,86,33,0.40)';
   renderScore();
   showToast(APP.continuousView ? 'Continuous view' : 'Page view');
 }
@@ -7068,9 +7068,9 @@ function toggleCountIn() {
   APP.countIn = !APP.countIn;
   const btn = document.getElementById('btn-countin');
   if (btn) {
-    btn.style.background = APP.countIn ? 'rgba(212,152,74,0.30)' : 'rgba(212,152,74,0.14)';
-    btn.style.borderColor = APP.countIn ? 'rgba(212,152,74,0.60)' : 'rgba(212,152,74,0.30)';
-    btn.style.color = APP.countIn ? '#d4984a' : '#d4984a';
+    btn.style.background = APP.countIn ? 'rgba(192,86,33,0.30)' : 'rgba(192,86,33,0.14)';
+    btn.style.borderColor = APP.countIn ? 'rgba(192,86,33,0.60)' : 'rgba(192,86,33,0.30)';
+    btn.style.color = APP.countIn ? '#c05621' : '#c05621';
   }
   showToast(APP.countIn ? 'Count-in on (4 clicks)' : 'Count-in off');
 }
@@ -7079,9 +7079,9 @@ function toggleMetronome() {
   APP.metronome = !APP.metronome;
   const btn = document.getElementById('btn-metronome');
   if (btn) {
-    btn.style.background = APP.metronome ? 'rgba(212,152,74,0.30)' : 'rgba(212,152,74,0.14)';
-    btn.style.borderColor = APP.metronome ? 'rgba(212,152,74,0.60)' : 'rgba(212,152,74,0.30)';
-    btn.style.color = APP.metronome ? '#d4984a' : '#d4984a';
+    btn.style.background = APP.metronome ? 'rgba(192,86,33,0.30)' : 'rgba(192,86,33,0.14)';
+    btn.style.borderColor = APP.metronome ? 'rgba(192,86,33,0.60)' : 'rgba(192,86,33,0.30)';
+    btn.style.color = APP.metronome ? '#c05621' : '#c05621';
   }
   showToast(APP.metronome ? 'Metronome on' : 'Metronome off');
 }
@@ -7270,8 +7270,8 @@ function updatePlayCursor(elapsedMs) {
       dot.setAttribute('cx', nl.x);
       dot.setAttribute('cy', nl.y);
       dot.setAttribute('r', '6');
-      dot.setAttribute('fill', 'rgba(212,152,74,0.45)');
-      dot.setAttribute('stroke', '#d4984a');
+      dot.setAttribute('fill', 'rgba(192,86,33,0.45)');
+      dot.setAttribute('stroke', '#c05621');
       dot.setAttribute('stroke-width', '1.2');
       dot.setAttribute('class', 'play-cursor');
       svg.appendChild(dot);
@@ -7346,7 +7346,7 @@ function openInlineLyricEditor(mi, si, ni) {
     fontWeight:   APP.lyricBold   ? 'bold'   : 'normal',
     fontStyle:    APP.lyricItalic ? 'italic' : 'normal',
     background:   'rgba(255,255,240,0.97)',
-    border: '2px solid #d4984a',
+    border: '2px solid #c05621',
     borderRadius: '5px',
     color:        '#111',
     zIndex:       '500',
@@ -7388,13 +7388,13 @@ function openInlineLyricEditor(mi, si, ni) {
   Object.assign(toolbar.style, {
     position:'fixed', left:(Math.max(8,pageX-80))+'px', top:(pageY+22)+'px',
     display:'flex', gap:'4px', alignItems:'center',
-    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(212,152,74,0.30)',
+    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(192,86,33,0.30)',
     borderRadius:'8px', padding:'4px 7px', zIndex:'501', boxShadow:'0 3px 12px rgba(0,0,0,0.4)',
   });
   const mkSel = (opts, cur, onChange) => {
     const s = document.createElement('select');
     opts.forEach(([v,l]) => { const o=document.createElement('option'); o.value=v; o.textContent=l; if(v===cur||v==cur)o.selected=true; s.appendChild(o); });
-    Object.assign(s.style,{background:'transparent',border:'none',color:'#c8c0b0',fontSize:'11px',cursor:'pointer',outline:'none'});
+    Object.assign(s.style,{background:'transparent',border:'none',color:'#a0aec0',fontSize:'11px',cursor:'pointer',outline:'none'});
     s.onchange = () => onChange(s.value);
     return s;
   };
@@ -7407,7 +7407,7 @@ function openInlineLyricEditor(mi, si, ni) {
     const b=document.createElement('button');
     b.textContent=lbl;
     let act=act0;
-    const upd=()=>{ b.style.background=act?'rgba(212,152,74,0.20)':'transparent'; b.style.color=act?'#d4984a':'#c8c0b0'; b.style.border=act?'1px solid rgba(212,152,74,0.50)':'1px solid transparent'; };
+    const upd=()=>{ b.style.background=act?'rgba(192,86,33,0.20)':'transparent'; b.style.color=act?'#c05621':'#a0aec0'; b.style.border=act?'1px solid rgba(192,86,33,0.50)':'1px solid transparent'; };
     Object.assign(b.style,{borderRadius:'4px',fontSize:'11px',fontWeight:lbl==='B'?'700':'400',fontStyle:lbl==='I'?'italic':'normal',padding:'0 5px',cursor:'pointer',lineHeight:'18px'});
     upd();
     b.onmousedown=ev=>{ ev.preventDefault(); act=!act; onToggle(act); upd(); };
@@ -7660,7 +7660,7 @@ function addStaffText() {
                   letter-spacing:0.3px;margin-top:2px;display:block">Style</label>
     <div style="display:flex;gap:6px">
       <select id="st-style" style="flex:1;padding:7px;background:rgba(255,255,255,0.07);
-        border:1px solid rgba(212,152,74,0.18);border-radius:8px;color:#c8c0b0;font-size:12px;
+        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:12px;
         -webkit-appearance:none">
         <option value="normal">Normal</option>
         <option value="italic">Italic</option>
@@ -7668,7 +7668,7 @@ function addStaffText() {
         <option value="bold-italic">Bold Italic</option>
       </select>
       <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(255,255,255,0.07);
-        border:1px solid rgba(212,152,74,0.18);border-radius:8px;color:#c8c0b0;font-size:12px;
+        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:12px;
         -webkit-appearance:none">
         <option value="12" selected>12</option>
         <option value="13">13</option>
@@ -7851,18 +7851,18 @@ function showPartsDialog() {
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
       <button onclick="togglePartMute(${i})" style="
         flex-shrink:0;width:28px;height:28px;border-radius:50%;
-        border:1px solid ${p.muted ? 'rgba(224,112,96,0.40)' : 'rgba(212,152,74,0.25)'};
-        background:${p.muted ? 'rgba(224,112,96,0.15)' : 'rgba(212,152,74,0.08)'};
-        color:${p.muted ? '#e07060' : '#d4984a'};
+        border:1px solid ${p.muted ? 'rgba(224,112,96,0.40)' : 'rgba(192,86,33,0.25)'};
+        background:${p.muted ? 'rgba(224,112,96,0.15)' : 'rgba(192,86,33,0.08)'};
+        color:${p.muted ? '#e07060' : '#c05621'};
         font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;
         -webkit-tap-highlight-color:transparent">${p.muted ? '🔇' : '🔊'}</button>
-      <button class="modal-btn" style="flex:1;${APP_partView === i ? 'background:rgba(212,152,74,0.18);border-color:rgba(212,152,74,0.50);color:#d4984a;font-weight:600' : ''}"
+      <button class="modal-btn" style="flex:1;${APP_partView === i ? 'background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621;font-weight:600' : ''}"
         onclick="enterPartView(${i});closeModal()">
         ${APP_partView === i ? '▶ ' : ''}${p.name}
       </button>
       <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
         oninput="setPartVolume(${i},this.value)"
-        style="width:50px;height:4px;accent-color:#d4984a;cursor:pointer"
+        style="width:50px;height:4px;accent-color:#c05621;cursor:pointer"
         aria-label="${p.name} volume">
     </div>`).join('');
 
@@ -7968,11 +7968,11 @@ function showPickupDialog() {
     ${!isPickup ? `
       <div class="panel-section-label" style="margin:8px 0 4px">Pickup duration</div>
       <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px">
-        <select id="pu-num" style="background:rgba(255,255,255,0.08);color:#c8c0b0;border:1px solid rgba(212,152,74,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <select id="pu-num" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
           ${Array.from({length: maxPickup}, (_, i) => i + 1).map(n => `<option value="${n}">${n}</option>`).join('')}
         </select>
         <span style="color:rgba(200,192,176,0.40);font-size:18px">/</span>
-        <select id="pu-den" style="background:rgba(255,255,255,0.08);color:#c8c0b0;border:1px solid rgba(212,152,74,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <select id="pu-den" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
           <option value="4">4</option>
           <option value="8">8</option>
         </select>
@@ -8076,9 +8076,9 @@ function _renderAddInstrumentDialog() {
 
   const famBtns = families.map(f => `
     <button onclick="selectAIFamily('${f}')"
-      style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_aiFamily?'rgba(212,152,74,0.55)':'rgba(212,152,74,0.18)'};
-             background:${f===_aiFamily?'rgba(212,152,74,0.18)':'rgba(255,255,255,0.06)'};
-             color:${f===_aiFamily?'#d4984a':'#c8c0b0'};font-size:11px;font-weight:${f===_aiFamily?'700':'400'};
+      style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_aiFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
+             background:${f===_aiFamily?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
+             color:${f===_aiFamily?'#c05621':'#a0aec0'};font-size:11px;font-weight:${f===_aiFamily?'700':'400'};
              cursor:pointer;white-space:nowrap;font-family:'Helvetica Neue',Helvetica,sans-serif">
       ${f}
     </button>`).join('');
@@ -8090,8 +8090,8 @@ function _renderAddInstrumentDialog() {
                      document.querySelectorAll('.ai-instr-btn').forEach(b=>b.classList.remove('nd-sel'));
                      this.classList.add('nd-sel')"
       class="ai-instr-btn"
-      style="padding:8px 6px;border-radius:8px;border:1px solid rgba(212,152,74,0.18);
-             background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:11px;cursor:pointer;
+      style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
+             background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;
              text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
              -webkit-tap-highlight-color:transparent">
       ${i.name}${staveLabel}
@@ -8152,10 +8152,10 @@ function showTimeSigDialog() {
                 gap:0;margin:4px 0 8px">
       <div style="text-align:center;min-width:60px">
         <div id="ts-preview-num"
-             style="font-size:42px;font-weight:700;color:#e8e0d0;
+             style="font-size:42px;font-weight:700;color:#2d3748;
                     font-family:'Georgia',serif;line-height:1">${curNum}</div>
         <div id="ts-preview-den"
-             style="font-size:42px;font-weight:700;color:#e8e0d0;
+             style="font-size:42px;font-weight:700;color:#2d3748;
                     font-family:'Georgia',serif;line-height:1">${curDen}</div>
       </div>
       <div style="color:rgba(200,192,176,0.4);font-size:12px;margin-left:10px"
@@ -8168,7 +8168,7 @@ function showTimeSigDialog() {
 
     <label style="color:rgba(200,192,176,0.6);font-size:11px;
                   letter-spacing:0.3px;text-transform:uppercase">
-      Beats per measure: <b id="ts-num-val" style="color:#e8e0d0">${curNum}</b>
+      Beats per measure: <b id="ts-num-val" style="color:#2d3748">${curNum}</b>
     </label>
     <input type="range" id="ts-num" min="2" max="15" step="1" value="${curNum}"
            style="width:100%;margin:2px 0 8px"
@@ -8176,7 +8176,7 @@ function showTimeSigDialog() {
 
     <label style="color:rgba(200,192,176,0.6);font-size:11px;
                   letter-spacing:0.3px;text-transform:uppercase">
-      Beat unit: <b id="ts-den-val" style="color:#e8e0d0">${curDen} (${DEN_NAMES[curDen]})</b>
+      Beat unit: <b id="ts-den-val" style="color:#2d3748">${curDen} (${DEN_NAMES[curDen]})</b>
     </label>
     <input type="range" id="ts-den" min="0" max="3" step="1" value="${denIdx}"
            style="width:100%;margin:2px 0 8px"
@@ -8467,9 +8467,9 @@ function _renderNewScoreDialog() {
   // Family tab buttons
   const famBtns = families.map(f => `
     <button onclick="selectNDFamily('${f}')"
-      style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_ndFamily?'rgba(212,152,74,0.55)':'rgba(212,152,74,0.18)'};
-             background:${f===_ndFamily?'rgba(212,152,74,0.18)':'rgba(255,255,255,0.06)'};
-             color:${f===_ndFamily?'#d4984a':'#c8c0b0'};font-size:11px;font-weight:${f===_ndFamily?'700':'400'};
+      style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_ndFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
+             background:${f===_ndFamily?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
+             color:${f===_ndFamily?'#c05621':'#a0aec0'};font-size:11px;font-weight:${f===_ndFamily?'700':'400'};
              cursor:pointer;white-space:nowrap;font-family:'Helvetica Neue',Helvetica,sans-serif">
       ${f}
     </button>`).join('');
@@ -8483,8 +8483,8 @@ function _renderNewScoreDialog() {
                      this.classList.add('nd-sel')"
       class="nd-instr-btn"
       data-name="${i.name}"
-      style="padding:8px 6px;border-radius:8px;border:1px solid rgba(212,152,74,0.18);
-             background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:11px;cursor:pointer;
+      style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
+             background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;
              text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
              -webkit-tap-highlight-color:transparent">
       ${i.name}${staveLabel}
@@ -8506,12 +8506,12 @@ function _renderNewScoreDialog() {
   makeModal(`
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
       <h2 style="margin:0">New Score</h2>
-      <div style="opacity:0.3"><span style="color:#d4984a;font-weight:700;font-size:16px">p</span><span style="color:#fff;font-weight:300;font-size:16px">auta</span></div>
+      <div style="opacity:0.3"><span style="color:#c05621;font-weight:700;font-size:16px">p</span><span style="color:#2d3748;font-weight:300;font-size:16px">auta</span></div>
     </div>
     <input id="nd-title" placeholder="Title" value="${prevTitle.replace(/"/g,'&quot;')}">
     <input id="nd-composer" placeholder="Composer (optional)" value="${prevComposer.replace(/"/g,'&quot;')}">
 
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(212,152,74,0.10);border-radius:10px;padding:8px 6px;margin-top:6px">
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(192,86,33,0.10);border-radius:10px;padding:8px 6px;margin-top:6px">
       <label style="color:rgba(200,192,176,0.55);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;display:block;text-align:center;margin-bottom:4px">Key &amp; Time Signature</label>
       <div style="display:flex;gap:4px;align-items:stretch">
         <!-- Key Signature -->
@@ -8520,11 +8520,11 @@ function _renderNewScoreDialog() {
           <div style="display:flex;align-items:center;justify-content:center;gap:2px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
               <div id="nd-ks-staff" style="line-height:0">${_ksMiniSVG(parseInt(prevKS))}</div>
-              <span id="nd-ks-label" style="font-size:10px;color:#d4984a;font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
+              <span id="nd-ks-label" style="font-size:10px;color:#c05621;font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-              <button id="nd-ks-next" onclick="ndKSAdj(1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(212,152,74,0.18);background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <button id="nd-ks-prev" onclick="ndKSAdj(-1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(212,152,74,0.18);background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button id="nd-ks-next" onclick="ndKSAdj(1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button id="nd-ks-prev" onclick="ndKSAdj(-1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
           <div id="nd-ks-accel" style="text-align:center;font-size:9px;color:rgba(200,192,176,0.40)"></div>
@@ -8535,15 +8535,15 @@ function _renderNewScoreDialog() {
           <input type="hidden" id="nd-ts-den" value="${initTSden}">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button onclick="ndTSNumAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(212,152,74,0.18);background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <span id="nd-ts-num-label" style="font-size:24px;color:#d4984a;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSnum}</span>
-              <button onclick="ndTSNumAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(212,152,74,0.18);background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button onclick="ndTSNumAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <span id="nd-ts-num-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSnum}</span>
+              <button onclick="ndTSNumAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
             <span style="font-size:24px;color:rgba(200,192,176,0.35);font-weight:100;line-height:1">/</span>
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button onclick="ndTSDenAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(212,152,74,0.18);background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <span id="nd-ts-den-label" style="font-size:24px;color:#d4984a;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSden}</span>
-              <button onclick="ndTSDenAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(212,152,74,0.18);background:rgba(255,255,255,0.06);color:#c8c0b0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button onclick="ndTSDenAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <span id="nd-ts-den-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSden}</span>
+              <button onclick="ndTSDenAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.18);background:rgba(255,255,255,0.06);color:#a0aec0;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
         </div>
@@ -8553,14 +8553,14 @@ function _renderNewScoreDialog() {
     <!-- Pickup measure toggle -->
     <div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding:2px 4px">
       <input type="checkbox" id="nd-pickup" onchange="ndPickupToggle()"
-        style="accent-color:#d4984a;width:14px;height:14px;cursor:pointer" ${prevPickup ? 'checked' : ''}>
+        style="accent-color:#c05621;width:14px;height:14px;cursor:pointer" ${prevPickup ? 'checked' : ''}>
       <label for="nd-pickup" style="color:var(--pal-label);font-size:10px;cursor:pointer">Pickup measure</label>
       <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:4px;margin-left:auto">
-        <select id="nd-pu-num" style="background:rgba(255,255,255,0.08);color:#c8c0b0;border:1px solid rgba(212,152,74,0.30);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
+        <select id="nd-pu-num" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
           ${[1,2,3,4,5,6,7].map(v => `<option value="${v}" ${String(v) === prevPuNum ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
         <span style="color:rgba(200,192,176,0.30);font-size:14px">/</span>
-        <select id="nd-pu-den" style="background:rgba(255,255,255,0.08);color:#c8c0b0;border:1px solid rgba(212,152,74,0.30);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
+        <select id="nd-pu-den" style="background:rgba(255,255,255,0.08);color:#a0aec0;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
           ${['4','8'].map(v => `<option value="${v}" ${v === prevPuDen ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
       </span>
@@ -8591,7 +8591,7 @@ function _renderNewScoreDialog() {
     const first = document.querySelector(`.nd-instr-btn[data-name="${firstInstr}"]`) || document.querySelector('.nd-instr-btn');
     if (first) first.classList.add('nd-sel');
     const style = document.createElement('style');
-    style.textContent = `.nd-sel{background:rgba(212,152,74,0.18)!important;border-color:rgba(212,152,74,0.50)!important;color:#d4984a!important;font-weight:600!important}`;
+    style.textContent = `.nd-sel{background:rgba(192,86,33,0.18)!important;border-color:rgba(192,86,33,0.50)!important;color:#c05621!important;font-weight:600!important}`;
     document.head.appendChild(style);
   }, 30);
 }
@@ -8732,12 +8732,12 @@ function showTitleDialog() {
     <input id="td-composer" value="${curComp.replace(/"/g,'&quot;')}" placeholder="Composer">
     <label style="color:rgba(200,192,176,0.6);font-size:11px;text-transform:uppercase;letter-spacing:0.3px">
       Title Font</label>
-    <select id="td-font" style="width:100%;padding:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(212,152,74,0.18);border-radius:8px;color:#c8c0b0;font-size:13px;-webkit-appearance:none">
+    <select id="td-font" style="width:100%;padding:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:13px;-webkit-appearance:none">
       ${fontOpts}
     </select>
     <label style="color:rgba(200,192,176,0.6);font-size:11px;text-transform:uppercase;letter-spacing:0.3px">
       Title Size</label>
-    <select id="td-size" style="width:100%;padding:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(212,152,74,0.18);border-radius:8px;color:#c8c0b0;font-size:13px;-webkit-appearance:none">
+    <select id="td-size" style="width:100%;padding:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#a0aec0;font-size:13px;-webkit-appearance:none">
       ${sizeOpts}
     </select>
     <button class="modal-btn primary" onclick="applyTitleDialog()">Apply</button>
@@ -8966,7 +8966,7 @@ function showLibError(msg) {
     `<div style="padding:28px;text-align:center;max-width:300px">
        <div style="font-size:22px;margin-bottom:12px;color:#e07060">⚠</div>
        <p style="color:#e07060;font-size:14px;line-height:1.6">${msg}</p>
-       <button onclick="location.reload()" style="margin-top:18px;padding:10px 22px;background:#d4984a;border:none;border-radius:10px;font-size:14px;cursor:pointer">Retry</button>
+       <button onclick="location.reload()" style="margin-top:18px;padding:10px 22px;background:#c05621;border:none;border-radius:10px;font-size:14px;cursor:pointer">Retry</button>
      </div>`;
 }
 
