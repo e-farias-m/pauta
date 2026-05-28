@@ -1457,7 +1457,7 @@ body{
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.8.0
+//  v0.9.0
 // ================================================================
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
@@ -4599,124 +4599,134 @@ function updateWoodwindDiagram() {
 }
 
 // ── Brass Diagram ─────────────────────────────────────────────────
-// Generic brass SVG showing valve casings or slide positions.
+// Simplified valve indicators and slide positions.
 // fing: valve string "000" etc., or slide position "1"-"7".
 // type: 'trumpet', 'horn', 'trombone', 'euphonium', 'tuba'
-const BRASS_BODY_PATHS = {
-  trumpet: 'M 52,14 L 50,14 Q 48,8 50,4 L 52,2 Q 56,0 58,4 L 58,10 L 58,46 L 44,46 L 44,108 Q 44,120 36,134 Q 28,148 16,168 L 26,182 Q 40,186 56,188 Q 64,189 70,189 Q 78,189 86,188 Q 102,186 116,182 L 126,168 Q 114,148 106,134 Q 98,120 98,108 L 98,46 L 84,46 L 84,10 Q 86,10 88,12 L 92,14 L 92,10 L 88,8 L 86,8 L 80,6 Q 78,4 76,2 Q 74,0 70,0 Q 64,0 62,4 Q 60,6 58,10 Z',
-  horn: 'M 70,10 L 70,2 Q 72,0 76,2 L 80,6 L 80,14 L 76,16 L 72,16 L 72,22 A 50,50 0 1,1 72,122 A 50,50 0 1,1 72,22 M 72,36 A 36,36 0 1,0 72,108 A 36,36 0 1,0 72,36 M 72,108 L 72,114 Q 72,118 68,120 L 64,120 Q 60,118 60,114 Q 60,110 64,108 Z M 56,108 Q 48,106 44,100 Q 40,92 44,86 Q 48,80 56,76 L 60,76 M 38,78 Q 28,76 22,80 Q 16,86 18,94 Q 22,100 28,104 Z',
-  euphonium: 'M 52,14 L 50,14 Q 48,8 50,4 L 52,2 Q 56,0 58,4 L 58,10 L 58,42 L 44,42 L 44,104 Q 44,116 36,130 Q 26,146 12,168 L 22,184 Q 38,188 56,190 Q 64,191 70,191 Q 78,191 86,190 Q 104,188 120,184 L 130,168 Q 116,146 106,130 Q 98,116 98,104 L 98,42 L 84,42 L 84,10 Q 86,10 88,12 L 92,14 L 92,10 L 88,8 L 86,8 L 80,6 Q 78,4 76,2 Q 74,0 70,0 Q 64,0 62,4 Q 60,6 58,10 Z',
-  tuba: 'M 54,12 L 52,12 Q 50,6 52,4 L 54,2 Q 58,0 60,4 L 60,10 L 60,38 L 40,38 L 40,90 Q 38,104 30,120 Q 20,138 6,164 L 16,184 Q 32,190 50,192 Q 60,193 70,193 Q 82,193 94,192 Q 110,190 126,184 L 136,164 Q 122,138 112,120 Q 104,104 102,90 L 102,38 L 82,38 L 82,10 Q 84,10 86,12 L 90,14 L 90,10 L 86,8 L 84,8 L 78,6 Q 76,4 74,2 Q 72,0 68,0 Q 62,0 60,4 Q 58,6 56,10 Z',
-  trombone: 'M 8,24 L 2,18 Q 0,22 0,28 Q 0,34 2,38 L 8,32 Q 10,30 12,28 L 12,24 Q 10,26 8,24 Z M 12,28 L 148,28 Q 148,24 150,22 L 166,20 Q 172,18 176,14 Q 180,10 182,8 L 186,14 Q 188,18 188,22 L 188,34 Q 188,38 186,42 L 182,48 Q 180,46 176,42 Q 172,38 166,36 L 150,34 Q 148,32 148,28 Z M 150,34 L 150,22 M 188,30 L 196,30 Q 200,30 200,26 Q 200,22 196,22 L 188,22 Z'
-};
-const BRASS_BODY_COLOR = '#e8d8c0';
-const BRASS_BODY_STROKE = '#b8a080';
-const BRASS_MP_COLOR = '#5a4a3a';
-
 function renderBrassDiagram(fing, type) {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('pointer-events', 'none');
 
   const isTrombone = type === 'trombone';
-  const w = isTrombone ? 200 : 140;
-  const h = isTrombone ? 80 : 240;
+  const isHorn = type === 'horn';
+  const has4Valves = type === 'euphonium' || type === 'tuba';
+  const nValves = has4Valves ? 4 : 3;
+
+  const w = isTrombone ? 180 : 100;
+  const h = isTrombone ? 60 : 160;
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
-  // Body silhouette
-  const bodyD = BRASS_BODY_PATHS[type] || BRASS_BODY_PATHS.trumpet;
-  const bodyEl = document.createElementNS(ns, 'path');
-  bodyEl.setAttribute('d', bodyD);
-  bodyEl.setAttribute('fill', type === 'trombone' ? '#f0e0c8' : BRASS_BODY_COLOR);
-  bodyEl.setAttribute('stroke', type === 'trombone' ? '#b8a080' : BRASS_BODY_STROKE);
-  bodyEl.setAttribute('stroke-width', '0.8');
-  svg.appendChild(bodyEl);
-
   if (isTrombone) {
-    // Slide position track — small dots above the slide rail
+    // Trombone: horizontal slide positions 1-7
     const slidePos = parseInt(fing) || 1;
-    const sx = 24 + (slidePos - 1) * 18;
-    const marker = document.createElementNS(ns, 'circle');
-    marker.setAttribute('cx', sx); marker.setAttribute('cy', 24);
-    marker.setAttribute('r', 6);
-    marker.setAttribute('fill', APP.playing ? '#ff5a4a' : '#222');
-    marker.setAttribute('stroke', APP.playing ? '#e04030' : '#222');
-    marker.setAttribute('stroke-width', '1');
-    svg.appendChild(marker);
+    const startX = 16;
+    const endX = w - 16;
+    const spacing = (endX - startX) / 6;
+    const cy = 28;
+
+    // Draw the slide rail (thin line)
+    const rail = document.createElementNS(ns, 'line');
+    rail.setAttribute('x1', startX); rail.setAttribute('y1', cy);
+    rail.setAttribute('x2', endX); rail.setAttribute('y2', cy);
+    rail.setAttribute('stroke', '#d0c8b8'); rail.setAttribute('stroke-width', '2');
+    rail.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(rail);
+
+    // Draw position markers
     for (let i = 1; i <= 7; i++) {
+      const x = startX + (i - 1) * spacing;
+      const isActive = i === slidePos;
+
+      // Position circle
+      const circle = document.createElementNS(ns, 'circle');
+      circle.setAttribute('cx', x); circle.setAttribute('cy', cy);
+      circle.setAttribute('r', isActive ? 10 : 7);
+      circle.setAttribute('fill', isActive ? (APP.playing ? '#ff5a4a' : '#c05621') : '#fff');
+      circle.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
+      circle.setAttribute('stroke-width', isActive ? 2 : 1.5);
+      svg.appendChild(circle);
+
+      // Position number
       const num = document.createElementNS(ns, 'text');
-      num.setAttribute('x', 24 + (i - 1) * 18);
-      num.setAttribute('y', 14);
+      num.setAttribute('x', x); num.setAttribute('y', cy + 3);
       num.setAttribute('text-anchor', 'middle');
-      num.setAttribute('font-size', '7');
-      num.setAttribute('fill', i === slidePos ? '#c05621' : '#888');
-      num.setAttribute('font-family', 'Georgia,serif');
+      num.setAttribute('font-size', isActive ? '10' : '9');
+      num.setAttribute('font-weight', isActive ? '700' : '500');
+      num.setAttribute('fill', isActive ? '#fff' : '#888');
+      num.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
       num.textContent = String(i);
       svg.appendChild(num);
     }
+
+    // Label below
+    const lbl = document.createElementNS(ns, 'text');
+    lbl.setAttribute('x', w / 2); lbl.setAttribute('y', h - 4);
+    lbl.setAttribute('text-anchor', 'middle');
+    lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
+    lbl.setAttribute('fill', '#c05621');
+    lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    lbl.textContent = 'Trombone';
+    svg.appendChild(lbl);
+
   } else {
-    // Valve casings for trumpet, horn, euphonium, tuba
-    const has4Valves = type === 'euphonium' || type === 'tuba';
-    const nValves = has4Valves ? 4 : 3;
-    const isHorn = type === 'horn';
-
-    const valveSpacing = has4Valves ? 22 : 28;
-    const valveStartX = has4Valves ? 64 : 70;
-    const valveY = isHorn ? 72 : 50;
-
+    // Valve instruments: vertical column of circles
     const pressed = new Set();
     for (let i = 0; i < fing.length; i++) {
       if (fing[i] === '1') pressed.add(i);
     }
+
+    const circleR = 16;
+    const spacing = 40;
+    const startX = w / 2;
+    const startY = 30;
+
     for (let vi = 0; vi < nValves; vi++) {
-      const vx = isHorn ? 68 : (valveStartX + vi * valveSpacing);
-      const vy = isHorn ? (valveY + vi * 22) : valveY;
+      const cy = startY + vi * spacing;
       const isP = pressed.has(vi);
-      const vw = isHorn ? 12 : 14;
-      const vh = isHorn ? 14 : 28;
-      const v = document.createElementNS(ns, 'rect');
-      v.setAttribute('x', vx); v.setAttribute('y', vy);
-      v.setAttribute('width', vw); v.setAttribute('height', vh);
-      v.setAttribute('rx', isHorn ? 4 : 3);
-      v.setAttribute('fill', isP ? (APP.playing ? '#ff5a4a' : '#555') : '#aaa');
-      v.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : '#333') : '#777');
-      v.setAttribute('stroke-width', '1');
-      svg.appendChild(v);
-      if (!isHorn) {
-        const cap = document.createElementNS(ns, 'rect');
-        cap.setAttribute('x', vx + 3); cap.setAttribute('y', vy - 4);
-        cap.setAttribute('width', 8); cap.setAttribute('height', 6);
-        cap.setAttribute('rx', 2);
-        cap.setAttribute('fill', isP ? (APP.playing ? '#ff5a4a' : '#444') : '#888');
-        cap.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : '#333') : '#555');
-        cap.setAttribute('stroke-width', '0.5');
-        svg.appendChild(cap);
-      }
+
+      // Outer circle (shadow/border)
+      const outer = document.createElementNS(ns, 'circle');
+      outer.setAttribute('cx', startX); outer.setAttribute('cy', cy);
+      outer.setAttribute('r', circleR + 2);
+      outer.setAttribute('fill', 'none');
+      outer.setAttribute('stroke', isP ? (APP.playing ? '#ff5a4a' : '#c05621') : '#e0d8c8');
+      outer.setAttribute('stroke-width', isP ? 2 : 1);
+      svg.appendChild(outer);
+
+      // Main circle
+      const circle = document.createElementNS(ns, 'circle');
+      circle.setAttribute('cx', startX); circle.setAttribute('cy', cy);
+      circle.setAttribute('r', circleR);
+      circle.setAttribute('fill', isP ? (APP.playing ? '#ff5a4a' : '#c05621') : '#fff');
+      circle.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
+      circle.setAttribute('stroke-width', 1.5);
+      svg.appendChild(circle);
+
       // Valve number
       const num = document.createElementNS(ns, 'text');
-      num.setAttribute('x', vx + vw / 2);
-      num.setAttribute('y', vy + vh / 2 + 2);
+      num.setAttribute('x', startX); num.setAttribute('y', cy + 4);
       num.setAttribute('text-anchor', 'middle');
-      num.setAttribute('font-size', '7');
+      num.setAttribute('font-size', '12');
       num.setAttribute('font-weight', '700');
-      num.setAttribute('fill', isP ? '#fff' : '#333');
-      num.setAttribute('font-family', 'Helvetica,sans-serif');
+      num.setAttribute('fill', isP ? '#fff' : '#888');
+      num.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
       num.textContent = String(vi + 1);
       svg.appendChild(num);
     }
-  }
 
-  const name = type.charAt(0).toUpperCase() + type.slice(1);
-  const lbl = document.createElementNS(ns, 'text');
-  lbl.setAttribute('x', w / 2); lbl.setAttribute('y', isTrombone ? 74 : 228);
-  lbl.setAttribute('text-anchor', 'middle');
-  lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
-  lbl.setAttribute('fill', '#c05621');
-  lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-  lbl.textContent = name;
-  svg.appendChild(lbl);
+    // Label below
+    const name = type.charAt(0).toUpperCase() + type.slice(1);
+    const lbl = document.createElementNS(ns, 'text');
+    lbl.setAttribute('x', w / 2); lbl.setAttribute('y', h - 10);
+    lbl.setAttribute('text-anchor', 'middle');
+    lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
+    lbl.setAttribute('fill', '#c05621');
+    lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    lbl.textContent = name;
+    svg.appendChild(lbl);
+  }
 
   g.appendChild(svg);
   return g;
