@@ -1833,27 +1833,27 @@ function woodwindFingeringForPitch(pitch, type) {
 // Trumpet/Horn: 3 valves. Trombone: slide position '1'-'7'.
 // Euphonium/Tuba: 4 valves.
 const TRUMPET_FINGERINGS = {
-  60:'000', 61:'110', 62:'100', 63:'010', 64:'000',
-  65:'100', 66:'010', 67:'000', 68:'011', 69:'110',
-  70:'100', 71:'010', 72:'000', 73:'110', 74:'100',
-  75:'010', 76:'000', 77:'011', 78:'110', 79:'100',
-  80:'010', 81:'000', 82:'011', 83:'110', 84:'100',
+  60:'000', 61:'111', 62:'101', 63:'010', 64:'110',
+  65:'100', 66:'011', 67:'000', 68:'111', 69:'110',
+  70:'100', 71:'011', 72:'000', 73:'111', 74:'101',
+  75:'010', 76:'110', 77:'100', 78:'011', 79:'000',
+  80:'111', 81:'110', 82:'100', 83:'011', 84:'000',
 };
 const HORN_FINGERINGS = {
-  60:'000', 61:'110', 62:'100', 63:'010', 64:'000',
-  65:'100', 66:'010', 67:'000', 68:'011', 69:'110',
-  70:'100', 71:'010', 72:'000', 73:'110', 74:'100',
-  75:'010', 76:'000', 77:'011', 78:'110', 79:'100',
-  80:'010', 81:'000', 82:'011', 83:'110', 84:'100',
+  60:'0000', 61:'0010', 62:'0100', 63:'0000', 64:'0010',
+  65:'0100', 66:'0110', 67:'0000', 68:'0010', 69:'0100',
+  70:'0000', 71:'0010', 72:'0000', 73:'0010', 74:'0100',
+  75:'0000', 76:'0010', 77:'0100', 78:'0110', 79:'0000',
+  80:'0010', 81:'0100', 82:'0000', 83:'0010', 84:'0000',
 };
 const TROMBONE_FINGERINGS = {
-  48:'1', 49:'2', 50:'3', 51:'4', 52:'1', 53:'2',
-  54:'3', 55:'4', 56:'5', 57:'1', 58:'2', 59:'3',
-  60:'4', 61:'5', 62:'6', 63:'1', 64:'2', 65:'3',
-  66:'4', 67:'5', 68:'6', 69:'7', 70:'1', 71:'2',
-  72:'3', 73:'4', 74:'5', 75:'6', 76:'7', 77:'1',
-  78:'2', 79:'3', 80:'4', 81:'5', 82:'6', 83:'7',
-  84:'1',
+  40:'7', 41:'6', 42:'5', 43:'4', 44:'3', 45:'2', 46:'1',
+  47:'7', 48:'6', 49:'5', 50:'4', 51:'3', 52:'2', 53:'1',
+  54:'7', 55:'4', 56:'3', 57:'2', 58:'1', 59:'3', 60:'2', 61:'1',
+  62:'4', 63:'3', 64:'2', 65:'1',
+  66:'7', 67:'6', 68:'3', 69:'2', 70:'1', 71:'3', 72:'2', 73:'1',
+  74:'4', 75:'3', 76:'2', 77:'1',
+  78:'7', 79:'6', 80:'5', 81:'2', 82:'1', 83:'3', 84:'2',
 };
 const EUPHONIUM_FINGERINGS = {
   52:'0000', 53:'1000', 54:'0100', 55:'0010', 56:'1100',
@@ -2870,7 +2870,7 @@ function renderScore() {
 
             if (instr && instr.recorder) {
               const recG = renderLargeRecorder('');
-              const recScale = nStaves > 1 ? 2.0 : 1.5;
+              const recScale = nStaves > 1 ? 2.2 : 1.65;
               recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY - 94 * recScale}) scale(${recScale})`);
               recG.setAttribute('id', diagramId);
               recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
@@ -4286,9 +4286,10 @@ function renderLargeRecorder(fing) {
   inner.setAttribute('transform', 'scale(0.35)');
 
   // Body paths from the SVG use raw coordinates offset by (-286.62, -243.23)
-  // to map into the 50×500 viewBox space
+  // to map into the 50×500 viewBox space.
+  // Flip vertically so mouthpiece points down, bell points up.
   const bodyGrp = document.createElementNS(ns, 'g');
-  bodyGrp.setAttribute('transform', 'translate(-286.62, -243.23)');
+  bodyGrp.setAttribute('transform', 'translate(-286.62, -243.23) translate(0, 432) scale(1, -1)');
 
   function p(d, fill, stroke, sw) {
     const el = document.createElementNS(ns, 'path');
@@ -4334,6 +4335,7 @@ function renderLargeRecorder(fing) {
   // SVG hole positions for the OpenClipArt recorder (viewBox coordinates)
   // The SVG shows 9 visible front holes: 5 singles (1-5) + 2 double pairs (6-7, 8-9).
   // Thumb (id 0) is on the back — shown as a separate indicator above the recorder.
+  // Holes are appended to bodyGrp so they share the flip transform.
   const SVG_HOLES = [
     [ '1', 24.8, 222.7, 6.3, false ],  // index
     [ '2', 24.8, 257.4, 6.3, false ],  // middle
@@ -4356,21 +4358,21 @@ function renderLargeRecorder(fing) {
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.8');
-    inner.appendChild(el);
+    bodyGrp.appendChild(el);
   }
   for (const [hx, hy, hr] of [[20.8,385.3,3.6],[29.7,386.5,2.6]]) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.6');
-    inner.appendChild(el);
+    bodyGrp.appendChild(el);
   }
   for (const [hx, hy, hr] of [[17.1,418.2,3.6],[25.2,419.5,2.6]]) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.6');
-    inner.appendChild(el);
+    bodyGrp.appendChild(el);
   }
 
   // Hole overlays — fingering indicators
@@ -4379,15 +4381,17 @@ function renderLargeRecorder(fing) {
 
   for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
     const isCovered = covered.has(id);
+    // Make covered holes slightly larger for better visibility
+    const drawRx = isCovered ? rx * 1.2 : rx;
 
     const el = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
     el.setAttribute('cx', hx);
     el.setAttribute('cy', hy);
     if (isEllipse) {
-      el.setAttribute('rx', rx);
-      el.setAttribute('ry', rx);
+      el.setAttribute('rx', drawRx);
+      el.setAttribute('ry', drawRx);
     } else {
-      el.setAttribute('r', rx);
+      el.setAttribute('r', drawRx);
     }
     if (isCovered) {
       el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
@@ -4398,17 +4402,17 @@ function renderLargeRecorder(fing) {
       el.setAttribute('stroke', '#7a5a30');
       el.setAttribute('stroke-width', '0.8');
     }
-    inner.appendChild(el);
+    bodyGrp.appendChild(el);
 
     if (isCovered) {
       const inner2 = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
       inner2.setAttribute('cx', hx - 0.5);
       inner2.setAttribute('cy', hy - 0.5);
-      if (isEllipse) { inner2.setAttribute('rx', rx * 0.4); inner2.setAttribute('ry', rx * 0.4); }
-      else { inner2.setAttribute('r', rx * 0.4); }
+      if (isEllipse) { inner2.setAttribute('rx', drawRx * 0.4); inner2.setAttribute('ry', drawRx * 0.4); }
+      else { inner2.setAttribute('r', drawRx * 0.4); }
       inner2.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.5)' : 'rgba(0,0,0,0.3)');
       inner2.setAttribute('stroke', 'none');
-      inner.appendChild(inner2);
+      bodyGrp.appendChild(inner2);
     }
   }
 
@@ -4421,14 +4425,14 @@ function renderLargeRecorder(fing) {
     el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
     el.setAttribute('stroke', APP.playing ? '#e04030' : 'none');
     if (APP.playing) el.setAttribute('stroke-width', '1');
-    inner.appendChild(el);
+    bodyGrp.appendChild(el);
     if (APP.playing) {
       const hi = document.createElementNS(ns, 'circle');
       hi.setAttribute('cx', tx - 0.5); hi.setAttribute('cy', ty - 0.5);
       hi.setAttribute('r', 1.6);
       hi.setAttribute('fill', 'rgba(255,90,74,0.5)');
       hi.setAttribute('stroke', 'none');
-      inner.appendChild(hi);
+      bodyGrp.appendChild(hi);
     }
   } else {
     const el = document.createElementNS(ns, 'circle');
@@ -4436,7 +4440,7 @@ function renderLargeRecorder(fing) {
     el.setAttribute('fill', '#3a2510');
     el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.8');
-    inner.appendChild(el);
+    bodyGrp.appendChild(el);
   }
   // Pinched thumb: top-half filled semi-ellipse
   if (thumbPinched) {
@@ -4444,7 +4448,7 @@ function renderLargeRecorder(fing) {
     semi.setAttribute('d', 'M 20.8,190 A 4,2.5 0 0,1 28.8,190 Z');
     semi.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
     semi.setAttribute('stroke', 'none');
-    inner.appendChild(semi);
+    bodyGrp.appendChild(semi);
   }
   // "T" label
   const lbl = document.createElementNS(ns, 'text');
@@ -4454,7 +4458,7 @@ function renderLargeRecorder(fing) {
   lbl.setAttribute('fill', '#7a5a30');
   lbl.setAttribute('font-family', 'Georgia,sans-serif');
   lbl.textContent = 'T';
-  inner.appendChild(lbl);
+  bodyGrp.appendChild(lbl);
 
   g.appendChild(inner);
 
@@ -4610,7 +4614,7 @@ function renderBrassDiagram(fing, type) {
 
   const isTrombone = type === 'trombone';
   const isHorn = type === 'horn';
-  const has4Valves = type === 'euphonium' || type === 'tuba';
+    const has4Valves = type === 'euphonium' || type === 'tuba' || type === 'horn';
   const nValves = has4Valves ? 4 : 3;
 
   const w = isTrombone ? 180 : 100;
@@ -4673,6 +4677,7 @@ function renderBrassDiagram(fing, type) {
 
   } else {
     // Valve instruments: vertical column of circles
+    // Display order: 3-2-1 (3 on top, 1 on bottom) to match player's perspective
     const pressed = new Set();
     for (let i = 0; i < fing.length; i++) {
       if (fing[i] === '1') pressed.add(i);
@@ -4685,7 +4690,10 @@ function renderBrassDiagram(fing, type) {
 
     for (let vi = 0; vi < nValves; vi++) {
       const cy = startY + vi * spacing;
-      const isP = pressed.has(vi);
+      // Valve number displayed is reversed: 3 on top, 1 on bottom
+      const valveNum = nValves - vi;
+      // Check if this valve is pressed (index in fing string is valveNum-1)
+      const isP = pressed.has(valveNum - 1);
 
       // Outer circle (shadow/border)
       const outer = document.createElementNS(ns, 'circle');
@@ -4713,7 +4721,7 @@ function renderBrassDiagram(fing, type) {
       num.setAttribute('font-weight', '700');
       num.setAttribute('fill', isP ? '#fff' : '#888');
       num.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-      num.textContent = String(vi + 1);
+      num.textContent = String(valveNum);
       svg.appendChild(num);
     }
 
