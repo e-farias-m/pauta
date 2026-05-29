@@ -2871,7 +2871,7 @@ function renderScore() {
             if (instr && instr.recorder) {
               const recG = renderLargeRecorder('');
               const recScale = nStaves > 1 ? 2.2 : 1.65;
-              recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY + 46 * recScale}) scale(${recScale})`);
+              recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY + 94 * recScale}) scale(${recScale})`);
               recG.setAttribute('id', diagramId);
               recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
               recG.setAttribute('data-instr-type', 'recorder');
@@ -2894,7 +2894,7 @@ function renderScore() {
               const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
               const brG = renderBrassDiagram('', shorthand);
               const scale = 1.0;
-              brG.setAttribute('transform', `translate(${MARGIN_X - 140},${diagramCY - 100}) scale(${scale})`);
+              brG.setAttribute('transform', `translate(${MARGIN_X - 110},${diagramCY - 100}) scale(${scale})`);
               brG.setAttribute('id', diagramId);
               brG.setAttribute('data-instr-type', 'brass');
               brG.setAttribute('data-instr-name', shorthand);
@@ -3137,12 +3137,12 @@ function positionAllDiagrams() {
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.5;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${MARGIN_X - 78 + scrollLeft},${recCY + 46 * recScale}) scale(${recScale})`);
+    el.setAttribute('transform', `translate(${MARGIN_X - 78 + scrollLeft},${recCY + 94 * recScale}) scale(${recScale})`);
   });
   // Woodwind/brass diagrams
   document.querySelectorAll('[data-instr-type="woodwind"], [data-instr-type="brass"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
-    el.setAttribute('transform', `translate(${MARGIN_X - 140 + scrollLeft},${cy - 100}) scale(1.0)`);
+    el.setAttribute('transform', `translate(${MARGIN_X - 110 + scrollLeft},${cy - 100}) scale(1.0)`);
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
