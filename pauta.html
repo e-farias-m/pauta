@@ -1458,7 +1458,7 @@ body{
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.11.0
+//  v0.12.0
 // ================================================================
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
@@ -1499,7 +1499,7 @@ const APP = {
   // ── Glissando state ───────────────────────────────────────────
   glissPending: null,  // null | {startMi,startNi,si,style} — waiting for end note
   // ── Boomwhacker options ───────────────────────────────────────
-  bwNoteNames: true,   // show note letter inside boomwhacker noteheads
+  bwNoteNames: true,   // show note letter inside every notehead
   showRecorderFingering: false, // show recorder fingerings on recorder notes
   // ── Educational labels ────────────────────────────────────────
   showNoteLabels: false,   // toggle solfege labels on all notes
@@ -1830,8 +1830,8 @@ function woodwindFingeringForPitch(pitch, type) {
 
 // ── Brass Fingering Tables ────────────────────────────────────────
 // Valve strings: '0' = open, '1' = pressed for each valve.
-// Trumpet/Horn: 3 valves. Trombone: slide position '1'-'7'.
-// Euphonium/Tuba: 4 valves.
+// Trumpet: 3 valves. Horn: 3 valves + trigger. Trombone: slide position '1'-'7'.
+// Euphonium/Tuba: 3 valves.
 const TRUMPET_FINGERINGS = {
   60:'000', 61:'111', 62:'101', 63:'010', 64:'110',
   65:'100', 66:'011', 67:'000', 68:'111', 69:'110',
@@ -3030,6 +3030,7 @@ function renderScore() {
   renderNavigationMarkers();
   renderLyricClickHandlers(); // attach click handlers to VF.Annotation lyric elements
   renderBWNoteheads(); // must be last — patches SVG paths painted by VexFlow
+  renderNoteheadLabels();
   renderGraceClickOverlays();
 
   // Update line break button state
@@ -3109,34 +3110,63 @@ function renderScore() {
   positionAllDiagrams();
 }
 
+let _scrollAnim = null;
+
+function _smoothScroll(el, prop, to, dur) {
+  if (_scrollAnim && _scrollAnim.el === el && _scrollAnim.prop === prop) {
+    _scrollAnim.cancelled = true;
+  }
+  const from = el[prop];
+  if (Math.abs(to - from) < 2) { el[prop] = to; return; }
+  const start = performance.now();
+  const anim = { el, prop, from, to, dur, cancelled: false };
+  _scrollAnim = anim;
+  function tick(now) {
+    if (anim.cancelled) return;
+    const t = Math.min((now - start) / anim.dur, 1);
+    const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    el[prop] = anim.from + (anim.to - anim.from) * ease;
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
 function scrollToSelectedMeasure() {
   const mi = APP.selectedMeasure;
   if (!APP.staveLayout || !APP.staveLayout.length) return;
   const sl = APP.staveLayout.find(l => l.mi === mi && l.si === (APP.selectedStaff || 0));
   if (!sl) return;
-  const area = document.getElementById('score-area');
-  if (!area) return;
-  const svg = area.querySelector('svg');
-  if (!svg) return;
-  const svgRect = svg.getBoundingClientRect();
-  const areaRect = area.getBoundingClientRect();
+
+  const baseDur = APP.playing ? 1200 : 600;
 
   if (APP.continuousView) {
-    const measureX = svgRect.left + sl.x;
-    const viewLeft = areaRect.left;
-    const viewRight = areaRect.right;
-    const margin = areaRect.width * 0.3;
-    if (measureX > viewLeft + 20 && measureX < viewRight - margin) return;
-    const target = Math.max(0, area.scrollLeft + (measureX - viewLeft) - areaRect.width * 0.15);
-    area.scrollTo({ left: target, behavior: 'smooth' });
+    const container = document.getElementById('score-svg');
+    if (!container) return;
+    const scrollLeft = container.scrollLeft || 0;
+    const viewWidth  = container.clientWidth;
+    const measureX   = sl.x;
+    const margin     = viewWidth * 0.3;
+    if (measureX > scrollLeft + 20 && measureX < scrollLeft + viewWidth - margin) return;
+    const target = Math.max(0, measureX - viewWidth * 0.15);
+    const dist = Math.abs(target - scrollLeft);
+    const dur = Math.max(baseDur * 0.4, Math.min(baseDur * 1.5, dist * (baseDur / viewWidth)));
+    _smoothScroll(container, 'scrollLeft', target, dur);
   } else {
     // Vertical scroll in page view
+    const area = document.getElementById('score-area');
+    if (!area) return;
+    const areaRect = area.getBoundingClientRect();
+    const svg = area.querySelector('svg');
+    if (!svg) return;
+    const svgRect = svg.getBoundingClientRect();
     const measureY = svgRect.top + sl.y;
     const viewTop = areaRect.top;
     const viewBot = areaRect.bottom;
     if (measureY > viewTop + 20 && measureY < viewBot - 20) return;
     const target = Math.max(0, area.scrollTop + (measureY - viewTop) - areaRect.height * 0.35);
-    area.scrollTo({ top: target, behavior: 'smooth' });
+    const dist = Math.abs(target - (area.scrollTop || 0));
+    const dur = Math.max(baseDur * 0.4, Math.min(baseDur * 1.5, dist * (baseDur / areaRect.height)));
+    _smoothScroll(area, 'scrollTop', target, dur);
   }
 }
 
@@ -4631,7 +4661,7 @@ function renderBrassDiagram(fing, type) {
 
   const isTrombone = type === 'trombone';
   const isHorn = type === 'horn';
-    const has4Valves = type === 'horn';
+  const has4Valves = isHorn;
   const nValves = has4Valves ? 4 : 3;
 
   const w = isTrombone ? 180 : 100;
@@ -4810,6 +4840,22 @@ function updateBrassDiagram() {
 // VexFlow draws filled noteheads as <path fill="colour"> — we can't stroke
 // them before draw. We scan the SVG after draw, match paths to note positions,
 // and: for BW → add black outline; for both BW+BR → add note-name letter.
+// Resolve the correct diatonic letter for a note, respecting accidental and key signature
+function noteLetter(n, ks) {
+  const pc = n.pitch % 12;
+  const acc = n.accidental;
+  if (acc === 'b') return NOTE_NAMES[PC_TO_DIA[(pc + 1) % 12]].toUpperCase();
+  if (acc === '#') return NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]].toUpperCase();
+  if (acc === 'n') return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
+  if (ks < 0 && !DIATONIC_PCS.has(pc)) {
+    return NOTE_NAMES[PC_TO_DIA[(pc + 1) % 12]].toUpperCase();
+  }
+  if (ks > 0 && !DIATONIC_PCS.has(pc)) {
+    return NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]].toUpperCase();
+  }
+  return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
+}
+
 function renderBWNoteheads() {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score) return;
@@ -4843,27 +4889,6 @@ function renderBWNoteheads() {
   if (allLargeNotes.length === 0 && recNotes.length === 0) return;
 
   const HIT_RADIUS = 22;
-
-  // Resolve the correct diatonic letter for a note, respecting accidental and key signature
-  function noteLetter(n, ks) {
-    const pc = n.pitch % 12;
-    const acc = n.accidental;
-    // Explicit accidental determines the letter
-    if (acc === 'b') return NOTE_NAMES[PC_TO_DIA[(pc + 1) % 12]].toUpperCase();
-    if (acc === '#') return NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]].toUpperCase();
-    if (acc === 'n') return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
-    // No explicit accidental: key signature context guides spelling
-    if (ks < 0 && !DIATONIC_PCS.has(pc)) {
-      // Flat key + chromatic note → spell as flat (e.g. Eb, not D#)
-      return NOTE_NAMES[PC_TO_DIA[(pc + 1) % 12]].toUpperCase();
-    }
-    if (ks > 0 && !DIATONIC_PCS.has(pc)) {
-      // Sharp key + chromatic note → spell as sharp (e.g. F#, not Gb)
-      return NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]].toUpperCase();
-    }
-    // Diatonic note or neutral key → use direct mapping
-    return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
-  }
 
   const paths = svgEl.querySelectorAll('path');
 
@@ -4954,30 +4979,34 @@ function renderBWNoteheads() {
     }
   });
 
-  // ── Note names in ALL noteheads ─────────────────────────────
-  if (APP.bwNoteNames) {
-    paths.forEach(path => {
-      let bbox;
-      try { bbox = path.getBBox(); } catch(e) { return; }
-      if (bbox.width < 4 || bbox.height < 2) return;
-      const cx = bbox.x + bbox.width / 2;
-      const cy = bbox.y + bbox.height / 2;
-      let matched = null, bestDist = 22;
-      APP.noteLayout.forEach(nl => {
-        const d = Math.hypot(cx - nl.x, cy - nl.y);
-        if (d < bestDist) { bestDist = d; matched = nl; }
-      });
-      if (!matched) return;
-      const m = getMeasureBySI(matched.si, matched.mi);
-      const n = m?.notes[matched.ni];
-      if (!n || n.type !== 'note') return;
-      const fill = (path.getAttribute('fill') || '').toLowerCase().trim();
-      const isOpen = fill === '#ffffff' || fill === 'white' || fill === '#fff';
-      const ks = getResolvedKeySig(matched.mi, matched.si);
-      const letter = noteLetter(n, ks);
-      addNoteLabel(svgEl, letter, cx, cy, bbox.height, isOpen ? '#000' : '#ffffff');
+}
+
+function renderNoteheadLabels() {
+  if (!APP.bwNoteNames) return;
+  const svgEl = document.getElementById('score-svg').querySelector('svg');
+  if (!svgEl || !APP.score) return;
+  const paths = svgEl.querySelectorAll('path');
+  paths.forEach(path => {
+    let bbox;
+    try { bbox = path.getBBox(); } catch(e) { return; }
+    if (bbox.width < 4 || bbox.height < 2) return;
+    const cx = bbox.x + bbox.width / 2;
+    const cy = bbox.y + bbox.height / 2;
+    let matched = null, bestDist = 22;
+    APP.noteLayout.forEach(nl => {
+      const d = Math.hypot(cx - nl.x, cy - nl.y);
+      if (d < bestDist) { bestDist = d; matched = nl; }
     });
-  }
+    if (!matched) return;
+    const m = getMeasureBySI(matched.si, matched.mi);
+    const n = m?.notes[matched.ni];
+    if (!n || n.type !== 'note') return;
+    const fill = (path.getAttribute('fill') || '').toLowerCase().trim();
+    const isOpen = fill === '#ffffff' || fill === 'white' || fill === '#fff';
+    const ks = getResolvedKeySig(matched.mi, matched.si);
+    const letter = noteLetter(n, ks);
+    addNoteLabel(svgEl, letter, cx, cy, bbox.height, isOpen ? '#000' : '#ffffff');
+  });
 }
 
 // Draw a note-name letter centred on a notehead
@@ -5325,6 +5354,7 @@ function handleScoreTap(e) {
       APP.selectedNoteIdx = bestNote.ni;
       APP.selStartIdx = -1;
       renderScore();
+      scrollToSelectedMeasure();
       const _stave = getStaveBySI(bestNote.si);
       const n = _stave?.measures[bestNote.mi]?.notes[bestNote.ni];
       if (n) {
@@ -5393,6 +5423,7 @@ function handleScoreTap(e) {
       n.pitch = newPitch;
       n.accidental = DIATONIC_PCS.has(newPitch % 12) ? null : (getResolvedKeySig(hit.mi, hit.si) < 0 ? 'b' : '#');
       renderScore();
+      scrollToSelectedMeasure();
     }
   } else {
     APP.selectedNoteIdx = -1;
@@ -5602,6 +5633,7 @@ function insertNote(mi, si, pitch) {
   APP.selectedStaff   = si;
   APP.selectedNoteIdx = measure.notes.indexOf(entry);
   renderScore();
+  scrollToSelectedMeasure();
 
   const pc2     = pitch % 12;
   const name    = NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase();
@@ -5745,6 +5777,7 @@ function changePitchOfSelected(name) {
     n.accidental = keyAcc ? 'n' : null;
   }
   renderScore();
+  scrollToSelectedMeasure();
   const noteName = NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
   const oct = Math.floor(newPitch / 12) - 1;
   showToast(`Changed to ${noteName}${oct}`);
@@ -6806,6 +6839,7 @@ function navigateNote(direction, extend) {
     }
   }
   renderScore();
+  scrollToSelectedMeasure();
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (n) {
     const label = n.type === 'rest'
@@ -7053,6 +7087,8 @@ function rewindPlayback() {
   document.getElementById('play-pos').textContent = '0:00';
   const scoreArea = document.getElementById('score-area');
   if (scoreArea) scoreArea.scrollTop = 0;
+  const scoreSvg = document.getElementById('score-svg');
+  if (scoreSvg) scoreSvg.scrollLeft = 0;
   renderScore();
   showToast('Rewound to start');
 }
