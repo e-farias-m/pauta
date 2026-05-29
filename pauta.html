@@ -2871,7 +2871,7 @@ function renderScore() {
             if (instr && instr.recorder) {
               const recG = renderLargeRecorder('');
               const recScale = nStaves > 1 ? 2.2 : 1.65;
-              recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY + 94 * recScale}) scale(${recScale})`);
+              recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY + 105 * recScale}) scale(${recScale})`);
               recG.setAttribute('id', diagramId);
               recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
               recG.setAttribute('data-instr-type', 'recorder');
@@ -3137,7 +3137,7 @@ function positionAllDiagrams() {
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.5;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${MARGIN_X - 78 + scrollLeft},${recCY + 94 * recScale}) scale(${recScale})`);
+    el.setAttribute('transform', `translate(${MARGIN_X - 78 + scrollLeft},${recCY + 105 * recScale}) scale(${recScale})`);
   });
   // Woodwind/brass diagrams
   document.querySelectorAll('[data-instr-type="woodwind"], [data-instr-type="brass"]').forEach(el => {
@@ -4332,47 +4332,46 @@ function renderLargeRecorder(fing) {
 
   inner.appendChild(bodyGrp);
 
-  // SVG hole positions for the OpenClipArt recorder (viewBox coordinates)
-  // The SVG shows 9 visible front holes: 5 singles (1-5) + 2 double pairs (6-7, 8-9).
-  // Thumb (id 0) is on the back — shown as a separate indicator above the recorder.
-  // Holes are appended to bodyGrp so they share the flip transform.
+  // SVG hole positions for the flipped recorder (inner-space coordinates)
+  // Holes are in `inner` (not bodyGrp) so they don't go through the flip transform.
+  // Y values calculated for the flipped body position.
   const SVG_HOLES = [
-    [ '1', 24.8, 222.7, 6.3, false ],  // index
-    [ '2', 24.8, 257.4, 6.3, false ],  // middle
-    [ '3', 24.8, 294.7, 6.3, false ],  // ring
-    [ '4', 24.8, 325.4, 4.1, false ],  // pinky (smaller)
-    [ '5', 24.8, 359.2, 6.3, false ],  // 5th single
-    [ '6', 20.8, 385.3, 3.6, false ],  // 6a — circle
-    [ '7', 29.7, 386.5, 2.6, false ],  // 6b
-    [ '8', 17.1, 418.2, 3.6, false ],  // 7a
-    [ '9', 25.2, 419.5, 2.6, false ],  // 7b
+    [ '1', 24.8, -278.0, 6.3, false ],
+    [ '2', 24.8, -312.5, 6.3, false ],
+    [ '3', 24.8, -350.0, 6.3, false ],
+    [ '4', 24.8, -380.6, 4.1, false ],
+    [ '5', 24.8, -414.7, 6.3, false ],
+    [ '6', 20.8, -440.5, 3.6, false ],  // 6a
+    [ '7', 29.7, -441.8, 2.6, false ],  // 6b
+    [ '8', 17.1, -473.7, 3.6, false ],  // 7a
+    [ '9', 25.2, -475.0, 2.6, false ],  // 7b
   ];
 
-  // Built-in hole base shapes (9 visible front holes: 5 singles + 2 double pairs)
+  // Built-in hole base shapes (inner-space coordinates)
   const holeDefs = [
-    [24.8,222.7,6.3],[24.8,257.4,6.3],[24.8,294.7,6.3],[24.8,325.4,4.1],
-    [24.8,359.2,6.3]
+    [24.8,-278.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
+    [24.8,-380.6,4.1],[24.8,-414.7,6.3]
   ];
   for (const [hx, hy, hr] of holeDefs) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.8');
-    bodyGrp.appendChild(el);
+    inner.appendChild(el);
   }
-  for (const [hx, hy, hr] of [[20.8,385.3,3.6],[29.7,386.5,2.6]]) {
+  for (const [hx, hy, hr] of [[20.8,-440.5,3.6],[29.7,-441.8,2.6]]) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.6');
-    bodyGrp.appendChild(el);
+    inner.appendChild(el);
   }
-  for (const [hx, hy, hr] of [[17.1,418.2,3.6],[25.2,419.5,2.6]]) {
+  for (const [hx, hy, hr] of [[17.1,-473.7,3.6],[25.2,-475.0,2.6]]) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.6');
-    bodyGrp.appendChild(el);
+    inner.appendChild(el);
   }
 
   // Hole overlays — fingering indicators
@@ -4381,7 +4380,6 @@ function renderLargeRecorder(fing) {
 
   for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
     const isCovered = covered.has(id);
-    // Make covered holes slightly larger for better visibility
     const drawRx = isCovered ? rx * 1.2 : rx;
 
     const el = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
@@ -4402,7 +4400,7 @@ function renderLargeRecorder(fing) {
       el.setAttribute('stroke', '#7a5a30');
       el.setAttribute('stroke-width', '0.8');
     }
-    bodyGrp.appendChild(el);
+    inner.appendChild(el);
 
     if (isCovered) {
       const inner2 = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
@@ -4412,27 +4410,27 @@ function renderLargeRecorder(fing) {
       else { inner2.setAttribute('r', drawRx * 0.4); }
       inner2.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.5)' : 'rgba(0,0,0,0.3)');
       inner2.setAttribute('stroke', 'none');
-      bodyGrp.appendChild(inner2);
+      inner.appendChild(inner2);
     }
   }
 
   // Thumb indicator (thumb is on the back, not visible in front view)
   const thumbCovered = covered.has('0');
-  const tx = 24.8, ty = 190;
+  const tx = 24.8, ty = -245.3;
   if (thumbCovered) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
     el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
     el.setAttribute('stroke', APP.playing ? '#e04030' : 'none');
     if (APP.playing) el.setAttribute('stroke-width', '1');
-    bodyGrp.appendChild(el);
+    inner.appendChild(el);
     if (APP.playing) {
       const hi = document.createElementNS(ns, 'circle');
       hi.setAttribute('cx', tx - 0.5); hi.setAttribute('cy', ty - 0.5);
       hi.setAttribute('r', 1.6);
       hi.setAttribute('fill', 'rgba(255,90,74,0.5)');
       hi.setAttribute('stroke', 'none');
-      bodyGrp.appendChild(hi);
+      inner.appendChild(hi);
     }
   } else {
     const el = document.createElementNS(ns, 'circle');
@@ -4440,17 +4438,17 @@ function renderLargeRecorder(fing) {
     el.setAttribute('fill', '#3a2510');
     el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.8');
-    bodyGrp.appendChild(el);
+    inner.appendChild(el);
   }
-  // Pinched thumb: top-half filled semi-ellipse
+  // Pinched thumb: top-half filled semi-ellipse (flipped y)
   if (thumbPinched) {
     const semi = document.createElementNS(ns, 'path');
-    semi.setAttribute('d', 'M 20.8,190 A 4,2.5 0 0,1 28.8,190 Z');
+    semi.setAttribute('d', 'M 20.8,-245.3 A 4,2.5 0 0,0 28.8,-245.3 Z');
     semi.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
     semi.setAttribute('stroke', 'none');
-    bodyGrp.appendChild(semi);
+    inner.appendChild(semi);
   }
-  // "T" label
+  // "T" label (flipped y, 6 inner-units above thumb)
   const lbl = document.createElementNS(ns, 'text');
   lbl.setAttribute('x', tx); lbl.setAttribute('y', ty - 6);
   lbl.setAttribute('text-anchor', 'middle');
@@ -4458,7 +4456,7 @@ function renderLargeRecorder(fing) {
   lbl.setAttribute('fill', '#7a5a30');
   lbl.setAttribute('font-family', 'Georgia,sans-serif');
   lbl.textContent = 'T';
-  bodyGrp.appendChild(lbl);
+  inner.appendChild(lbl);
 
   g.appendChild(inner);
 
