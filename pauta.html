@@ -2871,7 +2871,7 @@ function renderScore() {
             if (instr && instr.recorder) {
               const recG = renderLargeRecorder('');
               const recScale = nStaves > 1 ? 2.2 : 1.65;
-              recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY - 94 * recScale}) scale(${recScale})`);
+              recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY + 46 * recScale}) scale(${recScale})`);
               recG.setAttribute('id', diagramId);
               recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
               recG.setAttribute('data-instr-type', 'recorder');
@@ -3137,7 +3137,7 @@ function positionAllDiagrams() {
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.5;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${MARGIN_X - 78 + scrollLeft},${recCY - 94 * recScale}) scale(${recScale})`);
+    el.setAttribute('transform', `translate(${MARGIN_X - 78 + scrollLeft},${recCY + 46 * recScale}) scale(${recScale})`);
   });
   // Woodwind/brass diagrams
   document.querySelectorAll('[data-instr-type="woodwind"], [data-instr-type="brass"]').forEach(el => {
@@ -4694,6 +4694,8 @@ function renderBrassDiagram(fing, type) {
       const valveNum = nValves - vi;
       // Check if this valve is pressed (index in fing string is valveNum-1)
       const isP = pressed.has(valveNum - 1);
+      // For horn, show "T" for the trigger (4th valve)
+      const valveLabel = (isHorn && valveNum === 4) ? 'T' : String(valveNum);
 
       // Outer circle (shadow/border)
       const outer = document.createElementNS(ns, 'circle');
@@ -4721,7 +4723,7 @@ function renderBrassDiagram(fing, type) {
       num.setAttribute('font-weight', '700');
       num.setAttribute('fill', isP ? '#fff' : '#888');
       num.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-      num.textContent = String(valveNum);
+      num.textContent = valveLabel;
       svg.appendChild(num);
     }
 
