@@ -1458,7 +1458,7 @@ body{
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.9.0
+//  v0.11.0
 // ================================================================
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
@@ -1835,7 +1835,7 @@ function woodwindFingeringForPitch(pitch, type) {
 const TRUMPET_FINGERINGS = {
   60:'000', 61:'111', 62:'101', 63:'010', 64:'110',
   65:'100', 66:'011', 67:'000', 68:'111', 69:'110',
-  70:'100', 71:'011', 72:'000', 73:'111', 74:'101',
+  70:'100',   71:'010', 72:'000', 73:'111', 74:'100',
   75:'010', 76:'110', 77:'100', 78:'011', 79:'000',
   80:'111', 81:'110', 82:'100', 83:'011', 84:'000',
 };
@@ -1856,13 +1856,25 @@ const TROMBONE_FINGERINGS = {
   78:'7', 79:'6', 80:'5', 81:'2', 82:'1', 83:'3', 84:'2',
 };
 const EUPHONIUM_FINGERINGS = {
-  52:'000', 53:'100', 54:'010', 55:'001', 56:'110',
-  57:'011', 58:'100', 59:'010', 60:'000', 61:'110',
-  62:'100', 63:'010', 64:'000', 65:'100', 66:'010',
-  67:'000', 68:'011', 69:'110', 70:'100', 71:'010',
-  72:'000', 73:'110', 74:'100', 75:'010', 76:'000',
-  77:'011', 78:'110', 79:'100', 80:'010', 81:'000',
-  82:'011', 83:'110', 84:'100',
+  // Concert-pitch Bb euphonium (bass clef, 3 valves)
+  // Each fingerings fundamental's overtone series:
+  // 000 (Bb):  Bb2(46), F3(53), Bb3(58), D4(62)*, F4(65), Ab4(68), Bb4(70)
+  // 010 (A):   A2(45),  E3(52), A3(57),  C#4(61), E4(64), G4(67),  A4(69)
+  // 100 (Ab):  Ab2(44), Eb3(51),Ab3(56), C4(60),  Eb4(63),Gb4(66), Ab4(68)
+  // 110 (G):   G2(43),  D3(50), G3(55),  B3(59),  D4(62),  F4(65),  G4(67)
+  // 011 (Gb):  Gb2(42), Db3(49),Gb3(54), Bb3(58), Db4(61), E4(64),  Gb4(66)
+  // 101 (F):   F2(41),  C3(48), F3(53),  A3(57),  C4(60),  Eb4(63), F4(65)
+  // 111 (E):   E2(40),  B2(47), E3(52),  G#3(56), B3(59),  D4(62),  E4(64)
+  40:'111', 41:'101', 42:'011', 43:'110', 44:'100',
+  45:'010', 46:'000', 47:'111', 48:'101', 49:'011',
+  50:'110', 51:'100', 52:'010', 53:'000', 54:'011',
+  55:'110', 56:'100', 57:'010', 58:'000', 59:'110',
+  60:'100', 61:'010', 62:'110', 63:'100', 64:'010',
+  65:'000', 66:'011', 67:'110', 68:'000', 69:'010',
+  70:'000', 71:'110', 72:'100', 73:'010', 74:'000',
+  75:'100', 76:'010',
+  77:'000', 78:'011', 79:'110', 80:'000', 81:'010',
+  82:'000', 83:'110', 84:'100',
 };
 const TUBA_FINGERINGS = {
   40:'000', 41:'100', 42:'010', 43:'001', 44:'110',
@@ -4392,13 +4404,13 @@ function renderLargeRecorder(fing) {
       el.setAttribute('r', drawRx);
     }
     if (isCovered) {
-      el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
-      el.setAttribute('stroke', APP.playing ? '#e04030' : 'none');
-      if (APP.playing) el.setAttribute('stroke-width', '1');
+      el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
+      el.setAttribute('stroke', APP.playing ? '#e04030' : '#c05621');
+      el.setAttribute('stroke-width', '1');
     } else {
-      el.setAttribute('fill', '#3a2510');
+      el.setAttribute('fill', '#7a5a30');
       el.setAttribute('stroke', '#7a5a30');
-      el.setAttribute('stroke-width', '0.8');
+      el.setAttribute('stroke-width', '0.6');
     }
     inner.appendChild(el);
 
@@ -4408,7 +4420,7 @@ function renderLargeRecorder(fing) {
       inner2.setAttribute('cy', hy - 0.5);
       if (isEllipse) { inner2.setAttribute('rx', drawRx * 0.4); inner2.setAttribute('ry', drawRx * 0.4); }
       else { inner2.setAttribute('r', drawRx * 0.4); }
-      inner2.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.5)' : 'rgba(0,0,0,0.3)');
+      inner2.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.5)' : 'rgba(192,86,33,0.4)');
       inner2.setAttribute('stroke', 'none');
       inner.appendChild(inner2);
     }
@@ -4420,9 +4432,9 @@ function renderLargeRecorder(fing) {
   if (thumbCovered) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
-    el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
-    el.setAttribute('stroke', APP.playing ? '#e04030' : 'none');
-    if (APP.playing) el.setAttribute('stroke-width', '1');
+    el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
+    el.setAttribute('stroke', APP.playing ? '#e04030' : '#c05621');
+    el.setAttribute('stroke-width', '1');
     inner.appendChild(el);
     if (APP.playing) {
       const hi = document.createElementNS(ns, 'circle');
@@ -4431,20 +4443,27 @@ function renderLargeRecorder(fing) {
       hi.setAttribute('fill', 'rgba(255,90,74,0.5)');
       hi.setAttribute('stroke', 'none');
       inner.appendChild(hi);
+    } else {
+      const hi = document.createElementNS(ns, 'circle');
+      hi.setAttribute('cx', tx - 0.5); hi.setAttribute('cy', ty - 0.5);
+      hi.setAttribute('r', 1.6);
+      hi.setAttribute('fill', 'rgba(192,86,33,0.4)');
+      hi.setAttribute('stroke', 'none');
+      inner.appendChild(hi);
     }
   } else {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
-    el.setAttribute('fill', '#3a2510');
+    el.setAttribute('fill', '#7a5a30');
     el.setAttribute('stroke', '#7a5a30');
-    el.setAttribute('stroke-width', '0.8');
+    el.setAttribute('stroke-width', '0.6');
     inner.appendChild(el);
   }
   // Pinched thumb: top-half filled semi-ellipse (flipped y)
   if (thumbPinched) {
     const semi = document.createElementNS(ns, 'path');
     semi.setAttribute('d', 'M 20.8,-245.3 A 4,2.5 0 0,0 28.8,-245.3 Z');
-    semi.setAttribute('fill', APP.playing ? '#ff5a4a' : '#1a1010');
+    semi.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
     semi.setAttribute('stroke', 'none');
     inner.appendChild(semi);
   }
@@ -4778,9 +4797,11 @@ function updateBrassDiagram() {
   const name = diagEls[0].getAttribute('data-instr-name') || 'trumpet';
   const fing = brassFingeringForPitch(note.pitch, name);
   diagEls.forEach(el => {
-    el.innerHTML = '';
     const fresh = renderBrassDiagram(fing || '', name);
-    while (fresh.firstChild) el.appendChild(fresh.firstChild);
+    while (fresh.firstChild) el.insertBefore(fresh.firstChild, el.firstChild);
+    // Remove the old SVG element after new one is in place
+    const kids = el.children;
+    while (kids.length > 1) el.removeChild(kids[kids.length - 1]);
   });
 }
 
