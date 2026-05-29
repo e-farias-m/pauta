@@ -2894,7 +2894,7 @@ function renderScore() {
               const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
               const brG = renderBrassDiagram('', shorthand);
               const scale = 1.0;
-              brG.setAttribute('transform', `translate(${MARGIN_X - 82},${diagramCY - 100}) scale(${scale})`);
+              brG.setAttribute('transform', `translate(${MARGIN_X - 140},${diagramCY - 100}) scale(${scale})`);
               brG.setAttribute('id', diagramId);
               brG.setAttribute('data-instr-type', 'brass');
               brG.setAttribute('data-instr-name', shorthand);
@@ -3142,7 +3142,7 @@ function positionAllDiagrams() {
   // Woodwind/brass diagrams
   document.querySelectorAll('[data-instr-type="woodwind"], [data-instr-type="brass"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
-    el.setAttribute('transform', `translate(${MARGIN_X - 82 + scrollLeft},${cy - 100}) scale(1.0)`);
+    el.setAttribute('transform', `translate(${MARGIN_X - 140 + scrollLeft},${cy - 100}) scale(1.0)`);
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
@@ -4690,12 +4690,26 @@ function renderBrassDiagram(fing, type) {
 
     for (let vi = 0; vi < nValves; vi++) {
       const cy = startY + vi * spacing;
-      // Valve number displayed is reversed: 3 on top, 1 on bottom
-      const valveNum = nValves - vi;
-      // Check if this valve is pressed (index in fing string is valveNum-1)
-      const isP = pressed.has(valveNum - 1);
-      // For horn, show "T" for the trigger (4th valve)
-      const valveLabel = (isHorn && valveNum === 4) ? 'T' : String(valveNum);
+      let valveNum, valveLabel, isP;
+
+      if (isHorn && has4Valves) {
+        // Horn: display 3, 2, 1, T (trigger at bottom, under 1)
+        if (vi < 3) {
+          valveNum = 3 - vi;
+          valveLabel = String(valveNum);
+          isP = pressed.has(valveNum - 1);
+        } else {
+          // Trigger (4th valve) at bottom
+          valveNum = 4;
+          valveLabel = 'T';
+          isP = pressed.has(3); // 4th position in fing string
+        }
+      } else {
+        // Other instruments: reversed order (3 on top, 1 on bottom)
+        valveNum = nValves - vi;
+        valveLabel = String(valveNum);
+        isP = pressed.has(valveNum - 1);
+      }
 
       // Outer circle (shadow/border)
       const outer = document.createElementNS(ns, 'circle');
