@@ -46,7 +46,7 @@
   --score-shadow:      0 4px 28px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.06);
   --danger:            #e06850;
   --v1-col:            #c05621;
-  --v2-col:            #e06850;
+  --v2-col:            #f07860;
 }
 
 /* ── Apply theme vars ── */
@@ -537,10 +537,10 @@ body{
 /* ── Portrait / narrow-screen ── */
 @media (max-width: 820px) {
   #side-tabs {
-    width:38px; padding:4px 1px 4px 3px;
+    width:44px; padding:4px 1px 4px 3px;
   }
   .side-tab {
-    width:34px; height:38px;
+    width:40px; height:44px;
   }
   .tab-icon { font-size:13px; }
   .tab-label { font-size:0; }
@@ -552,7 +552,7 @@ body{
     padding:0 6px; gap:3px;
   }
   .btn-top {
-    min-width:36px; min-height:36px; padding:4px 6px; font-size:0;
+    min-width:44px; min-height:44px; padding:4px 6px; font-size:0;
   }
   .btn-top svg { width:16px; height:16px; }
   #score-title { font-size:11px; }
@@ -560,11 +560,11 @@ body{
   #transport-bar {
     padding:0 6px; gap:5px;
   }
-  .btn-circle { width:36px; height:36px; }
+  .btn-circle { width:44px; height:44px; }
   .tempo-wrap { max-width:100px; }
   #tempo-label { display:none; }
   #palette { padding:4px 6px; gap:3px; }
-  .pal-btn { min-height:36px; }
+  .pal-btn { min-height:44px; }
   .pal-label { width:34px; font-size:8px; }
   .palette-row { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #oct-display { font-size:9px; }
@@ -712,6 +712,19 @@ body{
     white-space:nowrap;
     min-height:32px;
   ">Metronome</button>
+  <button id="btn-mixer" onclick="showMixer()" aria-label="Mixer" style="
+    background:rgba(192,86,33,0.14);
+    border:1px solid rgba(192,86,33,0.30);
+    border-radius:8px;
+    color:#c05621;
+    font-size:10px;
+    padding:6px 10px;
+    cursor:pointer;
+    font-family:'Helvetica Neue',Helvetica,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    white-space:nowrap;
+    min-height:32px;
+  ">Mixer</button>
 </div>
 
 <!-- Score Area -->
@@ -1458,7 +1471,7 @@ body{
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.12.0
+//  v0.14.0
 // ================================================================
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
@@ -1521,6 +1534,10 @@ const APP = {
   showMultiMeasureRests: false,
   zoom: 1,
   continuousView: false,
+  // ── Mixer (volume) settings ────────────────────────────────────
+  masterVolume: 0.65,
+  metronomeVolume: 1.0,
+  pauseVolumeRatio: 0.3,
 };
 
 // ── Pitch / Duration Helpers ─────────────────────────────────────
@@ -2341,7 +2358,35 @@ function exportMSCXFromScore(s) {
     x += `    <Staff id="${si+1}">\n`;
 
     stave.measures.forEach((m, mi) => {
-      x += `      <Measure number="${mi+1}">\n`;
+      // Resolve time sig for this measure (inherits from previous if not set)
+      let tsNum = m.timeSigNum, tsDen = m.timeSigDen;
+      if (tsNum === null || tsNum === undefined) {
+        for (let pm = mi - 1; pm >= 0; pm--) {
+          const pm_tn = stave.measures[pm]?.timeSigNum;
+          const pm_td = stave.measures[pm]?.timeSigDen;
+          if (pm_tn !== null && pm_tn !== undefined) { tsNum = pm_tn; tsDen = pm_td; break; }
+        }
+        if (tsNum === null || tsNum === undefined) { tsNum = 4; tsDen = 4; }
+      }
+
+      // Measure len attribute
+      let measureLen = `${tsNum}/${tsDen}`;
+      if (m.pickup) {
+        const puBeats = m.pickup.num * (4 / m.pickup.den);
+        const puTsNum = puBeats;
+        const g = ((a,b) => { while(b){let t=b;b=a%b;a=t} return a; })(Math.round(puTsNum * tsDen), tsDen);
+        const num = Math.round(puTsNum * tsDen) / g;
+        const den = tsDen / g;
+        measureLen = `${num}/${den}`;
+      }
+
+      x += `      <Measure number="${mi+1}" len="${measureLen}">\n`;
+
+      // Clef — only at start or when it changes
+      if (mi === 0 || m.clef) {
+        const clefVal = m.clef || 'treble';
+        x += `        <Clef>\n          <concertClefType>${clefVal}</concertClefType>\n        </Clef>\n`;
+      }
 
       // Rehearsal mark
       const rm = (s.rehearsalMarks||[]).find(r => r.mi === mi);
@@ -2359,71 +2404,77 @@ function exportMSCXFromScore(s) {
         x += `        <TimeSig><sigN>${m.timeSigNum}</sigN><sigD>${m.timeSigDen}</sigD></TimeSig>\n`;
 
       // Group notes by voice
-      const voice1 = m.notes.filter(n => (n.voice||1) === 1);
-      const voice2 = m.notes.filter(n => (n.voice||1) === 2);
+      const voices = {};
+      m.notes.forEach(n => {
+        const v = n.voice || 1;
+        if (!voices[v]) voices[v] = [];
+        voices[v].push(n);
+      });
 
-      const writeNotes = (notes, voiceNum) => {
-        notes.forEach((n, ni) => {
-          const durType = VEX_TO_MSCX[n.duration] || 'quarter';
-          if (n.type === 'rest') {
-            x += `        <Rest${voiceNum > 1 ? ` voice="${voiceNum}"` : ''}>\n`;
-            x += `          <durationType>${durType}</durationType>\n`;
-            if (n.dots) x += `          <dots>${n.dots}</dots>\n`;
-            x += `        </Rest>\n`;
-          } else {
-            x += `        <Chord${voiceNum > 1 ? ` voice="${voiceNum}"` : ''}>\n`;
-            x += `          <durationType>${durType}</durationType>\n`;
-            if (n.dots) x += `          <dots>${n.dots}</dots>\n`;
+      const writeNoteEl = (n, insideVoice) => {
+        const durType = VEX_TO_MSCX[n.duration] || 'quarter';
+        const vAttr = (insideVoice) ? '' : ` voice="${n.voice||1}"`;
+        if (n.type === 'rest') {
+          x += `          <Rest${vAttr}>\n`;
+          x += `            <durationType>${durType}</durationType>\n`;
+          if (n.dots) x += `            <dots>${n.dots}</dots>\n`;
+          x += `          </Rest>\n`;
+        } else {
+          x += `          <Chord${vAttr}>\n`;
+          x += `            <durationType>${durType}</durationType>\n`;
+          if (n.dots) x += `            <dots>${n.dots}</dots>\n`;
 
-            // Dynamic on this note
-            if (n.dynamic) {
-              x += `          <Dynamic>\n            <subtype>${dynMap[n.dynamic]||n.dynamic}</subtype>\n          </Dynamic>\n`;
-            }
-
-            // Articulation
-            if (n.articulation) {
-              x += `          <Articulation>\n            <subtype>${esc(n.articulation)}</subtype>\n          </Articulation>\n`;
-            }
-
-            // Staff text
-            if (n.staffText) {
-              x += `          <StaffText>\n            <text>${esc(n.staffText)}</text>\n          </StaffText>\n`;
-            }
-
-            // Chord symbol
-            if (n.chordSymbol) {
-              x += `          <Harmony>\n            <root>${esc(n.chordSymbol)}</root>\n          </Harmony>\n`;
-            }
-
-            // Primary note
-            const writeNote = (pitch, acc) => {
-              x += `          <Note>\n            <pitch>${pitch}</pitch>\n`;
-              if (acc) x += `            <Accidental><subtype>${am[acc]||'accidentalNatural'}</subtype></Accidental>\n`;
-              x += `          </Note>\n`;
-            };
-            writeNote(n.pitch, n.accidental);
-
-            // Extra chord pitches
-            (n.extraPitches||[]).forEach(ep => writeNote(ep.pitch, ep.accidental));
-
-            // Lyric
-            if (n.lyric) {
-              x += `          <Lyrics>\n`;
-              x += `            <text>${esc(n.lyric.text)}</text>\n`;
-              if (n.lyric.separator === 'dash') x += `            <syllabic>middle</syllabic>\n`;
-              x += `          </Lyrics>\n`;
-            }
-
-            // Tie to next
-            if (n.tieToNext) x += `          <Tie/>\n`;
-
-            x += `        </Chord>\n`;
+          // Dynamic on this note
+          if (n.dynamic) {
+            x += `            <Dynamic>\n              <subtype>${dynMap[n.dynamic]||n.dynamic}</subtype>\n            </Dynamic>\n`;
           }
-        });
+
+          // Articulation
+          if (n.articulation) {
+            x += `            <Articulation>\n              <subtype>${esc(n.articulation)}</subtype>\n            </Articulation>\n`;
+          }
+
+          // Staff text
+          if (n.staffText) {
+            x += `            <StaffText>\n              <text>${esc(n.staffText)}</text>\n            </StaffText>\n`;
+          }
+
+          // Chord symbol
+          if (n.chordSymbol) {
+            x += `            <Harmony>\n              <root>${esc(n.chordSymbol)}</root>\n            </Harmony>\n`;
+          }
+
+          // Primary note
+          const writeNote = (pitch, acc) => {
+            x += `            <Note>\n              <pitch>${pitch}</pitch>\n`;
+            if (acc) x += `              <Accidental><subtype>${am[acc]||'accidentalNatural'}</subtype></Accidental>\n`;
+            x += `            </Note>\n`;
+          };
+          writeNote(n.pitch, n.accidental);
+
+          // Extra chord pitches
+          (n.extraPitches||[]).forEach(ep => writeNote(ep.pitch, ep.accidental));
+
+          // Lyric
+          if (n.lyric) {
+            x += `            <Lyrics>\n`;
+            x += `              <text>${esc(n.lyric.text)}</text>\n`;
+            if (n.lyric.separator === 'dash') x += `              <syllabic>middle</syllabic>\n`;
+            x += `            </Lyrics>\n`;
+          }
+
+          // Tie to next
+          if (n.tieToNext) x += `            <Tie/>\n`;
+
+          x += `          </Chord>\n`;
+        }
       };
 
-      writeNotes(voice1, 1);
-      if (voice2.length) writeNotes(voice2, 2);
+      Object.keys(voices).sort((a,b) => a-b).forEach(v => {
+        x += `        <voice num="${v}">\n`;
+        voices[v].forEach(n => writeNoteEl(n, true));
+        x += `        </voice>\n`;
+      });
 
       x += `      </Measure>\n`;
     });
@@ -2457,14 +2508,14 @@ function exportMSCXFromScore(s) {
 // ── Spacing helpers ───────────────────────────────────────────────
 // Natural pixel width for a single note/rest of given duration
 function noteNaturalWidth(dur, dots) {
-  const base = {w:76, h:52, q:32, '8':24, '16':20, '32':17, '64':15}[dur] || 32;
-  return Math.max(18, dots ? Math.round(base * 1.28) : base);
+  const base = {w:109, h:74, q:46, '8':35, '16':29, '32':24, '64':22}[dur] || 46;
+  return Math.max(26, base);
 }
 // Natural width of a measure's note content (excluding leading clef/key/time extras)
 function measureContentWidth(notes) {
-  if (isWholeRestPlaceholder(notes)) return 80; // empty bar — whole rest needs room
+  if (isWholeRestPlaceholder(notes)) return 115; // empty bar — whole rest needs room
   return notes.reduce((s, n) => s + noteNaturalWidth(n.duration, n.dots), 0)
-       + 30; // right margin before barline (accounts for VexFlow's own padding)
+       + 43; // right margin before barline (accounts for VexFlow's own padding)
 }
 
 function findMultiRestGroups() {
@@ -2518,11 +2569,11 @@ function buildFillerRests(leftover, clef, capacity, stemDir) {
 }
 
 // ── Rendering ────────────────────────────────────────────────────
-const STAVE_H       = 64;   // 4 * spacingBetweenLines(16)
-const STAVE_SPACING = 130;  // vertical distance between stave baselines
-const SYS_SPACING   = 142;  // extra gap between systems
-const MARGIN_X      = 80;
-const MARGIN_TOP    = 80;   // room for title
+const STAVE_H       = 110;  // 4 * spacingBetweenLines(28)
+const STAVE_SPACING = 224;  // vertical distance between stave baselines
+const SYS_SPACING   = 8;    // very tight gap between systems
+const MARGIN_X      = 138;
+const MARGIN_TOP    = 138;  // room for title
 
 function renderScore() {
   const container = document.getElementById('score-svg');
@@ -2550,8 +2601,8 @@ function renderScore() {
 
   // ── System packing (duration-proportional) ────────────────────
   // firstExtra: space for clef + key sig + time sig at start of system
-  const FIRST_EXTRA_GLOBAL = 113; // clef + key sig + time sig (scaled for larger staves)
-  const FIRST_EXTRA_SYS    = 78;  // clef only (subsequent system starts)
+  const FIRST_EXTRA_GLOBAL = 130; // clef + key sig + time sig
+  const FIRST_EXTRA_SYS    = 90;   // clef only (subsequent system starts)
 
   // Pre-compute each measure's natural content width
   const mNatW = Array.from({length: nM}, (_, mi) =>
@@ -2587,7 +2638,7 @@ function renderScore() {
   if (sys.length) systems.push(sys);
   console.log('[PautaEngraving import render] systems:', systems.length, 'for nM:', nM);
 
-  const totalH = MARGIN_TOP + systems.length * (ns * STAVE_SPACING + SYS_SPACING) + 40;
+  const totalH = MARGIN_TOP + systems.length * (ns * STAVE_SPACING + SYS_SPACING) + 48;
   const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
   renderer.resize(cW, totalH);
   const ctx = renderer.getContext();
@@ -2627,8 +2678,8 @@ function renderScore() {
     el.textContent = text;
     svgEl.appendChild(el);
   }
-  if (score.title)    addSVGText(svgEl, score.title,    cW/2, 38, score.titleSize||22, 'bold',   'middle', score.titleFont);
-  if (score.composer) addSVGText(svgEl, score.composer, cW-MARGIN_X, 38, 12, 'normal', 'end');
+  if (score.title)    addSVGText(svgEl, score.title,    cW/2, 66, score.titleSize||22, 'bold',   'middle', score.titleFont);
+  if (score.composer) addSVGText(svgEl, score.composer, cW-MARGIN_X, 66, 12, 'normal', 'end');
 
   let sysY = MARGIN_TOP;
   const vfStaveRef = {}; // key: `${globalSI}_${mi}` → VF.Stave object for StaveConnectors
@@ -2642,10 +2693,8 @@ function renderScore() {
     const natContentW = system.reduce((s, mi) => s + mNatW[mi], 0);
     const natTotal    = firstExtra + natContentW;
 
-    // Stretch factor: fill the line, but cap at 1.8× to avoid swimming notes
-    const stretch = Math.min(1.8, natContentW > 0 ? (usable - firstExtra) / natContentW : 1);
-
-    // Compute final measure widths (content only, firstExtra added separately)
+    // Natural widths — same spacing in continuous and page view
+    const stretch = 1;
     const mWidths = system.map(mi => Math.round(mNatW[mi] * stretch));
 
     let x = MARGIN_X;
@@ -2655,7 +2704,7 @@ function renderScore() {
       system.forEach((mi, li) => {
         const isFirstOfSys    = li === 0;
         const isGlobalFirst   = isFirstSysOfScore && li === 0;
-        const mWidth = (isFirstOfSys ? firstExtra : 0) + mWidths[li];
+        let mWidth = (isFirstOfSys ? firstExtra : 0) + mWidths[li];
 
         const staveY  = sysY + si * STAVE_SPACING;
         const isBWst  = isBoomwhackerSI(si + siOffset);
@@ -2664,7 +2713,7 @@ function renderScore() {
         const vfStave = new VF.Stave(mx, staveY, mWidth,
           { space_above_staff_ln: 4, num_lines: 5, fill_style: '#000' }
         );
-        try { vfStave.setSpacingBetweenLines(16); } catch(e) {}
+        try { vfStave.setSpacingBetweenLines(28); } catch(e) {}
 
         // Clef — track per-measure changes
         const currentClef = getResolvedClef(mi, si + siOffset);
@@ -2715,6 +2764,16 @@ function renderScore() {
 
         vfStave.setEndBarType(VF_END);
         if (VF_BEGIN !== BT.SINGLE) vfStave.setBegBarType(VF_BEGIN);
+
+        // Size stave exactly to fit modifiers + note content
+        if (isFirstOfSys) {
+          const actualExtra = vfStave.getNoteStartX() - mx;
+          const correctWidth = actualExtra + mWidths[li];
+          if (correctWidth !== mWidth) {
+            mWidth = correctWidth;
+            vfStave.setWidth(mWidth);
+          }
+        }
 
         vfStave.setContext(ctx).draw();
         vfStaveRef[`${si + siOffset}_${mi}`] = vfStave; // store for StaveConnectors
@@ -2806,11 +2865,13 @@ function renderScore() {
 
             const noteStartX   = vfStave.getNoteStartX();
             const staveEndX    = mx + mWidth;
-            const rawAvailable = Math.max(40, staveEndX - noteStartX);
-            const rightMargin  = Math.min(32, Math.max(12, rawAvailable * 0.08));
+            const rawAvailable = Math.max(40, isFirstOfSys
+              ? Math.min(mWidths[li], staveEndX - noteStartX)
+              : staveEndX - noteStartX);
+            const rightMargin  = Math.min(38, Math.max(14, rawAvailable * 0.08));
             const availableW   = rawAvailable - rightMargin;
 
-            new VF.Formatter().joinVoices(voices).format(voices, availableW);
+             new VF.Formatter({ softmaxFactor: 2 }).joinVoices(voices).format(voices, availableW);
             voices.forEach(v => v.draw(ctx, vfStave));
 
             // Record per-note positions using ORIGINAL measure.notes indices
@@ -2882,8 +2943,8 @@ function renderScore() {
 
             if (instr && instr.recorder) {
               const recG = renderLargeRecorder('');
-              const recScale = nStaves > 1 ? 2.2 : 1.65;
-              recG.setAttribute('transform', `translate(${MARGIN_X - 78},${diagramCY + 105 * recScale}) scale(${recScale})`);
+              const recScale = nStaves > 1 ? 1.8 : 1.35;
+              recG.setAttribute('transform', `translate(${MARGIN_X - 136},${diagramCY + 107 * recScale}) scale(${recScale})`);
               recG.setAttribute('id', diagramId);
               recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
               recG.setAttribute('data-instr-type', 'recorder');
@@ -2894,8 +2955,8 @@ function renderScore() {
               const type = instr.name.toLowerCase();
               const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
               const wwG = renderWoodwindDiagram('', shorthand);
-              const scale = 1.0;
-              wwG.setAttribute('transform', `translate(${MARGIN_X - 82},${diagramCY - 100}) scale(${scale})`);
+              const scale = 1.44;
+              wwG.setAttribute('transform', `translate(${MARGIN_X - 190},${diagramCY - 173}) scale(${scale})`);
               wwG.setAttribute('id', diagramId);
               wwG.setAttribute('data-instr-type', 'woodwind');
               wwG.setAttribute('data-instr-name', shorthand);
@@ -2905,8 +2966,8 @@ function renderScore() {
               const type = instr.name.toLowerCase();
               const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
               const brG = renderBrassDiagram('', shorthand);
-              const scale = 1.0;
-              brG.setAttribute('transform', `translate(${MARGIN_X - 110},${diagramCY - 100}) scale(${scale})`);
+              const scale = 1.44;
+              brG.setAttribute('transform', `translate(${MARGIN_X - 190},${diagramCY - 173}) scale(${scale})`);
               brG.setAttribute('id', diagramId);
               brG.setAttribute('data-instr-type', 'brass');
               brG.setAttribute('data-instr-name', shorthand);
@@ -2916,11 +2977,10 @@ function renderScore() {
 
             // Part name label (fixed position during horizontal scroll)
             const labelG = document.createElementNS('http://www.w3.org/2000/svg','g');
-            const labelBaseX = MARGIN_X - (nStaves > 1 ? 18 : 4);
-            labelG.setAttribute('class', 'instrument-label');
+            const labelBaseX = MARGIN_X - (nStaves > 1 ? 31 : 7);
             labelG.setAttribute('data-label-x', labelBaseX);
-            labelG.setAttribute('data-label-y', midY + 4);
-            labelG.setAttribute('transform', `translate(${labelBaseX},${midY + 4})`);
+            labelG.setAttribute('data-label-y', midY + 7);
+            labelG.setAttribute('transform', `translate(${labelBaseX},${midY + 6})`);
             const el = document.createElementNS('http://www.w3.org/2000/svg','text');
             el.setAttribute('x', '0');
             el.setAttribute('y', '0');
@@ -3137,8 +3197,6 @@ function scrollToSelectedMeasure() {
   const sl = APP.staveLayout.find(l => l.mi === mi && l.si === (APP.selectedStaff || 0));
   if (!sl) return;
 
-  const baseDur = APP.playing ? 1200 : 600;
-
   if (APP.continuousView) {
     const container = document.getElementById('score-svg');
     if (!container) return;
@@ -3149,24 +3207,27 @@ function scrollToSelectedMeasure() {
     if (measureX > scrollLeft + 20 && measureX < scrollLeft + viewWidth - margin) return;
     const target = Math.max(0, measureX - viewWidth * 0.15);
     const dist = Math.abs(target - scrollLeft);
-    const dur = Math.max(baseDur * 0.4, Math.min(baseDur * 1.5, dist * (baseDur / viewWidth)));
+    const dur = Math.max(80, Math.min(200, dist * 0.3));
     _smoothScroll(container, 'scrollLeft', target, dur);
   } else {
-    // Vertical scroll in page view
-    const area = document.getElementById('score-area');
-    if (!area) return;
-    const areaRect = area.getBoundingClientRect();
-    const svg = area.querySelector('svg');
-    if (!svg) return;
-    const svgRect = svg.getBoundingClientRect();
-    const measureY = svgRect.top + sl.y;
-    const viewTop = areaRect.top;
-    const viewBot = areaRect.bottom;
-    if (measureY > viewTop + 20 && measureY < viewBot - 20) return;
-    const target = Math.max(0, area.scrollTop + (measureY - viewTop) - areaRect.height * 0.35);
-    const dist = Math.abs(target - (area.scrollTop || 0));
-    const dur = Math.max(baseDur * 0.4, Math.min(baseDur * 1.5, dist * (baseDur / areaRect.height)));
-    _smoothScroll(area, 'scrollTop', target, dur);
+    // Vertical scroll in page view — defer to next frame for correct layout
+    requestAnimationFrame(() => {
+      if (!APP.playing && !document.querySelector('#score-svg svg')) return;
+      const area = document.getElementById('score-area');
+      if (!area) return;
+      const areaRect = area.getBoundingClientRect();
+      const svg = area.querySelector('svg');
+      if (!svg) return;
+      const svgRect = svg.getBoundingClientRect();
+      const measureY = svgRect.top + sl.y;
+      const viewTop = areaRect.top;
+      const viewBot = areaRect.bottom;
+      if (measureY > viewTop + 20 && measureY < viewBot - 20) return;
+      const target = Math.max(0, area.scrollTop + (measureY - viewTop) - areaRect.height * 0.35);
+      const dist = Math.abs(target - (area.scrollTop || 0));
+      const dur = Math.max(80, Math.min(200, dist * 0.3));
+      _smoothScroll(area, 'scrollTop', target, dur);
+    });
   }
 }
 
@@ -3177,18 +3238,18 @@ function positionAllDiagrams() {
   const scrollLeft = container.scrollLeft || 0;
   // Recorder diagrams
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
-    const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.5;
+    const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.6;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${MARGIN_X - 78 + scrollLeft},${recCY + 105 * recScale}) scale(${recScale})`);
+    el.setAttribute('transform', `translate(${MARGIN_X - 136 + scrollLeft},${recCY + 107 * recScale}) scale(${recScale})`);
   });
   // Woodwind/brass diagrams
   document.querySelectorAll('[data-instr-type="woodwind"], [data-instr-type="brass"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
-    el.setAttribute('transform', `translate(${MARGIN_X - 110 + scrollLeft},${cy - 100}) scale(1.0)`);
+    el.setAttribute('transform', `translate(${MARGIN_X - 190 + scrollLeft},${cy - 173}) scale(1.44)`);
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
-    const bx = parseFloat(el.getAttribute('data-label-x')) || MARGIN_X - 4;
+    const bx = parseFloat(el.getAttribute('data-label-x')) || MARGIN_X - 6;
     const by = parseFloat(el.getAttribute('data-label-y')) || 0;
     el.setAttribute('transform', `translate(${bx + scrollLeft},${by})`);
   });
@@ -4912,12 +4973,6 @@ function renderBWNoteheads() {
         path.setAttribute('stroke-linejoin', 'round');
         // 10% larger notehead
         path.setAttribute('transform', `translate(${cx},${cy}) scale(1.1) translate(${-cx},${-cy})`);
-        if (!APP.bwNoteNames) return;
-        const m = getMeasureBySI(matched.si, matched.mi);
-        const n = m?.notes[matched.ni];
-        if (!n || n.type !== 'note') return;
-        const ks = getResolvedKeySig(matched.mi, matched.si);
-        addNoteLabel(svgEl, noteLetter(n, ks), cx, cy, bbox.height, '#000');
         return;
       }
     }
@@ -4931,12 +4986,6 @@ function renderBWNoteheads() {
         const m = getMeasureBySI(matched.si, matched.mi);
         const n = m?.notes[matched.ni];
         if (!n || n.type !== 'note') return;
-        // Note name label (only when bwNoteNames is on)
-        if (APP.bwNoteNames) {
-          const isOpen = (n.duration === 'w' || n.duration === 'h');
-          const ks = getResolvedKeySig(matched.mi, matched.si);
-          addNoteLabel(svgEl, noteLetter(n, ks), cx, cy, bbox.height, isOpen ? '#000' : '#fff');
-        }
         // 10% larger notehead
         path.setAttribute('transform', `translate(${cx},${cy}) scale(1.1) translate(${-cx},${-cy})`);
         // Recorder auto-fingering below the staff (selected note only)
@@ -4985,6 +5034,7 @@ function renderNoteheadLabels() {
   if (!APP.bwNoteNames) return;
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score) return;
+  const labeled = new Set();
   const paths = svgEl.querySelectorAll('path');
   paths.forEach(path => {
     let bbox;
@@ -4998,6 +5048,9 @@ function renderNoteheadLabels() {
       if (d < bestDist) { bestDist = d; matched = nl; }
     });
     if (!matched) return;
+    const key = `${matched.si}:${matched.mi}:${matched.ni}`;
+    if (labeled.has(key)) return;
+    labeled.add(key);
     const m = getMeasureBySI(matched.si, matched.mi);
     const n = m?.notes[matched.ni];
     if (!n || n.type !== 'note') return;
@@ -5011,7 +5064,7 @@ function renderNoteheadLabels() {
 
 // Draw a note-name letter centred on a notehead
 function addNoteLabel(svgEl, letter, cx, cy, bboxH, colour) {
-  const fontSize = Math.max(7, Math.min(18, Math.round(bboxH * 0.62)));
+  const fontSize = Math.max(Math.round(STAVE_H * 0.11), Math.min(Math.round(STAVE_H * 0.28), Math.round(bboxH * 0.62)));
   const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
   lbl.setAttribute('x', cx);
   lbl.setAttribute('y', cy + fontSize * 0.37);
@@ -5898,10 +5951,10 @@ function renderNoteLabels() {
     const label = noteLabelForPitch(n.pitch, ks, n.accidental, mode);
     const sl = APP.staveLayout.find(l => l.mi === nl.mi && l.si === nl.si);
     const staffBot = sl ? sl.bottomY : nl.y;
-    const fontSize = Math.max(14, Math.min(20, 17));
+    const fontSize = Math.round(STAVE_H * 0.26);
     const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
     lbl.setAttribute('x', nl.x);
-    lbl.setAttribute('y', staffBot + fontSize + 10);
+    lbl.setAttribute('y', staffBot + fontSize + Math.round(STAVE_H * 0.16));
     lbl.setAttribute('text-anchor', 'middle');
     lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
     lbl.setAttribute('font-size', fontSize);
@@ -6921,7 +6974,7 @@ function exportAudio() {
 
   // Build a minimal playback graph on the offline context
   const masterGain = offline.createGain();
-  masterGain.gain.value = 0.65;
+  masterGain.gain.value = APP.masterVolume;
   masterGain.connect(offline.destination);
 
   // Render every part's notes into the offline buffer
@@ -7048,7 +7101,7 @@ function getAudioCtx() {
 function initAudioChain(ctx) {
   // Master gain
   APP.masterGain = ctx.createGain();
-  APP.masterGain.gain.value = 0.65;
+  APP.masterGain.gain.value = APP.masterVolume;
 
   // Master compressor — smooths dynamics, prevents clipping
   APP.compressor = ctx.createDynamicsCompressor();
@@ -7059,6 +7112,11 @@ function initAudioChain(ctx) {
   APP.compressor.release.value = 0.2;
   APP.masterGain.connect(APP.compressor);
   APP.compressor.connect(ctx.destination);
+
+  // Metronome gain — separate volume control for count-in / metronome clicks
+  APP.metronomeGain = ctx.createGain();
+  APP.metronomeGain.gain.value = APP.metronomeVolume;
+  APP.metronomeGain.connect(APP.compressor);
 
   // Synthetic reverb — decaying noise-based impulse response
   const irLen = ctx.sampleRate * 1.2;
@@ -7180,7 +7238,48 @@ function toggleMetronome() {
     btn.style.borderColor = APP.metronome ? 'rgba(192,86,33,0.60)' : 'rgba(192,86,33,0.30)';
     btn.style.color = APP.metronome ? '#c05621' : '#c05621';
   }
+
+  if (APP.metronome) {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const beatDur = 60 / APP.tempo;
+
+    if (APP.playing) {
+      // Schedule metronome from next beat to end of currently scheduled playback
+      const now = ctx.currentTime;
+      const nextBeat = Math.ceil(now / beatDur) * beatDur;
+      const totalMs = APP._playTotalMs || 0;
+      const elapsedMs = Date.now() - (APP._playNoteStartAt || Date.now());
+      const remainingMs = Math.max(0, totalMs - elapsedMs);
+      const remainingBeats = Math.ceil(remainingMs / (beatDur * 1000));
+      for (let b = 0; b < remainingBeats; b++) {
+        scheduleMetronomeClick(ctx, nextBeat + b * beatDur, b % 4 === 0);
+      }
+    } else {
+      _startStandaloneMetronome(ctx, beatDur);
+    }
+  } else {
+    _stopStandaloneMetronome();
+    APP._metBeat = 0;
+  }
   showToast(APP.metronome ? 'Metronome on' : 'Metronome off');
+}
+
+function _startStandaloneMetronome(ctx, beatDur) {
+  if (APP._metInterval) return;
+  const bd = beatDur || 60 / APP.tempo;
+  APP._metBeat = 0;
+  APP._metInterval = setInterval(() => {
+    if (!APP.metronome) { _stopStandaloneMetronome(); return; }
+    const ctx2 = ctx || getAudioCtx();
+    const bd2 = bd || 60 / APP.tempo;
+    scheduleMetronomeClick(ctx2, ctx2.currentTime + 0.02, APP._metBeat % 4 === 0);
+    APP._metBeat++;
+  }, bd * 1000);
+}
+
+function _stopStandaloneMetronome() {
+  if (APP._metInterval) { clearInterval(APP._metInterval); APP._metInterval = null; }
 }
 
 function scheduleMetronomeClick(ctx, time, accent) {
@@ -7189,24 +7288,24 @@ function scheduleMetronomeClick(ctx, time, accent) {
   osc.type = 'sine';
   osc.frequency.value = accent ? 1200 : 800;
   gain.gain.setValueAtTime(0, time);
-  gain.gain.linearRampToValueAtTime(0.2, time + 0.004);
+  gain.gain.linearRampToValueAtTime(0.35, time + 0.004);
   gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(APP.metronomeGain || ctx.destination);
   osc.start(time);
   osc.stop(time + 0.06);
 }
 
-function playCountIn(ctx, beatDur, beats) {
-  const dest = APP.masterGain || ctx.destination;
+function playCountIn(ctx, beatDur, beats, baseTime) {
+  const dest = APP.metronomeGain || APP.masterGain || ctx.destination;
   for (let i = 0; i < beats; i++) {
-    const clickTime = ctx.currentTime + 0.08 + i * beatDur;
+    const clickTime = baseTime + i * beatDur;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.value = i === 0 ? 1200 : 880;
     gain.gain.setValueAtTime(0, clickTime);
-    gain.gain.linearRampToValueAtTime(0.25, clickTime + 0.005);
+    gain.gain.linearRampToValueAtTime(0.45, clickTime + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.001, clickTime + 0.06);
     osc.connect(gain);
     gain.connect(dest);
@@ -7219,12 +7318,18 @@ function startPlayback() {
   const ctx = getAudioCtx();
   if (ctx.state === 'suspended') ctx.resume();
   APP.playing = true;
-  if (APP.masterGain) APP.masterGain.gain.value = 0.65;
+  if (APP.masterGain) APP.masterGain.gain.value = APP.masterVolume;
+  if (APP.metronomeGain) APP.metronomeGain.gain.value = APP.metronomeVolume;
   document.getElementById('play-icon').style.display = 'none';
   document.getElementById('pause-icon').style.display = '';
 
   const playOrder = buildPlaybackOrder(APP.score);
   const beatDur = 60 / APP.tempo;
+  // Align to next beat boundary so music/count-in starts on the beat
+  const baseTime = Math.ceil(ctx.currentTime / beatDur) * beatDur + 0.02;
+
+  // Stop standalone metronome if running (playback will schedule its own)
+  _stopStandaloneMetronome();
 
   let countInBeats = 0;
   if (APP.countIn) {
@@ -7240,7 +7345,7 @@ function startPlayback() {
     }
   }
   const countInOffset = countInBeats * beatDur;
-  let maxT = ctx.currentTime + 0.08 + countInOffset;
+  let maxT = baseTime + countInOffset;
 
   // Build note timeline for playback cursor
   APP.playNoteTimeline = [];
@@ -7257,10 +7362,10 @@ function startPlayback() {
     });
   });
 
-  if (APP.countIn) playCountIn(ctx, beatDur, countInBeats);
+  if (APP.countIn) playCountIn(ctx, beatDur, countInBeats, baseTime);
 
   if (APP.metronome) {
-    let beatT = ctx.currentTime + 0.08 + countInOffset;
+    let beatT = baseTime + countInOffset;
     playOrder.forEach(mi => {
       const cap = measureBeatsCapacity(mi, 0);
       for (let b = 0; b < cap; b++) {
@@ -7281,7 +7386,7 @@ function startPlayback() {
       for (let p = 0; p < APP.score.parts.indexOf(part); p++) gsi += APP.score.parts[p].staves.length;
       const si = gsi + localSI;
 
-      let t = ctx.currentTime + 0.08 + countInOffset;
+      let t = baseTime + countInOffset;
       playOrder.forEach(mi => {
         const m = stave.measures[mi];
         if (!m) return;
@@ -7312,10 +7417,44 @@ function startPlayback() {
   });
 
   const totalMs = (maxT - ctx.currentTime - countInOffset) * 1000;
+  // Store total continuous width for playback auto-scroll
+  APP._playTotalMs = totalMs;
+  if (APP.continuousView) {
+    const container = document.getElementById('score-svg');
+    APP._playTotalWidth = container ? Math.max(container.scrollWidth - container.clientWidth, 1) : 0;
+  } else {
+    APP._playTotalWidth = 0;
+  }
   APP.playTimers.push(setTimeout(stopPlayback, totalMs + 200));
 
   const startAt = Date.now();
   const noteStartAt = startAt + countInOffset * 1000;
+  APP._playNoteStartAt = noteStartAt;
+
+  // Start continuous rAF-based horizontal scroll for continuous view
+  if (APP.continuousView && APP._playTotalWidth > 0) {
+    const cont = document.getElementById('score-svg');
+    if (cont) {
+      function scrollTick() {
+        if (!APP.playing || !APP.continuousView) return;
+        const elapsed = Date.now() - APP._playNoteStartAt;
+        if (elapsed > 0) {
+          const ratio = Math.min(elapsed / APP._playTotalMs, 1);
+          const target = Math.max(0, ratio * APP._playTotalWidth);
+          const cur = cont.scrollLeft || 0;
+          const diff = target - cur;
+          // Keep a small gap so the scroll feels responsive but smooth
+          if (Math.abs(diff) > 1) {
+            cont.scrollLeft = cur + diff * 0.35;
+            positionAllDiagrams();
+          }
+        }
+        APP._playScrollRAF = requestAnimationFrame(scrollTick);
+      }
+      APP._playScrollRAF = requestAnimationFrame(scrollTick);
+    }
+  }
+
   function tick() {
     if (!APP.playing) return;
     const elapsed = (Date.now() - startAt) / 1000;
@@ -7336,16 +7475,21 @@ function startPlayback() {
 function stopPlayback() {
   APP.playing = false;
   clearPlayCursor();
+  if (APP._playScrollRAF) cancelAnimationFrame(APP._playScrollRAF);
   if (APP.masterGain) APP.masterGain.gain.value = 0;
+  if (APP.metronomeGain) APP.metronomeGain.gain.value = 0;
   document.getElementById('play-icon').style.display = '';
   document.getElementById('pause-icon').style.display = 'none';
   document.getElementById('play-pos').textContent = '0:00';
   APP.playTimers.forEach(clearTimeout);
   APP.playTimers = [];
+  // Restart standalone metronome if toggle is still on
+  if (APP.metronome && !APP._metInterval) _startStandaloneMetronome();
 }
 
 function updatePlayCursor(elapsedMs) {
   if (!APP.playNoteTimeline || !APP.playNoteTimeline.length) return;
+
   const active = APP.playNoteTimeline.filter(n => n.isNote && elapsedMs >= n.startMs && elapsedMs < n.startMs + n.durMs);
   if (active.length === 0) { clearPlayCursor(); return; }
   // Build a key to detect changes
@@ -7353,7 +7497,8 @@ function updatePlayCursor(elapsedMs) {
   if (key !== APP._lastPlayKey && active[0]) {
     APP.selectedMeasure = active[0].mi;
     APP.selectedNoteIdx = active[0].ni;
-    scrollToSelectedMeasure();
+    // In continuous view, auto-scroll handles the scrolling during playback
+    if (!APP.continuousView) scrollToSelectedMeasure();
   }
   if (key === APP._lastPlayKey) return;
   APP._lastPlayKey = key;
@@ -7978,6 +8123,43 @@ function showPartsDialog() {
         ⬅ Return to Full Score</button>
     ` : ''}
     <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+  `);
+}
+
+function showMixer() {
+  const parts = APP.score?.parts || [];
+  const masterPct = Math.round((APP.masterVolume || 0.65) * 100);
+  const metPct = Math.round((APP.metronomeVolume || 0.5) * 100);
+  const partSliders = parts.map((p, i) => `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+      <span style="flex:0 0 70px;font-size:11px;color:#4a5568;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+      <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
+        oninput="setPartVolume(${i},this.value)"
+        style="flex:1;height:4px;accent-color:#c05621;cursor:pointer"
+        aria-label="${p.name} volume">
+      <span id="mix-part-${i}" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${Math.round((p.volume||1)*100)}</span>
+    </div>`).join('');
+
+  makeModal(`
+    <h2>Mixer</h2>
+    <div style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="flex:0 0 70px;font-size:11px;color:#4a5568">Master</span>
+        <input type="range" min="0" max="100" value="${masterPct}"
+          oninput="APP.masterVolume=this.value/100;if(APP.masterGain)APP.masterGain.gain.value=APP.masterVolume;document.getElementById('mix-master-val').textContent=this.value"
+          style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Master volume">
+        <span id="mix-master-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${masterPct}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="flex:0 0 70px;font-size:11px;color:#4a5568">Metronome</span>
+        <input type="range" min="0" max="100" value="${metPct}"
+          oninput="APP.metronomeVolume=this.value/100;if(APP.metronomeGain)APP.metronomeGain.gain.value=APP.metronomeVolume;document.getElementById('mix-met-val').textContent=this.value"
+          style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Metronome volume">
+        <span id="mix-met-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${metPct}</span>
+      </div>
+    </div>
+    ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
+    <button class="modal-btn secondary" style="margin-top:8px" onclick="closeModal()">Close</button>
   `);
 }
 
@@ -9011,7 +9193,6 @@ function bootApp() {
     return;
   }
   VF = Vex.Flow;
-  document.body.setAttribute('data-theme','evening'); // fixed
 
   // Create a minimal blank score so renderScore never runs on null,
   // but don't render it — show the New Score dialog immediately instead.
