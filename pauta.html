@@ -600,6 +600,7 @@ body{
     border-radius:0 !important;
     page-break-inside:avoid;
   }
+  [data-instr-type="recorder"], [data-instr-type="brass"], [data-instr-type="woodwind"] { display:none !important; }
 }
 
 </style>
@@ -934,20 +935,6 @@ body{
         min-height:32px;
         font-weight:600;
       "><span id="names-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#64c88c;margin-right:5px;vertical-align:middle"></span>𝅘 Names</button>
-      <button id="btn-rec-fing" onclick="toggleRecorderFingering()" style="
-        display:none;
-        background:rgba(100,200,140,0.18);
-        border:1px solid rgba(100,200,140,0.50);
-        border-radius:8px;
-        color:#64c88c;
-        font-size:10px;
-        padding:6px 10px;
-        cursor:pointer;
-        -webkit-tap-highlight-color:transparent;
-        letter-spacing:0.2px;
-        min-height:32px;
-        font-weight:600;
-      "><span id="rec-fing-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#64c88c;margin-right:5px;vertical-align:middle"></span>Rec. Fingerings</button>
       <button id="btn-note-labels" onclick="toggleNoteLabels()" style="
         display:inline-block;
         background:rgba(224,112,96,0.15);
@@ -1468,10 +1455,13 @@ body{
 <div id="toast"></div>
 
 <script>
+const DEBUG = false;
+function debugLog(...args) { if (DEBUG) console.log(...args); }
+(function(){
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.14.0
+//  v0.15.0
 // ================================================================
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
@@ -1513,7 +1503,6 @@ const APP = {
   glissPending: null,  // null | {startMi,startNi,si,style} — waiting for end note
   // ── Boomwhacker options ───────────────────────────────────────
   bwNoteNames: true,   // show note letter inside every notehead
-  showRecorderFingering: false, // show recorder fingerings on recorder notes
   // ── Educational labels ────────────────────────────────────────
   showNoteLabels: false,   // toggle solfege labels on all notes
   noteLabelMode: 'solfege',
@@ -2084,15 +2073,15 @@ function parseMSCX(xmlStr) {
 
   // Console diagnostics
   const rootEl = doc.firstChild;
-  console.log('[PautaEngraving import] root element:', rootEl?.tagName, 'namespace:', rootEl?.namespaceURI);
+  debugLog('[PautaEngraving import] root element:', rootEl?.tagName, 'namespace:', rootEl?.namespaceURI);
   const mScoreEl = nq(doc, 'museScore');
-  console.log('[PautaEngraving import] museScore version:', mScoreEl?.getAttribute('version'));
+  debugLog('[PautaEngraving import] museScore version:', mScoreEl?.getAttribute('version'));
   const staffCount = nqa(doc, 'Staff').length;
   const measureCount = nqa(doc, 'Measure').length;
   const partCount = nqa(doc, 'Part').length;
   const metaTags = nqa(doc, 'metaTag');
-  console.log('[PautaEngraving import] Staff:', staffCount, 'Measure:', measureCount, 'Part:', partCount, 'metaTag:', metaTags.length);
-  metaTags.forEach(mt => console.log('  metaTag:', mt.getAttribute('name'), '=', mt.textContent.trim()));
+  debugLog('[PautaEngraving import] Staff:', staffCount, 'Measure:', measureCount, 'Part:', partCount, 'metaTag:', metaTags.length);
+  metaTags.forEach(mt => debugLog('  metaTag:', mt.getAttribute('name'), '=', mt.textContent.trim()));
 
   const score = createScore();
   // Try metaTag first (MuseScore 4), then direct tags
@@ -2104,18 +2093,17 @@ function parseMSCX(xmlStr) {
   });
   score.title    = metaTitle || txt(doc,'Title') || txt(doc,'title') || 'Untitled Score';
   score.composer = metaComposer || txt(doc,'Composer') || txt(doc,'composer') || '';
-  console.log('[PautaEngraving import] title:', score.title, 'composer:', score.composer);
+  debugLog('[PautaEngraving import] title:', score.title, 'composer:', score.composer);
   const mps = nq(doc, 'PautaEngravingSettings') || nq(doc, 'PautaSettings');
   if (mps) {
     score.showMeasureNumbers     = mps.getAttribute('showMeasureNumbers') === '1';
-    score.showRecorderFingering  = mps.getAttribute('showRecorderFingering') === '1';
     score.showMultiMeasureRests  = mps.getAttribute('showMultiMeasureRests') === '1';
 
   }
   score.parts    = [];
 
   const staffEls = nqa(doc, 'Staff');
-  if (!staffEls.length) { console.log('[PautaEngraving import] No Staff elements found'); return score; }
+  if (!staffEls.length) { debugLog('[PautaEngraving import] No Staff elements found'); return score; }
 
   const stavesByPart = [];
   let curTimeSigNum=4, curTimeSigDen=4, curKeySig=0;
@@ -2273,19 +2261,19 @@ function parseMSCX(xmlStr) {
   staffEls.forEach((staffEl, si) => {
     const staffMeasures = nqa(staffEl, 'Measure');
     if (staffMeasures.length) anyStaffHadMeasures = true;
-    console.log(`[PautaEngraving import] Staff ${si}: found ${staffMeasures.length} Measure children`);
+    debugLog(`[PautaEngraving import] Staff ${si}: found ${staffMeasures.length} Measure children`);
     const prevClef = clefType;
     const measures = parseMeasureEls(staffMeasures, si, stavesByPart, score);
     // Use detected clef from first measure, fall back to alternating clefs
     const staffClef = measures.length && staffMeasures.length ? clefType : (si % 2 === 0 ? 'treble' : 'bass');
-    console.log(`[PautaEngraving import] Staff ${si}: parsed ${measures.length} measures, clef: ${staffClef}, first measure notes: ${measures[0]?.notes?.length||0}`);
+    debugLog(`[PautaEngraving import] Staff ${si}: parsed ${measures.length} measures, clef: ${staffClef}, first measure notes: ${measures[0]?.notes?.length||0}`);
     stavesByPart.push({clef: staffClef, measures});
   });
 
   // Fallback: if no Staff contained Measure children but Measures exist elsewhere in doc
   if (!anyStaffHadMeasures && docMeasures.length) {
-    console.log('[PautaEngraving import] No Measures inside Staff — using document-level measures as fallback');
-    console.log('[PautaEngraving import] Staff child tagNames:', Array.from(staffEls[0].children).map(c=>c.localName));
+    debugLog('[PautaEngraving import] No Measures inside Staff — using document-level measures as fallback');
+    debugLog('[PautaEngraving import] Staff child tagNames:', Array.from(staffEls[0].children).map(c=>c.localName));
     stavesByPart.forEach(s => {
       s.measures = parseMeasureEls(docMeasures, 0, stavesByPart, score);
     });
@@ -2310,9 +2298,9 @@ function parseMSCX(xmlStr) {
   let partName = 'Piano';
   const partEl = nq(doc, 'Part');
   if (partEl) {
-    console.log('[PautaEngraving import] Part child tags:', Array.from(partEl.children).map(c => c.localName));
+    debugLog('[PautaEngraving import] Part child tags:', Array.from(partEl.children).map(c => c.localName));
     partName = txt(partEl, 'trackName') || txt(partEl, 'partName') || txt(partEl, 'longName') || 'Piano';
-    console.log('[PautaEngraving import] Part name found:', partName);
+    debugLog('[PautaEngraving import] Part name found:', partName);
   }
 
   score.parts = [{
@@ -2340,7 +2328,7 @@ function exportMSCXFromScore(s) {
   let x = `<?xml version="1.0" encoding="UTF-8"?>\n<museScore version="4.0">\n  <Score>\n`;
   x += `    <Title>${esc(s.title)}</Title>\n`;
   if (s.composer) x += `    <Composer>${esc(s.composer)}</Composer>\n`;
-  x += `    <PautaEngravingSettings showMeasureNumbers="${APP.showMeasureNumbers?'1':'0'}" showRecorderFingering="${APP.showRecorderFingering?'1':'0'}" showMultiMeasureRests="${APP.showMultiMeasureRests?'1':'0'}"/>\n`;
+  x += `    <PautaEngravingSettings showMeasureNumbers="${APP.showMeasureNumbers?'1':'0'}" showMultiMeasureRests="${APP.showMultiMeasureRests?'1':'0'}"/>\n`;
 
   // Part metadata
   s.parts.forEach((part, pi) => {
@@ -2508,14 +2496,16 @@ function exportMSCXFromScore(s) {
 // ── Spacing helpers ───────────────────────────────────────────────
 // Natural pixel width for a single note/rest of given duration
 function noteNaturalWidth(dur, dots) {
-  const base = {w:109, h:74, q:46, '8':35, '16':29, '32':24, '64':22}[dur] || 46;
-  return Math.max(26, base);
+  const noteScale = APP.continuousView ? 1 : 0.7;
+  const base = {w:87, h:59, q:37, '8':28, '16':23, '32':19, '64':18}[dur] || 37;
+  return Math.max(12, Math.round(base * noteScale));
 }
 // Natural width of a measure's note content (excluding leading clef/key/time extras)
 function measureContentWidth(notes) {
-  if (isWholeRestPlaceholder(notes)) return 115; // empty bar — whole rest needs room
+  const noteScale = APP.continuousView ? 1 : 0.7;
+  if (isWholeRestPlaceholder(notes)) return Math.round(92 * noteScale);
   return notes.reduce((s, n) => s + noteNaturalWidth(n.duration, n.dots), 0)
-       + 43; // right margin before barline (accounts for VexFlow's own padding)
+       + Math.round(34 * noteScale);
 }
 
 function findMultiRestGroups() {
@@ -2569,16 +2559,235 @@ function buildFillerRests(leftover, clef, capacity, stemDir) {
 }
 
 // ── Rendering ────────────────────────────────────────────────────
-const STAVE_H       = 110;  // 4 * spacingBetweenLines(28)
-const STAVE_SPACING = 224;  // vertical distance between stave baselines
-const SYS_SPACING   = 8;    // very tight gap between systems
-const MARGIN_X      = 138;
-const MARGIN_TOP    = 138;  // room for title
+// ── Rendering constants ────────────────────────────────────────
+const REND = {
+  STAVE_H: 132,
+  STAVE_SPACING: 269,
+  SYS_SPACING: 54,
+  MARGIN_X: 166,
+  MARGIN_TOP: 166,
+};
+
+// ── System packing ─────────────────────────────────────────────
+function packSystems(staves, allM, nM, ns, viewScale, container) {
+  const FIRST_EXTRA_GLOBAL = Math.round(156 * viewScale);
+  const FIRST_EXTRA_SYS    = Math.round(108 * viewScale);
+  const mNatW = Array.from({length: nM}, (_, mi) =>
+    measureContentWidth(staves[0].measures[mi]?.notes || [mkRest('w')])
+  );
+  for (let mi = 0; mi < nM; mi++) {
+    if (allM[mi]?.pickup) {
+      const n = allM[mi].notes;
+      if (n.length === 1 && n[0].type === 'rest') mNatW[mi] = 20;
+    }
+  }
+  const cW = APP.continuousView
+    ? mNatW.reduce((a,b)=>a+b,0) + FIRST_EXTRA_GLOBAL + (nM-1)*FIRST_EXTRA_SYS + 2*REND.MARGIN_X
+    : Math.max(container.clientWidth || 700, 400);
+  const usable = cW - 2 * REND.MARGIN_X;
+  const systems = [];
+  let sys = [], sysContentW = 0;
+  for (let mi = 0; mi < nM; mi++) {
+    const firstExtra = systems.length === 0 && sys.length === 0
+      ? (allM[0]?.pickup ? FIRST_EXTRA_SYS : FIRST_EXTRA_GLOBAL) : (sys.length === 0 ? FIRST_EXTRA_SYS : 0);
+    const needed = sysContentW + firstExtra + mNatW[mi];
+    const forceBreak = sys.length > 0 && (allM[mi]?.lineBreak || (!APP.continuousView && needed > usable));
+    if (forceBreak) {
+      systems.push(sys);
+      sys = []; sysContentW = 0;
+      mi--;
+    } else {
+      sys.push(mi);
+      sysContentW += (sys.length === 1 ? firstExtra : 0) + mNatW[mi];
+    }
+  }
+  if (sys.length) systems.push(sys);
+  debugLog('[renderScore] systems:', systems.length, 'for nM:', nM);
+  return { systems, mNatW, cW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS };
+}
+
+// ── Renderer / container setup ─────────────────────────────────
+function initScoreRenderer(container, cW, totalH, score) {
+  const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+  renderer.resize(cW, totalH);
+  const ctx = renderer.getContext();
+  APP.staveLayout = [];
+  if (APP.continuousView) {
+    container.style.overflowX = 'auto';
+    container.style.overflowY = 'hidden';
+    container.style.whiteSpace = 'nowrap';
+    const svgEl = container.querySelector('svg');
+    if (svgEl) {
+      svgEl.style.width = cW + 'px';
+      svgEl.style.height = totalH + 'px';
+      svgEl.style.maxWidth = 'none';
+    }
+  } else {
+    container.style.overflowX = 'hidden';
+    container.style.overflowY = 'auto';
+    container.style.whiteSpace = '';
+  }
+  const multiRestGroups = APP.showMultiMeasureRests ? findMultiRestGroups() : [];
+  const svgEl = container.querySelector('svg');
+  function addSVGText(svgEl, text, x, y, fontSize, weight, anchor, fontFamily) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg','text');
+    el.setAttribute('x', x);
+    el.setAttribute('y', y);
+    el.setAttribute('text-anchor', anchor);
+    el.setAttribute('font-family', fontFamily || "'Helvetica Neue',Helvetica,Arial,sans-serif");
+    el.setAttribute('font-size', fontSize);
+    el.setAttribute('font-weight', weight);
+    el.setAttribute('fill', '#111');
+    el.textContent = text;
+    svgEl.appendChild(el);
+  }
+  if (score.title)    addSVGText(svgEl, score.title,    cW/2, 66, score.titleSize||22, 'bold',   'middle', score.titleFont);
+  if (score.composer) addSVGText(svgEl, score.composer, cW-REND.MARGIN_X, 66, 12, 'normal', 'end');
+  return { ctx, multiRestGroups };
+}
+
+function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, ns, isFirstSysOfScore, ctx, vfStaveRef) {
+  const svgEl2 = container.querySelector('svg');
+  let flatIdx = 0;
+  activeParts.forEach(part => {
+    const nStaves = part.staves.length;
+    const firstMi = system[0];
+    const gsi0    = flatIdx + siOffset;
+    const topSL   = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === gsi0);
+    const botSL   = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === gsi0 + nStaves - 1);
+    const topY    = topSL?.topLineY ?? (sysY + flatIdx * REND.STAVE_SPACING + 4);
+    const botY    = botSL?.bottomY  ?? (sysY + (flatIdx + nStaves - 1) * REND.STAVE_SPACING + REND.STAVE_H - 4);
+    const midY    = (topY + botY) / 2;
+    if (isFirstSysOfScore) {
+      const instr = instrByName(part.instrument || part.name);
+      const diagramId = `instr-diagram-${flatIdx}`;
+      const diagramCY = (topY + botY) / 2;
+      if (ns === 1 && instr && instr.recorder) {
+        const recG = renderLargeRecorder('');
+        const recScale = nStaves > 1 ? 1.8 : 1.35;
+        recG.setAttribute('transform', `translate(${REND.MARGIN_X - 136},${diagramCY + 107 * recScale}) scale(${recScale})`);
+        recG.setAttribute('id', diagramId);
+        recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
+        recG.setAttribute('data-instr-type', 'recorder');
+        recG.setAttribute('data-rec-scale', recScale);
+        recG.setAttribute('data-rec-cy', diagramCY);
+        svgEl2.appendChild(recG);
+      } else if (ns === 1 && instr && instr.family === 'Woodwinds') {
+        const type = instr.name.toLowerCase();
+        const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
+        const wwG = renderWoodwindDiagram('', shorthand);
+        const scale = 1.44;
+        wwG.setAttribute('transform', `translate(${REND.MARGIN_X - 190},${diagramCY - 173}) scale(${scale})`);
+        wwG.setAttribute('id', diagramId);
+        wwG.setAttribute('data-instr-type', 'woodwind');
+        wwG.setAttribute('data-instr-name', shorthand);
+        wwG.setAttribute('data-diagram-cy', diagramCY);
+        svgEl2.appendChild(wwG);
+      } else if (ns === 1 && instr && instr.family === 'Brass') {
+        const type = instr.name.toLowerCase();
+        const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
+        const brG = renderBrassDiagram('', shorthand);
+        const scale = 1.44;
+        const brX = shorthand === 'trombone' ? REND.MARGIN_X - 152 : REND.MARGIN_X - 176;
+        brG.setAttribute('transform', `translate(${brX},${diagramCY - 101}) scale(${scale})`);
+        brG.setAttribute('id', diagramId);
+        brG.setAttribute('data-instr-type', 'brass');
+        brG.setAttribute('data-instr-name', shorthand);
+        brG.setAttribute('data-diagram-cy', diagramCY);
+        svgEl2.appendChild(brG);
+      }
+      const labelG = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const labelBaseX = REND.MARGIN_X - (nStaves > 1 ? 31 : 7);
+      labelG.setAttribute('data-label-x', labelBaseX);
+      labelG.setAttribute('data-label-y', midY + 7);
+      labelG.setAttribute('transform', `translate(${labelBaseX},${midY + 6})`);
+      const el = document.createElementNS('http://www.w3.org/2000/svg','text');
+      el.setAttribute('x', '0'); el.setAttribute('y', '0');
+      el.setAttribute('text-anchor','end');
+      el.setAttribute('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
+      el.setAttribute('font-size','11'); el.setAttribute('fill','#444');
+      const nm = part.name;
+      if (nm.length > 12 && nm.includes(' ')) {
+        const si = nm.indexOf(' ');
+        el.textContent = nm.slice(0, si);
+        const ts = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+        ts.setAttribute('x', '0'); ts.setAttribute('dy', '13');
+        ts.textContent = nm.slice(si + 1);
+        el.appendChild(ts);
+      } else { el.textContent = nm; }
+      labelG.appendChild(el);
+      svgEl2.appendChild(labelG);
+    }
+    if (nStaves > 1) {
+      try {
+        const topStave = vfStaveRef[`${gsi0}_${firstMi}`];
+        const botStave = vfStaveRef[`${gsi0 + nStaves - 1}_${firstMi}`];
+        if (topStave && botStave) {
+          const brace = new VF.StaveConnector(topStave, botStave);
+          brace.setType(VF.StaveConnector.type.BRACE);
+          brace.setContext(ctx).draw();
+        }
+      } catch(e) {}
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', REND.MARGIN_X); line.setAttribute('y1', topY);
+      line.setAttribute('x2', REND.MARGIN_X); line.setAttribute('y2', botY);
+      line.setAttribute('stroke','#111'); line.setAttribute('stroke-width','1.5');
+      line.setAttribute('pointer-events','none');
+      svgEl2.appendChild(line);
+    }
+    flatIdx += nStaves;
+  });
+}
+
+function renderMeasureNumbers(container, ns, siOffset, sysIdx, system) {
+  const firstMiOfSys = system[0];
+  if (!(sysIdx === 0 && firstMiOfSys === 0)) {
+    const topSL = APP.staveLayout.find(sl => sl.mi === firstMiOfSys && sl.si === siOffset);
+    if (topSL) {
+      const svgEl3 = document.getElementById('score-svg').querySelector('svg');
+      const mnEl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      mnEl.setAttribute('x', topSL.x + 1); mnEl.setAttribute('y', topSL.topLineY - 6);
+      mnEl.setAttribute('text-anchor', 'start');
+      mnEl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
+      mnEl.setAttribute('font-size', '10'); mnEl.setAttribute('font-weight', '500');
+      mnEl.setAttribute('fill', '#555'); mnEl.setAttribute('pointer-events', 'none');
+      mnEl.textContent = String(firstMiOfSys + 1);
+      svgEl3.appendChild(mnEl);
+    }
+  }
+  if (APP.showMeasureNumbers) {
+    const svgEl4 = document.getElementById('score-svg').querySelector('svg');
+    system.forEach(mi => {
+      const sl = APP.staveLayout.find(sl => sl.mi === mi && sl.si === siOffset + ns - 1);
+      if (sl) {
+        const el = document.createElementNS('http://www.w3.org/2000/svg','text');
+        el.setAttribute('x', sl.x + sl.w / 2); el.setAttribute('y', sl.bottomY + 18);
+        el.setAttribute('text-anchor', 'middle');
+        el.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
+        el.setAttribute('font-size', '9'); el.setAttribute('fill', '#777');
+        el.setAttribute('pointer-events', 'none');
+        el.textContent = String(mi + 1);
+        svgEl4.appendChild(el);
+      }
+    });
+  }
+}
 
 function renderScore() {
   const container = document.getElementById('score-svg');
+  // Save scroll position before clearing — otherwise clearing innerHTML resets scrollTop to 0
+  const area = document.getElementById('score-area');
+  const savedScrollTop = area ? area.scrollTop : 0;
   container.innerHTML = '';
   if (!APP.score) return;
+
+  // Page view is 30% smaller than continuous view
+  const viewScale = APP.continuousView ? 1 : 0.7;
+  REND.STAVE_H       = Math.round(132 * viewScale);
+  REND.STAVE_SPACING = Math.round(269 * viewScale);
+  REND.SYS_SPACING   = Math.round(54  * viewScale);
+  REND.MARGIN_X      = 166;
+  REND.MARGIN_TOP    = 166;
   APP.selectedGraceIdx = -1;
   APP._lastPlayKey = '';
   APP.staveLayout = [];
@@ -2597,91 +2806,13 @@ function renderScore() {
   const refStave = staves.find(s => s.measures.length) || staves[0];
   const allM   = refStave.measures;
   const nM     = allM.length;
-  console.log('[PautaEngraving import render] nM:', nM, 'ns:', ns, 'ref stave measures:', allM?.length, 'first measure notes:', allM[0]?.notes?.length);
+  debugLog('[PautaEngraving import render] nM:', nM, 'ns:', ns, 'ref stave measures:', allM?.length, 'first measure notes:', allM[0]?.notes?.length);
 
-  // ── System packing (duration-proportional) ────────────────────
-  // firstExtra: space for clef + key sig + time sig at start of system
-  const FIRST_EXTRA_GLOBAL = 130; // clef + key sig + time sig
-  const FIRST_EXTRA_SYS    = 90;   // clef only (subsequent system starts)
+  const { systems, mNatW, cW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS } = packSystems(staves, allM, nM, ns, viewScale, container);
+  const totalH = REND.MARGIN_TOP + systems.length * (REND.STAVE_H + (ns-1) * REND.STAVE_SPACING + REND.SYS_SPACING) + 48;
+  const { ctx, multiRestGroups } = initScoreRenderer(container, cW, totalH, score);
 
-  // Pre-compute each measure's natural content width
-  const mNatW = Array.from({length: nM}, (_, mi) =>
-    measureContentWidth(staves[0].measures[mi]?.notes || [mkRest('w')])
-  );
-  // Pickup measures: minimal width while still holding the placeholder rest
-  for (let mi = 0; mi < nM; mi++) {
-    if (allM[mi]?.pickup) {
-      const n = allM[mi].notes;
-      if (n.length === 1 && n[0].type === 'rest') mNatW[mi] = 20;
-    }
-  }
-
-  const cW     = APP.continuousView
-    ? mNatW.reduce((a,b)=>a+b,0) + FIRST_EXTRA_GLOBAL + (nM-1)*FIRST_EXTRA_SYS + 2*MARGIN_X
-    : Math.max(container.clientWidth || 700, 400);
-  const usable = cW - 2 * MARGIN_X;
-
-  const systems = [];
-  let sys = [], sysContentW = 0;
-  for (let mi = 0; mi < nM; mi++) {
-    const firstExtra = systems.length === 0 && sys.length === 0
-      ? (allM[0]?.pickup ? FIRST_EXTRA_SYS : FIRST_EXTRA_GLOBAL) : (sys.length === 0 ? FIRST_EXTRA_SYS : 0);
-    const needed = sysContentW + firstExtra + mNatW[mi];
-    const forceBreak = sys.length > 0 && (allM[mi]?.lineBreak || (!APP.continuousView && needed > usable));
-    if (forceBreak) {
-      systems.push(sys);
-      sys = [mi]; sysContentW = mNatW[mi];
-    } else {
-      sys.push(mi); sysContentW += mNatW[mi];
-    }
-  }
-  if (sys.length) systems.push(sys);
-  console.log('[PautaEngraving import render] systems:', systems.length, 'for nM:', nM);
-
-  const totalH = MARGIN_TOP + systems.length * (ns * STAVE_SPACING + SYS_SPACING) + 48;
-  const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-  renderer.resize(cW, totalH);
-  const ctx = renderer.getContext();
-  APP.staveLayout = [];
-
-  // Continuous view: override SVG width, allow horizontal scroll
-  if (APP.continuousView) {
-    container.style.overflowX = 'auto';
-    container.style.overflowY = 'hidden';
-    container.style.whiteSpace = 'nowrap';
-    const svgEl = container.querySelector('svg');
-    if (svgEl) {
-      svgEl.style.width = cW + 'px';
-      svgEl.style.height = totalH + 'px';
-      svgEl.style.maxWidth = 'none';
-    }
-  } else {
-    container.style.overflowX = 'hidden';
-    container.style.overflowY = 'auto';
-    container.style.whiteSpace = '';
-  }
-
-  // Compute multi-measure rest groups
-  const multiRestGroups = APP.showMultiMeasureRests ? findMultiRestGroups() : [];
-
-  // Draw title / composer via raw SVG
-  const svgEl = container.querySelector('svg');
-  function addSVGText(svgEl, text, x, y, fontSize, weight, anchor='middle', fontFamily) {
-    const el = document.createElementNS('http://www.w3.org/2000/svg','text');
-    el.setAttribute('x', x);
-    el.setAttribute('y', y);
-    el.setAttribute('text-anchor', anchor);
-    el.setAttribute('font-family', fontFamily || "'Helvetica Neue',Helvetica,Arial,sans-serif");
-    el.setAttribute('font-size', fontSize);
-    el.setAttribute('font-weight', weight);
-    el.setAttribute('fill', '#111');
-    el.textContent = text;
-    svgEl.appendChild(el);
-  }
-  if (score.title)    addSVGText(svgEl, score.title,    cW/2, 66, score.titleSize||22, 'bold',   'middle', score.titleFont);
-  if (score.composer) addSVGText(svgEl, score.composer, cW-MARGIN_X, 66, 12, 'normal', 'end');
-
-  let sysY = MARGIN_TOP;
+  let sysY = REND.MARGIN_TOP;
   const vfStaveRef = {}; // key: `${globalSI}_${mi}` → VF.Stave object for StaveConnectors
 
   systems.forEach((system, sysIdx) => {
@@ -2697,7 +2828,17 @@ function renderScore() {
     const stretch = 1;
     const mWidths = system.map(mi => Math.round(mNatW[mi] * stretch));
 
-    let x = MARGIN_X;
+    // In page view, force every system to exactly fill the usable width
+    if (!APP.continuousView && mWidths.length > 0) {
+      const total = mWidths.reduce((a,b) => a+b, 0);
+      const target = usable - firstExtra;
+      if (total > 10 && Math.abs(total - target) > 5) {
+        const scale = target / total;
+        system.forEach((mi, li) => { mWidths[li] = Math.round(Math.max(20, mWidths[li] * scale)); });
+      }
+    }
+
+    let x = REND.MARGIN_X;
 
     staves.forEach((stave, si) => {
       let mx = x;
@@ -2706,14 +2847,14 @@ function renderScore() {
         const isGlobalFirst   = isFirstSysOfScore && li === 0;
         let mWidth = (isFirstOfSys ? firstExtra : 0) + mWidths[li];
 
-        const staveY  = sysY + si * STAVE_SPACING;
+        const staveY  = sysY + si * REND.STAVE_SPACING;
         const isBWst  = isBoomwhackerSI(si + siOffset);
         const isBRst  = isBeginnerRecorderSI(si + siOffset);
         const isLarge = isBWst || isBRst;
         const vfStave = new VF.Stave(mx, staveY, mWidth,
           { space_above_staff_ln: 4, num_lines: 5, fill_style: '#000' }
         );
-        try { vfStave.setSpacingBetweenLines(28); } catch(e) {}
+        try { vfStave.setSpacingBetweenLines(Math.round(33 * viewScale)); } catch(e) {}
 
         // Clef — track per-measure changes
         const currentClef = getResolvedClef(mi, si + siOffset);
@@ -2871,7 +3012,7 @@ function renderScore() {
             const rightMargin  = Math.min(38, Math.max(14, rawAvailable * 0.08));
             const availableW   = rawAvailable - rightMargin;
 
-             new VF.Formatter({ softmaxFactor: 2 }).joinVoices(voices).format(voices, availableW);
+             new VF.Formatter({ softmaxFactor: 20 }).joinVoices(voices).format(voices, availableW);
             voices.forEach(v => v.draw(ctx, vfStave));
 
             // Record per-note positions using ORIGINAL measure.notes indices
@@ -2879,7 +3020,7 @@ function renderScore() {
               try {
                 const nx = vfn.getAbsoluteX() + 6; // centre of notehead
                 const ys = vfn.getYs();
-                const ny = ys && ys.length ? ys[0] : (staveY + STAVE_H / 2);
+                const ny = ys && ys.length ? ys[0] : (staveY + REND.STAVE_H / 2);
                 const sLen1 = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
                 const stemTipY1 = dirs1[i] === VF.Stem.UP ? ny - sLen1 : ny + sLen1;
                 APP.noteLayout.push({ mi, si: si + siOffset, ni: v1Indices[i], x: nx, y: ny, stemDir: dirs1[i], stemTipY: stemTipY1 });
@@ -2889,7 +3030,7 @@ function renderScore() {
               try {
                 const nx = vfn.getAbsoluteX() + 6; // centre of notehead
                 const ys = vfn.getYs();
-                const ny = ys && ys.length ? ys[0] : (staveY + STAVE_H / 2);
+                const ny = ys && ys.length ? ys[0] : (staveY + REND.STAVE_H / 2);
                 const sLen2 = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
                 const stemTipY2 = dirs2[i] === VF.Stem.UP ? ny - sLen2 : ny + sLen2;
                 APP.noteLayout.push({ mi, si: si + siOffset, ni: v2Indices[i], x: nx, y: ny, stemDir: dirs2[i], stemTipY: stemTipY2 });
@@ -2913,166 +3054,17 @@ function renderScore() {
           mi, si: si + siOffset, x: mx, y: staveY,
           topLineY: vfStave.getYForLine(0),
           bottomY:  vfStave.getYForLine(4),
-          w: mWidth, h: STAVE_H, clef: stave.clef
+          w: mWidth, h: REND.STAVE_H, clef: stave.clef
         });
         mx += mWidth;
       }); // end system.forEach measures
 
     }); // end staves.forEach
 
-    // Draw instrument labels and brace ONCE per system (after all staves drawn)
-    {
-        const svgEl2 = container.querySelector('svg');
-        let flatIdx = 0;
-        activeParts.forEach(part => {
-          const nStaves = part.staves.length;
-          const firstMi = system[0];
-          const gsi0    = flatIdx + siOffset; // global SI of first stave of this part
-          const topSL   = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === gsi0);
-          const botSL   = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === gsi0 + nStaves - 1);
-          // Use actual VexFlow staff line positions — topLineY is the top staff line,
-          // bottomY is the bottom staff line. These are correct bracket endpoints.
-          const topY    = topSL?.topLineY ?? (sysY + flatIdx * STAVE_SPACING + 4);
-          const botY    = botSL?.bottomY  ?? (sysY + (flatIdx + nStaves - 1) * STAVE_SPACING + STAVE_H - 4);
-          const midY    = (topY + botY) / 2;
+    renderInstrumentLabels(container, activeParts, system, sysY, siOffset, ns, isFirstSysOfScore, ctx, vfStaveRef);
+    renderMeasureNumbers(container, ns, siOffset, sysIdx, system);
 
-          if (isFirstSysOfScore) {
-            const instr = instrByName(part.instrument || part.name);
-            const diagramId = `instr-diagram-${flatIdx}`;
-            const diagramCY = (topY + botY) / 2;
-
-            if (instr && instr.recorder) {
-              const recG = renderLargeRecorder('');
-              const recScale = nStaves > 1 ? 1.8 : 1.35;
-              recG.setAttribute('transform', `translate(${MARGIN_X - 136},${diagramCY + 107 * recScale}) scale(${recScale})`);
-              recG.setAttribute('id', diagramId);
-              recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
-              recG.setAttribute('data-instr-type', 'recorder');
-              recG.setAttribute('data-rec-scale', recScale);
-              recG.setAttribute('data-rec-cy', diagramCY);
-              svgEl2.appendChild(recG);
-            } else if (instr && instr.family === 'Woodwinds') {
-              const type = instr.name.toLowerCase();
-              const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
-              const wwG = renderWoodwindDiagram('', shorthand);
-              const scale = 1.44;
-              wwG.setAttribute('transform', `translate(${MARGIN_X - 190},${diagramCY - 173}) scale(${scale})`);
-              wwG.setAttribute('id', diagramId);
-              wwG.setAttribute('data-instr-type', 'woodwind');
-              wwG.setAttribute('data-instr-name', shorthand);
-              wwG.setAttribute('data-diagram-cy', diagramCY);
-              svgEl2.appendChild(wwG);
-            } else if (instr && instr.family === 'Brass') {
-              const type = instr.name.toLowerCase();
-              const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
-              const brG = renderBrassDiagram('', shorthand);
-              const scale = 1.44;
-              brG.setAttribute('transform', `translate(${MARGIN_X - 190},${diagramCY - 173}) scale(${scale})`);
-              brG.setAttribute('id', diagramId);
-              brG.setAttribute('data-instr-type', 'brass');
-              brG.setAttribute('data-instr-name', shorthand);
-              brG.setAttribute('data-diagram-cy', diagramCY);
-              svgEl2.appendChild(brG);
-            }
-
-            // Part name label (fixed position during horizontal scroll)
-            const labelG = document.createElementNS('http://www.w3.org/2000/svg','g');
-            const labelBaseX = MARGIN_X - (nStaves > 1 ? 31 : 7);
-            labelG.setAttribute('data-label-x', labelBaseX);
-            labelG.setAttribute('data-label-y', midY + 7);
-            labelG.setAttribute('transform', `translate(${labelBaseX},${midY + 6})`);
-            const el = document.createElementNS('http://www.w3.org/2000/svg','text');
-            el.setAttribute('x', '0');
-            el.setAttribute('y', '0');
-            el.setAttribute('text-anchor','end');
-            el.setAttribute('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
-            el.setAttribute('font-size','11');
-            el.setAttribute('fill','#444');
-            const nm = part.name;
-            if (nm.length > 12 && nm.includes(' ')) {
-              const si = nm.indexOf(' ');
-              el.textContent = nm.slice(0, si);
-              const ts = document.createElementNS('http://www.w3.org/2000/svg','tspan');
-              ts.setAttribute('x', '0');
-              ts.setAttribute('dy', '13');
-              ts.textContent = nm.slice(si + 1);
-              el.appendChild(ts);
-            } else {
-              el.textContent = nm;
-            }
-            labelG.appendChild(el);
-            svgEl2.appendChild(labelG);
-          }
-
-          if (nStaves > 1) {
-            // ── Piano brace via VexFlow StaveConnector ──
-            try {
-              const topStave = vfStaveRef[`${gsi0}_${firstMi}`];
-              const botStave = vfStaveRef[`${gsi0 + nStaves - 1}_${firstMi}`];
-              if (topStave && botStave) {
-                const brace = new VF.StaveConnector(topStave, botStave);
-                brace.setType(VF.StaveConnector.type.BRACE);
-                brace.setContext(ctx).draw();
-              }
-            } catch(e) {}
-
-            // Thin connecting barline from top staff line to bottom staff line
-            const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-            line.setAttribute('x1', MARGIN_X); line.setAttribute('y1', topY);
-            line.setAttribute('x2', MARGIN_X); line.setAttribute('y2', botY);
-            line.setAttribute('stroke','#111'); line.setAttribute('stroke-width','1.5');
-            line.setAttribute('pointer-events','none');
-            svgEl2.appendChild(line);
-          }
-          flatIdx += nStaves;
-        });
-    }
-
-    // ── Measure numbers ─────────────────────────────────────────
-    // Draw at the start of every system above the topmost staff.
-    // Convention: omit "1" on the very first measure of the score.
-    {
-      const firstMiOfSys = system[0];
-      if (!(sysIdx === 0 && firstMiOfSys === 0)) {
-        const topSL = APP.staveLayout.find(sl => sl.mi === firstMiOfSys && sl.si === siOffset);
-        if (topSL) {
-          const svgEl3 = document.getElementById('score-svg').querySelector('svg');
-          const mnEl = document.createElementNS('http://www.w3.org/2000/svg','text');
-          mnEl.setAttribute('x', topSL.x + 1);
-          mnEl.setAttribute('y', topSL.topLineY - 6);
-          mnEl.setAttribute('text-anchor', 'start');
-          mnEl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-          mnEl.setAttribute('font-size', '10');
-          mnEl.setAttribute('font-weight', '500');
-          mnEl.setAttribute('fill', '#555');
-          mnEl.setAttribute('pointer-events', 'none');
-          mnEl.textContent = String(firstMiOfSys + 1);
-          svgEl3.appendChild(mnEl);
-        }
-      }
-    }
-
-    // ── Per-measure numbers (optional, toggle with M key) ──────
-    if (APP.showMeasureNumbers) {
-      const svgEl4 = document.getElementById('score-svg').querySelector('svg');
-      system.forEach(mi => {
-        const sl = APP.staveLayout.find(sl => sl.mi === mi && sl.si === siOffset + ns - 1);
-        if (sl) {
-          const el = document.createElementNS('http://www.w3.org/2000/svg','text');
-          el.setAttribute('x', sl.x + sl.w / 2);
-          el.setAttribute('y', sl.bottomY + 18);
-          el.setAttribute('text-anchor', 'middle');
-          el.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-          el.setAttribute('font-size', '9');
-          el.setAttribute('fill', '#777');
-          el.setAttribute('pointer-events', 'none');
-          el.textContent = String(mi + 1);
-          svgEl4.appendChild(el);
-        }
-      });
-    }
-
-    sysY += ns * STAVE_SPACING + SYS_SPACING;
+    sysY += REND.STAVE_H + (ns-1) * REND.STAVE_SPACING + REND.SYS_SPACING;
   }); // end systems.forEach
 
   updateStatusBar();
@@ -3089,7 +3081,6 @@ function renderScore() {
   renderGlissandos();
   renderNavigationMarkers();
   renderLyricClickHandlers(); // attach click handlers to VF.Annotation lyric elements
-  renderBWNoteheads(); // must be last — patches SVG paths painted by VexFlow
   renderNoteheadLabels();
   renderGraceClickOverlays();
 
@@ -3151,6 +3142,8 @@ function renderScore() {
       svgEl9.appendChild(txtEl);
     }
   }
+  // Restore scroll position after re-render
+  if (area) area.scrollTop = savedScrollTop;
   scrollToSelectedMeasure();
   updateRecorderDiagram();
   updateWoodwindDiagram();
@@ -3210,50 +3203,50 @@ function scrollToSelectedMeasure() {
     const dur = Math.max(80, Math.min(200, dist * 0.3));
     _smoothScroll(container, 'scrollLeft', target, dur);
   } else {
-    // Vertical scroll in page view — defer to next frame for correct layout
-    requestAnimationFrame(() => {
-      if (!APP.playing && !document.querySelector('#score-svg svg')) return;
-      const area = document.getElementById('score-area');
-      if (!area) return;
-      const areaRect = area.getBoundingClientRect();
-      const svg = area.querySelector('svg');
-      if (!svg) return;
-      const svgRect = svg.getBoundingClientRect();
-      const measureY = svgRect.top + sl.y;
-      const viewTop = areaRect.top;
-      const viewBot = areaRect.bottom;
-      if (measureY > viewTop + 20 && measureY < viewBot - 20) return;
-      const target = Math.max(0, area.scrollTop + (measureY - viewTop) - areaRect.height * 0.35);
-      const dist = Math.abs(target - (area.scrollTop || 0));
-      const dur = Math.max(80, Math.min(200, dist * 0.3));
-      _smoothScroll(area, 'scrollTop', target, dur);
-    });
+    const area = document.getElementById('score-area');
+    if (!area) return;
+    const scrollTop = area.scrollTop || 0;
+    const viewH = area.clientHeight;
+    const measureTop = sl.y - 20;
+    const measureBot = sl.y + REND.STAVE_H + 20;
+    if (measureBot < scrollTop + viewH && measureTop > scrollTop) return;
+    const target = Math.max(0, sl.y - viewH * 0.35);
+    const dur = Math.max(80, Math.min(200, Math.abs(target - scrollTop) * 0.3));
+    _smoothScroll(area, 'scrollTop', target, dur);
   }
 }
 
 // Keep diagram SVGs fixed during horizontal scroll in continuous view
-function positionAllDiagrams() {
+function positionAllDiagrams(scrollOverride) {
   const container = document.getElementById('score-svg');
   if (!container) return;
-  const scrollLeft = container.scrollLeft || 0;
+  const scrollLeft = scrollOverride !== undefined ? scrollOverride : (container.scrollLeft || 0);
   // Recorder diagrams
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.6;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${MARGIN_X - 136 + scrollLeft},${recCY + 107 * recScale}) scale(${recScale})`);
+    el.setAttribute('transform', `translate(${REND.MARGIN_X - 136 + scrollLeft},${recCY + 107 * recScale}) scale(${recScale})`);
   });
-  // Woodwind/brass diagrams
-  document.querySelectorAll('[data-instr-type="woodwind"], [data-instr-type="brass"]').forEach(el => {
+  // Woodwind diagrams
+  document.querySelectorAll('[data-instr-type="woodwind"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
-    el.setAttribute('transform', `translate(${MARGIN_X - 190 + scrollLeft},${cy - 173}) scale(1.44)`);
+    el.setAttribute('transform', `translate(${REND.MARGIN_X - 190 + scrollLeft},${cy - 173}) scale(1.44)`);
+  });
+  // Brass diagrams
+  document.querySelectorAll('[data-instr-type="brass"]').forEach(el => {
+    const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
+    const name = el.getAttribute('data-instr-name') || '';
+    const brX = name === 'trombone' ? REND.MARGIN_X - 152 : REND.MARGIN_X - 176;
+    el.setAttribute('transform', `translate(${brX + scrollLeft},${cy - 101}) scale(1.44)`);
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
-    const bx = parseFloat(el.getAttribute('data-label-x')) || MARGIN_X - 6;
+    const bx = parseFloat(el.getAttribute('data-label-x')) || REND.MARGIN_X - 6;
     const by = parseFloat(el.getAttribute('data-label-y')) || 0;
     el.setAttribute('transform', `translate(${bx + scrollLeft},${by})`);
   });
 }
+window.addEventListener('beforeprint', () => positionAllDiagrams(0));
 
 // Helper: find the VexFlow note object and its stave layout for a given mi/si/ni
 function findNoteVF(mi, si, ni) {
@@ -3772,12 +3765,10 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
       } else if ((note.voice||1) === 2) {
         vfNote.setStyle({ fillStyle: '#f07860', strokeStyle: '#f07860' });
       } else if (isBW && note.type === 'note') {
-        // fillStyle = BW colour (notehead), strokeStyle = '#000' (stem, flags, ledger lines)
         const col = boomwhackerColor(note.pitch);
-        vfNote.setStyle({ fillStyle: col, strokeStyle: '#000' });
+        vfNote.setStyle({ fillStyle: col, strokeStyle: '#000', lineWidth: 1.5 });
       } else if (isBR && note.type === 'note') {
-        // Regular black notehead; black stem. Post-draw will add note-name label.
-        vfNote.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
+        vfNote.setStyle({ fillStyle: '#000', strokeStyle: '#000', lineWidth: 1.5 });
       }
 
       arr.push(vfNote);
@@ -4667,16 +4658,6 @@ function renderWoodwindDiagram(fing, type) {
     }
   });
 
-  const name = type.charAt(0).toUpperCase() + type.slice(1);
-  const lbl = document.createElementNS(ns, 'text');
-  lbl.setAttribute('x', w / 2); lbl.setAttribute('y', isFlute ? 52 : 232);
-  lbl.setAttribute('text-anchor', 'middle');
-  lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
-  lbl.setAttribute('fill', '#c05621');
-  lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-  lbl.textContent = name;
-  svg.appendChild(lbl);
-
   g.appendChild(svg);
   return g;
 }
@@ -4773,16 +4754,6 @@ function renderBrassDiagram(fing, type) {
       svg.appendChild(num);
     }
 
-    // Label below
-    const lbl = document.createElementNS(ns, 'text');
-    lbl.setAttribute('x', w / 2); lbl.setAttribute('y', h - 4);
-    lbl.setAttribute('text-anchor', 'middle');
-    lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
-    lbl.setAttribute('fill', '#c05621');
-    lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    lbl.textContent = 'Trombone';
-    svg.appendChild(lbl);
-
   } else {
     // Valve instruments: vertical column of circles
     // Display order: 3-2-1 (3 on top, 1 on bottom) to match player's perspective
@@ -4848,17 +4819,6 @@ function renderBrassDiagram(fing, type) {
       num.textContent = valveLabel;
       svg.appendChild(num);
     }
-
-    // Label below
-    const name = type.charAt(0).toUpperCase() + type.slice(1);
-    const lbl = document.createElementNS(ns, 'text');
-    lbl.setAttribute('x', w / 2); lbl.setAttribute('y', h - 10);
-    lbl.setAttribute('text-anchor', 'middle');
-    lbl.setAttribute('font-size', '9'); lbl.setAttribute('font-weight', '600');
-    lbl.setAttribute('fill', '#c05621');
-    lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    lbl.textContent = name;
-    svg.appendChild(lbl);
   }
 
   g.appendChild(svg);
@@ -4896,11 +4856,6 @@ function updateBrassDiagram() {
   });
 }
 
-// ── Large-stave Notehead Post-processing ─────────────────────────
-// Handles both Boomwhacker and Beginning Recorder noteheads.
-// VexFlow draws filled noteheads as <path fill="colour"> — we can't stroke
-// them before draw. We scan the SVG after draw, match paths to note positions,
-// and: for BW → add black outline; for both BW+BR → add note-name letter.
 // Resolve the correct diatonic letter for a note, respecting accidental and key signature
 function noteLetter(n, ks) {
   const pc = n.pitch % 12;
@@ -4915,119 +4870,6 @@ function noteLetter(n, ks) {
     return NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]].toUpperCase();
   }
   return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
-}
-
-function renderBWNoteheads() {
-  const svgEl = document.getElementById('score-svg').querySelector('svg');
-  if (!svgEl || !APP.score) return;
-
-  // Build lookup sets: which global SIs are BW / BR / any recorder?
-  const bwSIs = new Set(), brSIs = new Set(), recSIs = new Set();
-  let gsi = 0;
-  APP.score.parts.forEach(part => {
-    const instr = instrByName(part.instrument || part.name);
-    part.staves.forEach((_, s) => {
-      if (instr.boomwhacker)      bwSIs.add(gsi + s);
-      if (instr.beginnerRecorder) brSIs.add(gsi + s);
-      if (instr.recorder)         recSIs.add(gsi + s);
-      gsi++;
-    });
-  });
-  if (bwSIs.size === 0 && brSIs.size === 0 && recSIs.size === 0) return;
-
-  // BW colour → pc map
-  const colourToPC = new Map();
-  Object.entries(BOOMWHACKER_COLORS).forEach(([pc, col]) => {
-    colourToPC.set(col.toLowerCase(), parseInt(pc));
-  });
-
-  // Note positions for each instrument type
-  const bwNotes  = APP.noteLayout.filter(nl => bwSIs.has(nl.si));
-  const brNotes  = APP.noteLayout.filter(nl => brSIs.has(nl.si));
-  const recNotes = APP.noteLayout.filter(nl => recSIs.has(nl.si));
-  const nonBRRecNotes = APP.noteLayout.filter(nl => recSIs.has(nl.si) && !brSIs.has(nl.si));
-  const allLargeNotes = [...bwNotes, ...brNotes];
-  if (allLargeNotes.length === 0 && recNotes.length === 0) return;
-
-  const HIT_RADIUS = 22;
-
-  const paths = svgEl.querySelectorAll('path');
-
-  paths.forEach(path => {
-    const fill = (path.getAttribute('fill') || '').toLowerCase().trim();
-    let bbox;
-    try { bbox = path.getBBox(); } catch(e) { return; }
-    if (bbox.width < 4 || bbox.height < 2) return;
-
-    const cx = bbox.x + bbox.width  / 2;
-    const cy = bbox.y + bbox.height / 2;
-
-    // ── Boomwhacker notehead: coloured fill ────────────────────
-    if (colourToPC.has(fill) && bwNotes.length > 0) {
-      let matched = null, bestDist = HIT_RADIUS;
-      bwNotes.forEach(nl => { const d = Math.hypot(cx-nl.x, cy-nl.y); if(d<bestDist){bestDist=d;matched=nl;} });
-      if (matched) {
-        // Black outline on the coloured notehead
-        path.setAttribute('stroke', '#000');
-        path.setAttribute('stroke-width', '1.5');
-        path.setAttribute('stroke-linejoin', 'round');
-        // 10% larger notehead
-        path.setAttribute('transform', `translate(${cx},${cy}) scale(1.1) translate(${-cx},${-cy})`);
-        return;
-      }
-    }
-
-    // ── Beginning Recorder notehead: black fill (quarter/8th) or open (whole/half) ──
-    if (brNotes.length > 0 && (fill === '#000000' || fill === 'black' || fill === '#000' ||
-                                fill === '#ffffff' || fill === 'white' || fill === '#fff')) {
-      let matched = null, bestDist = HIT_RADIUS;
-      brNotes.forEach(nl => { const d = Math.hypot(cx-nl.x, cy-nl.y); if(d<bestDist){bestDist=d;matched=nl;} });
-      if (matched) {
-        const m = getMeasureBySI(matched.si, matched.mi);
-        const n = m?.notes[matched.ni];
-        if (!n || n.type !== 'note') return;
-        // 10% larger notehead
-        path.setAttribute('transform', `translate(${cx},${cy}) scale(1.1) translate(${-cx},${-cy})`);
-        // Recorder auto-fingering below the staff (selected note only)
-        if (APP.showRecorderFingering && isNoteSelected(matched.mi, matched.si, matched.ni)) {
-          try {
-            const type = recorderTypeForSI(matched.si);
-            const fing = recorderFingeringForPitch(n.pitch, type);
-            if (!fing) return;
-            const sl = APP.staveLayout.find(l => l.mi === matched.mi && l.si === matched.si);
-            const staffBot = sl ? sl.bottomY : cy + bbox.height;
-            const holeScale = Math.max(1.3, Math.min(2.8, bbox.height * 0.09));
-            const fg = renderRecorderFingSVG(fing, cx, staffBot + bbox.height * 1.4, holeScale);
-            svgEl.appendChild(fg);
-          } catch(e) {}
-        }
-      }
-    }
-
-    // ── Non-BR recorder notehead: auto-fingering only (selected note only) ──
-    if (APP.showRecorderFingering && nonBRRecNotes.length > 0 &&
-        (fill === '#000000' || fill === 'black' || fill === '#000' || fill === '#ffffff' || fill === 'white' || fill === '#fff')) {
-      let matched = null, bestDist = HIT_RADIUS;
-      nonBRRecNotes.forEach(nl => { const d = Math.hypot(cx-nl.x, cy-nl.y); if(d<bestDist){bestDist=d;matched=nl;} });
-      if (matched && isNoteSelected(matched.mi, matched.si, matched.ni)) {
-        const m = getMeasureBySI(matched.si, matched.mi);
-        const n = m?.notes[matched.ni];
-        if (!n || n.type !== 'note') return;
-        try {
-          const type = recorderTypeForSI(matched.si);
-          const fing = recorderFingeringForPitch(n.pitch, type);
-          if (!fing) return;
-          console.log(`Rec fingering: pitch=${n.pitch} type=${type} fing="${fing}"`);
-          const sl = APP.staveLayout.find(l => l.mi === matched.mi && l.si === matched.si);
-          const staffBot = sl ? sl.bottomY : cy + bbox.height;
-          const holeScale = Math.max(1.3, Math.min(2.8, bbox.height * 0.09));
-          const fg = renderRecorderFingSVG(fing, cx, staffBot + bbox.height * 1.4, holeScale);
-          svgEl.appendChild(fg);
-        } catch(e) {}
-      }
-    }
-  });
-
 }
 
 function renderNoteheadLabels() {
@@ -5064,7 +4906,7 @@ function renderNoteheadLabels() {
 
 // Draw a note-name letter centred on a notehead
 function addNoteLabel(svgEl, letter, cx, cy, bboxH, colour) {
-  const fontSize = Math.max(Math.round(STAVE_H * 0.11), Math.min(Math.round(STAVE_H * 0.28), Math.round(bboxH * 0.62)));
+  const fontSize = Math.round(Math.max(Math.round(REND.STAVE_H * 0.11), Math.min(Math.round(REND.STAVE_H * 0.28), Math.round(bboxH * 0.62))) * 0.72);
   const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
   lbl.setAttribute('x', cx);
   lbl.setAttribute('y', cy + fontSize * 0.37);
@@ -5132,10 +4974,10 @@ function yToPitchAccurate(y, sl) {
 }
 
 function yToPitch(y, staveTop, clef) {
-  // Legacy fallback using STAVE_H constant
-  const halfStep = STAVE_H / 8;
+  // Legacy fallback using REND.STAVE_H
+  const halfStep = REND.STAVE_H / 8;
   if (clef === 'treble') {
-    const b4Y = staveTop + STAVE_H / 2;
+    const b4Y = staveTop + REND.STAVE_H / 2;
     const steps = Math.round((b4Y - y) / halfStep);
     const dia = [0,2,4,5,7,9,11];
     let pos = 6 + steps;
@@ -5144,7 +4986,7 @@ function yToPitch(y, staveTop, clef) {
     const oct = 4 + octaveShift;
     return (oct + 1) * 12 + dia[noteInOct];
   } else {
-    const d3Y = staveTop + STAVE_H / 2;
+    const d3Y = staveTop + REND.STAVE_H / 2;
     const steps = Math.round((d3Y - y) / halfStep);
     const dia = [0,2,4,5,7,9,11];
     let pos = 1 + steps;
@@ -5472,7 +5314,7 @@ function handleScoreTap(e) {
     const n = getMeasureBySI(hit.si, hit.mi)?.notes[APP.selectedNoteIdx];
     if (n && n.type === 'note') {
       const newPitch = yToPitchAccurate(y, hit);
-      pushUndo();
+      pushUndo('Change pitch');
       n.pitch = newPitch;
       n.accidental = DIATONIC_PCS.has(newPitch % 12) ? null : (getResolvedKeySig(hit.mi, hit.si) < 0 ? 'b' : '#');
       renderScore();
@@ -5494,7 +5336,7 @@ function insertNote(mi, si, pitch) {
   if (APP.chordMode && APP.selectedNoteIdx >= 0) {
     const targetNote = measure.notes[APP.selectedNoteIdx];
     if (targetNote && targetNote.type === 'note' && (targetNote.voice||1) === APP.curVoice) {
-      pushUndo();
+      pushUndo('Add note');
       if (!targetNote.extraPitches) targetNote.extraPitches = [];
 
       // Find the highest pitch currently in the chord (root + extras)
@@ -5616,7 +5458,7 @@ function insertNote(mi, si, pitch) {
       return;
     }
 
-    pushUndo();
+    pushUndo('Insert note');
 
     const partialEntry = APP.curRest
       ? mkRest(partial.dur, partial.dots, APP.curVoice)
@@ -5645,7 +5487,7 @@ function insertNote(mi, si, pitch) {
     return;
   }
 
-  pushUndo();
+  pushUndo('Insert note');
 
   const entry = APP.curRest
     ? mkRest(APP.curDur, APP.curDot ? 1 : 0, APP.curVoice)
@@ -5785,7 +5627,7 @@ function shiftNoteOctave(direction) {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') return;
-  pushUndo();
+  pushUndo('Change octave');
   const semitones = direction * 12;
   n.pitch = Math.max(12, Math.min(120, n.pitch + semitones));
   // Shift extra pitches (chord notes) by the same amount
@@ -5804,7 +5646,7 @@ function changePitchOfSelected(name) {
               ?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest) to change pitch'); return; }
 
-  pushUndo();
+  pushUndo('Change pitch');
   let pc = NAME_TO_PC[name];
   if (APP.curAcc === '#') pc = (pc + 1) % 12;
   if (APP.curAcc === 'b') pc = (pc + 11) % 12;
@@ -5859,7 +5701,6 @@ function updateOctaveDisplay() {
     btn.style.color       = on ? '#64c88c' : '#e07060';
     if (dot) dot.style.background = on ? '#64c88c' : '#e07060';
   }
-  updateRecFingButton();
 }
 
 function toggleBWNoteNames() {
@@ -5877,20 +5718,6 @@ function toggleBWNoteNames() {
   showToast(APP.bwNoteNames ? 'Note names on' : 'Note names off');
 }
 
-function toggleRecorderFingering() {
-  APP.showRecorderFingering = !APP.showRecorderFingering;
-  const btn = document.getElementById('btn-rec-fing');
-  const dot = document.getElementById('rec-fing-dot');
-  if (btn) {
-    const on = APP.showRecorderFingering;
-    btn.style.background    = on ? 'rgba(100,200,140,0.20)' : 'rgba(224,112,96,0.15)';
-    btn.style.borderColor   = on ? 'rgba(100,200,140,0.55)' : 'rgba(224,112,96,0.40)';
-    btn.style.color         = on ? '#64c88c' : '#e07060';
-    if (dot) dot.style.background = on ? '#64c88c' : '#e07060';
-  }
-  renderScore();
-  showToast(APP.showRecorderFingering ? 'Recorder fingerings on' : 'Recorder fingerings off');
-}
 
 // ── Note Name / Solfège Labels ──────────────────────────────────
 const SOLFEGE = [
@@ -5932,11 +5759,17 @@ function noteLabelForPitch(pitch, ks, acc, mode) {
 }
 
 function toggleNoteLabels() {
-  APP.showNoteLabels = !APP.showNoteLabels;
-  if (APP.showNoteLabels) APP.noteLabelMode = 'solfege';
+  if (!APP.showNoteLabels) {
+    APP.showNoteLabels = true;
+    APP.noteLabelMode = 'solfege';
+  } else if (APP.noteLabelMode === 'solfege') {
+    APP.noteLabelMode = 'letter';
+  } else {
+    APP.showNoteLabels = false;
+  }
   updateNoteLabelsButton();
   renderScore();
-  showToast(APP.showNoteLabels ? 'Solfège on' : 'Solfège off');
+  showToast(!APP.showNoteLabels ? 'Labels off' : APP.noteLabelMode === 'solfege' ? 'Solfège on' : 'Letter names on');
 }
 
 function renderNoteLabels() {
@@ -5951,10 +5784,10 @@ function renderNoteLabels() {
     const label = noteLabelForPitch(n.pitch, ks, n.accidental, mode);
     const sl = APP.staveLayout.find(l => l.mi === nl.mi && l.si === nl.si);
     const staffBot = sl ? sl.bottomY : nl.y;
-    const fontSize = Math.round(STAVE_H * 0.26);
+    const fontSize = Math.round(REND.STAVE_H * 0.26);
     const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
     lbl.setAttribute('x', nl.x);
-    lbl.setAttribute('y', staffBot + fontSize + Math.round(STAVE_H * 0.16));
+    lbl.setAttribute('y', staffBot + fontSize + Math.round(REND.STAVE_H * 0.16));
     lbl.setAttribute('text-anchor', 'middle');
     lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
     lbl.setAttribute('font-size', fontSize);
@@ -5976,27 +5809,9 @@ function updateNoteLabelsButton() {
   const dot = document.getElementById('note-labels-dot');
   if (dot) dot.style.background = on ? '#64c88c' : '#e07060';
   const txt = document.getElementById('note-labels-text');
-  if (txt) txt.textContent = on ? '𝅘 Solfège' : '𝅘 Solfege';
+  if (txt) txt.textContent = on ? (APP.noteLabelMode === 'solfege' ? '𝅘 Solfège' : '𝅘 Names') : '𝅘 Solfege';
 }
 
-function updateRecFingButton() {
-  const hasRec = APP.score?.parts?.some(p => {
-    const instr = INSTRUMENTS.find(i => i.name === (p.instrument||p.name));
-    return instr?.recorder;
-  }) || false;
-  const btn = document.getElementById('btn-rec-fing');
-  const dot = document.getElementById('rec-fing-dot');
-  if (btn) {
-    btn.style.display = hasRec ? 'inline-block' : 'none';
-    if (hasRec) {
-      const on = APP.showRecorderFingering;
-      btn.style.background  = on ? 'rgba(100,200,140,0.20)' : 'rgba(224,112,96,0.15)';
-      btn.style.borderColor = on ? 'rgba(100,200,140,0.55)' : 'rgba(224,112,96,0.40)';
-      btn.style.color       = on ? '#64c88c' : '#e07060';
-      if (dot) dot.style.background = on ? '#64c88c' : '#e07060';
-    }
-  }
-}
 
 // ── Dynamics ──────────────────────────────────────────────────────
 // ── Side Panel ───────────────────────────────────────────────────
@@ -6090,7 +5905,7 @@ function applyArticulation(type) {
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
-  pushUndo();
+  pushUndo('Add articulation');
   n.articulation = (n.articulation === type || !type) ? null : type;
   renderScore();
   showToast(n.articulation ? ARTIC_SYMBOLS[n.articulation] + ' ' + n.articulation : 'Articulation removed');
@@ -6101,7 +5916,7 @@ function applyFingering(f) {
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
-  pushUndo();
+  pushUndo('Add fingering');
   n.fingering = (!f || n.fingering === f) ? null : f;
   renderScore();
   showToast(n.fingering ? `Fingering ${n.fingering}` : 'Fingering removed');
@@ -6109,7 +5924,7 @@ function applyFingering(f) {
 
 // ── Barlines ─────────────────────────────────────────────────────
 function applyBarline(type) {
-  pushUndo();
+  pushUndo('Change barline');
   const mi = APP.selectedMeasure;
   APP.score.parts.forEach(p => p.staves.forEach(s => {
     const m = s.measures[mi];
@@ -6122,7 +5937,7 @@ function applyBarline(type) {
 // ── Clef Changes ─────────────────────────────────────────────────
 function applyClefChange(clef) {
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  pushUndo();
+  pushUndo('Change clef');
   APP.score.parts.forEach(p => p.staves.forEach(s => {
     const m = s.measures[APP.selectedMeasure];
     if (m) m.clef = clef;
@@ -6134,7 +5949,7 @@ function applyClefChange(clef) {
 // ── Navigation Markers (segno, coda, Fine, D.C., D.S.) ────────────
 function applyMarker(type) {
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  pushUndo();
+  pushUndo('Add marker');
   // Clear existing markers of this type on this measure first
   APP.score.parts[0].staves.forEach(s => {
     const m = s.measures[APP.selectedMeasure];
@@ -6150,7 +5965,7 @@ function applyMarker(type) {
 
 function clearMarker() {
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  pushUndo();
+  pushUndo('Clear marker');
   APP.score.parts[0].staves.forEach(s => {
     const m = s.measures[APP.selectedMeasure];
     if (m) { delete m.segno; delete m.coda; delete m.fine; delete m.dc; delete m.ds; }
@@ -6173,7 +5988,7 @@ function toggleTempoDisplay() {
 }
 
 function applyTempo(name, bpm) {
-  pushUndo();
+  pushUndo('Change tempo');
   const mi = APP.selectedMeasure;
   APP.score.parts[0].staves[0].measures[mi].tempo = {name, bpm};
   APP.tempo = bpm;
@@ -6188,7 +6003,7 @@ function applyDynamic(dyn) {
     showToast('Select a note first, then tap a dynamic');
     return;
   }
-  pushUndo();
+  pushUndo('Add dynamic');
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n) return;
@@ -6235,7 +6050,7 @@ function completeMarking(endMi, endSi, endNi) {
     showToast('End note must come after start note'); return;
   }
 
-  pushUndo();
+  pushUndo('Add marking');
   if (!APP.score.slurs)    APP.score.slurs    = [];
   if (!APP.score.hairpins) APP.score.hairpins = [];
 
@@ -6344,8 +6159,8 @@ function _checkVoltaComplete(mi) {
   if (!APP.voltaPending) return false;
   const { label, startMi } = APP.voltaPending;
   if (mi === startMi) return false; // need a different measure
-  const closed = label !== '2.'; // 2nd endings are conventionally open (no right bracket)
-  pushUndo();
+  const closed = label !== '2.';
+  pushUndo('Add volta');
   if (!APP.score.voltas) APP.score.voltas = [];
   APP.score.voltas.push({
     startMi: Math.min(startMi, mi),
@@ -6361,7 +6176,7 @@ function _checkVoltaComplete(mi) {
 }
 
 function clearVolta() {
-  pushUndo();
+  pushUndo('Clear volta');
   const mi = APP.selectedMeasure;
   APP.score.voltas = (APP.score.voltas || []).filter(
     v => !(mi >= v.startMi && mi <= v.endMi)
@@ -6397,7 +6212,7 @@ function _checkOttavaComplete(mi, si, ni) {
   if (si !== p.si) { showToast('Ottava must stay on the same staff'); return false; }
   // End note must be at or after start note
   if (mi < p.startMi || (mi === p.startMi && ni <= p.startNi)) return false;
-  pushUndo();
+  pushUndo('Add ottava');
   if (!APP.score.ottavas) APP.score.ottavas = [];
   APP.score.ottavas.push({
     type:    p.type,
@@ -6418,7 +6233,7 @@ function clearOttava() {
   const mi = APP.selectedMeasure;
   const si = APP.selectedStaff;
   const ni = APP.selectedNoteIdx;
-  pushUndo();
+  pushUndo('Clear ottava');
   APP.score.ottavas = (APP.score.ottavas || []).filter(o => {
     const coversStart = o.si === si && o.startMi === mi && o.startNi === ni;
     const coversEnd   = o.si === si && o.endMi   === mi && o.endNi   === ni;
@@ -6475,7 +6290,7 @@ function addGraceNote(name) {
   const midi    = (refOct + 1) * 12 + pc;
   const ks     = getResolvedKeySig(APP.selectedMeasure, APP.selectedStaff);
   const acc     = APP.curAcc || (DIATONIC_PCS.has(pc) ? null : (ks < 0 ? 'b' : '#'));
-  pushUndo();
+  pushUndo('Add grace note');
   if (!n.graceNotes) n.graceNotes = [];
   n.graceNotes.push({ pitch: midi, accidental: acc, slashed: APP.graceSlashed });
   renderScore();
@@ -6488,7 +6303,7 @@ function clearGraceNotes() {
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  pushUndo();
+  pushUndo('Remove grace note');
   if (APP.selectedGraceIdx >= 0 && n.graceNotes && n.graceNotes.length > APP.selectedGraceIdx) {
     n.graceNotes.splice(APP.selectedGraceIdx, 1);
     if (!n.graceNotes.length) delete n.graceNotes;
@@ -6512,7 +6327,7 @@ function convertToGrace(slashed) {
   if (ni >= m.notes.length - 1) { showToast('Last note: no following note to attach to'); return; }
   const next = m.notes[ni + 1];
   if (next.type !== 'note') { showToast('The following item is not a note'); return; }
-  pushUndo();
+  pushUndo('Convert to grace');
   if (!next.graceNotes) next.graceNotes = [];
   const gn = { pitch: n.pitch, accidental: n.accidental, slashed };
   next.graceNotes.push(gn);
@@ -6551,7 +6366,7 @@ function _checkGlissComplete(mi, si, ni) {
   const p = APP.glissPending;
   if (si !== p.si) return false;
   if (mi < p.startMi || (mi === p.startMi && ni <= p.startNi)) return false;
-  pushUndo();
+  pushUndo('Add glissando');
   if (!APP.score.glissandos) APP.score.glissandos = [];
   APP.score.glissandos.push({ style: p.style, si: p.si, startMi: p.startMi, startNi: p.startNi, endMi: mi, endNi: ni });
   APP.glissPending = null;
@@ -6564,7 +6379,7 @@ function _checkGlissComplete(mi, si, ni) {
 
 function clearGlissando() {
   const mi = APP.selectedMeasure, si = APP.selectedStaff, ni = APP.selectedNoteIdx;
-  pushUndo();
+  pushUndo('Clear glissando');
   APP.score.glissandos = (APP.score.glissandos || []).filter(
     g => !(g.si === si && ((g.startMi === mi && g.startNi === ni) || (g.endMi === mi && g.endNi === ni)))
   );
@@ -6587,7 +6402,7 @@ function toggleInputMode() {
 }
 function deleteSelected() {
   if (APP.selectedNoteIdx < 0) return;
-  pushUndo();
+  pushUndo('Delete note');
   const m = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
   if (!m) return;
   if (APP.selStartIdx >= 0) {
@@ -6630,7 +6445,7 @@ function cutSelection() {
   const si = APP.selectedStaff;
   const m = getMeasureBySI(si, mi);
   if (!m) return;
-  pushUndo();
+  pushUndo('Cut selection');
   if (APP.selStartIdx >= 0) {
     const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
     const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
@@ -6646,7 +6461,7 @@ function cutSelection() {
 
 function pasteClipboard() {
   if (!APP.clipboard) { showToast('Nothing to paste'); return; }
-  pushUndo();
+  pushUndo('Paste');
   if (APP.clipboard.type === 'note') {
     const mi = APP.selectedMeasure;
     const si = APP.selectedStaff;
@@ -6694,7 +6509,7 @@ function selectAllNotes() {
 function deleteMeasure() {
   const nM = APP.score.parts[0].staves[0].measures.length;
   if (nM <= 1) { showToast('Cannot delete the only measure'); return; }
-  pushUndo();
+  pushFullUndo('Delete measure');
   const mi = APP.selectedMeasure;
   APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 1)));
   // Remove any volta/rehearsal/hairpin/slur that referenced this measure
@@ -6777,7 +6592,7 @@ const DIA_SEMITONES = [0,2,4,5,7,9,11]; // C D E F G A B
 // diaSteps is the diatonic shift (for accidental book-keeping, +/- integer).
 function transposeScore(semitones) {
   if (!semitones) return;
-  pushUndo();
+  pushFullUndo('Transpose');
   APP.score.parts.forEach(part => {
     part.staves.forEach(stave => {
       stave.measures.forEach(m => {
@@ -6903,7 +6718,7 @@ function navigateNote(direction, extend) {
 }
 function insertMeasure() {
   const mi = APP.selectedMeasure;
-  pushUndo();
+  pushFullUndo('Insert measure');
   const prevM = mi > 0 ? APP.score.parts[0].staves[0].measures[mi - 1] : null;
   const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [mkRest('w')] };
   APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 0, JSON.parse(JSON.stringify(m)))));
@@ -6920,31 +6735,75 @@ function insertMeasure() {
   showToast('Measure inserted');
 }
 function addMeasure() {
-  pushUndo();
+  pushFullUndo('Add measure');
   APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
   renderScore();
   showToast('Measure added');
 }
 
 // ── Undo/Redo ────────────────────────────────────────────────────
-function pushUndo() {
-  APP.undoStack.push(JSON.stringify(APP.score));
+function captureMeasure(mi, si) {
+  const m = getMeasureBySI(si, mi);
+  return m ? JSON.parse(JSON.stringify(m)) : null;
+}
+
+function pushFullUndo(type) {
+  APP.undoStack.push({ type: type || 'Edit', _full: JSON.parse(JSON.stringify(APP.score)) });
+  APP.redoStack = [];
+  if (APP.undoStack.length > 60) APP.undoStack.shift();
+}
+function pushUndo(type) {
+  const mi = APP.selectedMeasure;
+  const data = {}, sis = [];
+  APP.score.parts.forEach((part, pi) => part.staves.forEach((stave, si) => {
+    const gsi = _globalSIForPart(pi, si);
+    const m = getMeasureBySI(gsi, mi);
+    if (m) { data[gsi] = JSON.parse(JSON.stringify(m)); sis.push(gsi); }
+  }));
+  if (!sis.length) { APP.undoStack.push({ type: type || 'Edit' }); APP.redoStack = []; return; }
+  APP.undoStack.push({ type: type || 'Edit', mi, data, sis });
   APP.redoStack = [];
   if (APP.undoStack.length > 60) APP.undoStack.shift();
 }
 function undo() {
   if (!APP.undoStack.length) { showToast('Nothing to undo'); return; }
-  APP.redoStack.push(JSON.stringify(APP.score));
-  APP.score = JSON.parse(APP.undoStack.pop());
+  const cmd = APP.undoStack.pop();
+  if (cmd._full) {
+    APP.redoStack.push({ type: cmd.type, _full: JSON.parse(JSON.stringify(APP.score)) });
+    APP.score = cmd._full;
+    APP.selectedNoteIdx = -1;
+    renderScore(); showToast(`Undo ${cmd.type}`);
+    return;
+  }
+  const after = {};
+  (cmd.sis || []).forEach(si => { const m = getMeasureBySI(si, cmd.mi); if (m) after[si] = JSON.parse(JSON.stringify(m)); });
+  APP.redoStack.push({ type: cmd.type, mi: cmd.mi, data: after, sis: cmd.sis });
+  (cmd.sis || []).forEach(si => {
+    const target = getMeasureBySI(si, cmd.mi);
+    if (target && cmd.data[si]) Object.assign(target, cmd.data[si]);
+  });
   APP.selectedNoteIdx = -1;
-  renderScore(); showToast('Undo');
+  renderScore(); showToast(`Undo ${cmd.type}`);
 }
 function redo() {
   if (!APP.redoStack.length) { showToast('Nothing to redo'); return; }
-  APP.undoStack.push(JSON.stringify(APP.score));
-  APP.score = JSON.parse(APP.redoStack.pop());
+  const cmd = APP.redoStack.pop();
+  if (cmd._full) {
+    APP.undoStack.push({ type: cmd.type, _full: JSON.parse(JSON.stringify(APP.score)) });
+    APP.score = cmd._full;
+    APP.selectedNoteIdx = -1;
+    renderScore(); showToast(`Redo ${cmd.type}`);
+    return;
+  }
+  const after = {};
+  (cmd.sis || []).forEach(si => { const m = getMeasureBySI(si, cmd.mi); if (m) after[si] = JSON.parse(JSON.stringify(m)); });
+  APP.undoStack.push({ type: cmd.type, mi: cmd.mi, data: after, sis: cmd.sis });
+  (cmd.sis || []).forEach(si => {
+    const target = getMeasureBySI(si, cmd.mi);
+    if (target && cmd.data[si]) Object.assign(target, cmd.data[si]);
+  });
   APP.selectedNoteIdx = -1;
-  renderScore(); showToast('Redo');
+  renderScore(); showToast(`Redo ${cmd.type}`);
 }
 
 // ── Audio Export ──────────────────────────────────────────────────
@@ -7445,7 +7304,7 @@ function startPlayback() {
           const diff = target - cur;
           // Keep a small gap so the scroll feels responsive but smooth
           if (Math.abs(diff) > 1) {
-            cont.scrollLeft = cur + diff * 0.35;
+            cont.scrollLeft = cur + diff * 0.22;
             positionAllDiagrams();
           }
         }
@@ -7676,7 +7535,7 @@ function commitLyric(mi, si, ni, rawText, separator) {
   const n    = getMeasureBySI(si, mi)?.notes[ni];
   if (!n) return;
 
-  pushUndo();
+  pushUndo('Edit lyric');
   if (!text) {
     delete n.lyric;
   } else {
@@ -7720,7 +7579,7 @@ function commitLyric(mi, si, ni, rawText, separator) {
 function clearLyric() {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  pushUndo(); delete n.lyric; renderScore(); showToast('Lyric removed');
+  pushUndo('Remove lyric'); delete n.lyric; renderScore(); showToast('Lyric removed');
 }
 
 function saveLyric() {
@@ -7762,7 +7621,7 @@ function saveChordSymbol() {
   const text = document.getElementById('cs-input')?.value.trim();
   const n    = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) { closeModal(); return; }
-  pushUndo();
+  pushUndo('Edit chord symbol');
   n.chordSymbol = text || null;
   closeModal();
   renderScore();
@@ -7772,7 +7631,7 @@ function saveChordSymbol() {
 function clearChordSymbol() {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  pushUndo();
+  pushUndo('Clear chord symbol');
   delete n.chordSymbol;
   renderScore();
   showToast('Chord symbol removed');
@@ -7797,7 +7656,7 @@ function _nextRehearsalLabel(type) {
 
 function addRehearsalMark(type) {
   const label = _nextRehearsalLabel(type);
-  pushUndo();
+  pushUndo('Add rehearsal mark');
   if (!APP.score.rehearsalMarks) APP.score.rehearsalMarks = [];
   // Remove any existing mark on this measure
   APP.score.rehearsalMarks = APP.score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
@@ -7824,7 +7683,7 @@ function editRehearsalMark() {
 function saveRehearsalMark() {
   const label = document.getElementById('rm-input')?.value.trim();
   if (!label) { closeModal(); return; }
-  pushUndo();
+  pushUndo('Edit rehearsal mark');
   if (!APP.score.rehearsalMarks) APP.score.rehearsalMarks = [];
   APP.score.rehearsalMarks = APP.score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
   APP.score.rehearsalMarks.push({mi: APP.selectedMeasure, label});
@@ -7833,7 +7692,7 @@ function saveRehearsalMark() {
 }
 
 function clearRehearsalMark() {
-  pushUndo();
+  pushUndo('Clear rehearsal mark');
   APP.score.rehearsalMarks = (APP.score.rehearsalMarks || []).filter(r => r.mi !== APP.selectedMeasure);
   renderScore(); showToast('Rehearsal mark removed');
 }
@@ -7929,7 +7788,7 @@ function saveStaffText() {
   const text  = document.getElementById('st-input')?.value.trim();
   const style = document.getElementById('st-style')?.value || 'normal';
   const size  = parseInt(document.getElementById('st-size')?.value) || 12;
-  pushUndo();
+  pushUndo('Edit staff text');
   if (!APP.score.staffTexts) APP.score.staffTexts = [];
 
   if (APP.selectedNoteIdx >= 0) {
@@ -7949,7 +7808,7 @@ function saveStaffText() {
 }
 
 function clearStaffText() {
-  pushUndo();
+  pushUndo('Clear staff text');
   if (APP.selectedNoteIdx >= 0) {
     const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
     if (n) { delete n.staffText; delete n.staffTextStyle; delete n.staffTextSize; }
@@ -8193,9 +8052,10 @@ function exitPartView() {
 }
 
 function printPart() {
-  if (APP_partView === null) { window.print(); return; }
+  if (APP_partView === null) { positionAllDiagrams(0); window.print(); return; }
   closeLyricEditor();
   closeModal();
+  positionAllDiagrams(0);
   setTimeout(() => window.print(), 120);
 }
 
@@ -8271,7 +8131,7 @@ function setPickupMeasure() {
   const den = parseInt(document.getElementById('pu-den')?.value) || 4;
   const ts = resolvedTimeSig(0, 0);
   if (num >= ts.num) { showToast('Pickup must be shorter than the time signature'); return; }
-  pushUndo();
+  pushUndo('Add pickup');
   const puBeat = num * (4 / den);
   const bestRest = beatsToBestRestDuration(puBeat);
   const restDur = bestRest ? bestRest.dur : 'q';
@@ -8292,7 +8152,7 @@ function setPickupMeasure() {
 }
 
 function removePickupMeasure() {
-  pushUndo();
+  pushUndo('Remove pickup');
   APP.score.parts.forEach(p => p.staves.forEach(s => {
     delete s.measures[0].pickup;
   }));
@@ -8403,7 +8263,7 @@ function selectAIFamily(fam) {
 
 function confirmAddInstrument() {
   const instrName = document.getElementById('ai-instr')?.value || 'Piano';
-  pushUndo();
+  pushFullUndo('Add instrument');
   addInstrumentToScore(instrName);
   closeModal();
   renderScore();
@@ -8495,7 +8355,7 @@ function tsApplyFromSliders() {
 }
 
 function applyTimeSig(num, den) {
-  pushUndo();
+  pushUndo('Change time signature');
   const mi = APP.selectedMeasure;
   APP.score.parts[0].staves.forEach(stave => {
     const m = stave.measures[mi];
@@ -8563,7 +8423,7 @@ function showKeySigDialog() {
 }
 
 function applyKeySig(ks) {
-  pushUndo();
+  pushUndo('Change key signature');
   const mi = APP.selectedMeasure;
   APP.score.parts[0].staves.forEach(stave => {
     const m = stave.measures[mi];
@@ -8629,7 +8489,6 @@ function loadScoreFromXML(xmlStr, filename) {
     APP.undoStack = [];
     APP.redoStack = [];
     if (score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = score.showMeasureNumbers;
-    if (score.showRecorderFingering !== undefined) APP.showRecorderFingering = score.showRecorderFingering;
     if (score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = score.showMultiMeasureRests;
     document.getElementById('score-title').textContent =
     APP_partView !== null
@@ -8953,6 +8812,7 @@ function createNewScore() {
   const puDen     = pickup ? (parseInt(document.getElementById('nd-pu-den')?.value) || 4) : 0;
 
   APP.score = createScore({title, composer, ts, ks, instruments:[instrName]});
+  localStorage.removeItem(LS_KEY); // clear any auto-saved state from prior session
 
   // Add extra measures so the score has some content
   for (let i = 0; i < 3; i++) {
@@ -9029,7 +8889,7 @@ function applyTitleDialog() {
   const comp  = document.getElementById('td-composer').value.trim();
   const font  = document.getElementById('td-font').value;
   const size  = parseInt(document.getElementById('td-size').value) || 22;
-  pushUndo();
+  pushFullUndo('Edit title');
   APP.score.title    = title;
   APP.score.composer = comp;
   APP.score.titleFont = font;
@@ -9132,6 +8992,33 @@ function showToast(msg) {
   _toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ── Auto-Save ───────────────────────────────────────────────────
+const LS_KEY = 'pauta_autosave';
+function autoSaveScore() {
+  if (!APP.score || !APP.score.parts || !APP.score.parts.length) return;
+  try {
+    const data = { score: JSON.parse(JSON.stringify(APP.score)), savedAt: Date.now() };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch(e) { /* storage full or unavailable — silently ignore */ }
+}
+function restoreAutoSavedScore() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || !data.score || !data.score.parts) return null;
+    // Skip restore if it's still the blank single-measure template
+    const firstStave = data.score.parts[0]?.staves?.[0];
+    if (!firstStave || firstStave.measures.length <= 1) return null;
+    return data.score;
+  } catch(e) { return null; }
+}
+function startAutoSave() {
+  setInterval(autoSaveScore, 30000);
+  autoSaveScore(); // first save immediately
+}
+
+
 // ── Keyboard Shortcuts ───────────────────────────────────────────
 window.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
@@ -9173,11 +9060,10 @@ window.addEventListener('resize', () => {
 
 // ── Print ────────────────────────────────────────────────────────
 function printScore() {
-  // Close any open panels/editors before printing
   closeLyricEditor();
   closeModal();
   if (_activePanel) togglePanel(_activePanel);
-  // Brief delay to let the DOM settle, then print
+  positionAllDiagrams(0);
   setTimeout(() => window.print(), 120);
 }
 
@@ -9194,13 +9080,39 @@ function bootApp() {
   }
   VF = Vex.Flow;
 
+  // Register service worker for CDN asset caching
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
   // Create a minimal blank score so renderScore never runs on null,
   // but don't render it — show the New Score dialog immediately instead.
   APP.score = createScore();
 
+  // iPad → continuous view by default; desktop → page view
+  const isIPad = /iPad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  APP.continuousView = isIPad;
+
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
   setTimeout(() => loading.remove(), 500);
+
+  // Auto-save: persist score to localStorage every 30s
+  startAutoSave();
+  const savedScore = restoreAutoSavedScore();
+  if (savedScore) {
+    // Delay the prompt so the New Score dialog doesn't overlap
+    setTimeout(() => {
+      if (confirm('An unsaved score was found from a previous session. Restore it?')) {
+        APP.score = savedScore;
+        closeModal();
+        renderScore();
+        showToast('Restored from auto-save');
+      } else {
+        localStorage.removeItem(LS_KEY);
+      }
+    }, 600);
+  }
 
   // Double-tap on title for touch devices (set up once)
   let _titleTapT = 0;
@@ -9294,6 +9206,54 @@ if (document.readyState === 'loading') {
 } else {
   loadLibraries();
 }
+
+// Expose functions for HTML onclick handlers
+window.addRehearsalMark=addRehearsalMark;window.addStaffText=addStaffText;
+window.applyArticulation=applyArticulation;window.applyBarline=applyBarline;
+window.applyClefChange=applyClefChange;window.applyDynamic=applyDynamic;
+window.applyFingering=applyFingering;window.applyKeySig=applyKeySig;
+window.applyMarker=applyMarker;window.applyScoreInfo=applyScoreInfo;
+window.applyTempo=applyTempo;window.applyTimeSig=applyTimeSig;
+window.applyTitleDialog=applyTitleDialog;window.changeOctave=changeOctave;
+window.clearChordSymbol=clearChordSymbol;window.clearGlissando=clearGlissando;
+window.clearGraceNotes=clearGraceNotes;window.clearLyric=clearLyric;
+window.clearMarker=clearMarker;window.clearOttava=clearOttava;
+window.clearRehearsalMark=clearRehearsalMark;window.clearStaffText=clearStaffText;
+window.clearVolta=clearVolta;window.closeModal=closeModal;
+window.confirmAddInstrument=confirmAddInstrument;window.convertToGrace=convertToGrace;
+window.createNewScore=createNewScore;window.deleteMeasure=deleteMeasure;
+window.editChordSymbol=editChordSymbol;window.editLyric=editLyric;
+window.editRehearsalMark=editRehearsalMark;window.enterPartView=enterPartView;
+window.exitPartView=exitPartView;window.exportPartMSCX=exportPartMSCX;
+window.insertMeasure=insertMeasure;window.insertNoteByName=insertNoteByName;
+window.insertRest=insertRest;window.ndKSAdj=ndKSAdj;
+window.ndTSDenAdj=ndTSDenAdj;window.ndTSNumAdj=ndTSNumAdj;
+window.ndPickupToggle=ndPickupToggle;window.ndPickupSync=ndPickupSync;
+window.printPart=printPart;window.printScore=printScore;
+window.removePickupMeasure=removePickupMeasure;window.rewindPlayback=rewindPlayback;
+window.saveChordSymbol=saveChordSymbol;window.saveRehearsalMark=saveRehearsalMark;
+window.saveStaffText=saveStaffText;window.selectAIFamily=selectAIFamily;
+window.selectDur=selectDur;window.selectNDFamily=selectNDFamily;
+window.setAcc=setAcc;window.setNotehead=setNotehead;
+window.setPickupMeasure=setPickupMeasure;window.setVoice=setVoice;
+window.showEditMenu=showEditMenu;window.showFileMenu=showFileMenu;
+window.showKeySigDialog=showKeySigDialog;
+window.showMixer=showMixer;window.showScoreInfo=showScoreInfo;
+window.showScoreMenu=showScoreMenu;window.showTimeSigDialog=showTimeSigDialog;
+window.startGlissando=startGlissando;window.startMarking=startMarking;
+window.startOttava=startOttava;window.startVolta=startVolta;
+window.stopPlayback=stopPlayback;window.toggleBWNoteNames=toggleBWNoteNames;
+window.toggleChordMode=toggleChordMode;window.toggleContinuousView=toggleContinuousView;
+window.toggleCountIn=toggleCountIn;window.toggleDot=toggleDot;
+window.toggleGraceMode=toggleGraceMode;window.toggleInputMode=toggleInputMode;
+window.toggleLineBreak=toggleLineBreak;window.toggleLyricStyle=toggleLyricStyle;
+window.toggleMetronome=toggleMetronome;window.toggleNoteLabels=toggleNoteLabels;
+window.togglePanel=togglePanel;window.togglePartMute=togglePartMute;
+window.togglePlayback=togglePlayback;window.toggleTempoDisplay=toggleTempoDisplay;
+window.toggleTuplet=toggleTuplet;window.transposeScore=transposeScore;
+window.tsApplyFromSliders=tsApplyFromSliders;window.zoomIn=zoomIn;
+window.zoomOut=zoomOut;window.zoomReset=zoomReset;
+})();
 </script>
 </body>
 </html>
