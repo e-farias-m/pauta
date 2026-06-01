@@ -2746,7 +2746,7 @@ const REND = Object.freeze({
   STAVE_H: 132,
   STAVE_SPACING: 269,
   STAVE_GAP: 10,
-  SYS_SPACING: 54,
+  SYS_SPACING: 36,
   MARGIN_X: 166,
   MARGIN_TOP: 166,
 });
@@ -3112,7 +3112,7 @@ function _renderScoreBody() {
   const viewScale = APP.continuousView ? 1 : 0.7;
   LAYOUT.STAVE_H       = Math.round(REND.STAVE_H * viewScale);
   LAYOUT.STAVE_SPACING = Math.round(REND.STAVE_SPACING * viewScale);
-  LAYOUT.SYS_SPACING   = Math.round(REND.SYS_SPACING  * viewScale);
+  LAYOUT.SYS_SPACING   = REND.SYS_SPACING;
   LAYOUT.MARGIN_X      = REND.MARGIN_X;
   LAYOUT.MARGIN_TOP    = REND.MARGIN_TOP;
   APP.selectedGraceIdx = -1;
@@ -8752,7 +8752,7 @@ function _renderAddInstrumentDialog() {
       ${instrBtns}
     </div>
     <button class="modal-btn primary" style="margin-top:10px" data-action="confirmAddInstrument">Add</button>
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
   `);
   setTimeout(() => {
     const first = document.querySelector(`.ai-instr-btn[data-name="${firstInstr}"]`) || document.querySelector('.ai-instr-btn');
