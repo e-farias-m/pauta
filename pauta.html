@@ -615,13 +615,13 @@ body{
 
 <!-- Top Bar -->
 <div id="topbar">
-  <button class="btn-top" onclick="showFileMenu(this)">
+  <button class="btn-top" data-action="showFileMenu">
     <svg width="14" height="14" viewBox="0 0 20 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 2 L9 2 L11 4 L18 4 C18.5523 4 19 4.44772 19 5 L19 16 C19 16.5523 18.5523 17 18 17 L2 17 C1.44772 17 1 16.5523 1 16 L1 3 C1 2.44772 1.44772 2 2 2 Z"/>
     </svg>
     <span>File</span>
   </button>
-  <button class="btn-top" onclick="showEditMenu(this)">
+  <button class="btn-top" data-action="showEditMenu">
     <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 2 L15 2"/>
       <path d="M3 9 L15 9"/>
@@ -633,7 +633,7 @@ body{
     <span>Edit</span>
   </button>
 
-  <button class="btn-top" onclick="showScoreMenu(this)">
+  <button class="btn-top" data-action="showScoreMenu">
     <svg width="14" height="14" viewBox="0 0 18 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 1 L15 1 L15 19 L3 19 Z"/>
       <line x1="6" y1="6" x2="12" y2="6" stroke-width="1.2"/>
@@ -643,7 +643,7 @@ body{
     </svg>
     <span>Score</span>
   </button>
-  <button class="btn-top" id="btn-input-mode" onclick="toggleInputMode()" aria-label="Toggle input mode">
+  <button class="btn-top" id="btn-input-mode" data-action="toggleInputMode" aria-label="Toggle input mode">
     <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M13 2 L16 5 L7 14 L3 15 L4 11 Z"/>
       <line x1="11" y1="4" x2="14" y2="7"/>
@@ -658,13 +658,13 @@ body{
 
 <!-- Transport Bar -->
 <div id="transport-bar">
-  <button class="btn-circle" id="btn-rewind" onclick="rewindPlayback()" aria-label="Rewind">
+  <button class="btn-circle" id="btn-rewind" data-action="rewindPlayback" aria-label="Rewind">
     <svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor">
       <polygon points="14,0 14,14 6,7"/>
       <polygon points="8,0 8,14 0,7"/>
     </svg>
   </button>
-  <button class="btn-circle" id="btn-play"   onclick="togglePlayback()" aria-label="Play or pause">
+  <button class="btn-circle" id="btn-play"   data-action="togglePlayback" aria-label="Play or pause">
     <svg id="play-icon" width="16" height="18" viewBox="0 0 16 18" fill="currentColor">
       <polygon points="2,0 14,9 2,18"/>
     </svg>
@@ -673,7 +673,7 @@ body{
       <rect x="10" y="0" width="5" height="18" rx="1"/>
     </svg>
   </button>
-  <button class="btn-circle" id="btn-stop"   onclick="stopPlayback()" aria-label="Stop playback">
+  <button class="btn-circle" id="btn-stop"   data-action="stopPlayback" aria-label="Stop playback">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
       <rect x="0" y="0" width="14" height="14" rx="2"/>
     </svg>
@@ -686,7 +686,7 @@ body{
            onchange="updateTempoFromInput(this.value)" aria-label="Tempo in BPM">
   </div>
   <span id="play-pos">0:00</span>
-  <button id="btn-countin" onclick="toggleCountIn()" aria-label="Toggle count-in clicks" style="
+  <button id="btn-countin" data-action="toggleCountIn" aria-label="Toggle count-in clicks" style="
     background:rgba(192,86,33,0.14);
     border:1px solid rgba(192,86,33,0.30);
     border-radius:8px;
@@ -700,7 +700,7 @@ body{
     white-space:nowrap;
     min-height:32px;
   ">Count-in</button>
-  <button id="btn-metronome" onclick="toggleMetronome()" aria-label="Toggle metronome" style="
+  <button id="btn-metronome" data-action="toggleMetronome" aria-label="Toggle metronome" style="
     background:rgba(192,86,33,0.14);
     border:1px solid rgba(192,86,33,0.30);
     border-radius:8px;
@@ -713,7 +713,7 @@ body{
     white-space:nowrap;
     min-height:32px;
   ">Metronome</button>
-  <button id="btn-mixer" onclick="showMixer()" aria-label="Mixer" style="
+  <button id="btn-mixer" data-action="showMixer" aria-label="Mixer" style="
     background:rgba(192,86,33,0.14);
     border:1px solid rgba(192,86,33,0.30);
     border-radius:8px;
@@ -742,10 +742,10 @@ body{
   <div class="status-item">Key <b id="st-key">C</b></div>
   <div class="status-item">Time <b id="st-time">4/4</b></div>
   <div class="zoom-controls" style="display:flex;gap:4px;align-items:center;margin-left:16px">
-    <button class="zoom-btn" onclick="zoomOut()" aria-label="Zoom out" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+    <button class="zoom-btn" data-action="zoomOut" aria-label="Zoom out" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
     <span id="zoom-pct" style="color:rgba(74,85,104,0.6);font-size:11px;min-width:34px;text-align:center">100%</span>
-    <button class="zoom-btn" onclick="zoomIn()" aria-label="Zoom in" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
-    <button class="zoom-btn" onclick="zoomReset()" aria-label="Reset zoom" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.15);background:transparent;color:rgba(74,85,104,0.4);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">⟲</button>
+    <button class="zoom-btn" data-action="zoomIn" aria-label="Zoom in" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.3);background:rgba(192,86,33,0.1);color:#c05621;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+    <button class="zoom-btn" data-action="zoomReset" aria-label="Reset zoom" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,86,33,0.15);background:transparent;color:rgba(74,85,104,0.4);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">⟲</button>
   </div>
   <div id="st-mode" class="status-item">Select</div>
 </div>
@@ -754,28 +754,28 @@ body{
 <div id="palette">
   <!-- Row 1: Noteheads, accidentals, specials -->
   <div class="palette-row">
-    <button class="pal-btn" id="btn-dot"  onclick="toggleDot()">
+    <button class="pal-btn" id="btn-dot"  data-action="toggleDot">
       <span class="pal-sym" style="font-size:0">
         <svg width="16" height="16" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="3.5"/></svg>
       </span>
       <span class="pal-lbl">Dot</span>
     </button>
-    <button class="pal-btn" id="btn-sharp" onclick="setAcc('#')"><span class="pal-sym">♯</span><span class="pal-lbl">Sharp</span></button>
-    <button class="pal-btn" id="btn-flat"  onclick="setAcc('b')"><span class="pal-sym">♭</span><span class="pal-lbl">Flat</span></button>
-    <button class="pal-btn" id="btn-nat"   onclick="setAcc('n')"><span class="pal-sym">♮</span><span class="pal-lbl">Natural</span></button>
-    <button class="pal-btn" id="btn-notehead-x" onclick="setNotehead('x')">
+    <button class="pal-btn" id="btn-sharp" data-action="setAcc" data-acc="#"><span class="pal-sym">♯</span><span class="pal-lbl">Sharp</span></button>
+    <button class="pal-btn" id="btn-flat"  data-action="setAcc" data-acc="b"><span class="pal-sym">♭</span><span class="pal-lbl">Flat</span></button>
+    <button class="pal-btn" id="btn-nat"   data-action="setAcc" data-acc="n"><span class="pal-sym">♮</span><span class="pal-lbl">Natural</span></button>
+    <button class="pal-btn" id="btn-notehead-x" data-action="setNotehead" data-nh="x">
       <span class="pal-sym" style="font-size:0">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
       </span>
       <span class="pal-lbl">X</span>
     </button>
-    <button class="pal-btn" id="btn-notehead-slash" onclick="setNotehead('slash')">
+    <button class="pal-btn" id="btn-notehead-slash" data-action="setNotehead" data-nh="slash">
       <span class="pal-sym" style="font-size:0">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="13" x2="13" y2="3"/></svg>
       </span>
       <span class="pal-lbl">Slash</span>
     </button>
-    <button class="pal-btn" id="btn-triplet" onclick="toggleTuplet(3,2)">
+    <button class="pal-btn" id="btn-triplet" data-action="toggleTuplet" data-num="3" data-den="2">
       <span class="pal-sym" style="font-size:0">
         <svg width="20" height="16" viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
           <ellipse cx="4" cy="12" rx="2.5" ry="1.8" fill="currentColor" stroke="none" transform="rotate(-15 4 12)"/>
@@ -789,14 +789,14 @@ body{
       </span>
       <span class="pal-lbl">Triplet</span>
     </button>
-    <button class="pal-btn" id="btn-chord" onclick="toggleChordMode()"><span class="pal-sym" style="font-size:12px">♩+</span><span class="pal-lbl">Chord</span></button>
-    <button class="pal-btn" id="btn-voice1" onclick="setVoice(1)" style="background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621"><span class="pal-sym" style="font-size:12px;font-weight:700">V1</span><span class="pal-lbl">Voice</span></button>
-    <button class="pal-btn" id="btn-voice2" onclick="setVoice(2)"><span class="pal-sym" style="font-size:12px;font-weight:700">V2</span><span class="pal-lbl">Voice</span></button>
+    <button class="pal-btn" id="btn-chord" data-action="toggleChordMode"><span class="pal-sym" style="font-size:12px">♩+</span><span class="pal-lbl">Chord</span></button>
+    <button class="pal-btn" id="btn-voice1" data-action="setVoice" data-voice="1" style="background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621"><span class="pal-sym" style="font-size:12px;font-weight:700">V1</span><span class="pal-lbl">Voice</span></button>
+    <button class="pal-btn" id="btn-voice2" data-action="setVoice" data-voice="2"><span class="pal-sym" style="font-size:12px;font-weight:700">V2</span><span class="pal-lbl">Voice</span></button>
   </div>
   <!-- Row 2: Durations -->
   <div class="palette-row">
     <!-- Whole: wide flat open notehead, no stem, evenodd hole -->
-    <button class="pal-btn" data-dur="w" onclick="selectDur('w')">
+    <button class="pal-btn" data-dur="w" data-action="selectDur" data-dur="w">
       <span class="pal-sym">
         <svg width="20" height="11" viewBox="0 0 20 11">
           <g transform="rotate(-15 10 5.5)">
@@ -808,7 +808,7 @@ body{
       <span class="pal-lbl">Whole</span>
     </button>
     <!-- Half: open notehead + tall stem -->
-    <button class="pal-btn" data-dur="h" onclick="selectDur('h')">
+    <button class="pal-btn" data-dur="h" data-action="selectDur" data-dur="h">
       <span class="pal-sym">
         <svg width="15" height="30" viewBox="0 0 15 30">
           <g transform="rotate(-15 6 24)">
@@ -821,7 +821,7 @@ body{
       <span class="pal-lbl">Half</span>
     </button>
     <!-- Quarter: solid notehead + tall stem -->
-    <button class="pal-btn active" data-dur="q" onclick="selectDur('q')">
+    <button class="pal-btn active" data-dur="q" data-action="selectDur" data-dur="q">
       <span class="pal-sym">
         <svg width="15" height="30" viewBox="0 0 15 30">
           <ellipse cx="6" cy="23" rx="5.5" ry="3.5" fill="currentColor" transform="rotate(-15 6 23)"/>
@@ -831,7 +831,7 @@ body{
       <span class="pal-lbl">Quarter</span>
     </button>
     <!-- 8th: solid notehead + tall stem + one flag -->
-    <button class="pal-btn" data-dur="8" onclick="selectDur('8')">
+    <button class="pal-btn" data-dur="8" data-action="selectDur" data-dur="8">
       <span class="pal-sym">
         <svg width="18" height="30" viewBox="0 0 18 30">
           <ellipse cx="6" cy="23" rx="5.5" ry="3.5" fill="currentColor" transform="rotate(-15 6 23)"/>
@@ -842,7 +842,7 @@ body{
       <span class="pal-lbl">8th</span>
     </button>
     <!-- 16th: solid notehead + tall stem + two flags -->
-    <button class="pal-btn" data-dur="16" onclick="selectDur('16')">
+    <button class="pal-btn" data-dur="16" data-action="selectDur" data-dur="16">
       <span class="pal-sym">
         <svg width="18" height="30" viewBox="0 0 18 30">
           <ellipse cx="6" cy="23" rx="5.5" ry="3.5" fill="currentColor" transform="rotate(-15 6 23)"/>
@@ -854,7 +854,7 @@ body{
       <span class="pal-lbl">16th</span>
     </button>
     <!-- 32nd: solid notehead + tall stem + three flags -->
-    <button class="pal-btn" data-dur="32" onclick="selectDur('32')">
+    <button class="pal-btn" data-dur="32" data-action="selectDur" data-dur="32">
       <span class="pal-sym">
         <svg width="18" height="32" viewBox="0 0 18 32">
           <ellipse cx="6" cy="25" rx="5.5" ry="3.5" fill="currentColor" transform="rotate(-15 6 25)"/>
@@ -867,7 +867,7 @@ body{
       <span class="pal-lbl">32nd</span>
     </button>
     <!-- 64th: solid notehead + tall stem + four flags -->
-    <button class="pal-btn" data-dur="64" onclick="selectDur('64')">
+    <button class="pal-btn" data-dur="64" data-action="selectDur" data-dur="64">
       <span class="pal-sym">
         <svg width="18" height="34" viewBox="0 0 18 34">
           <ellipse cx="6" cy="27" rx="5.5" ry="3.5" fill="currentColor" transform="rotate(-15 6 27)"/>
@@ -883,7 +883,7 @@ body{
   </div>
   <!-- Note input row — tap a letter to insert that note -->
   <div class="palette-row" id="note-row">
-    <button class="pal-btn" id="btn-oct-dn" onclick="changeOctave(-1)">
+    <button class="pal-btn" id="btn-oct-dn" data-action="changeOctave" data-delta="-1">
       <span class="pal-sym" style="font-size:0">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="9" y1="3" x2="9" y2="15"/>
@@ -892,14 +892,14 @@ body{
       </span>
       <span class="pal-lbl">Oct ↓</span>
     </button>
-    <button class="pal-btn note-key" onclick="insertNoteByName('C')"><span class="pal-sym" style="font-size:15px;font-weight:600">C</span></button>
-    <button class="pal-btn note-key" onclick="insertNoteByName('D')"><span class="pal-sym" style="font-size:15px;font-weight:600">D</span></button>
-    <button class="pal-btn note-key" onclick="insertNoteByName('E')"><span class="pal-sym" style="font-size:15px;font-weight:600">E</span></button>
-    <button class="pal-btn note-key" onclick="insertNoteByName('F')"><span class="pal-sym" style="font-size:15px;font-weight:600">F</span></button>
-    <button class="pal-btn note-key" onclick="insertNoteByName('G')"><span class="pal-sym" style="font-size:15px;font-weight:600">G</span></button>
-    <button class="pal-btn note-key" onclick="insertNoteByName('A')"><span class="pal-sym" style="font-size:15px;font-weight:600">A</span></button>
-    <button class="pal-btn note-key" onclick="insertNoteByName('B')"><span class="pal-sym" style="font-size:15px;font-weight:600">B</span></button>
-    <button class="pal-btn" id="btn-oct-up" onclick="changeOctave(1)">
+    <button class="pal-btn note-key" data-action="insertNoteByName" data-name="C"><span class="pal-sym" style="font-size:15px;font-weight:600">C</span></button>
+    <button class="pal-btn note-key" data-action="insertNoteByName" data-name="D"><span class="pal-sym" style="font-size:15px;font-weight:600">D</span></button>
+    <button class="pal-btn note-key" data-action="insertNoteByName" data-name="E"><span class="pal-sym" style="font-size:15px;font-weight:600">E</span></button>
+    <button class="pal-btn note-key" data-action="insertNoteByName" data-name="F"><span class="pal-sym" style="font-size:15px;font-weight:600">F</span></button>
+    <button class="pal-btn note-key" data-action="insertNoteByName" data-name="G"><span class="pal-sym" style="font-size:15px;font-weight:600">G</span></button>
+    <button class="pal-btn note-key" data-action="insertNoteByName" data-name="A"><span class="pal-sym" style="font-size:15px;font-weight:600">A</span></button>
+    <button class="pal-btn note-key" data-action="insertNoteByName" data-name="B"><span class="pal-sym" style="font-size:15px;font-weight:600">B</span></button>
+    <button class="pal-btn" id="btn-oct-up" data-action="changeOctave" data-delta="1">
       <span class="pal-sym" style="font-size:0">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="9" y1="15" x2="9" y2="3"/>
@@ -908,7 +908,7 @@ body{
       </span>
       <span class="pal-lbl">Oct ↑</span>
     </button>
-    <button class="pal-btn active-accent" onclick="insertRest()" style="min-width:48px"><span class="pal-sym" style="font-size:0">
+    <button class="pal-btn active-accent" data-action="insertRest" style="min-width:48px"><span class="pal-sym" style="font-size:0">
       <svg viewBox="0 0 10 18" width="13" height="23" fill="currentColor">
         <g transform="translate(-482.02112,-143.61753)">
           <g transform="matrix(1.8,0,0,1.8,-471.40868,9.4615275)" stroke="none">
@@ -921,7 +921,7 @@ body{
   <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 3px">
     <span id="oct-display" style="color:rgba(192,86,33,0.65);font-size:11px;letter-spacing:0.3px">Octave 4</span>
     <span style="display:flex;gap:6px;align-items:center">
-      <button id="btn-note-labels" onclick="toggleNoteLabels()" style="
+      <button id="btn-note-labels" data-action="toggleNoteLabels" style="
         display:inline-block;
         background:rgba(224,112,96,0.15);
         border:1px solid rgba(224,112,96,0.40);
@@ -935,7 +935,7 @@ body{
         min-height:32px;
         font-weight:600;
       "><span id="note-labels-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e07060;margin-right:5px;vertical-align:middle"></span><span id="note-labels-text">𝅘 Solfege</span></button>
-      <button onclick="insertMeasure()" style="
+      <button data-action="insertMeasure" style="
         background:rgba(100,200,140,0.10);
         border:1px solid rgba(100,200,140,0.30);
         border-radius:8px;
@@ -950,7 +950,7 @@ body{
       ">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
         Measure</button>
-      <button onclick="deleteMeasure()" style="
+      <button data-action="deleteMeasure" style="
         background:rgba(240,120,96,0.10);
         border:1px solid rgba(240,120,96,0.30);
         border-radius:8px;
@@ -971,7 +971,7 @@ body{
           <line x1="8" y1="7" x2="8" y2="11"/>
         </svg>
         Measure</button>
-      <button id="btn-linebreak" onclick="toggleLineBreak()" style="
+      <button id="btn-linebreak" data-action="toggleLineBreak" style="
         background:rgba(192,86,33,0.14);
         border:1px solid rgba(192,86,33,0.40);
         border-radius:8px;
@@ -991,7 +991,7 @@ body{
           <line x1="15" y1="1" x2="15" y2="13"/>
         </svg>
         Line Break</button>
-      <button id="btn-continuous" onclick="toggleContinuousView()" style="
+      <button id="btn-continuous" data-action="toggleContinuousView" style="
         background:rgba(192,86,33,0.14);
         border:1px solid rgba(192,86,33,0.40);
         border-radius:8px;
@@ -1017,7 +1017,7 @@ body{
 
 <!-- Side palette tab strip (left side) -->
 <div id="side-tabs">
-  <button class="side-tab" id="tab-search" aria-label="Search" onclick="togglePanel('search')">
+  <button class="side-tab" id="tab-search" aria-label="Search" data-action="togglePanel" data-panel="search">
     <span class="tab-icon" style="font-size:0">
       <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="7" cy="7" r="5.5"/>
@@ -1026,31 +1026,31 @@ body{
     </span>
     <span class="tab-label">Search</span>
   </button>
-  <button class="side-tab" id="tab-marks"  aria-label="Dynamics" onclick="togglePanel('marks')">
+  <button class="side-tab" id="tab-marks"  aria-label="Dynamics" data-action="togglePanel" data-panel="marks">
     <span class="tab-icon" style="font-style:italic;font-family:serif;font-weight:700;font-size:15px">mf</span>
     <span class="tab-label">Marks</span>
   </button>
-  <button class="side-tab" id="tab-artic"  aria-label="Articulations" onclick="togglePanel('artic')">
+  <button class="side-tab" id="tab-artic"  aria-label="Articulations" data-action="togglePanel" data-panel="artic">
     <span class="tab-icon" style="font-weight:700;font-size:18px">></span>
     <span class="tab-label">Artic</span>
   </button>
-  <button class="side-tab" id="tab-lines"  aria-label="Lines" onclick="togglePanel('lines')">
+  <button class="side-tab" id="tab-lines"  aria-label="Lines" data-action="togglePanel" data-panel="lines">
     <span class="tab-icon">⌢</span>
     <span class="tab-label">Lines</span>
   </button>
-  <button class="side-tab" id="tab-text"   aria-label="Text" onclick="togglePanel('text')">
+  <button class="side-tab" id="tab-text"   aria-label="Text" data-action="togglePanel" data-panel="text">
     <span class="tab-icon" style="font-weight:700">T</span>
     <span class="tab-label">Text</span>
   </button>
-  <button class="side-tab" id="tab-clef"   aria-label="Clef" onclick="togglePanel('clef')">
+  <button class="side-tab" id="tab-clef"   aria-label="Clef" data-action="togglePanel" data-panel="clef">
     <span class="tab-icon" style="font-size:20px;font-family:serif;line-height:1">𝄞</span>
     <span class="tab-label">Clef</span>
   </button>
-  <button class="side-tab" id="tab-bars"   aria-label="Barlines" onclick="togglePanel('bars')">
+  <button class="side-tab" id="tab-bars"   aria-label="Barlines" data-action="togglePanel" data-panel="bars">
     <span class="tab-icon">𝄆</span>
     <span class="tab-label">Bars</span>
   </button>
-  <button class="side-tab" id="tab-tempo"  aria-label="Tempo" onclick="togglePanel('tempo')">
+  <button class="side-tab" id="tab-tempo"  aria-label="Tempo" data-action="togglePanel" data-panel="tempo">
     <span class="tab-icon" style="font-size:13px;white-space:nowrap">♩=</span>
     <span class="tab-label">Tempo</span>
   </button>
@@ -1071,29 +1071,29 @@ body{
     <div class="panel-title">Dynamics</div>
     <div class="panel-section-label">Quiet</div>
     <div class="panel-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
-      <button class="panel-btn" aria-label="Quadruple piano" onclick="applyDynamic('pppp')"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:10px">pppp</span></button>
-      <button class="panel-btn" aria-label="Triple piano" onclick="applyDynamic('ppp')"><span  class="panel-sym" style="font-style:italic;font-family:serif">ppp</span></button>
-      <button class="panel-btn" aria-label="Pianissimo" onclick="applyDynamic('pp')"><span  class="panel-sym" style="font-style:italic;font-family:serif">pp</span></button>
-      <button class="panel-btn" aria-label="Piano" onclick="applyDynamic('p')"><span   class="panel-sym" style="font-style:italic;font-family:serif">p</span></button>
+      <button class="panel-btn" aria-label="Quadruple piano" data-action="applyDynamic" data-type="pppp"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:10px">pppp</span></button>
+      <button class="panel-btn" aria-label="Triple piano" data-action="applyDynamic" data-type="ppp"><span  class="panel-sym" style="font-style:italic;font-family:serif">ppp</span></button>
+      <button class="panel-btn" aria-label="Pianissimo" data-action="applyDynamic" data-type="pp"><span  class="panel-sym" style="font-style:italic;font-family:serif">pp</span></button>
+      <button class="panel-btn" aria-label="Piano" data-action="applyDynamic" data-type="p"><span   class="panel-sym" style="font-style:italic;font-family:serif">p</span></button>
     </div>
     <div class="panel-section-label">Moderate</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Mezzo piano" onclick="applyDynamic('mp')"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">mp</span></button>
-      <button class="panel-btn" aria-label="Mezzo forte" onclick="applyDynamic('mf')"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">mf</span></button>
+      <button class="panel-btn" aria-label="Mezzo piano" data-action="applyDynamic" data-type="mp"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">mp</span></button>
+      <button class="panel-btn" aria-label="Mezzo forte" data-action="applyDynamic" data-type="mf"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">mf</span></button>
     </div>
     <div class="panel-section-label">Loud</div>
     <div class="panel-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
-      <button class="panel-btn" aria-label="Forte" onclick="applyDynamic('f')"><span   class="panel-sym" style="font-style:italic;font-family:serif">f</span></button>
-      <button class="panel-btn" aria-label="Fortissimo" onclick="applyDynamic('ff')"><span  class="panel-sym" style="font-style:italic;font-family:serif">ff</span></button>
-      <button class="panel-btn" aria-label="Triple forte" onclick="applyDynamic('fff')"><span  class="panel-sym" style="font-style:italic;font-family:serif">fff</span></button>
-      <button class="panel-btn" aria-label="Quadruple forte" onclick="applyDynamic('ffff')"><span class="panel-sym" style="font-style:italic;font-family:serif;font-size:10px">ffff</span></button>
+      <button class="panel-btn" aria-label="Forte" data-action="applyDynamic" data-type="f"><span   class="panel-sym" style="font-style:italic;font-family:serif">f</span></button>
+      <button class="panel-btn" aria-label="Fortissimo" data-action="applyDynamic" data-type="ff"><span  class="panel-sym" style="font-style:italic;font-family:serif">ff</span></button>
+      <button class="panel-btn" aria-label="Triple forte" data-action="applyDynamic" data-type="fff"><span  class="panel-sym" style="font-style:italic;font-family:serif">fff</span></button>
+      <button class="panel-btn" aria-label="Quadruple forte" data-action="applyDynamic" data-type="ffff"><span class="panel-sym" style="font-style:italic;font-family:serif;font-size:10px">ffff</span></button>
     </div>
     <div class="panel-section-label">Special</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Sforzando" onclick="applyDynamic('sfz')"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">sfz</span></button>
-      <button class="panel-btn" aria-label="Forte piano" onclick="applyDynamic('fp')"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">fp</span></button>
-      <button class="panel-btn" aria-label="Sforzando piano" onclick="applyDynamic('sfp')"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">sfp</span></button>
-      <button class="panel-btn" aria-label="Rinforzando" onclick="applyDynamic('rfz')"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">rfz</span></button>
+      <button class="panel-btn" aria-label="Sforzando" data-action="applyDynamic" data-type="sfz"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">sfz</span></button>
+      <button class="panel-btn" aria-label="Forte piano" data-action="applyDynamic" data-type="fp"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">fp</span></button>
+      <button class="panel-btn" aria-label="Sforzando piano" data-action="applyDynamic" data-type="sfp"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">sfp</span></button>
+      <button class="panel-btn" aria-label="Rinforzando" data-action="applyDynamic" data-type="rfz"><span  class="panel-sym" style="font-style:italic;font-family:serif;font-size:11px">rfz</span></button>
     </div>
   </div>
 
@@ -1103,34 +1103,34 @@ body{
 
     <div class="panel-section-label">Common</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Staccato" onclick="applyArticulation('staccato')"><span class="panel-sym">·</span><span class="panel-lbl">Staccato</span></button>
-      <button class="panel-btn" aria-label="Accent" onclick="applyArticulation('accent')"><span class="panel-sym" style="font-size:13px">&gt;</span><span class="panel-lbl">Accent</span></button>
-      <button class="panel-btn" aria-label="Tenuto" onclick="applyArticulation('tenuto')"><span class="panel-sym" style="font-size:13px">—</span><span class="panel-lbl">Tenuto</span></button>
-      <button class="panel-btn" aria-label="Marcato" onclick="applyArticulation('marcato')"><span class="panel-sym" style="font-size:13px">^</span><span class="panel-lbl">Marcato</span></button>
+      <button class="panel-btn" aria-label="Staccato" data-action="applyArticulation" data-type="staccato"><span class="panel-sym">·</span><span class="panel-lbl">Staccato</span></button>
+      <button class="panel-btn" aria-label="Accent" data-action="applyArticulation" data-type="accent"><span class="panel-sym" style="font-size:13px">&gt;</span><span class="panel-lbl">Accent</span></button>
+      <button class="panel-btn" aria-label="Tenuto" data-action="applyArticulation" data-type="tenuto"><span class="panel-sym" style="font-size:13px">—</span><span class="panel-lbl">Tenuto</span></button>
+      <button class="panel-btn" aria-label="Marcato" data-action="applyArticulation" data-type="marcato"><span class="panel-sym" style="font-size:13px">^</span><span class="panel-lbl">Marcato</span></button>
     </div>
     <div class="panel-section-label">Combinations</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Portato" onclick="applyArticulation('staccato+tenuto')"><span class="panel-sym" style="font-size:11px">·—</span><span class="panel-lbl">Portato</span></button>
-      <button class="panel-btn" aria-label="Tenuto accent" onclick="applyArticulation('tenuto+accent')"><span class="panel-sym" style="font-size:11px">—&gt;</span><span class="panel-lbl">Ten.+Acc.</span></button>
-      <button class="panel-btn" aria-label="Staccato accent" onclick="applyArticulation('staccato+accent')"><span class="panel-sym" style="font-size:11px">·&gt;</span><span class="panel-lbl">Stacc.+Acc.</span></button>
-      <button class="panel-btn" aria-label="Martellato" onclick="applyArticulation('marcato+staccato')"><span class="panel-sym" style="font-size:11px">^·</span><span class="panel-lbl">Martellato</span></button>
+      <button class="panel-btn" aria-label="Portato" data-action="applyArticulation" data-type="staccato+tenuto"><span class="panel-sym" style="font-size:11px">·—</span><span class="panel-lbl">Portato</span></button>
+      <button class="panel-btn" aria-label="Tenuto accent" data-action="applyArticulation" data-type="tenuto+accent"><span class="panel-sym" style="font-size:11px">—&gt;</span><span class="panel-lbl">Ten.+Acc.</span></button>
+      <button class="panel-btn" aria-label="Staccato accent" data-action="applyArticulation" data-type="staccato+accent"><span class="panel-sym" style="font-size:11px">·&gt;</span><span class="panel-lbl">Stacc.+Acc.</span></button>
+      <button class="panel-btn" aria-label="Martellato" data-action="applyArticulation" data-type="marcato+staccato"><span class="panel-sym" style="font-size:11px">^·</span><span class="panel-lbl">Martellato</span></button>
     </div>
     <div class="panel-section-label">Other</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Fermata" onclick="applyArticulation('fermata')"><span class="panel-sym">𝄐</span><span class="panel-lbl">Fermata</span></button>
-      <button class="panel-btn" aria-label="Staccatissimo" onclick="applyArticulation('staccatissimo')"><span class="panel-sym" style="font-size:18px">▾</span><span class="panel-lbl">Staccatiss.</span></button>
-      <button class="panel-btn" aria-label="Trill" onclick="applyArticulation('trill')"><span class="panel-sym" style="font-size:12px">tr~</span><span class="panel-lbl">Trill</span></button>
-      <button class="panel-btn" aria-label="Remove articulation" onclick="applyArticulation(null)"><span class="panel-sym" style="font-size:12px">✕</span><span class="panel-lbl">Remove</span></button>
+      <button class="panel-btn" aria-label="Fermata" data-action="applyArticulation" data-type="fermata"><span class="panel-sym">𝄐</span><span class="panel-lbl">Fermata</span></button>
+      <button class="panel-btn" aria-label="Staccatissimo" data-action="applyArticulation" data-type="staccatissimo"><span class="panel-sym" style="font-size:18px">▾</span><span class="panel-lbl">Staccatiss.</span></button>
+      <button class="panel-btn" aria-label="Trill" data-action="applyArticulation" data-type="trill"><span class="panel-sym" style="font-size:12px">tr~</span><span class="panel-lbl">Trill</span></button>
+      <button class="panel-btn" aria-label="Remove articulation" data-action="applyArticulation"><span class="panel-sym" style="font-size:12px">✕</span><span class="panel-lbl">Remove</span></button>
     </div>
     <div class="panel-section-label">Grace Notes</div>
     <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
       Select a note → tap to convert, or Add then tap a note key (C–B).</p>
     <div class="panel-grid" style="margin-bottom:4px">
-      <button class="panel-btn" aria-label="Convert to acciaccatura" onclick="convertToGrace(true)" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
+      <button class="panel-btn" aria-label="Convert to acciaccatura" data-action="convertToGrace" data-slashed="true" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
         <span class="panel-sym" style="font-size:10px;font-weight:700">→𝄽</span>
         <span class="panel-lbl">Make Acciaccatura</span>
       </button>
-      <button class="panel-btn" aria-label="Convert to appoggiatura" onclick="convertToGrace(false)" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
+      <button class="panel-btn" aria-label="Convert to appoggiatura" data-action="convertToGrace" data-slashed="false" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
         <span class="panel-sym" style="font-size:0">
           <svg viewBox="0 0 18 24" width="18" height="24" fill="none" stroke="currentColor" stroke-width="1.3">
             <ellipse cx="5" cy="20" rx="4" ry="2.8" transform="rotate(-12 5 20)" fill="currentColor"/>
@@ -1142,11 +1142,11 @@ body{
       </button>
     </div>
     <div class="panel-grid">
-      <button class="panel-btn" id="btn-grace-acc" aria-label="Add acciaccatura mode" onclick="toggleGraceMode(true)" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
+      <button class="panel-btn" id="btn-grace-acc" aria-label="Add acciaccatura mode" data-action="toggleGraceMode" data-slashed="true" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
         <span class="panel-sym" style="font-size:10px;font-weight:700">→𝄽</span>
         <span class="panel-lbl">Add Acciaccatura</span>
       </button>
-      <button class="panel-btn" id="btn-grace-app" aria-label="Add appoggiatura mode" onclick="toggleGraceMode(false)" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
+      <button class="panel-btn" id="btn-grace-app" aria-label="Add appoggiatura mode" data-action="toggleGraceMode" data-slashed="false" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
         <span class="panel-sym" style="font-size:0">
           <svg viewBox="0 0 18 24" width="18" height="24" fill="none" stroke="currentColor" stroke-width="1.3">
             <ellipse cx="5" cy="20" rx="4" ry="2.8" transform="rotate(-12 5 20)" fill="currentColor"/>
@@ -1156,7 +1156,7 @@ body{
         </span>
         <span class="panel-lbl">Add Appoggiatura</span>
       </button>
-      <button class="panel-btn" aria-label="Remove grace notes" onclick="clearGraceNotes()" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
+      <button class="panel-btn" aria-label="Remove grace notes" data-action="clearGraceNotes" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
         <span class="panel-sym" style="font-size:11px">✕</span>
         <span class="panel-lbl">Remove</span>
       </button>
@@ -1165,12 +1165,12 @@ body{
     <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
       Select a note, then tap a number to add or remove fingering.</p>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Fingering thumb 1" onclick="applyFingering('1')"><span class="panel-sym" style="font-size:14px;font-weight:700">1</span><span class="panel-lbl">Thumb</span></button>
-      <button class="panel-btn" aria-label="Fingering index 2" onclick="applyFingering('2')"><span class="panel-sym" style="font-size:14px;font-weight:700">2</span><span class="panel-lbl">Index</span></button>
-      <button class="panel-btn" aria-label="Fingering middle 3" onclick="applyFingering('3')"><span class="panel-sym" style="font-size:14px;font-weight:700">3</span><span class="panel-lbl">Middle</span></button>
-      <button class="panel-btn" aria-label="Fingering ring 4" onclick="applyFingering('4')"><span class="panel-sym" style="font-size:14px;font-weight:700">4</span><span class="panel-lbl">Ring</span></button>
-      <button class="panel-btn" aria-label="Fingering pinky 5" onclick="applyFingering('5')"><span class="panel-sym" style="font-size:14px;font-weight:700">5</span><span class="panel-lbl">Pinky</span></button>
-      <button class="panel-btn" aria-label="Remove fingering" onclick="applyFingering(null)" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
+      <button class="panel-btn" aria-label="Fingering thumb 1" data-action="applyFingering" data-f="1"><span class="panel-sym" style="font-size:14px;font-weight:700">1</span><span class="panel-lbl">Thumb</span></button>
+      <button class="panel-btn" aria-label="Fingering index 2" data-action="applyFingering" data-f="2"><span class="panel-sym" style="font-size:14px;font-weight:700">2</span><span class="panel-lbl">Index</span></button>
+      <button class="panel-btn" aria-label="Fingering middle 3" data-action="applyFingering" data-f="3"><span class="panel-sym" style="font-size:14px;font-weight:700">3</span><span class="panel-lbl">Middle</span></button>
+      <button class="panel-btn" aria-label="Fingering ring 4" data-action="applyFingering" data-f="4"><span class="panel-sym" style="font-size:14px;font-weight:700">4</span><span class="panel-lbl">Ring</span></button>
+      <button class="panel-btn" aria-label="Fingering pinky 5" data-action="applyFingering" data-f="5"><span class="panel-sym" style="font-size:14px;font-weight:700">5</span><span class="panel-lbl">Pinky</span></button>
+      <button class="panel-btn" aria-label="Remove fingering" data-action="applyFingering" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
         <span class="panel-sym" style="font-size:11px">✕</span>
         <span class="panel-lbl">Remove</span>
       </button>
@@ -1182,35 +1182,35 @@ body{
     <div class="panel-title">Lines</div>
     <div class="panel-section-label">Phrase</div>
     <div class="panel-grid">
-      <button class="panel-btn" id="btn-tie"   aria-label="Tie notes" onclick="startMarking('tie')"><span class="panel-sym">⌢</span><span class="panel-lbl">Tie</span></button>
-      <button class="panel-btn" id="btn-slur"  aria-label="Slur notes" onclick="startMarking('slur')"><span class="panel-sym">⌣</span><span class="panel-lbl">Slur</span></button>
-      <button class="panel-btn" id="btn-cresc" aria-label="Crescendo" onclick="startMarking('cresc')"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" id="btn-tie"   aria-label="Tie notes" data-action="startMarking" data-type="tie"><span class="panel-sym">⌢</span><span class="panel-lbl">Tie</span></button>
+      <button class="panel-btn" id="btn-slur"  aria-label="Slur notes" data-action="startMarking" data-type="slur"><span class="panel-sym">⌣</span><span class="panel-lbl">Slur</span></button>
+      <button class="panel-btn" id="btn-cresc" aria-label="Crescendo" data-action="startMarking" data-type="cresc"><span class="panel-sym" style="font-size:0">
         <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 17,8 1,14"/></svg>
       </span><span class="panel-lbl">Cresc</span></button>
-      <button class="panel-btn" id="btn-dim"   aria-label="Diminuendo" onclick="startMarking('dim')"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" id="btn-dim"   aria-label="Diminuendo" data-action="startMarking" data-type="dim"><span class="panel-sym" style="font-size:0">
         <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17,2 1,8 17,14"/></svg>
       </span><span class="panel-lbl">Dim</span></button>
     </div>
     <div class="panel-section-label">Ottava</div>
     <div class="panel-grid">
-      <button class="panel-btn ottava-btn" aria-label="Ottava alta" data-type="8va"  onclick="startOttava('8va')"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:700">8va</span><span class="panel-lbl">8va</span></button>
-      <button class="panel-btn ottava-btn" aria-label="Ottava bassa" data-type="8vb"  onclick="startOttava('8vb')"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:700">8vb</span><span class="panel-lbl">8vb</span></button>
-      <button class="panel-btn ottava-btn" aria-label="Quindicesima alta" data-type="15ma" onclick="startOttava('15ma')"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:700">15ma</span><span class="panel-lbl">15ma</span></button>
-      <button class="panel-btn" aria-label="Remove ottava" onclick="clearOttava()" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span></button>
+      <button class="panel-btn ottava-btn" aria-label="Ottava alta" data-type="8va"  data-action="startOttava" data-type="8va"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:700">8va</span><span class="panel-lbl">8va</span></button>
+      <button class="panel-btn ottava-btn" aria-label="Ottava bassa" data-type="8vb"  data-action="startOttava" data-type="8vb"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:700">8vb</span><span class="panel-lbl">8vb</span></button>
+      <button class="panel-btn ottava-btn" aria-label="Quindicesima alta" data-type="15ma" data-action="startOttava" data-type="15ma"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:700">15ma</span><span class="panel-lbl">15ma</span></button>
+      <button class="panel-btn" aria-label="Remove ottava" data-action="clearOttava" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span></button>
     </div>
     <div class="panel-section-label">Glissando</div>
     <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
       Select start note → tap style → tap end note.</p>
     <div class="panel-grid">
-      <button class="panel-btn" id="btn-gliss-str" aria-label="Straight glissando" onclick="startGlissando('straight')">
+      <button class="panel-btn" id="btn-gliss-str" aria-label="Straight glissando" data-action="startGlissando" data-style="straight">
         <span class="panel-sym" style="font-size:11px;letter-spacing:-0.5px">- - -</span>
         <span class="panel-lbl">Straight</span>
       </button>
-      <button class="panel-btn" id="btn-gliss-wav" aria-label="Wavy glissando" onclick="startGlissando('wavy')">
+      <button class="panel-btn" id="btn-gliss-wav" aria-label="Wavy glissando" data-action="startGlissando" data-style="wavy">
         <span class="panel-sym" style="font-size:14px">〜</span>
         <span class="panel-lbl">Wavy</span>
       </button>
-      <button class="panel-btn" aria-label="Remove glissando" onclick="clearGlissando()" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
+      <button class="panel-btn" aria-label="Remove glissando" data-action="clearGlissando" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
         <span class="panel-sym" style="font-size:11px">✕</span>
         <span class="panel-lbl">Remove</span>
       </button>
@@ -1221,23 +1221,23 @@ body{
   <div class="panel-page" id="panel-clef" style="display:none">
     <div class="panel-title">Clef</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Treble clef" onclick="applyClefChange('treble')">
+      <button class="panel-btn" aria-label="Treble clef" data-action="applyClefChange" data-type="treble">
         <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄞</span>
         <span class="panel-lbl">Treble</span>
       </button>
-      <button class="panel-btn" aria-label="Bass clef" onclick="applyClefChange('bass')">
+      <button class="panel-btn" aria-label="Bass clef" data-action="applyClefChange" data-type="bass">
         <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄢</span>
         <span class="panel-lbl">Bass</span>
       </button>
-      <button class="panel-btn" aria-label="Alto C clef" onclick="applyClefChange('alto')">
+      <button class="panel-btn" aria-label="Alto C clef" data-action="applyClefChange" data-type="alto">
         <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
         <span class="panel-lbl">Alto</span>
       </button>
-      <button class="panel-btn" aria-label="Tenor C clef" onclick="applyClefChange('tenor')">
+      <button class="panel-btn" aria-label="Tenor C clef" data-action="applyClefChange" data-type="tenor">
         <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
         <span class="panel-lbl">Tenor</span>
       </button>
-      <button class="panel-btn" aria-label="Percussion clef" onclick="applyClefChange('percussion')">
+      <button class="panel-btn" aria-label="Percussion clef" data-action="applyClefChange" data-type="percussion">
         <span class="panel-sym" style="font-size:0">
           <svg viewBox="0 0 20 28" width="20" height="28" fill="currentColor">
             <rect x="5" y="3" width="3.5" height="22" rx="1.2"/>
@@ -1246,71 +1246,71 @@ body{
         </span>
         <span class="panel-lbl">Percussion</span>
       </button>
-      <button class="panel-btn" aria-label="Remove clef" onclick="applyClefChange(null)" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
+      <button class="panel-btn" aria-label="Remove clef" data-action="applyClefChange" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
         <span class="panel-sym" style="font-size:11px">✕</span>
         <span class="panel-lbl">Remove</span>
       </button>
     </div>
     <div class="panel-section-label">Key Signature</div>
     <div class="panel-grid" style="grid-template-columns:repeat(5,1fr)">
-      <button class="panel-btn" aria-label="Key of F major 1 flat" onclick="applyKeySig(-1)"><span class="panel-sym" style="font-size:13px;font-weight:700">F</span><span class="panel-lbl">1♭</span></button>
-      <button class="panel-btn" aria-label="Key of B flat major 2 flats" onclick="applyKeySig(-2)"><span class="panel-sym" style="font-size:13px;font-weight:700">B♭</span><span class="panel-lbl">2♭</span></button>
-      <button class="panel-btn" aria-label="Key of E flat major 3 flats" onclick="applyKeySig(-3)"><span class="panel-sym" style="font-size:13px;font-weight:700">E♭</span><span class="panel-lbl">3♭</span></button>
-      <button class="panel-btn" aria-label="Key of A flat major 4 flats" onclick="applyKeySig(-4)"><span class="panel-sym" style="font-size:13px;font-weight:700">A♭</span><span class="panel-lbl">4♭</span></button>
-      <button class="panel-btn" aria-label="Key of C major no sharps or flats" onclick="applyKeySig(0)"><span class="panel-sym" style="font-size:13px;font-weight:700">C</span><span class="panel-lbl">♮</span></button>
-      <button class="panel-btn" aria-label="Key of G major 1 sharp" onclick="applyKeySig(1)"><span class="panel-sym" style="font-size:13px;font-weight:700">G</span><span class="panel-lbl">1♯</span></button>
-      <button class="panel-btn" aria-label="Key of D major 2 sharps" onclick="applyKeySig(2)"><span class="panel-sym" style="font-size:13px;font-weight:700">D</span><span class="panel-lbl">2♯</span></button>
-      <button class="panel-btn" aria-label="Key of A major 3 sharps" onclick="applyKeySig(3)"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">3♯</span></button>
-      <button class="panel-btn" aria-label="Key of E major 4 sharps" onclick="applyKeySig(4)"><span class="panel-sym" style="font-size:13px;font-weight:700">E</span><span class="panel-lbl">4♯</span></button>
-      <button class="panel-btn" aria-label="More key signatures" onclick="showKeySigDialog()" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
+      <button class="panel-btn" aria-label="Key of F major 1 flat" data-action="applyKeySig" data-ks="-1"><span class="panel-sym" style="font-size:13px;font-weight:700">F</span><span class="panel-lbl">1♭</span></button>
+      <button class="panel-btn" aria-label="Key of B flat major 2 flats" data-action="applyKeySig" data-ks="-2"><span class="panel-sym" style="font-size:13px;font-weight:700">B♭</span><span class="panel-lbl">2♭</span></button>
+      <button class="panel-btn" aria-label="Key of E flat major 3 flats" data-action="applyKeySig" data-ks="-3"><span class="panel-sym" style="font-size:13px;font-weight:700">E♭</span><span class="panel-lbl">3♭</span></button>
+      <button class="panel-btn" aria-label="Key of A flat major 4 flats" data-action="applyKeySig" data-ks="-4"><span class="panel-sym" style="font-size:13px;font-weight:700">A♭</span><span class="panel-lbl">4♭</span></button>
+      <button class="panel-btn" aria-label="Key of C major no sharps or flats" data-action="applyKeySig" data-ks="0"><span class="panel-sym" style="font-size:13px;font-weight:700">C</span><span class="panel-lbl">♮</span></button>
+      <button class="panel-btn" aria-label="Key of G major 1 sharp" data-action="applyKeySig" data-ks="1"><span class="panel-sym" style="font-size:13px;font-weight:700">G</span><span class="panel-lbl">1♯</span></button>
+      <button class="panel-btn" aria-label="Key of D major 2 sharps" data-action="applyKeySig" data-ks="2"><span class="panel-sym" style="font-size:13px;font-weight:700">D</span><span class="panel-lbl">2♯</span></button>
+      <button class="panel-btn" aria-label="Key of A major 3 sharps" data-action="applyKeySig" data-ks="3"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">3♯</span></button>
+      <button class="panel-btn" aria-label="Key of E major 4 sharps" data-action="applyKeySig" data-ks="4"><span class="panel-sym" style="font-size:13px;font-weight:700">E</span><span class="panel-lbl">4♯</span></button>
+      <button class="panel-btn" aria-label="More key signatures" data-action="showKeySigDialog" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
         <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
       </button>
     </div>
     <div class="panel-section-label">Time Signature</div>
     <div class="panel-grid" style="grid-template-columns:repeat(4,1fr)">
-      <button class="panel-btn" aria-label="Time signature 2 2" onclick="applyTimeSig(2,2)"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Time signature 2 2" data-action="applyTimeSig" data-num="2" data-den="2"><span class="panel-sym" style="font-size:0">
         <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
           <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
         </svg>
       </span><span class="panel-lbl">2/2</span></button>
-      <button class="panel-btn" aria-label="Time signature 2 4" onclick="applyTimeSig(2,4)"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Time signature 2 4" data-action="applyTimeSig" data-num="2" data-den="4"><span class="panel-sym" style="font-size:0">
         <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
           <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
         </svg>
       </span><span class="panel-lbl">2/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 3 4" onclick="applyTimeSig(3,4)"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Time signature 3 4" data-action="applyTimeSig" data-num="3" data-den="4"><span class="panel-sym" style="font-size:0">
         <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
           <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
         </svg>
       </span><span class="panel-lbl">3/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 4 4" onclick="applyTimeSig(4,4)"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Time signature 4 4" data-action="applyTimeSig" data-num="4" data-den="4"><span class="panel-sym" style="font-size:0">
         <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
           <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
         </svg>
       </span><span class="panel-lbl">4/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 5 4" onclick="applyTimeSig(5,4)"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Time signature 5 4" data-action="applyTimeSig" data-num="5" data-den="4"><span class="panel-sym" style="font-size:0">
         <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
           <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">5</text>
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
         </svg>
       </span><span class="panel-lbl">5/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 3 8" onclick="applyTimeSig(3,8)"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Time signature 3 8" data-action="applyTimeSig" data-num="3" data-den="8"><span class="panel-sym" style="font-size:0">
         <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
           <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
         </svg>
       </span><span class="panel-lbl">3/8</span></button>
-      <button class="panel-btn" aria-label="Time signature 6 8" onclick="applyTimeSig(6,8)"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Time signature 6 8" data-action="applyTimeSig" data-num="6" data-den="8"><span class="panel-sym" style="font-size:0">
         <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
           <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">6</text>
           <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
         </svg>
       </span><span class="panel-lbl">6/8</span></button>
-      <button class="panel-btn" aria-label="More time signatures" onclick="showTimeSigDialog()" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
+      <button class="panel-btn" aria-label="More time signatures" data-action="showTimeSigDialog" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
         <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
       </button>
     </div>
@@ -1321,94 +1321,94 @@ body{
     <div class="panel-title">Barlines</div>
     <div class="panel-section-label">Repeat Endings</div>
     <div class="panel-grid">
-      <button class="panel-btn volta-btn" aria-label="First ending volta" data-label="1." onclick="startVolta('1.')">
+      <button class="panel-btn volta-btn" aria-label="First ending volta" data-label="1." data-action="startVolta" data-label="1.">
         <span class="panel-sym" style="font-size:12px;font-weight:700">1.</span><span class="panel-lbl">1st End.</span>
       </button>
-      <button class="panel-btn volta-btn" aria-label="Second ending volta" data-label="2." onclick="startVolta('2.')">
+      <button class="panel-btn volta-btn" aria-label="Second ending volta" data-label="2." data-action="startVolta" data-label="2.">
         <span class="panel-sym" style="font-size:12px;font-weight:700">2.</span><span class="panel-lbl">2nd End.</span>
       </button>
-      <button class="panel-btn volta-btn" aria-label="Third ending volta" data-label="3." onclick="startVolta('3.')">
+      <button class="panel-btn volta-btn" aria-label="Third ending volta" data-label="3." data-action="startVolta" data-label="3.">
         <span class="panel-sym" style="font-size:12px;font-weight:700">3.</span><span class="panel-lbl">3rd End.</span>
       </button>
-      <button class="panel-btn" aria-label="Remove volta" onclick="clearVolta()" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
+      <button class="panel-btn" aria-label="Remove volta" data-action="clearVolta" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
         <span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span>
       </button>
     </div>
     <div class="panel-section-label">Barline Type</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Normal barline" onclick="applyBarline('single')"><span class="panel-sym" style="font-size:18px">|</span><span class="panel-lbl">Normal</span></button>
-      <button class="panel-btn" aria-label="Double barline" onclick="applyBarline('double')"><span class="panel-sym" style="font-size:18px">‖</span><span class="panel-lbl">Double</span></button>
-      <button class="panel-btn" aria-label="Final barline" onclick="applyBarline('end')"><span class="panel-sym" style="font-size:0">
+      <button class="panel-btn" aria-label="Normal barline" data-action="applyBarline" data-type="single"><span class="panel-sym" style="font-size:18px">|</span><span class="panel-lbl">Normal</span></button>
+      <button class="panel-btn" aria-label="Double barline" data-action="applyBarline" data-type="double"><span class="panel-sym" style="font-size:18px">‖</span><span class="panel-lbl">Double</span></button>
+      <button class="panel-btn" aria-label="Final barline" data-action="applyBarline" data-type="end"><span class="panel-sym" style="font-size:0">
         <svg width="18" height="18" viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
           <line x1="2" y1="0" x2="2" y2="28"/>
           <rect x="5" y="0" width="4" height="28" rx="0.8"/>
         </svg>
       </span><span class="panel-lbl">Final</span></button>
-      <button class="panel-btn" aria-label="Repeat start barline" onclick="applyBarline('repeat_begin')"><span class="panel-sym" style="font-size:14px">|:</span><span class="panel-lbl">Rep. Start</span></button>
-      <button class="panel-btn" aria-label="Repeat end barline" onclick="applyBarline('repeat_end')"><span class="panel-sym" style="font-size:14px">:|</span><span class="panel-lbl">Rep. End</span></button>
-      <button class="panel-btn" aria-label="Repeat both barline" onclick="applyBarline('repeat_both')"><span class="panel-sym" style="font-size:14px">:|:</span><span class="panel-lbl">Rep. Both</span></button>
+      <button class="panel-btn" aria-label="Repeat start barline" data-action="applyBarline" data-type="repeat_begin"><span class="panel-sym" style="font-size:14px">|:</span><span class="panel-lbl">Rep. Start</span></button>
+      <button class="panel-btn" aria-label="Repeat end barline" data-action="applyBarline" data-type="repeat_end"><span class="panel-sym" style="font-size:14px">:|</span><span class="panel-lbl">Rep. End</span></button>
+      <button class="panel-btn" aria-label="Repeat both barline" data-action="applyBarline" data-type="repeat_both"><span class="panel-sym" style="font-size:14px">:|:</span><span class="panel-lbl">Rep. Both</span></button>
     </div>
   </div>
 
   <!-- Tempo panel -->
   <div class="panel-page" id="panel-tempo" style="display:none">
     <div class="panel-title">Tempo</div>
-    <button class="panel-btn-wide" id="btn-tempo-toggle" onclick="toggleTempoDisplay()"
+    <button class="panel-btn-wide" id="btn-tempo-toggle" data-action="toggleTempoDisplay"
       style="margin-bottom:6px;background:rgba(192,86,33,0.12);border-color:rgba(192,86,33,0.45);color:#c05621">
       ✓ Show on score
     </button>
     <div class="panel-section-label">Slow</div>
-    <button class="panel-btn-wide tempo-btn" onclick="applyTempo('Larghissimo',24)">Larghissimo <span style="opacity:0.5;font-size:9px">♩=24</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Grave',40)">Grave <span style="opacity:0.5;font-size:9px">♩=40</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Largo',50)">Largo <span style="opacity:0.5;font-size:9px">♩=50</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Lento',52)">Lento <span style="opacity:0.5;font-size:9px">♩=52</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Larghetto',60)">Larghetto <span style="opacity:0.5;font-size:9px">♩=60</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Adagio',66)">Adagio <span style="opacity:0.5;font-size:9px">♩=66</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Adagietto',72)">Adagietto <span style="opacity:0.5;font-size:9px">♩=72</span></button>
+    <button class="panel-btn-wide tempo-btn" data-action="applyTempo" data-name="Larghissimo" data-bpm="24">Larghissimo <span style="opacity:0.5;font-size:9px">♩=24</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Grave" data-bpm="40">Grave <span style="opacity:0.5;font-size:9px">♩=40</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Largo" data-bpm="50">Largo <span style="opacity:0.5;font-size:9px">♩=50</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Lento" data-bpm="52">Lento <span style="opacity:0.5;font-size:9px">♩=52</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Larghetto" data-bpm="60">Larghetto <span style="opacity:0.5;font-size:9px">♩=60</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagio" data-bpm="66">Adagio <span style="opacity:0.5;font-size:9px">♩=66</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagietto" data-bpm="72">Adagietto <span style="opacity:0.5;font-size:9px">♩=72</span></button>
     <div class="panel-section-label">Medium</div>
-    <button class="panel-btn-wide" onclick="applyTempo('Andante',76)">Andante <span style="opacity:0.5;font-size:9px">♩=76</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Andantino',88)">Andantino <span style="opacity:0.5;font-size:9px">♩=88</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Moderato',96)">Moderato <span style="opacity:0.5;font-size:9px">♩=96</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Allegretto',112)">Allegretto <span style="opacity:0.5;font-size:9px">♩=112</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andante" data-bpm="76">Andante <span style="opacity:0.5;font-size:9px">♩=76</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andantino" data-bpm="88">Andantino <span style="opacity:0.5;font-size:9px">♩=88</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Moderato" data-bpm="96">Moderato <span style="opacity:0.5;font-size:9px">♩=96</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegretto" data-bpm="112">Allegretto <span style="opacity:0.5;font-size:9px">♩=112</span></button>
     <div class="panel-section-label">Fast</div>
-    <button class="panel-btn-wide" onclick="applyTempo('Allegro',132)">Allegro <span style="opacity:0.5;font-size:9px">♩=132</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Vivace',160)">Vivace <span style="opacity:0.5;font-size:9px">♩=160</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Presto',184)">Presto <span style="opacity:0.5;font-size:9px">♩=184</span></button>
-    <button class="panel-btn-wide" onclick="applyTempo('Prestissimo',208)">Prestissimo <span style="opacity:0.5;font-size:9px">♩=208</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegro" data-bpm="132">Allegro <span style="opacity:0.5;font-size:9px">♩=132</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Vivace" data-bpm="160">Vivace <span style="opacity:0.5;font-size:9px">♩=160</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Presto" data-bpm="184">Presto <span style="opacity:0.5;font-size:9px">♩=184</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Prestissimo" data-bpm="208">Prestissimo <span style="opacity:0.5;font-size:9px">♩=208</span></button>
   </div>
   <div class="panel-page" id="panel-text" style="display:none">
     <div class="panel-title">Text</div>
     <div class="panel-section-label">Staff Text</div>
-    <button class="panel-btn-wide" aria-label="Add staff text annotation" onclick="addStaffText()">✎ Add Text Annotation</button>
-    <button class="panel-btn-wide danger-btn" aria-label="Remove staff text" onclick="clearStaffText()">✕ Remove Text</button>
+    <button class="panel-btn-wide" aria-label="Add staff text annotation" data-action="addStaffText">✎ Add Text Annotation</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove staff text" data-action="clearStaffText">✕ Remove Text</button>
     <div class="panel-section-label">Chord Symbol</div>
-    <button class="panel-btn-wide" aria-label="Add or edit chord symbol" onclick="editChordSymbol()">𝄢 Add / Edit Chord</button>
-    <button class="panel-btn-wide danger-btn" aria-label="Remove chord symbol" onclick="clearChordSymbol()">✕ Remove Chord</button>
+    <button class="panel-btn-wide" aria-label="Add or edit chord symbol" data-action="editChordSymbol">𝄢 Add / Edit Chord</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove chord symbol" data-action="clearChordSymbol">✕ Remove Chord</button>
     <div class="panel-section-label">Rehearsal Mark</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Rehearsal mark letter" onclick="addRehearsalMark('letter')"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">Letter</span></button>
-      <button class="panel-btn" aria-label="Rehearsal mark number" onclick="addRehearsalMark('number')"><span class="panel-sym" style="font-size:13px;font-weight:700">1</span><span class="panel-lbl">Number</span></button>
-      <button class="panel-btn" aria-label="Custom rehearsal mark" onclick="editRehearsalMark()"><span class="panel-sym" style="font-size:11px">✎</span><span class="panel-lbl">Custom</span></button>
-      <button class="panel-btn" aria-label="Remove rehearsal mark" onclick="clearRehearsalMark()" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span></button>
+      <button class="panel-btn" aria-label="Rehearsal mark letter" data-action="addRehearsalMark" data-type="letter"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">Letter</span></button>
+      <button class="panel-btn" aria-label="Rehearsal mark number" data-action="addRehearsalMark" data-type="number"><span class="panel-sym" style="font-size:13px;font-weight:700">1</span><span class="panel-lbl">Number</span></button>
+      <button class="panel-btn" aria-label="Custom rehearsal mark" data-action="editRehearsalMark"><span class="panel-sym" style="font-size:11px">✎</span><span class="panel-lbl">Custom</span></button>
+      <button class="panel-btn" aria-label="Remove rehearsal mark" data-action="clearRehearsalMark" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span></button>
     </div>
     <div class="panel-section-label">Navigation Markers</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Segno marker" onclick="applyMarker('segno')"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif">&#xE047;</span><span class="panel-lbl">Segno</span></button>
-      <button class="panel-btn" aria-label="Coda marker" onclick="applyMarker('coda')"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif;position:relative">
+      <button class="panel-btn" aria-label="Segno marker" data-action="applyMarker" data-type="segno"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif">&#xE047;</span><span class="panel-lbl">Segno</span></button>
+      <button class="panel-btn" aria-label="Coda marker" data-action="applyMarker" data-type="coda"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif;position:relative">
         <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;position:absolute;top:0;left:50%;transform:translateX(-50%)">
           <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/>
           <line x1="9" y1="0" x2="9" y2="18" stroke="currentColor" stroke-width="1.6"/>
           <line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="1.6"/>
         </svg>
         &#x200B;</span><span class="panel-lbl">Coda</span></button>
-      <button class="panel-btn" aria-label="Fine marker" onclick="applyMarker('fine')"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:bold">Fine</span><span class="panel-lbl">Fine</span></button>
-      <button class="panel-btn" aria-label="Da Capo" onclick="applyMarker('dc')"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.C.</span><span class="panel-lbl">Da Capo</span></button>
-      <button class="panel-btn" aria-label="Dal Segno" onclick="applyMarker('ds')"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.S.</span><span class="panel-lbl">Dal Segno</span></button>
-      <button class="panel-btn" aria-label="Clear navigation markers" onclick="clearMarker()" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Clear</span></button>
+      <button class="panel-btn" aria-label="Fine marker" data-action="applyMarker" data-type="fine"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:bold">Fine</span><span class="panel-lbl">Fine</span></button>
+      <button class="panel-btn" aria-label="Da Capo" data-action="applyMarker" data-type="dc"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.C.</span><span class="panel-lbl">Da Capo</span></button>
+      <button class="panel-btn" aria-label="Dal Segno" data-action="applyMarker" data-type="ds"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.S.</span><span class="panel-lbl">Dal Segno</span></button>
+      <button class="panel-btn" aria-label="Clear navigation markers" data-action="clearMarker" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Clear</span></button>
     </div>
     <div class="panel-section-label" style="margin-top:8px">Lyrics</div>
-    <button class="panel-btn-wide" aria-label="Edit lyrics" onclick="editLyric()">✎ Edit Lyric</button>
-    <button class="panel-btn-wide danger-btn" aria-label="Remove lyrics" onclick="clearLyric()">✕ Remove</button>
+    <button class="panel-btn-wide" aria-label="Edit lyrics" data-action="editLyric">✎ Edit Lyric</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove lyrics" data-action="clearLyric">✕ Remove</button>
     <div class="panel-section-label" style="margin-top:8px">Font</div>
     <select id="lyric-font" class="panel-select">
       <option value="'Helvetica Neue',Helvetica,sans-serif">Helvetica</option>
@@ -1426,8 +1426,8 @@ body{
       <option value="16">16</option>
     </select>
     <div style="display:flex;gap:6px;margin-top:6px">
-      <button class="panel-btn" id="btn-lyric-bold"   onclick="toggleLyricStyle('bold')"   style="flex:1;font-weight:700">B</button>
-      <button class="panel-btn" id="btn-lyric-italic" onclick="toggleLyricStyle('italic')" style="flex:1;font-style:italic">I</button>
+      <button class="panel-btn" id="btn-lyric-bold"   data-action="toggleLyricStyle" data-style="bold"   style="flex:1;font-weight:700">B</button>
+      <button class="panel-btn" id="btn-lyric-italic" data-action="toggleLyricStyle" data-style="italic" style="flex:1;font-style:italic">I</button>
     </div>
     <p style="color:rgba(74,85,104,0.4);font-size:10px;margin-top:8px;line-height:1.4;text-align:center">
       Select a note, tap Edit Lyric.<br>
@@ -3077,7 +3077,7 @@ function _showRenderFailure(err) {
       `<div style="padding:32px;text-align:center;color:#4a5568;max-width:360px;margin:0 auto">
          <p style="font-size:15px;font-weight:600;margin-bottom:8px">Could not draw the score</p>
          <p style="font-size:13px;color:rgba(74,85,104,0.75);margin-bottom:16px;line-height:1.5">${escHtml(msg)}</p>
-         <button onclick="location.reload()" style="padding:10px 20px;background:#c05621;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Reload Pauta</button>
+         <button data-action="reload" style="padding:10px 20px;background:#c05621;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Reload Pauta</button>
        </div>`;
   }
   showToast('Score display error');
@@ -7301,7 +7301,7 @@ function showTransposeDialog() {
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px">
       ${[-12,-7,-5,-4,-3,-2,-1,1,2,3,4,5,7,12].map(n =>
         `<button class="modal-btn secondary" style="padding:8px 4px;font-size:13px"
-          onclick="transposeScore(${n});closeModal()">
+          data-action="transposeScore" data-semitones="${n}">
           ${n>0?'+':''}${n}
         </button>`).join('')}
     </div>
@@ -7311,9 +7311,9 @@ function showTransposeDialog() {
       [7,'Up a 5th'],[-7,'Down a 5th'],
       [12,'Up an octave'],[-12,'Down an octave'],
     ].map(([n,lbl]) => `<button class="modal-btn secondary" style="margin-bottom:4px"
-        onclick="transposeScore(${n});closeModal()">${lbl} (${n>0?'+':''}${n})</button>`).join('')}
+        data-action="transposeScore" data-semitones="${n}">${lbl} (${n>0?'+':''}${n})</button>`).join('')}
     <div class="modal-sep"></div>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
 
@@ -8251,8 +8251,8 @@ function editChordSymbol() {
     <input id="cs-input" value="${cur.replace(/"/g,'&quot;')}"
       placeholder="e.g. Am7"
       style="font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:18px;font-weight:600;text-align:center">
-    <button class="modal-btn primary" onclick="saveChordSymbol()">Apply</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" data-action="saveChordSymbol">Apply</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
   setTimeout(() => {
     const el = document.getElementById('cs-input');
@@ -8312,8 +8312,8 @@ function editRehearsalMark() {
     <input id="rm-input" value="${cur}" placeholder="e.g. A, B, 1, Coda"
       style="font-size:22px;font-weight:700;text-align:center;
              font-family:'Helvetica Neue',Helvetica,sans-serif" maxlength="6">
-    <button class="modal-btn primary" onclick="saveRehearsalMark()">Apply</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" data-action="saveRehearsalMark">Apply</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
   setTimeout(() => { const el = document.getElementById('rm-input'); if(el){el.focus();el.select();} }, 60);
 }
@@ -8392,8 +8392,8 @@ function addStaffText() {
         <option value="16">16</option>
       </select>
     </div>
-    <button class="modal-btn primary" onclick="saveStaffText()">Apply</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" data-action="saveStaffText">Apply</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
   setTimeout(() => { const el = document.getElementById('st-input'); if(el){el.focus();el.select();} }, 60);
 }
@@ -8552,7 +8552,7 @@ function showPartsDialog() {
 
   const partBtns = parts.map((p, i) => `
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-      <button onclick="togglePartMute(${i})" style="
+      <button data-action="togglePartMute" data-idx="${i}" style="
         flex-shrink:0;width:28px;height:28px;border-radius:50%;
         border:1px solid ${p.muted ? 'rgba(224,112,96,0.40)' : 'rgba(192,86,33,0.25)'};
         background:${p.muted ? 'rgba(224,112,96,0.15)' : 'rgba(192,86,33,0.08)'};
@@ -8560,7 +8560,7 @@ function showPartsDialog() {
         font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;
         -webkit-tap-highlight-color:transparent">${p.muted ? '🔇' : '🔊'}</button>
       <button class="modal-btn" style="flex:1;${APP_partView === i ? 'background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621;font-weight:600' : ''}"
-        onclick="enterPartView(${i});closeModal()">
+        data-action="enterPartView" data-idx="${i}">
         ${APP_partView === i ? '▶ ' : ''}${p.name}
       </button>
       <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
@@ -8576,14 +8576,14 @@ function showPartsDialog() {
     ${partBtns}
     <div class="modal-sep"></div>
     ${APP_partView !== null ? `
-      <button class="modal-btn primary" onclick="closeModal();printPart()">
+      <button class="modal-btn primary" data-action="printPart">
         🖨️ Print / Export this Part</button>
-      <button class="modal-btn primary" onclick="closeModal();exportPartMSCX()">
+      <button class="modal-btn primary" data-action="exportPartMSCX">
         💾 Save Part as .mscx</button>
-      <button class="modal-btn secondary" onclick="exitPartView();closeModal()">
+      <button class="modal-btn secondary" data-action="exitPartView">
         ⬅ Return to Full Score</button>
     ` : ''}
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
 
@@ -8620,7 +8620,7 @@ function showMixer() {
       </div>
     </div>
     ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
-    <button class="modal-btn secondary" style="margin-top:8px" onclick="closeModal()">Close</button>
+    <button class="modal-btn secondary" style="margin-top:8px" data-action="closeModal">Close</button>
   `);
 }
 
@@ -8719,12 +8719,12 @@ function showPickupDialog() {
         </select>
         <span style="color:var(--pal-label);font-size:11px">beats</span>
       </div>
-      <button class="modal-btn primary" onclick="setPickupMeasure()">Set Pickup</button>
+      <button class="modal-btn primary" data-action="setPickupMeasure">Set Pickup</button>
     ` : `
-      <button class="modal-btn secondary" onclick="removePickupMeasure()" style="color:#e07060;border-color:rgba(224,112,96,0.35)">Remove Pickup</button>
+      <button class="modal-btn secondary" data-action="removePickupMeasure" style="color:#e07060;border-color:rgba(224,112,96,0.35)">Remove Pickup</button>
     `}
     <div class="modal-sep"></div>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
 
@@ -8811,7 +8811,7 @@ function _renderAddInstrumentDialog() {
     : instrList[0]?.name || '';
 
   const famBtns = families.map(f => `
-    <button onclick="selectAIFamily('${f}')"
+    <button data-action="selectAIFamily" data-family="${f}"
       style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_aiFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
              background:${f===_aiFamily?'rgba(192,86,33,0.15)':'rgba(192,86,33,0.04)'};
              color:${f===_aiFamily?'#c05621':'#718096'};font-size:11px;font-weight:${f===_aiFamily?'700':'500'};
@@ -8822,9 +8822,7 @@ function _renderAddInstrumentDialog() {
   const instrBtns = instrList.map(i => {
     const staveLabel = '';
     return `
-    <button onclick="document.getElementById('ai-instr').value='${i.name}';
-                     document.querySelectorAll('.ai-instr-btn').forEach(b=>b.classList.remove('nd-sel'));
-                     this.classList.add('nd-sel')"
+    <button data-action="selectAIInstr" data-name="${i.name}"
       class="ai-instr-btn"
       style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
              background:rgba(192,86,33,0.04);color:#4a5568;font-size:11px;cursor:pointer;
@@ -8844,8 +8842,8 @@ function _renderAddInstrumentDialog() {
                 max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch">
       ${instrBtns}
     </div>
-    <button class="modal-btn primary" style="margin-top:10px" onclick="confirmAddInstrument()">Add</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" style="margin-top:10px" data-action="confirmAddInstrument">Add</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
   setTimeout(() => {
     const first = document.querySelector(`.ai-instr-btn[data-name="${firstInstr}"]`) || document.querySelector('.ai-instr-btn');
@@ -8916,8 +8914,8 @@ function showTimeSigDialog() {
            style="width:100%;margin:2px 0 8px"
            oninput="tsSliderChange()">
 
-    <button class="modal-btn primary" onclick="tsApplyFromSliders()">Apply</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" data-action="tsApplyFromSliders">Apply</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
 
@@ -8998,7 +8996,7 @@ function showKeySigDialog() {
       : k.ks > 0
       ? `<span style="font-size:9px;opacity:0.7">${k.ks}♯</span>`
       : `<span style="font-size:9px;opacity:0.5">♮</span>`;
-    return `<button class="picker-btn ${cls}${sel}" onclick="applyKeySig(${k.ks})">
+    return `<button class="picker-btn ${cls}${sel}" data-action="applyKeySig" data-ks="${k.ks}">
       <div style="font-size:14px;font-weight:700">${k.label}</div>
       <div style="font-size:9px;opacity:0.6">${k.sub}</div>
       ${acc}
@@ -9010,7 +9008,7 @@ function showKeySigDialog() {
     <p style="color:rgba(74,85,104,0.50);font-size:11px;margin-top:-6px">
       From measure ${APP.selectedMeasure + 1} onward · minor keys shown below</p>
     <div class="picker-grid cols-4" style="max-height:60vh;overflow-y:auto">${btns}</div>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
 
@@ -9195,7 +9193,7 @@ function _renderNewScoreDialog() {
 
   // Family tab buttons
   const famBtns = families.map(f => `
-    <button onclick="selectNDFamily('${f}')"
+    <button data-action="selectNDFamily" data-family="${f}"
       style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_ndFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
              background:${f===_ndFamily?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
              color:${f===_ndFamily?'#c05621':'#718096'};font-size:11px;font-weight:${f===_ndFamily?'700':'500'};
@@ -9207,9 +9205,7 @@ function _renderNewScoreDialog() {
   const instrBtns = instrList.map(i => {
     const staveLabel = '';
     return `
-    <button onclick="document.getElementById('nd-instr').value='${i.name}';
-                     document.querySelectorAll('.nd-instr-btn').forEach(b=>b.classList.remove('nd-sel'));
-                     this.classList.add('nd-sel')"
+    <button data-action="selectNDInstr" data-name="${i.name}"
       class="nd-instr-btn"
       data-name="${i.name}"
       style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
@@ -9252,8 +9248,8 @@ function _renderNewScoreDialog() {
               <span id="nd-ks-label" style="font-size:10px;color:#c05621;font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-              <button id="nd-ks-next" onclick="ndKSAdj(1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <button id="nd-ks-prev" onclick="ndKSAdj(-1)" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button id="nd-ks-next" data-action="ndKSAdj" data-delta="1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button id="nd-ks-prev" data-action="ndKSAdj" data-delta="-1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
           <div id="nd-ks-accel" style="text-align:center;font-size:9px;color:rgba(74,85,104,0.50)"></div>
@@ -9264,15 +9260,15 @@ function _renderNewScoreDialog() {
           <input type="hidden" id="nd-ts-den" value="${initTSden}">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button onclick="ndTSNumAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button data-action="ndTSNumAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
               <span id="nd-ts-num-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSnum}</span>
-              <button onclick="ndTSNumAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button data-action="ndTSNumAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
             <span style="font-size:24px;color:rgba(74,85,104,0.40);font-weight:100;line-height:1">/</span>
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button onclick="ndTSDenAdj(1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button data-action="ndTSDenAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
               <span id="nd-ts-den-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSden}</span>
-              <button onclick="ndTSDenAdj(-1)" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button data-action="ndTSDenAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
         </div>
@@ -9311,8 +9307,8 @@ function _renderNewScoreDialog() {
       ${instrBtns}
     </div>
 
-    <button class="modal-btn primary" style="margin-top:10px" onclick="createNewScore()">Create</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" style="margin-top:10px" data-action="createNewScore">Create</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 
   // Highlight first instrument by default; add styles for nd-sel
@@ -9475,8 +9471,8 @@ function showTitleDialog() {
     <select id="td-size" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:13px;-webkit-appearance:none">
       ${sizeOpts}
     </select>
-    <button class="modal-btn primary" onclick="applyTitleDialog()">Apply</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" data-action="applyTitleDialog">Apply</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
 
@@ -9500,8 +9496,8 @@ function showScoreInfo() {
     <h2>Score Info</h2>
     <input id="si-title" value="${(s.title||'').replace(/"/g,'&quot;')}" placeholder="Title">
     <input id="si-composer" value="${(s.composer||'').replace(/"/g,'&quot;')}" placeholder="Composer">
-    <button class="modal-btn primary" onclick="applyScoreInfo()">Apply</button>
-    <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn primary" data-action="applyScoreInfo">Apply</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
 function applyScoreInfo() {
@@ -9643,8 +9639,8 @@ function _checkAndOfferRestore(onDecline) {
       Tap <b>Restore</b> to continue editing, or <b>New score</b> to start fresh.
     </p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="modal-btn secondary" onclick="closeModal();window._autosaveDecline&&window._autosaveDecline()">New score</button>
-      <button class="modal-btn primary"   onclick="restoreAutosave()">Restore</button>
+      <button class="modal-btn secondary" data-action="closeModal">New score</button>
+      <button class="modal-btn primary"   data-action="restoreAutosave">Restore</button>
     </div>
   `);
 }
@@ -9810,7 +9806,7 @@ function showLibError(msg) {
     `<div style="padding:28px;text-align:center;max-width:300px">
        <div style="font-size:22px;margin-bottom:12px;color:#e07060">⚠</div>
        <p style="color:#e07060;font-size:14px;line-height:1.6">${msg}</p>
-       <button onclick="location.reload()" style="margin-top:18px;padding:10px 22px;background:#c05621;border:none;border-radius:10px;font-size:14px;cursor:pointer">Retry</button>
+       <button data-action="reload" style="margin-top:18px;padding:10px 22px;background:#c05621;border:none;border-radius:10px;font-size:14px;cursor:pointer">Retry</button>
      </div>`;
 }
 
@@ -9909,8 +9905,8 @@ _registerAction('editChordSymbol', () => editChordSymbol());
 _registerAction('editLyric', () => editLyric());
 _registerAction('editRehearsalMark', () => editRehearsalMark());
 _registerAction('enterPartView', (e) => enterPartView(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
-_registerAction('exitPartView', () => exitPartView());
-_registerAction('exportPartMSCX', () => exportPartMSCX());
+_registerAction('exitPartView', () => { exitPartView(); closeModal(); });
+_registerAction('exportPartMSCX', () => { closeModal(); exportPartMSCX(); });
 _registerAction('insertMeasure', () => insertMeasure());
 _registerAction('insertNoteByName', (e) => insertNoteByName(e.target.closest('[data-name]')?.dataset.name));
 _registerAction('insertRest', () => insertRest());
@@ -9919,7 +9915,7 @@ _registerAction('ndTSDenAdj', (e) => ndTSDenAdj(parseInt(e.target.closest('[data
 _registerAction('ndTSNumAdj', (e) => ndTSNumAdj(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
 _registerAction('ndPickupToggle', () => ndPickupToggle());
 _registerAction('ndPickupSync', () => ndPickupSync());
-_registerAction('printPart', () => printPart());
+_registerAction('printPart', () => { closeModal(); printPart(); });
 _registerAction('printScore', () => printScore());
 _registerAction('removePickupMeasure', () => removePickupMeasure());
 _registerAction('rewindPlayback', () => rewindPlayback());
@@ -9960,11 +9956,26 @@ _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closes
 _registerAction('togglePlayback', () => togglePlayback());
 _registerAction('toggleTempoDisplay', () => toggleTempoDisplay());
 _registerAction('toggleTuplet', (e) => toggleTuplet(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
-_registerAction('transposeScore', (e) => transposeScore(parseInt(e.target.closest('[data-semitones]')?.dataset.semitones)));
+_registerAction('transposeScore', (e) => { transposeScore(parseInt(e.target.closest('[data-semitones]')?.dataset.semitones)); closeModal(); });
 _registerAction('tsApplyFromSliders', () => tsApplyFromSliders());
 _registerAction('zoomIn', () => zoomIn());
 _registerAction('zoomOut', () => zoomOut());
 _registerAction('zoomReset', () => zoomReset());
+_registerAction('reload', () => location.reload());
+_registerAction('restoreAutosave', () => restoreAutosave());
+_registerAction('applyTitleDialog', () => applyTitleDialog());
+_registerAction('selectAIInstr', (e) => {
+  const name = e.target.closest('[data-name]')?.dataset.name;
+  document.getElementById('ai-instr').value = name;
+  document.querySelectorAll('.ai-instr-btn').forEach(b => b.classList.remove('nd-sel'));
+  e.target.closest('.ai-instr-btn')?.classList.add('nd-sel');
+});
+_registerAction('selectNDInstr', (e) => {
+  const name = e.target.closest('[data-name]')?.dataset.name;
+  document.getElementById('nd-instr').value = name;
+  document.querySelectorAll('.nd-instr-btn').forEach(b => b.classList.remove('nd-sel'));
+  e.target.closest('.nd-instr-btn')?.classList.add('nd-sel');
+});
 
 // Single delegated click handler for all [data-action] elements
 document.addEventListener('click', (e) => {
