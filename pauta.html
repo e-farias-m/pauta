@@ -9546,7 +9546,7 @@ function _checkAndOfferRestore(onDecline) {
       Tap <b>Restore</b> to continue editing, or <b>New score</b> to start fresh.
     </p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="modal-btn secondary" data-action="closeModal">New score</button>
+      <button class="modal-btn secondary" data-action="showNewScoreDialog">New score</button>
       <button class="modal-btn primary"   data-action="restoreAutosave">Restore</button>
     </div>
   `);
@@ -9803,6 +9803,7 @@ _registerAction('clearRehearsalMark', () => clearRehearsalMark());
 _registerAction('clearStaffText', () => clearStaffText());
 _registerAction('clearVolta', () => clearVolta());
 _registerAction('closeModal', () => closeModal());
+_registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
 _registerAction('confirmAddInstrument', () => confirmAddInstrument());
 _registerAction('convertToGrace', (e) => convertToGrace(e.target.closest('[data-slashed]')?.dataset.slashed === 'true'));
 _registerAction('createNewScore', () => createNewScore());
