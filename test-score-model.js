@@ -461,18 +461,70 @@ function exportMSCXFromScore(s, opts) {
   return x;
 }
 
+// ── Minimal XML parser (replaces DOM dependency) ────────────────
+class XNode {
+  constructor(tag, attrs, children, text) {
+    this.tagName = tag; this._attrs = attrs; this._children = children; this._text = text || '';
+    this.parentNode = null; this.nodeType = 1;
+    this._children.forEach(c => { if (c.nodeType === 1) c.parentNode = this; });
+  }
+  getAttribute(k) { return this._attrs[k] ?? null; }
+  get textContent() {
+    if (this._children.length) return this._children.map(c => c.textContent).join('');
+    return this._text;
+  }
+  get childNodes() { return this._children; }
+  getElementsByTagName(tag) {
+    const up = tag.toLowerCase(); let r = [];
+    for (const c of this._children) { if (c.nodeType !== 1) continue; if (c.tagName.toLowerCase() === up) r.push(c); r = r.concat(c.getElementsByTagName(up)); }
+    return r;
+  }
+}
+class XText { constructor(t) { this.textContent = t; this.nodeType = 3; this.parentNode = null; } }
+function parseXML(str) {
+  let i = 0;
+  function ws() { while (i < str.length && /\s/.test(str[i])) i++; }
+  function parse() {
+    const nodes = [];
+    while (i < str.length) {
+      if (str[i] === '<') {
+        if (str[i+1] === '?') { i = str.indexOf('?>', i) + 2; continue; }
+        if (str[i+1] === '!') { i = str.indexOf('>', i) + 1; continue; }
+        if (str[i+1] === '/') break;
+        i++; ws(); const tag = name(); ws();
+        const attrs = {};
+        while (i < str.length && str[i] !== '>' && str[i] !== '/') {
+          const k = name(); if (!k) break; ws();
+          if (str[i] === '=') { i++; ws(); const [v] = str[i]==='"' ? (i++, readUntil('"')) : str[i]==="'" ? (i++, readUntil("'")) : [str.slice(i, i+1), i+1]; attrs[k] = v; ws(); } else { attrs[k] = ''; }
+        }
+        if (str[i] === '/') { i++; ws(); if (str[i] === '>') i++; nodes.push(new XNode(tag, attrs, [])); continue; }
+        i++; // skip '>'
+        const children = parse();
+        ws(); i += 2 + tag.length; // skip </tag>
+        nodes.push(new XNode(tag, attrs, children));
+      } else {
+        const [t, j] = readUntil('<'); if (t) { const decoded = t.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'"); nodes.push(new XText(decoded)); } i = j;
+      }
+    }
+    return nodes;
+  }
+  function name() { const s = i; while (i < str.length && /[a-zA-Z0-9_:.-]/.test(str[i])) i++; return str.slice(s, i); }
+  function readUntil(ch) { const s = i; const j = str.indexOf(ch, i); return j === -1 ? [str.slice(s), str.length] : [str.slice(s, j), j]; }
+  const nodes = parse();
+  return nodes.find(n => n.nodeType === 1) || null;
+}
+
 function parseMSCX(xmlStr) {
-  const {DOMParser} = require('@xmldom/xmldom');
-  const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
+  const doc = parseXML(xmlStr);
+  if (!doc) return createScore();
 
   function nq(parent, tag) {
     const els = parent.getElementsByTagName(tag);
     for (let i = 0; i < els.length; i++) { if (els[i].parentNode === parent) return els[i]; }
-    const walk = parent.getElementsByTagName(tag);
-    return walk.length ? walk[0] : null;
+    return els.length ? els[0] : null;
   }
   function nqa(parent, tag) {
-    return Array.from(parent.getElementsByTagName(tag));
+    return parent.getElementsByTagName(tag);
   }
   function txt(parent, tag) {
     const el = nq(parent, tag);
