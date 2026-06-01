@@ -2746,12 +2746,12 @@ const REND = Object.freeze({
   STAVE_H: 132,
   STAVE_SPACING: 269,
   STAVE_GAP: 10,
-  SYS_SPACING: 36,
+  SYS_SPACING: 16,
   MARGIN_X: 166,
   MARGIN_TOP: 166,
 });
 // Per-render layout — recomputed at the start of _renderScoreBody().
-const LAYOUT = { STAVE_H: 132, STAVE_SPACING: 269, SYS_SPACING: 54, MARGIN_X: 166, MARGIN_TOP: 166 };
+const LAYOUT = { STAVE_H: 132, STAVE_SPACING: 269, SYS_SPACING: 16, MARGIN_X: 166, MARGIN_TOP: 166 };
 
 /** Wrap a VexFlow call so internal errors are logged instead of silently swallowed. */
 function vfSafe(fn, label) {
