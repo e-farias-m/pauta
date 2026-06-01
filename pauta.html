@@ -3100,29 +3100,6 @@ function renderScore() {
 }
 
 let _selRAF = 0;
-function renderSelection() {
-  if (!APP.score || !APP.staveLayout || !APP.staveLayout.length) return;
-  if (_selRAF) cancelAnimationFrame(_selRAF);
-  _selRAF = requestAnimationFrame(() => {
-    _selRAF = 0;
-    const svgEl = document.getElementById('score-svg')?.querySelector('svg');
-    if (!svgEl) return;
-    svgEl.querySelectorAll('.sel-overlay').forEach(el => el.remove());
-    const sl = APP.staveLayout.find(l => l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0));
-    if (sl && APP.selectedMeasure >= 0) {
-      svgRect(svgEl, {
-        x: sl.x, y: sl.topLineY - 2, w: sl.w, h: sl.bottomY - sl.topLineY + 4, rx: 4,
-        fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'
-      });
-    }
-    updateRecorderDiagram();
-    updateWoodwindDiagram();
-    updateBrassDiagram();
-    updateStatusBar();
-    positionAllDiagrams();
-  });
-}
-
 function _renderScoreBody() {
   const container = document.getElementById('score-svg');
   // Save scroll position before clearing — otherwise clearing innerHTML resets scrollTop to 0
@@ -3530,7 +3507,7 @@ function scrollToSelectedMeasure() {
   }
 }
 
-function renderSelection() {
+function _renderSelectionBody() {
   if (!APP.score || !APP.staveLayout || !APP.staveLayout.length) return;
   const svgEl = document.getElementById('score-svg')?.querySelector('svg');
   if (!svgEl) return;
@@ -3550,6 +3527,11 @@ function renderSelection() {
   updateBrassDiagram();
   updateStatusBar();
   positionAllDiagrams();
+}
+
+function renderSelection() {
+  if (_selRAF) cancelAnimationFrame(_selRAF);
+  _selRAF = requestAnimationFrame(() => { _selRAF = 0; _renderSelectionBody(); });
 }
 
 // Keep diagram SVGs fixed during horizontal scroll in continuous view
@@ -8537,7 +8519,6 @@ function showMixer() {
         <span style="flex:0 0 70px;font-size:11px;color:#4a5568">Metronome</span>
         <input type="range" min="0" max="100" value="${metPct}"
           data-action="setMetronomeVolume"
-          style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Metronome volume">
           style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Metronome volume">
         <span id="mix-met-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${metPct}</span>
       </div>
