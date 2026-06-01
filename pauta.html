@@ -9957,7 +9957,114 @@ if (document.readyState === 'loading') {
   loadLibraries();
 }
 
-// Expose functions for HTML onclick handlers
+// ── Event Delegation ──────────────────────────────────────────
+// Converts inline onclick="fn(args)" → data-action="fn" data-args="args"
+// Usage: elements get data-action="functionName" data-arg1="..." etc.
+// This system auto-dispatches clicks on [data-action] elements.
+const _ACTION_MAP = {};
+function _registerAction(name, fn) { _ACTION_MAP[name] = fn; }
+
+// Register all actions that were previously inline onclick
+_registerAction('addRehearsalMark', () => addRehearsalMark);
+_registerAction('addStaffText', () => addStaffText);
+_registerAction('applyArticulation', (e) => applyArticulation(e.target.closest('[data-type]')?.dataset.type));
+_registerAction('applyBarline', (e) => applyBarline(e.target.closest('[data-type]')?.dataset.type));
+_registerAction('applyClefChange', (e) => applyClefChange(e.target.closest('[data-type]')?.dataset.type));
+_registerAction('applyDynamic', (e) => applyDynamic(e.target.closest('[data-type]')?.dataset.type));
+_registerAction('applyFingering', (e) => applyFingering(e.target.closest('[data-f]')?.dataset.f));
+_registerAction('applyKeySig', (e) => applyKeySig(parseInt(e.target.closest('[data-ks]')?.dataset.ks)));
+_registerAction('applyMarker', (e) => applyMarker(e.target.closest('[data-type]')?.dataset.type));
+_registerAction('applyScoreInfo', () => applyScoreInfo());
+_registerAction('applyTempo', (e) => applyTempo(e.target.closest('[data-name]')?.dataset.name, parseInt(e.target.closest('[data-bpm]')?.dataset.bpm)));
+_registerAction('applyTimeSig', (e) => applyTimeSig(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
+_registerAction('changeOctave', (e) => changeOctave(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
+_registerAction('clearChordSymbol', () => clearChordSymbol());
+_registerAction('clearGlissando', () => clearGlissando());
+_registerAction('clearGraceNotes', () => clearGraceNotes());
+_registerAction('clearLyric', () => clearLyric());
+_registerAction('clearMarker', () => clearMarker());
+_registerAction('clearOttava', () => clearOttava());
+_registerAction('clearRehearsalMark', () => clearRehearsalMark());
+_registerAction('clearStaffText', () => clearStaffText());
+_registerAction('clearVolta', () => clearVolta());
+_registerAction('closeModal', () => closeModal());
+_registerAction('confirmAddInstrument', () => confirmAddInstrument());
+_registerAction('convertToGrace', (e) => convertToGrace(e.target.closest('[data-slashed]')?.dataset.slashed === 'true'));
+_registerAction('createNewScore', () => createNewScore());
+_registerAction('deleteMeasure', () => deleteMeasure());
+_registerAction('editChordSymbol', () => editChordSymbol());
+_registerAction('editLyric', () => editLyric());
+_registerAction('editRehearsalMark', () => editRehearsalMark());
+_registerAction('enterPartView', (e) => enterPartView(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
+_registerAction('exitPartView', () => exitPartView());
+_registerAction('exportPartMSCX', () => exportPartMSCX());
+_registerAction('insertMeasure', () => insertMeasure());
+_registerAction('insertNoteByName', (e) => insertNoteByName(e.target.closest('[data-name]')?.dataset.name));
+_registerAction('insertRest', () => insertRest());
+_registerAction('ndKSAdj', (e) => ndKSAdj(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
+_registerAction('ndTSDenAdj', (e) => ndTSDenAdj(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
+_registerAction('ndTSNumAdj', (e) => ndTSNumAdj(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
+_registerAction('ndPickupToggle', () => ndPickupToggle());
+_registerAction('ndPickupSync', () => ndPickupSync());
+_registerAction('printPart', () => printPart());
+_registerAction('printScore', () => printScore());
+_registerAction('removePickupMeasure', () => removePickupMeasure());
+_registerAction('rewindPlayback', () => rewindPlayback());
+_registerAction('saveChordSymbol', () => saveChordSymbol());
+_registerAction('saveRehearsalMark', () => saveRehearsalMark());
+_registerAction('saveStaffText', () => saveStaffText());
+_registerAction('selectAIFamily', (e) => selectAIFamily(e.target.closest('[data-family]')?.dataset.family));
+_registerAction('selectDur', (e) => selectDur(e.target.closest('[data-dur]')?.dataset.dur));
+_registerAction('selectNDFamily', (e) => selectNDFamily(e.target.closest('[data-family]')?.dataset.family));
+_registerAction('setAcc', (e) => setAcc(e.target.closest('[data-acc]')?.dataset.acc));
+_registerAction('setNotehead', (e) => setNotehead(e.target.closest('[data-nh]')?.dataset.nh));
+_registerAction('setPickupMeasure', () => setPickupMeasure());
+_registerAction('setVoice', (e) => setVoice(parseInt(e.target.closest('[data-voice]')?.dataset.voice)));
+_registerAction('showEditMenu', (e) => showEditMenu(e.target));
+_registerAction('showFileMenu', (e) => showFileMenu(e.target));
+_registerAction('showKeySigDialog', () => showKeySigDialog());
+_registerAction('showMixer', () => showMixer());
+_registerAction('showScoreInfo', () => showScoreInfo());
+_registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
+_registerAction('showTimeSigDialog', () => showTimeSigDialog());
+_registerAction('startGlissando', (e) => startGlissando(e.target.closest('[data-style]')?.dataset.style));
+_registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
+_registerAction('startOttava', (e) => startOttava(e.target.closest('[data-type]')?.dataset.type));
+_registerAction('startVolta', (e) => startVolta(e.target.closest('[data-label]')?.dataset.label));
+_registerAction('stopPlayback', () => stopPlayback());
+_registerAction('toggleChordMode', () => toggleChordMode());
+_registerAction('toggleContinuousView', () => toggleContinuousView());
+_registerAction('toggleCountIn', () => toggleCountIn());
+_registerAction('toggleDot', () => toggleDot());
+_registerAction('toggleGraceMode', (e) => toggleGraceMode(e.target.closest('[data-slashed]')?.dataset.slashed === 'true'));
+_registerAction('toggleInputMode', () => toggleInputMode());
+_registerAction('toggleLineBreak', () => toggleLineBreak());
+_registerAction('toggleLyricStyle', (e) => toggleLyricStyle(e.target.closest('[data-style]')?.dataset.style));
+_registerAction('toggleMetronome', () => toggleMetronome());
+_registerAction('toggleNoteLabels', () => toggleNoteLabels());
+_registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
+_registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
+_registerAction('togglePlayback', () => togglePlayback());
+_registerAction('toggleTempoDisplay', () => toggleTempoDisplay());
+_registerAction('toggleTuplet', (e) => toggleTuplet(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
+_registerAction('transposeScore', (e) => transposeScore(parseInt(e.target.closest('[data-semitones]')?.dataset.semitones)));
+_registerAction('tsApplyFromSliders', () => tsApplyFromSliders());
+_registerAction('zoomIn', () => zoomIn());
+_registerAction('zoomOut', () => zoomOut());
+_registerAction('zoomReset', () => zoomReset());
+
+// Single delegated click handler for all [data-action] elements
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.dataset.action;
+  const fn = _ACTION_MAP[action];
+  if (fn) { fn(e); return; }
+  // Fallback: try calling window[action] for unconverted handlers
+  if (typeof window[action] === 'function') { window[action](); }
+});
+
+// Expose functions for HTML onclick handlers (gradually removing as data-action is added)
 window.addRehearsalMark=addRehearsalMark;window.addStaffText=addStaffText;
 window.applyArticulation=applyArticulation;window.applyBarline=applyBarline;
 window.applyClefChange=applyClefChange;window.applyDynamic=applyDynamic;
