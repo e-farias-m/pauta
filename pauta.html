@@ -6688,7 +6688,6 @@ function applyTempo(name, bpm) {
   APP.tempo = bpm;
   document.getElementById('tempo-slider').value = Math.min(240, Math.max(40, bpm));
   document.getElementById('tempo-val').textContent = bpm;
-  renderScore();
   showToast(name + ' ♩=' + bpm);
 }
 
@@ -7202,9 +7201,9 @@ function toggleLineBreak() {
   const staves = APP.score.parts[0].staves;
   const measure = staves[0].measures[mi];
   if (!measure) return;
-  measure.lineBreak = !measure.lineBreak;
-  renderScore();
-  showToast(measure.lineBreak ? '⏎ Line break set' : 'Line break removed');
+  commitChange(score => {
+    score.parts[0].staves[0].measures[mi].lineBreak = !measure.lineBreak;
+  }, { toast: measure.lineBreak ? '⏎ Line break set' : 'Line break removed' });
 }
 
 function toggleContinuousView() {
@@ -9501,10 +9500,12 @@ function showScoreInfo() {
   `);
 }
 function applyScoreInfo() {
-  APP.score.title    = document.getElementById('si-title').value;
-  APP.score.composer = document.getElementById('si-composer').value;
-  document.getElementById('score-title').textContent = APP.score.title;
-  closeModal(); renderScore();
+  commitChange(score => {
+    score.title    = document.getElementById('si-title').value;
+    score.composer = document.getElementById('si-composer').value;
+  });
+  document.getElementById('score-title').textContent = document.getElementById('si-title').value;
+  closeModal();
 }
 
 // ── Modal Helper ──────────────────────────────────────────────────
