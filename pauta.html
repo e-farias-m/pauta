@@ -921,20 +921,6 @@ body{
   <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 3px">
     <span id="oct-display" style="color:rgba(192,86,33,0.65);font-size:11px;letter-spacing:0.3px">Octave 4</span>
     <span style="display:flex;gap:6px;align-items:center">
-      <button id="btn-bw-names" onclick="toggleBWNoteNames()" style="
-        display:none;
-        background:rgba(100,200,140,0.18);
-        border:1px solid rgba(100,200,140,0.50);
-        border-radius:8px;
-        color:#64c88c;
-        font-size:10px;
-        padding:6px 10px;
-        cursor:pointer;
-        -webkit-tap-highlight-color:transparent;
-        letter-spacing:0.2px;
-        min-height:32px;
-        font-weight:600;
-      "><span id="names-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#64c88c;margin-right:5px;vertical-align:middle"></span>𝅘 Names</button>
       <button id="btn-note-labels" onclick="toggleNoteLabels()" style="
         display:inline-block;
         background:rgba(224,112,96,0.15);
@@ -1461,7 +1447,21 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.15.0
+//  v0.16.0 — Phase 1 score foundation (contract / repair / commit)
+// ================================================================
+//
+//  ARCHITECTURE MAP (single-file sections, top → bottom)
+//  ─────────────────────────────────────────────────────
+//  1. APP state          — UI + session (selection, input mode, playback)
+//  2. Score foundation   — scoreVersion, repairScore, validateScore, commitChange
+//  3. Score model        — createScore, mkNote, instruments, MSCX I/O
+//  4. Rendering          — VexFlow layout + SVG overlays
+//  5. Input / controls   — touch, keyboard, palette, side panel
+//  6. File / boot        — load, save, autosave, library loader
+//
+//  Rule for new features: mutate score only through commitChange() so
+//  undo, repair, validate, render, and autosave stay in sync.
+// ================================================================
 // ================================================================
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
@@ -1501,8 +1501,6 @@ const APP = {
   graceSlashed: true,  // acciaccatura (slashed) vs appoggiatura (unslashed)
   // ── Glissando state ───────────────────────────────────────────
   glissPending: null,  // null | {startMi,startNi,si,style} — waiting for end note
-  // ── Boomwhacker options ───────────────────────────────────────
-  bwNoteNames: true,   // show note letter inside every notehead
   // ── Educational labels ────────────────────────────────────────
   showNoteLabels: false,   // toggle solfege labels on all notes
   noteLabelMode: 'solfege',
@@ -1511,6 +1509,7 @@ const APP = {
   tempo: 120,
   undoStack: [],
   redoStack: [],
+  _lastUndoFP: '',
   audioCtx: null,
   staveLayout: [],
   noteLayout: [],   // per-note hit regions for individual selection
@@ -1528,6 +1527,23 @@ const APP = {
   metronomeVolume: 1.0,
   pauseVolumeRatio: 0.3,
 };
+
+// ── Score Foundation (Phase 1) ───────────────────────────────────
+// Data contract version — bump when the score JSON shape changes.
+const SCORE_FORMAT_VERSION = 1;
+
+const VALID_DURATIONS = new Set(['w', 'h', 'q', '8', '16', '32', '64']);
+
+// Score-level lists whose items reference measure indices (mi / startMi / endMi).
+const SCORE_MEASURE_REF_RULES = [
+  { key: 'voltas',         range: true,  start: 'startMi', end: 'endMi' },
+  { key: 'slurs',          range: true,  start: 'startMi', end: 'endMi' },
+  { key: 'hairpins',       range: true,  start: 'startMi', end: 'endMi' },
+  { key: 'ottavas',        range: true,  start: 'startMi', end: 'endMi' },
+  { key: 'glissandos',     range: true,  start: 'startMi', end: 'endMi' },
+  { key: 'rehearsalMarks', range: false, field: 'mi' },
+  { key: 'staffTexts',     range: false, field: 'mi' },
+];
 
 // ── Pitch / Duration Helpers ─────────────────────────────────────
 const NOTE_NAMES   = ['c','d','e','f','g','a','b'];
@@ -1800,7 +1816,7 @@ const CLARINET_FINGERINGS = {
 // Saxophone: 8 positions [L1, L2, L3, L4(G#), R1, R2, R3, R4(C)]
 const SAX_FINGERINGS = {
   60:'11110110', 61:'11110010', 62:'11110000', 63:'11100000',
-  64:'11000010', 65:'10000010', 66:'10000000', 67:'10110010',
+  64:'11000010', 65:'10000010', 66:['10000000','20000000'], 67:'10110010',
   68:'00110010', 69:'00100010', 70:'00000010', 71:'00010010',
   72:'11110111', 73:'11110011', 74:'11100011', 75:'11000011',
   76:'10000011', 77:'10000001', 78:'10110001', 79:'00110001',
@@ -1831,7 +1847,9 @@ function woodwindFingeringForPitch(pitch, type) {
     flute: FLUTE_FINGERINGS, clarinet: CLARINET_FINGERINGS,
     sax: SAX_FINGERINGS, oboe: OBOE_FINGERINGS, bassoon: BASSOON_FINGERINGS,
   }[type];
-  return map?.[pitch] || '';
+  const entry = map?.[pitch];
+  if (!entry) return [''];
+  return Array.isArray(entry) ? entry : [entry];
 }
 
 // ── Brass Fingering Tables ────────────────────────────────────────
@@ -1840,7 +1858,7 @@ function woodwindFingeringForPitch(pitch, type) {
 // Euphonium/Tuba: 3 valves.
 const TRUMPET_FINGERINGS = {
   60:'000', 61:'111', 62:'101', 63:'010', 64:'110',
-  65:'100', 66:'011', 67:'000', 68:'111', 69:'110',
+  65:'100', 66:'011', 67:['000','111'], 68:'111', 69:'110',
   70:'100',   71:'010', 72:'000', 73:'111', 74:'100',
   75:'010', 76:'110', 77:'100', 78:'011', 79:'000',
   80:'111', 81:'110', 82:'100', 83:'011', 84:'000',
@@ -1899,35 +1917,31 @@ function brassFingeringForPitch(pitch, type) {
     trombone: TROMBONE_FINGERINGS, euphonium: EUPHONIUM_FINGERINGS,
     tuba: TUBA_FINGERINGS,
   }[type];
-  return map?.[pitch] || '';
+  const entry = map?.[pitch];
+  if (!entry) return [''];
+  return Array.isArray(entry) ? entry : [entry];
 }
 
 function recorderFingeringForPitch(pitch, type='soprano') {
   const map = type === 'alto' ? RECORDER_ALTO_FINGERINGS : RECORDER_SOPRANO_FINGERINGS;
-  return map[pitch] || '';
+  const entry = map[pitch];
+  if (!entry) return [''];
+  return Array.isArray(entry) ? entry : [entry];
 }
-function recorderTypeForSI(si) {
+/** Resolve a global stave index (si) to its instrument definition. */
+function getInstrForSI(si) {
   let idx = 0;
   for (const part of (APP.score?.parts || [])) {
     const instr = instrByName(part.instrument || part.name);
     for (let s = 0; s < part.staves.length; s++) {
-      if (idx === si) return instr?.recorderType || 'soprano';
+      if (idx === si) return instr;
       idx++;
     }
   }
-  return 'soprano';
+  return null;
 }
-function isAnyRecorderSI(si) {
-  let idx = 0;
-  for (const part of (APP.score?.parts || [])) {
-    const instr = instrByName(part.instrument || part.name);
-    for (let s = 0; s < part.staves.length; s++) {
-      if (idx === si) return !!instr.recorder;
-      idx++;
-    }
-  }
-  return false;
-}
+function recorderTypeForSI(si) { return getInstrForSI(si)?.recorderType || 'soprano'; }
+function isAnyRecorderSI(si) { return !!getInstrForSI(si)?.recorder; }
 function instrByName(name) {
   return INSTRUMENTS.find(i => i.name === name) || INSTRUMENTS[0];
 }
@@ -1970,29 +1984,9 @@ function boomwhackerColor(pitch) {
 }
 
 // Detect if a global stave index belongs to a Boomwhacker part
-function isBoomwhackerSI(si) {
-  let idx = 0;
-  for (const part of (APP.score?.parts || [])) {
-    const instr = instrByName(part.instrument || part.name);
-    for (let s = 0; s < part.staves.length; s++) {
-      if (idx === si) return !!instr.boomwhacker;
-      idx++;
-    }
-  }
-  return false;
-}
+function isBoomwhackerSI(si) { return !!getInstrForSI(si)?.boomwhacker; }
 // Detect Beginning Recorder
-function isBeginnerRecorderSI(si) {
-  let idx = 0;
-  for (const part of (APP.score?.parts || [])) {
-    const instr = instrByName(part.instrument || part.name);
-    for (let s = 0; s < part.staves.length; s++) {
-      if (idx === si) return !!instr.beginnerRecorder;
-      idx++;
-    }
-  }
-  return false;
-}
+function isBeginnerRecorderSI(si) { return !!getInstrForSI(si)?.beginnerRecorder; }
 // Either BW or Beginning Recorder → large stave treatment
 function isLargeStaveSI(si) {
   return isBoomwhackerSI(si) || isBeginnerRecorderSI(si);
@@ -2013,6 +2007,7 @@ function createScore(opts={}) {
     };
   });
   return {title: opts.title||'Untitled Score', composer: opts.composer||'',
+          scoreVersion: SCORE_FORMAT_VERSION,
           slurs:[], hairpins:[], rehearsalMarks:[], staffTexts:[], voltas:[], ottavas:[], glissandos:[], parts};
 }
 
@@ -2047,6 +2042,195 @@ function mkRest(dur, dots=0, voice=1) {
 }
 function emptyMeasure() {
   return {timeSigNum:null, timeSigDen:null, keySig:null, lineBreak:false, notes:[mkRest('w')]};
+}
+
+function _ensureScoreAnnotationArrays(score) {
+  for (const rule of SCORE_MEASURE_REF_RULES) {
+    if (!Array.isArray(score[rule.key])) score[rule.key] = [];
+  }
+  return score;
+}
+
+function _repairNote(n, voiceDefault = 1) {
+  if (!n || typeof n !== 'object') return mkRest('q', 0, voiceDefault);
+  const voice = n.voice === 2 ? 2 : 1;
+  if (n.type !== 'note' && n.type !== 'rest') n.type = (n.pitch != null) ? 'note' : 'rest';
+  if (!VALID_DURATIONS.has(n.duration)) n.duration = 'q';
+  if (typeof n.dots !== 'number' || n.dots < 0) n.dots = n.dots ? 1 : 0;
+  n.voice = voice;
+  if (n.type === 'note') {
+    if (typeof n.pitch !== 'number') n.pitch = 60;
+    n.pitch = Math.max(12, Math.min(120, n.pitch));
+    if (!Array.isArray(n.extraPitches)) n.extraPitches = [];
+    n.extraPitches = n.extraPitches.filter(ep => ep && typeof ep.pitch === 'number').map(ep => ({
+      pitch: Math.max(12, Math.min(120, ep.pitch)),
+      accidental: ep.accidental ?? null,
+    }));
+  } else {
+    delete n.pitch;
+    delete n.accidental;
+    delete n.extraPitches;
+  }
+  return n;
+}
+
+function _repairMeasure(m) {
+  if (!m || typeof m !== 'object') return emptyMeasure();
+  if (!Array.isArray(m.notes) || !m.notes.length) m.notes = [mkRest('w')];
+  else m.notes = m.notes.map(n => _repairNote(n, n?.voice || 1));
+  if (m.lineBreak !== true) m.lineBreak = false;
+  return m;
+}
+
+function _syncMeasureCounts(score) {
+  let maxM = 1;
+  score.parts.forEach(part => {
+    (part.staves || []).forEach(stave => {
+      maxM = Math.max(maxM, stave.measures?.length || 0);
+    });
+  });
+  score.parts.forEach(part => {
+    if (!Array.isArray(part.staves) || !part.staves.length) {
+      const fallback = instrByName(part.instrument || part.name || 'Piano');
+      part.staves = fallback.staves.map(clef => ({ clef, measures: [emptyMeasure()] }));
+    }
+    if (!part.name) part.name = part.instrument || 'Part';
+    if (!part.instrument) part.instrument = part.name;
+    if (!part.osc) part.osc = instrByName(part.instrument).osc;
+    part.staves.forEach(stave => {
+      if (!stave.clef) stave.clef = 'treble';
+      if (!Array.isArray(stave.measures)) stave.measures = [];
+      while (stave.measures.length < maxM) stave.measures.push(emptyMeasure());
+      stave.measures = stave.measures.map(_repairMeasure);
+    });
+  });
+  return maxM;
+}
+
+/** Normalize imported, autosaved, or legacy score data to the current contract. */
+function repairScore(raw) {
+  if (!raw || typeof raw !== 'object') return createScore();
+  const score = raw;
+  score.scoreVersion = SCORE_FORMAT_VERSION;
+  if (!score.title) score.title = 'Untitled Score';
+  if (score.composer == null) score.composer = '';
+  if (!Array.isArray(score.parts) || !score.parts.length) score.parts = createScore().parts;
+  _ensureScoreAnnotationArrays(score);
+  _syncMeasureCounts(score);
+  return score;
+}
+
+/** Lightweight validation — repairScore fixes most issues; this catches hard failures. */
+function validateScore(score) {
+  const issues = [];
+  if (!score || typeof score !== 'object') {
+    return { ok: false, fatal: 'Score data is missing', issues };
+  }
+  if (!Array.isArray(score.parts) || !score.parts.length) {
+    issues.push({ level: 'fatal', msg: 'Score has no parts' });
+  } else {
+    score.parts.forEach((part, pi) => {
+      if (!part.staves?.length) {
+        issues.push({ level: 'fatal', msg: `Part ${pi + 1} has no staves` });
+      }
+      part.staves?.forEach((stave, si) => {
+        if (!stave.measures?.length) {
+          issues.push({ level: 'fatal', msg: `Part ${pi + 1} stave ${si + 1} has no measures` });
+        }
+        stave.measures?.forEach((m, mi) => {
+          if (!m.notes?.length) {
+            issues.push({ level: 'warn', msg: `Empty measure at part ${pi + 1}, measure ${mi + 1}` });
+          }
+        });
+      });
+    });
+  }
+  const fatal = issues.find(i => i.level === 'fatal');
+  return { ok: !fatal, fatal: fatal?.msg || null, issues };
+}
+
+/** Install a score into APP after repair + validation (load, restore, import). */
+function adoptScore(raw, opts = {}) {
+  const score = repairScore(typeof structuredClone === 'function' ? structuredClone(raw) : JSON.parse(JSON.stringify(raw)));
+  const result = validateScore(score);
+  if (!result.ok) throw new Error(result.fatal || 'Invalid score data');
+  APP.score = score;
+  APP._lastUndoFP = _scoreFingerprint(score);
+  if (opts.clearHistory !== false) {
+    APP.undoStack = [];
+    APP.redoStack = [];
+  }
+  return score;
+}
+
+/** Shift measure-indexed annotations when inserting or deleting a measure. */
+function shiftMeasureRefs(score, mi, mode) {
+  _ensureScoreAnnotationArrays(score);
+  if (mode === 'insert') {
+    const bump = ref => (typeof ref === 'number' && ref >= mi ? ref + 1 : ref);
+    for (const rule of SCORE_MEASURE_REF_RULES) {
+      const arr = score[rule.key];
+      if (rule.range) {
+        score[rule.key] = arr.map(item => ({
+          ...item,
+          [rule.start]: bump(item[rule.start]),
+          [rule.end]: bump(item[rule.end]),
+        }));
+      } else {
+        score[rule.key] = arr.map(item => ({
+          ...item,
+          [rule.field]: bump(item[rule.field]),
+        }));
+      }
+    }
+    return;
+  }
+  if (mode === 'delete') {
+    for (const rule of SCORE_MEASURE_REF_RULES) {
+      const arr = score[rule.key];
+      if (rule.range) {
+        score[rule.key] = arr
+          .filter(item => item[rule.start] !== mi && item[rule.end] !== mi)
+          .map(item => ({
+            ...item,
+            [rule.start]: item[rule.start] > mi ? item[rule.start] - 1 : item[rule.start],
+            [rule.end]: item[rule.end] > mi ? item[rule.end] - 1 : item[rule.end],
+          }));
+      } else {
+        score[rule.key] = arr
+          .filter(item => item[rule.field] !== mi)
+          .map(item => ({
+            ...item,
+            [rule.field]: item[rule.field] > mi ? item[rule.field] - 1 : item[rule.field],
+          }));
+      }
+    }
+  }
+}
+
+/**
+ * Single front door for score edits.
+ * Ensures undo snapshot → mutate → repair → validate → render → autosave.
+ */
+function commitChange(mutator, opts = {}) {
+  const { undo = true, render = true, toast = null } = opts;
+  if (!APP.score) return false;
+  if (undo) pushUndo();
+  try {
+    mutator(APP.score);
+    APP.score = repairScore(APP.score);
+    const check = validateScore(APP.score);
+    if (!check.ok) throw new Error(check.fatal || 'Score validation failed');
+    APP._lastUndoFP = _scoreFingerprint(APP.score);
+    if (render) renderScore();
+    if (toast) showToast(toast);
+    if (undo) _autosaveNow();
+    return true;
+  } catch (err) {
+    console.error('[Pauta] commitChange failed:', err);
+    showToast('Could not apply change');
+    return false;
+  }
 }
 
 // ── MSCX Parser ──────────────────────────────────────────────────
@@ -2549,10 +2733,10 @@ function buildFillerRests(leftover, clef, capacity, stemDir) {
     const durStr = base + (best.dot ? 'd' : '') + 'r';
     try {
       const fr = new VF.StaveNote({ keys: [restKey], duration: durStr, clef });
-      if (best.dot) { try { fr.addDot(0); } catch(e){} }
+      if (best.dot) { vfSafe(() => fr.addDot(0), 'fillerDot'); }
       fr.setStyle({ fillStyle: 'rgba(0,0,0,0.28)', strokeStyle: 'rgba(0,0,0,0.28)' });
       fillers.push(fr);
-    } catch(e) {}
+    } catch(e) { if (DEBUG) console.warn('[Pauta] filler rest:', e.message); }
     rem -= best.beats;
   }
   return fillers;
@@ -2560,13 +2744,53 @@ function buildFillerRests(leftover, clef, capacity, stemDir) {
 
 // ── Rendering ────────────────────────────────────────────────────
 // ── Rendering constants ────────────────────────────────────────
-const REND = {
+// Immutable defaults — computed values live in LAYOUT (set per render).
+const REND = Object.freeze({
   STAVE_H: 132,
   STAVE_SPACING: 269,
+  STAVE_GAP: 10,
   SYS_SPACING: 54,
   MARGIN_X: 166,
   MARGIN_TOP: 166,
-};
+});
+// Per-render layout — recomputed at the start of _renderScoreBody().
+const LAYOUT = { STAVE_H: 132, STAVE_SPACING: 269, SYS_SPACING: 54, MARGIN_X: 166, MARGIN_TOP: 166 };
+
+/** Wrap a VexFlow call so internal errors are logged instead of silently swallowed. */
+function vfSafe(fn, label) {
+  try { fn(); } catch(e) { if (DEBUG) console.warn('[Pauta]', label, e.message); }
+}
+
+/** Vertical layout — page view gaps are the reference; staves pack by measured height. */
+function _layoutScales() {
+  const isContinuous = APP.continuousView;
+  const viewScale = isContinuous ? 1 : 0.7;
+  const staffScale = isContinuous ? 1.2 : 1;
+  const lineSpacing = Math.round(33 * viewScale * staffScale);
+  const staveH = lineSpacing * 4;
+  const staveGap = 10;
+  const contentPad = 6;
+  const sysGap = 3;
+  return {
+    viewScale, staffScale, staveH, lineSpacing,
+    staveGap, contentPad, sysGap,
+    staveStep: staveH + staveGap,
+  };
+}
+
+/** Advance Y to the top of the next system using actual rendered staff bottoms. */
+function _advanceSystemY(system, sysY, siOffset, ns, contentPad) {
+  const miSet = new Set(system);
+  let systemBottom = sysY;
+  for (let gsi = 0; gsi < ns; gsi++) {
+    APP.staveLayout.forEach(sl => {
+      if (sl.si === gsi + siOffset && miSet.has(sl.mi)) {
+        systemBottom = Math.max(systemBottom, sl.bottomY);
+      }
+    });
+  }
+  return systemBottom + contentPad + LAYOUT.SYS_SPACING;
+}
 
 // ── System packing ─────────────────────────────────────────────
 function packSystems(staves, allM, nM, ns, viewScale, container) {
@@ -2582,9 +2806,9 @@ function packSystems(staves, allM, nM, ns, viewScale, container) {
     }
   }
   const cW = APP.continuousView
-    ? mNatW.reduce((a,b)=>a+b,0) + FIRST_EXTRA_GLOBAL + (nM-1)*FIRST_EXTRA_SYS + 2*REND.MARGIN_X
+    ? mNatW.reduce((a,b)=>a+b,0) + FIRST_EXTRA_GLOBAL + (nM-1)*FIRST_EXTRA_SYS + 2*LAYOUT.MARGIN_X
     : Math.max(container.clientWidth || 700, 400);
-  const usable = cW - 2 * REND.MARGIN_X;
+  const usable = cW - 2 * LAYOUT.MARGIN_X;
   const systems = [];
   let sys = [], sysContentW = 0;
   for (let mi = 0; mi < nM; mi++) {
@@ -2642,7 +2866,7 @@ function initScoreRenderer(container, cW, totalH, score) {
     svgEl.appendChild(el);
   }
   if (score.title)    addSVGText(svgEl, score.title,    cW/2, 66, score.titleSize||22, 'bold',   'middle', score.titleFont);
-  if (score.composer) addSVGText(svgEl, score.composer, cW-REND.MARGIN_X, 66, 12, 'normal', 'end');
+  if (score.composer) addSVGText(svgEl, score.composer, cW-LAYOUT.MARGIN_X, 66, 12, 'normal', 'end');
   return { ctx, multiRestGroups };
 }
 
@@ -2655,17 +2879,17 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
     const gsi0    = flatIdx + siOffset;
     const topSL   = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === gsi0);
     const botSL   = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === gsi0 + nStaves - 1);
-    const topY    = topSL?.topLineY ?? (sysY + flatIdx * REND.STAVE_SPACING + 4);
-    const botY    = botSL?.bottomY  ?? (sysY + (flatIdx + nStaves - 1) * REND.STAVE_SPACING + REND.STAVE_H - 4);
+    const topY    = topSL?.topLineY ?? (sysY + flatIdx * LAYOUT.STAVE_SPACING + 4);
+    const botY    = botSL?.bottomY  ?? (sysY + (flatIdx + nStaves - 1) * LAYOUT.STAVE_SPACING + LAYOUT.STAVE_H - 4);
     const midY    = (topY + botY) / 2;
     if (isFirstSysOfScore) {
       const instr = instrByName(part.instrument || part.name);
       const diagramId = `instr-diagram-${flatIdx}`;
       const diagramCY = (topY + botY) / 2;
       if (ns === 1 && instr && instr.recorder) {
-        const recG = renderLargeRecorder('');
+        const recG = renderLargeRecorder([''], 0, '');
         const recScale = nStaves > 1 ? 1.8 : 1.35;
-        recG.setAttribute('transform', `translate(${REND.MARGIN_X - 136},${diagramCY + 107 * recScale}) scale(${recScale})`);
+        recG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136},${diagramCY + 107 * recScale}) scale(${recScale})`);
         recG.setAttribute('id', diagramId);
         recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
         recG.setAttribute('data-instr-type', 'recorder');
@@ -2677,7 +2901,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
         const wwG = renderWoodwindDiagram('', shorthand);
         const scale = 1.44;
-        wwG.setAttribute('transform', `translate(${REND.MARGIN_X - 190},${diagramCY - 173}) scale(${scale})`);
+        wwG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 190},${diagramCY - 173}) scale(${scale})`);
         wwG.setAttribute('id', diagramId);
         wwG.setAttribute('data-instr-type', 'woodwind');
         wwG.setAttribute('data-instr-name', shorthand);
@@ -2686,9 +2910,9 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
       } else if (ns === 1 && instr && instr.family === 'Brass') {
         const type = instr.name.toLowerCase();
         const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
-        const brG = renderBrassDiagram('', shorthand);
+        const brG = renderBrassDiagram([''], shorthand);
         const scale = 1.44;
-        const brX = shorthand === 'trombone' ? REND.MARGIN_X - 152 : REND.MARGIN_X - 176;
+        const brX = shorthand === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176;
         brG.setAttribute('transform', `translate(${brX},${diagramCY - 101}) scale(${scale})`);
         brG.setAttribute('id', diagramId);
         brG.setAttribute('data-instr-type', 'brass');
@@ -2697,7 +2921,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         svgEl2.appendChild(brG);
       }
       const labelG = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const labelBaseX = REND.MARGIN_X - (nStaves > 1 ? 31 : 7);
+      const labelBaseX = LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7);
       labelG.setAttribute('data-label-x', labelBaseX);
       labelG.setAttribute('data-label-y', midY + 7);
       labelG.setAttribute('transform', `translate(${labelBaseX},${midY + 6})`);
@@ -2727,13 +2951,51 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
           brace.setType(VF.StaveConnector.type.BRACE);
           brace.setContext(ctx).draw();
         }
-      } catch(e) {}
+      } catch(e) { if (DEBUG) console.warn('[Pauta] part brace:', e.message); }
       const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1', REND.MARGIN_X); line.setAttribute('y1', topY);
-      line.setAttribute('x2', REND.MARGIN_X); line.setAttribute('y2', botY);
+      line.setAttribute('x1', LAYOUT.MARGIN_X); line.setAttribute('y1', topY);
+      line.setAttribute('x2', LAYOUT.MARGIN_X); line.setAttribute('y2', botY);
       line.setAttribute('stroke','#111'); line.setAttribute('stroke-width','1.5');
       line.setAttribute('pointer-events','none');
       svgEl2.appendChild(line);
+    }
+    flatIdx += nStaves;
+  });
+}
+
+function renderPartBrackets(container, activeParts, system, siOffset, ns, vfStaveRef, ctx) {
+  if (ns < 2) return;
+  const svgEl = container.querySelector('svg');
+  if (!svgEl) return;
+  const firstMi = system[0];
+  const topSL = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === siOffset);
+  const botSL = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === siOffset + ns - 1);
+  if (topSL && botSL) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', LAYOUT.MARGIN_X);
+    line.setAttribute('y1', topSL.topLineY);
+    line.setAttribute('x2', LAYOUT.MARGIN_X);
+    line.setAttribute('y2', botSL.bottomY);
+    line.setAttribute('stroke', '#111');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-linecap', 'square');
+    line.setAttribute('pointer-events', 'none');
+    svgEl.appendChild(line);
+  }
+  let flatIdx = 0;
+  activeParts.forEach(part => {
+    const nStaves = part.staves.length;
+    const gsi0 = flatIdx + siOffset;
+    if (nStaves > 1) {
+      try {
+        const topStave = vfStaveRef[`${gsi0}_${firstMi}`];
+        const botStave = vfStaveRef[`${gsi0 + nStaves - 1}_${firstMi}`];
+        if (topStave && botStave) {
+          const brace = new VF.StaveConnector(topStave, botStave);
+          brace.setType(VF.StaveConnector.type.BRACE);
+          brace.setContext(ctx).draw();
+        }
+      } catch (e) {}
     }
     flatIdx += nStaves;
   });
@@ -2773,7 +3035,38 @@ function renderMeasureNumbers(container, ns, siOffset, sysIdx, system) {
   }
 }
 
+function _showRenderFailure(err) {
+  const container = document.getElementById('score-svg');
+  const msg = err?.message || String(err);
+  if (container) {
+    container.innerHTML =
+      `<div style="padding:32px;text-align:center;color:#4a5568;max-width:360px;margin:0 auto">
+         <p style="font-size:15px;font-weight:600;margin-bottom:8px">Could not draw the score</p>
+         <p style="font-size:13px;color:rgba(74,85,104,0.75);margin-bottom:16px;line-height:1.5">${escHtml(msg)}</p>
+         <button onclick="location.reload()" style="padding:10px 20px;background:#c05621;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Reload Pauta</button>
+       </div>`;
+  }
+  showToast('Score display error');
+}
+
+function _runBootSelfCheck() {
+  if (!DEBUG) return;
+  const sample = createScore({ title: 'Self-check', instruments: ['Piano', 'Recorder (Soprano)'] });
+  const check = validateScore(repairScore(sample));
+  if (!check.ok) console.warn('[Pauta] boot self-check failed:', check.issues);
+  else debugLog('[Pauta] boot self-check passed');
+}
+
 function renderScore() {
+  try {
+    _renderScoreBody();
+  } catch (err) {
+    console.error('[Pauta] renderScore failed:', err);
+    _showRenderFailure(err);
+  }
+}
+
+function _renderScoreBody() {
   const container = document.getElementById('score-svg');
   // Save scroll position before clearing — otherwise clearing innerHTML resets scrollTop to 0
   const area = document.getElementById('score-area');
@@ -2783,11 +3076,11 @@ function renderScore() {
 
   // Page view is 30% smaller than continuous view
   const viewScale = APP.continuousView ? 1 : 0.7;
-  REND.STAVE_H       = Math.round(132 * viewScale);
-  REND.STAVE_SPACING = Math.round(269 * viewScale);
-  REND.SYS_SPACING   = Math.round(54  * viewScale);
-  REND.MARGIN_X      = 166;
-  REND.MARGIN_TOP    = 166;
+  LAYOUT.STAVE_H       = Math.round(REND.STAVE_H * viewScale);
+  LAYOUT.STAVE_SPACING = Math.round(REND.STAVE_SPACING * viewScale);
+  LAYOUT.SYS_SPACING   = Math.round(REND.SYS_SPACING  * viewScale);
+  LAYOUT.MARGIN_X      = REND.MARGIN_X;
+  LAYOUT.MARGIN_TOP    = REND.MARGIN_TOP;
   APP.selectedGraceIdx = -1;
   APP._lastPlayKey = '';
   APP.staveLayout = [];
@@ -2809,10 +3102,10 @@ function renderScore() {
   debugLog('[PautaEngraving import render] nM:', nM, 'ns:', ns, 'ref stave measures:', allM?.length, 'first measure notes:', allM[0]?.notes?.length);
 
   const { systems, mNatW, cW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS } = packSystems(staves, allM, nM, ns, viewScale, container);
-  const totalH = REND.MARGIN_TOP + systems.length * (REND.STAVE_H + (ns-1) * REND.STAVE_SPACING + REND.SYS_SPACING) + 48;
+  const totalH = LAYOUT.MARGIN_TOP + systems.length * (LAYOUT.STAVE_H + (ns-1) * LAYOUT.STAVE_SPACING + LAYOUT.SYS_SPACING) + 48;
   const { ctx, multiRestGroups } = initScoreRenderer(container, cW, totalH, score);
 
-  let sysY = REND.MARGIN_TOP;
+  let sysY = LAYOUT.MARGIN_TOP;
   const vfStaveRef = {}; // key: `${globalSI}_${mi}` → VF.Stave object for StaveConnectors
 
   systems.forEach((system, sysIdx) => {
@@ -2838,7 +3131,7 @@ function renderScore() {
       }
     }
 
-    let x = REND.MARGIN_X;
+    let x = LAYOUT.MARGIN_X;
 
     staves.forEach((stave, si) => {
       let mx = x;
@@ -2847,14 +3140,14 @@ function renderScore() {
         const isGlobalFirst   = isFirstSysOfScore && li === 0;
         let mWidth = (isFirstOfSys ? firstExtra : 0) + mWidths[li];
 
-        const staveY  = sysY + si * REND.STAVE_SPACING;
+        const staveY  = sysY + si * LAYOUT.STAVE_SPACING;
         const isBWst  = isBoomwhackerSI(si + siOffset);
         const isBRst  = isBeginnerRecorderSI(si + siOffset);
         const isLarge = isBWst || isBRst;
         const vfStave = new VF.Stave(mx, staveY, mWidth,
           { space_above_staff_ln: 4, num_lines: 5, fill_style: '#000' }
         );
-        try { vfStave.setSpacingBetweenLines(Math.round(33 * viewScale)); } catch(e) {}
+        try { vfStave.setSpacingBetweenLines(Math.round(33 * viewScale)); } catch(e) { if (DEBUG) console.warn('[Pauta] stave spacing:', e.message); }
 
         // Clef — track per-measure changes
         const currentClef = getResolvedClef(mi, si + siOffset);
@@ -3020,30 +3313,30 @@ function renderScore() {
               try {
                 const nx = vfn.getAbsoluteX() + 6; // centre of notehead
                 const ys = vfn.getYs();
-                const ny = ys && ys.length ? ys[0] : (staveY + REND.STAVE_H / 2);
+                const ny = ys && ys.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
                 const sLen1 = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
                 const stemTipY1 = dirs1[i] === VF.Stem.UP ? ny - sLen1 : ny + sLen1;
                 APP.noteLayout.push({ mi, si: si + siOffset, ni: v1Indices[i], x: nx, y: ny, stemDir: dirs1[i], stemTipY: stemTipY1 });
-              } catch(e) {}
+              } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v1:', e.message); }
             });
             vfNotes2.forEach((vfn, i) => {
               try {
                 const nx = vfn.getAbsoluteX() + 6; // centre of notehead
                 const ys = vfn.getYs();
-                const ny = ys && ys.length ? ys[0] : (staveY + REND.STAVE_H / 2);
+                const ny = ys && ys.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
                 const sLen2 = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
                 const stemTipY2 = dirs2[i] === VF.Stem.UP ? ny - sLen2 : ny + sLen2;
                 APP.noteLayout.push({ mi, si: si + siOffset, ni: v2Indices[i], x: nx, y: ny, stemDir: dirs2[i], stemTipY: stemTipY2 });
-              } catch(e) {}
+              } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
             });
 
             // Draw beams after voices (flags already stripped at construction above)
-            [...beams1, ...beams2].forEach(b => { try { b.setContext(ctx).draw(); } catch(e){} });
+            [...beams1, ...beams2].forEach(b => vfSafe(() => b.setContext(ctx).draw(), 'beam'));
 
             // Tuplet brackets
             const tups1 = buildTuplets(vfNotes1, v1Notes);
             const tups2 = buildTuplets(vfNotes2, v2Notes);
-            [...tups1, ...tups2].forEach(t => { try { t.setContext(ctx).draw(); } catch(e){} });
+            [...tups1, ...tups2].forEach(t => vfSafe(() => t.setContext(ctx).draw(), 'tuplet'));
 
           } catch(e) {
             console.warn('Render measure', mi, e.message);
@@ -3054,7 +3347,7 @@ function renderScore() {
           mi, si: si + siOffset, x: mx, y: staveY,
           topLineY: vfStave.getYForLine(0),
           bottomY:  vfStave.getYForLine(4),
-          w: mWidth, h: REND.STAVE_H, clef: stave.clef
+          w: mWidth, h: LAYOUT.STAVE_H, clef: stave.clef
         });
         mx += mWidth;
       }); // end system.forEach measures
@@ -3062,9 +3355,10 @@ function renderScore() {
     }); // end staves.forEach
 
     renderInstrumentLabels(container, activeParts, system, sysY, siOffset, ns, isFirstSysOfScore, ctx, vfStaveRef);
+    renderPartBrackets(container, activeParts, system, siOffset, ns, vfStaveRef, ctx);
     renderMeasureNumbers(container, ns, siOffset, sysIdx, system);
 
-    sysY += REND.STAVE_H + (ns-1) * REND.STAVE_SPACING + REND.SYS_SPACING;
+    sysY += LAYOUT.STAVE_H + (ns-1) * LAYOUT.STAVE_SPACING + LAYOUT.SYS_SPACING;
   }); // end systems.forEach
 
   updateStatusBar();
@@ -3081,7 +3375,7 @@ function renderScore() {
   renderGlissandos();
   renderNavigationMarkers();
   renderLyricClickHandlers(); // attach click handlers to VF.Annotation lyric elements
-  renderNoteheadLabels();
+  renderBWNoteheads(); // must be last — patches SVG paths painted by VexFlow
   renderGraceClickOverlays();
 
   // Update line break button state
@@ -3208,7 +3502,7 @@ function scrollToSelectedMeasure() {
     const scrollTop = area.scrollTop || 0;
     const viewH = area.clientHeight;
     const measureTop = sl.y - 20;
-    const measureBot = sl.y + REND.STAVE_H + 20;
+    const measureBot = sl.y + LAYOUT.STAVE_H + 20;
     if (measureBot < scrollTop + viewH && measureTop > scrollTop) return;
     const target = Math.max(0, sl.y - viewH * 0.35);
     const dur = Math.max(80, Math.min(200, Math.abs(target - scrollTop) * 0.3));
@@ -3225,23 +3519,23 @@ function positionAllDiagrams(scrollOverride) {
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.6;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${REND.MARGIN_X - 136 + scrollLeft},${recCY + 107 * recScale}) scale(${recScale})`);
+    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136 + scrollLeft},${recCY + 107 * recScale}) scale(${recScale})`);
   });
   // Woodwind diagrams
   document.querySelectorAll('[data-instr-type="woodwind"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
-    el.setAttribute('transform', `translate(${REND.MARGIN_X - 190 + scrollLeft},${cy - 173}) scale(1.44)`);
+    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 190 + scrollLeft},${cy - 173}) scale(1.44)`);
   });
   // Brass diagrams
   document.querySelectorAll('[data-instr-type="brass"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
     const name = el.getAttribute('data-instr-name') || '';
-    const brX = name === 'trombone' ? REND.MARGIN_X - 152 : REND.MARGIN_X - 176;
+    const brX = name === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176;
     el.setAttribute('transform', `translate(${brX + scrollLeft},${cy - 101}) scale(1.44)`);
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
-    const bx = parseFloat(el.getAttribute('data-label-x')) || REND.MARGIN_X - 6;
+    const bx = parseFloat(el.getAttribute('data-label-x')) || LAYOUT.MARGIN_X - 6;
     const by = parseFloat(el.getAttribute('data-label-y')) || 0;
     el.setAttribute('transform', `translate(${bx + scrollLeft},${by})`);
   });
@@ -3516,7 +3810,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           : (clef === 'bass' ? 'd/3' : clef === 'alto' ? 'c/4' : clef === 'tenor' ? 'a/3' : 'b/4');
         const durStr  = note.duration + (note.dots ? 'd' : '') + 'r';
         vfNote = new VF.StaveNote({ keys: [restKey], duration: durStr, clef });
-        if (note.dots) { try { vfNote.addDot(0); } catch(e){} }
+        if (note.dots) { vfSafe(() => vfNote.addDot(0), 'restDot'); }
 
       } else {
         const pc  = note.pitch % 12;
@@ -3643,25 +3937,25 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
 
         // ── Custom noteheads (X, slash) ─────────────────────────
         if (note.notehead === 'x') {
-          try { vfNote.setNoteHead(VF.NoteHead.TYPE.X, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.X, ei + 1)); } catch(e){}
+          vfSafe(() => { vfNote.setNoteHead(VF.NoteHead.TYPE.X, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.X, ei + 1)); }, 'noteheadX');
         } else if (note.notehead === 'slash') {
-          try { vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, ei + 1)); } catch(e){}
+          vfSafe(() => { vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, ei + 1)); }, 'noteheadSlash');
         }
 
         // Add accidentals for primary pitch
         if (showAcc) {
-          try { vfNote.addAccidental(0, new VF.Accidental(showAcc)); } catch(e){}
+          vfSafe(() => vfNote.addAccidental(0, new VF.Accidental(showAcc)), 'accidental');
         }
         // Add accidentals for extra pitches
         if (note.extraPitches) {
           note.extraPitches.forEach((ep, ei) => {
             const epc = ep.pitch % 12;
             if (ep.accidental && !keySigCovers(epc, ep.accidental)) {
-              try { vfNote.addAccidental(ei + 1, new VF.Accidental(ep.accidental)); } catch(e){}
+              vfSafe(() => vfNote.addAccidental(ei + 1, new VF.Accidental(ep.accidental)), 'extraAccidental');
             }
           });
         }
-        if (note.dots) { try { vfNote.addDot(0); } catch(e){} }
+        if (note.dots) { vfSafe(() => vfNote.addDot(0), 'noteDot'); }
 
         // ── Grace notes (VF GraceNoteGroup) ──────────────────────
         if (note.graceNotes && note.graceNotes.length && vfNote) {
@@ -3682,11 +3976,11 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
             } catch(e) { return null; }
           }).filter(Boolean);
           if (gNotes.length) {
-            try {
+            vfSafe(() => {
               const graceGroup = new VF.GraceNoteGroup(gNotes, true);
               if (gNotes.length > 1) graceGroup.beamNotes(gNotes);
               vfNote.addModifier(0, graceGroup);
-            } catch(e) {}
+            }, 'graceGroup');
           }
         }
 
@@ -3724,7 +4018,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
 
         // Chord symbol — VF.Annotation above
         if (note.type === 'note' && note.chordSymbol) {
-          try {
+          vfSafe(() => {
             const sym = note.chordSymbol
               .replace(/bb/g,'𝄫').replace(/##/g,'𝄪')
               .replace(/#/g,'♯').replace(/b(?=[^a-zA-Z]|$)/g,'♭');
@@ -3733,29 +4027,29 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
             cann.setVerticalJustification(VF.Annotation.VerticalJustify.TOP);
             cann.setJustification(VF.TextJustification.CENTER);
             vfNote.addAnnotation(0, cann);
-          } catch(e) {}
+          }, 'chordSymbol');
         }
 
         // Dynamic — VF.Annotation below, serif italic
         if (note.type === 'note' && note.dynamic) {
-          try {
+          vfSafe(() => {
             const dann = new VF.Annotation(note.dynamic);
             dann.setFont('Georgia, "Times New Roman", serif', 16, 'bold');
             dann.setVerticalJustification(VF.Annotation.VerticalJustify.BOTTOM);
             dann.setJustification(VF.TextJustification.LEFT);
             vfNote.addAnnotation(0, dann);
-          } catch(e) {}
+          }, 'dynamic');
         }
 
         // Fingering — VF.Annotation above, small sans-serif
         if (note.type === 'note' && note.fingering) {
-          try {
+          vfSafe(() => {
             const finn = new VF.Annotation(note.fingering);
             finn.setFont("'Helvetica Neue',Helvetica,Arial,sans-serif", 12, 'bold');
             finn.setVerticalJustification(VF.Annotation.VerticalJustify.TOP);
             finn.setJustification(VF.TextJustification.CENTER);
             vfNote.addAnnotation(0, finn);
-          } catch(e) {}
+          }, 'fingering');
         }
       }
 
@@ -4370,10 +4664,13 @@ function renderRecorderFingSVG(fing, cx, cy, scale) {
 }
 
 // ── Large Baroque Recorder Diagram ─────────────────────────────
-function renderLargeRecorder(fing) {
+function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('pointer-events', 'none');
+
+  if (typeof fingArr === 'string') fingArr = [fingArr];
+  const fing = (fingArr && fingArr.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
 
   // Scale wrapper: OpenClipArt SVG uses a 50×500 coordinate space
   const inner = document.createElementNS(ns, 'g');
@@ -4470,11 +4767,21 @@ function renderLargeRecorder(fing) {
 
   // Hole overlays — fingering indicators
   const covered = new Set(fing.split(''));
+  const halfHole = new Set(fing.split('').filter((ch,i) => ch === '2' || (ch !== '1' && ch !== '0' && ch !== 'X' && ch !== ' ' && i < fing.length && fing[i] === '2')));
+  // Rebuild halfHole from actual fing string
+  halfHole.clear();
+  for (let ci = 0; ci < fing.length; ci++) {
+    if (fing[ci] === '2') halfHole.add(ci);
+  }
   const thumbPinched = covered.has('X');
 
+  const holeLabelStyle = 'font-family:"Helvetica Neue",Helvetica,sans-serif;font-size:3.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
+
   for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
+    const idx = SVG_HOLES.indexOf(SVG_HOLES.find(h => h[0] === id));
     const isCovered = covered.has(id);
-    const drawRx = isCovered ? rx * 1.2 : rx;
+    const isHalf = halfHole.has(idx);
+    const drawRx = (isCovered || isHalf) ? rx * 1.2 : rx;
 
     const el = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
     el.setAttribute('cx', hx);
@@ -4489,6 +4796,10 @@ function renderLargeRecorder(fing) {
       el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
       el.setAttribute('stroke', APP.playing ? '#e04030' : '#c05621');
       el.setAttribute('stroke-width', '1');
+    } else if (isHalf) {
+      el.setAttribute('fill', '#7a5a30');
+      el.setAttribute('stroke', '#7a5a30');
+      el.setAttribute('stroke-width', '0.6');
     } else {
       el.setAttribute('fill', '#7a5a30');
       el.setAttribute('stroke', '#7a5a30');
@@ -4505,6 +4816,25 @@ function renderLargeRecorder(fing) {
       inner2.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.5)' : 'rgba(192,86,33,0.4)');
       inner2.setAttribute('stroke', 'none');
       inner.appendChild(inner2);
+    } else if (isHalf) {
+      const halfPad = document.createElementNS(ns, 'path');
+      halfPad.setAttribute('d', `M ${hx - drawRx*0.9} ${hy} A ${drawRx*0.9} ${drawRx*0.9} 0 0 1 ${hx + drawRx*0.9} ${hy} L ${hx + drawRx*0.9} ${hy - drawRx*0.9} L ${hx - drawRx*0.9} ${hy - drawRx*0.9} Z`);
+      halfPad.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
+      halfPad.setAttribute('stroke', APP.playing ? '#e04030' : '#c05621');
+      halfPad.setAttribute('stroke-width', '0.4');
+      inner.appendChild(halfPad);
+    }
+
+    // Hole number label (above each hole)
+    const holeLabel = id.length === 1 ? id : id;  // '1','2','3','4','5','6a','7a'
+    // Only label main holes (1-5 and thumb)
+    if (!isEllipse) {
+      const lbl = document.createElementNS(ns, 'text');
+      lbl.setAttribute('x', hx);
+      lbl.setAttribute('y', hy - drawRx - 1.5);
+      lbl.setAttribute('style', holeLabelStyle);
+      lbl.textContent = holeLabel;
+      inner.appendChild(lbl);
     }
   }
 
@@ -4559,6 +4889,50 @@ function renderLargeRecorder(fing) {
   lbl.textContent = 'T';
   inner.appendChild(lbl);
 
+  // ── Note name ─────────────────────────────────────────────────
+  if (noteName) {
+    const nm = document.createElementNS(ns, 'text');
+    nm.setAttribute('x', '25'); nm.setAttribute('y', '-230');
+    nm.setAttribute('text-anchor', 'middle');
+    nm.setAttribute('font-size', '8');
+    nm.setAttribute('font-weight', '700');
+    nm.setAttribute('fill', '#555');
+    nm.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    nm.textContent = noteName;
+    inner.appendChild(nm);
+  }
+
+  // ── Alternate-fingering click overlay ─────────────────────────
+  if (fingArr.length > 1) {
+    const overlay = document.createElementNS(ns, 'rect');
+    overlay.setAttribute('x', '12'); overlay.setAttribute('y', '-520');
+    overlay.setAttribute('width', '36'); overlay.setAttribute('height', '285');
+    overlay.setAttribute('fill', 'transparent');
+    overlay.setAttribute('pointer-events', 'auto');
+    overlay.setAttribute('cursor', 'pointer');
+    overlay.addEventListener('click', e => {
+      e.stopPropagation();
+      const container = e.target.closest('[data-instr-type="recorder"]');
+      if (!container) return;
+      const max = parseInt(container.getAttribute('data-fing-count') || '1');
+      let idx = parseInt(container.getAttribute('data-fing-index') || '0');
+      idx = (idx + 1) % max;
+      container.setAttribute('data-fing-index', idx);
+      updateRecorderDiagram();
+    });
+    inner.appendChild(overlay);
+
+    const altText = document.createElementNS(ns, 'text');
+    altText.setAttribute('x', '38'); altText.setAttribute('y', '-233');
+    altText.setAttribute('text-anchor', 'end');
+    altText.setAttribute('font-size', '4');
+    altText.setAttribute('fill', '#998a70');
+    altText.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    altText.style.cursor = 'pointer';
+    altText.textContent = `↻ ${altIndex + 1}/${fingArr.length}`;
+    inner.appendChild(altText);
+  }
+
   g.appendChild(inner);
 
   return g;
@@ -4570,10 +4944,17 @@ function updateRecorderDiagram() {
   const mi = APP.selectedMeasure;
   const ni = APP.selectedNoteIdx;
   if (mi < 0 || ni < 0) {
-    recEls.forEach(el => { el.innerHTML = ''; const fresh = renderLargeRecorder(''); while (fresh.firstChild) el.appendChild(fresh.firstChild); });
+    recEls.forEach(el => {
+      el.innerHTML = '';
+      const fresh = renderLargeRecorder([''], 0, '');
+      while (fresh.firstChild) el.appendChild(fresh.firstChild);
+      el.setAttribute('data-fing-index', '0');
+      el.setAttribute('data-fing-count', '1');
+      el.setAttribute('data-last-pitch', '');
+    });
     return;
   }
-  // Find the note across all staves
+  let si = APP.selectedStaff;
   let note = null;
   for (const part of APP.score.parts) {
     for (let s = 0; s < part.staves.length; s++) {
@@ -4582,81 +4963,341 @@ function updateRecorderDiagram() {
     }
     if (note) break;
   }
-  if (!note || note.type !== 'note') { recEls.forEach(el => { el.innerHTML = ''; const fresh = renderLargeRecorder(''); while (fresh.firstChild) el.appendChild(fresh.firstChild); }); return; }
+  if (!note || note.type !== 'note') {
+    recEls.forEach(el => {
+      el.innerHTML = '';
+      const fresh = renderLargeRecorder([''], 0, '');
+      while (fresh.firstChild) el.appendChild(fresh.firstChild);
+    });
+    return;
+  }
   const type = recEls[0].getAttribute('data-recorder-type') || 'soprano';
-  const fing = recorderFingeringForPitch(note.pitch, type);
+  const fingArr = recorderFingeringForPitch(note.pitch, type);
+  const lastPitch = recEls[0].getAttribute('data-last-pitch') || '';
+  let altIndex = 0;
+  if (lastPitch === String(note.pitch)) {
+    altIndex = parseInt(recEls[0].getAttribute('data-fing-index') || '0');
+    if (altIndex >= fingArr.length) altIndex = 0;
+  }
+  const ks = si >= 0 ? getResolvedKeySig(mi, si) : 0;
+  const noteName = noteLabelForPitch(note.pitch, ks, note.accidental || null, 'letter') + Math.floor(note.pitch / 12 - 1);
   recEls.forEach(el => {
     el.innerHTML = '';
-    const fresh = renderLargeRecorder(fing || '');
+    const fresh = renderLargeRecorder(fingArr, altIndex, noteName);
     while (fresh.firstChild) el.appendChild(fresh.firstChild);
+    el.setAttribute('data-fing-index', String(altIndex));
+    el.setAttribute('data-fing-count', String(fingArr.length));
+    el.setAttribute('data-last-pitch', String(note.pitch));
   });
 }
 
 // ── Woodwind Diagram ─────────────────────────────────────────────
-// Generic woodwind SVG showing a tube with keywork markers.
+// Improved instrument diagrams with realistic key-cup visuals,
+// staggered LH/RH positions, hand labels, and instrument-specific
+// body shapes.
 // fing: string of '1' (pressed) / '0' (open) per key position.
 // type: 'flute', 'clarinet', 'sax', 'oboe', 'bassoon'
-const WOODWIND_BODY_PATHS = {
-  clarinet: 'M 52,14 L 48,14 Q 46,8 48,4 L 50,2 Q 54,0 56,4 L 57,12 L 57,20 Q 56,20 54,18 L 52,16 Z M 57,20 L 67,20 L 67,170 Q 62,192 52,210 L 40,224 L 90,224 L 78,210 Q 68,192 67,170 Z M 42,222 Q 36,228 34,232 L 96,232 Q 94,228 88,222 Z',
-  oboe: 'M 52,10 L 50,10 Q 48,6 50,4 L 52,2 Q 54,0 56,4 L 58,10 L 58,20 Q 56,20 54,18 L 52,16 Z M 58,20 L 66,20 L 66,170 Q 64,188 58,204 L 52,218 L 82,218 L 76,204 Q 70,188 66,170 Z M 56,216 Q 52,220 50,224 L 84,224 Q 82,220 78,216 Z',
-  sax: 'M 54,12 L 50,12 Q 48,6 50,2 L 52,0 Q 56,-2 58,2 L 59,10 L 59,18 Q 56,18 54,16 L 52,14 Z M 59,18 L 69,18 L 69,158 Q 69,178 56,194 Q 44,208 30,222 L 100,222 Q 86,208 74,194 Q 71,178 71,158 Z M 40,220 Q 36,226 34,230 L 96,230 Q 94,226 90,220 Z',
-  bassoon: 'M 44,18 Q 34,10 26,4 L 22,0 L 100,0 L 96,4 Q 88,10 78,18 L 78,220 Q 78,234 62,234 Q 48,234 44,220 L 44,18 Z M 20,0 Q 16,-4 20,-6 L 102,-6 Q 106,-4 104,0 Z M 78,6 L 84,0 L 88,-4 L 84,-4 L 78,2 Z'
+
+// Each spec: [viewW, viewH, bodyPath, fill, [pos0..pos7], keyR]
+// pos: [x, y, label, hand]  hand: 'L' / 'R' / 'T'(thumb)
+const WOODWIND_SPEC = {
+  flute: {
+    w:200, h:60,
+    body: 'M 16,28 L 30,28 Q 28,24 16,22 L 10,22 Q 6,22 6,28 Q 6,34 10,34 L 16,32 Q 28,30 30,28 Z M 30,28 L 164,28 Q 164,24 172,20 L 194,16 Q 196,20 196,26 L 196,32 Q 196,38 194,42 L 172,36 Q 164,32 164,28 Z',
+    fill:'#ddd0b8', stroke:'#b8a080',
+    keys:[
+      [45,30,'L1','L'],[63,30,'L2','L'],[80,30,'L3','L'],[96,27,'G♯','L'],
+      [113,30,'R1','R'],[131,30,'R2','R'],[148,30,'R3','R'],[170,34,'C♯','R'],
+    ], r:5, hR:5.5,
+  },
+  clarinet: {
+    w:140, h:240,
+    body: 'M 54,10 L 48,10 Q 46,4 48,2 L 50,0 Q 54,-2 56,2 L 60,10 L 60,28 Q 56,30 54,30 Z M 54,30 L 65,30 L 65,105 L 54,105 Z M 54,105 L 65,105 L 65,175 L 56,175 Z M 55,175 L 65,175 Q 70,192 78,215 L 42,215 Q 50,192 55,175 Z M 44,214 Q 36,219 34,224 L 86,224 Q 84,219 78,214 Z',
+    fill:'#e8d8c0', stroke:'#b8a080',
+    keys:[
+      [46,44,'Th','T'],[58,52,'L1','L'],[58,72,'L2','L'],[58,92,'L3','L'],
+      [64,128,'R1','R'],[64,148,'R2','R'],[64,168,'R3','R'],[76,184,'R4','R'],
+    ], r:6, hR:6.5,
+  },
+  sax: {
+    w:140, h:240,
+    body: 'M 62,10 Q 72,2 78,0 L 82,0 Q 86,2 84,6 Q 78,14 72,20 L 64,28 Q 60,32 60,38 L 60,55 L 68,55 L 68,38 Q 64,38 64,36 Z M 60,55 L 68,55 L 68,140 Q 68,160 56,178 Q 44,196 32,215 L 100,215 Q 92,200 82,186 Q 72,172 68,152 L 68,140 Z M 36,214 Q 30,219 28,224 L 104,224 Q 102,219 96,214 Z',
+    fill:'#e8d8c0', stroke:'#b8a080',
+    keys:[
+      [55,52,'L1','L'],[55,72,'L2','L'],[55,92,'L3','L'],[46,110,'G♯','L'],
+      [62,130,'R1','R'],[62,150,'R2','R'],[62,170,'R3','R'],[74,186,'C','R'],
+    ], r:6, hR:6.5,
+  },
+  oboe: {
+    w:140, h:240,
+    body: 'M 54,12 L 48,12 Q 46,6 48,4 L 50,2 Q 54,0 56,4 L 58,12 L 58,30 Q 56,32 54,32 Z M 54,32 L 64,32 L 64,105 L 54,105 Z M 54,105 L 66,105 L 66,160 Q 62,170 56,178 L 50,186 L 78,186 L 72,178 Q 66,170 64,160 L 64,105 Z M 52,186 Q 48,190 46,194 L 82,194 Q 80,190 76,186 Z',
+    fill:'#ddd0b8', stroke:'#b8a080',
+    keys:[
+      [57,50,'L1','L'],[57,70,'L2','L'],[57,90,'L3','L'],[48,108,'L4','L'],
+      [63,130,'R1','R'],[63,150,'R2','R'],[63,170,'R3','R'],[74,183,'R4','R'],
+    ], r:5.5, hR:6,
+  },
+  bassoon: {
+    w:140, h:240,
+    body: 'M 46,12 Q 38,6 32,2 L 28,0 L 98,0 L 94,2 Q 88,6 80,12 L 80,105 Q 80,115 74,130 Q 68,145 62,155 L 56,165 L 60,170 L 66,160 Q 72,148 76,135 L 78,120 Q 82,125 86,120 L 86,105 Z M 30,0 Q 26,-4 30,-6 L 96,-6 Q 100,-4 96,0 Z M 78,8 L 84,0 L 88,-4 L 84,-4 L 78,2 Z M 56,168 Q 52,176 50,180 L 70,180 Q 68,176 64,168 Z',
+    fill:'#f0e0c8', stroke:'#b8a080',
+    keys:[
+      [52,48,'L1','L'],[52,68,'L2','L'],[52,88,'L3','L'],[44,106,'L4','L'],
+      [60,130,'R1','R'],[60,150,'R2','R'],[60,170,'R3','R'],[72,185,'R4','R'],
+    ], r:5.5, hR:6,
+  },
 };
 
-function renderWoodwindDiagram(fing, type) {
+function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regActive = false) {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
-  g.setAttribute('pointer-events', 'none');
 
+  if (typeof fingArr === 'string') fingArr = [fingArr];
+  const fing = (fingArr && fingArr.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
+
+  const spec = WOODWIND_SPEC[type] || WOODWIND_SPEC.clarinet;
+  const {w, h, body:bodyD, fill, stroke:bodyStroke, keys, r, hR} = spec;
   const isFlute = type === 'flute';
-  const w = isFlute ? 200 : 140;
-  const h = isFlute ? 60 : 240;
+
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('pointer-events', 'none');
 
-  const bodyD = isFlute
-    ? 'M 18,28 L 30,28 Q 24,24 18,24 Z M 30,28 Q 30,32 24,32 Z M 30,28 L 164,28 Q 164,24 170,20 L 190,16 Q 192,20 192,24 L 192,32 Q 192,36 190,40 L 170,36 Q 164,32 164,28 Z M 170,36 L 170,20'
-    : (WOODWIND_BODY_PATHS[type] || WOODWIND_BODY_PATHS.clarinet);
-
-  const bodyFill = type === 'bassoon' ? '#f0e0c8' : '#e8d8c0';
-  const bodyStroke = '#b8a080';
-
+  // ── Body ──────────────────────────────────────────────────────
   const body = document.createElementNS(ns, 'path');
   body.setAttribute('d', bodyD);
-  body.setAttribute('fill', bodyFill);
+  body.setAttribute('fill', fill);
   body.setAttribute('stroke', bodyStroke);
   body.setAttribute('stroke-width', '0.8');
   svg.appendChild(body);
 
-  // Key positions along the instrument
-  const positions = isFlute
-    ? [[40,30],[65,30],[85,30],[105,30],[125,30],[145,30],[160,34],[172,30]]
-    : [[59,30],[59,55],[59,80],[59,105],[59,130],[59,150],[59,165],[59,185]];
-
-  const pressed = new Set();
-  for (let i = 0; i < fing.length && i < positions.length; i++) {
-    if (fing[i] === '1') pressed.add(i);
+  // Joint lines (subtle separators between upper/lower sections)
+  if (!isFlute) {
+    const jointY = type === 'bassoon' ? 105 : [105, 175];
+    const jYs = Array.isArray(jointY) ? jointY : [jointY];
+    jYs.forEach(jy => {
+      const jl = document.createElementNS(ns, 'line');
+      jl.setAttribute('x1', type==='bassoon'? 52 : 54);
+      jl.setAttribute('x2', type==='bassoon'? 78 : 65);
+      jl.setAttribute('y1', jy); jl.setAttribute('y2', jy);
+      jl.setAttribute('stroke', bodyStroke);
+      jl.setAttribute('stroke-width', '0.6');
+      jl.setAttribute('stroke-dasharray', '1.5,1.5');
+      svg.appendChild(jl);
+    });
+  } else {
+    const fl = document.createElementNS(ns, 'line');
+    fl.setAttribute('x1', 163); fl.setAttribute('x2', 163);
+    fl.setAttribute('y1', 24);  fl.setAttribute('y2', 34);
+    fl.setAttribute('stroke', bodyStroke);
+    fl.setAttribute('stroke-width', '0.6');
+    fl.setAttribute('stroke-dasharray', '1.5,1.5');
+    svg.appendChild(fl);
   }
 
-  positions.forEach(([px, py], i) => {
-    const isP = pressed.has(i);
-    const c = document.createElementNS(ns, 'circle');
-    c.setAttribute('cx', px); c.setAttribute('cy', py);
-    c.setAttribute('r', isFlute ? 5 : 6);
-    c.setAttribute('fill', isP ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
-    c.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : '#222') : '#222');
-    c.setAttribute('stroke-width', '1.4');
-    svg.appendChild(c);
-    if (!isP) {
-      const inner = document.createElementNS(ns, 'circle');
-      inner.setAttribute('cx', px); inner.setAttribute('cy', py);
-      inner.setAttribute('r', isFlute ? 2.5 : 3);
-      inner.setAttribute('fill', '#f0ebe3');
-      inner.setAttribute('stroke', 'none');
-      svg.appendChild(inner);
+  // ── Register / Octave key ─────────────────────────────────────
+  if (type === 'clarinet' || type === 'sax') {
+    const [rx, ry] = type === 'clarinet' ? [46, 28] : [55, 34];
+    const rR = 3.8;
+    const regRing = document.createElementNS(ns, 'circle');
+    regRing.setAttribute('cx', rx); regRing.setAttribute('cy', ry);
+    regRing.setAttribute('r', rR);
+    regRing.setAttribute('fill', regActive ? (APP.playing ? '#ff5a4a' : '#3a3028') : fill);
+    regRing.setAttribute('stroke', bodyStroke);
+    regRing.setAttribute('stroke-width', '0.7');
+    svg.appendChild(regRing);
+    if (regActive) {
+      const hi = document.createElementNS(ns, 'circle');
+      hi.setAttribute('cx', rx - rR*0.2); hi.setAttribute('cy', ry - rR*0.2);
+      hi.setAttribute('r', rR * 0.3);
+      hi.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.45)' : 'rgba(255,255,255,0.25)');
+      svg.appendChild(hi);
     }
+    const regLbl = document.createElementNS(ns, 'text');
+    regLbl.setAttribute('x', rx); regLbl.setAttribute('y', ry + rR + 7);
+    regLbl.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4.2px;font-weight:700;fill:#b8a080;text-anchor:middle;pointer-events:none');
+    regLbl.textContent = type === 'clarinet' ? 'Reg' : 'Oct';
+    svg.appendChild(regLbl);
+    // Small arm
+    if (type === 'clarinet') {
+      const arm = document.createElementNS(ns, 'line');
+      arm.setAttribute('x1', rx); arm.setAttribute('y1', ry);
+      arm.setAttribute('x2', 54); arm.setAttribute('y2', ry);
+      arm.setAttribute('stroke', bodyStroke);
+      arm.setAttribute('stroke-width', '0.4');
+      svg.appendChild(arm);
+    }
+  }
+
+  // ── Keywork ───────────────────────────────────────────────────
+  const pressed = new Set();
+  const halfHole = new Set();
+  for (let i = 0; i < fing.length && i < keys.length; i++) {
+    if (fing[i] === '1') pressed.add(i);
+    else if (fing[i] === '2') halfHole.add(i);
+  }
+
+  const regionBounds = {};
+  const keyLabelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4.2px;font-weight:600;fill:#998a70;text-anchor:middle;pointer-events:none';
+
+  keys.forEach(([kx, ky, label, hand], i) => {
+    const isP = pressed.has(i);
+    const isH = halfHole.has(i);
+    const baseR = r;
+
+    if (!regionBounds[hand]) regionBounds[hand] = {minY: ky, maxY: ky};
+    else {
+      if (ky < regionBounds[hand].minY) regionBounds[hand].minY = ky;
+      if (ky > regionBounds[hand].maxY) regionBounds[hand].maxY = ky;
+    }
+
+    // Key metal ring
+    const ring = document.createElementNS(ns, 'circle');
+    ring.setAttribute('cx', kx); ring.setAttribute('cy', ky);
+    ring.setAttribute('r', isP ? baseR : hR);
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', '#998a70');
+    ring.setAttribute('stroke-width', '1.1');
+    svg.appendChild(ring);
+
+    if (isP) {
+      // Pressed: dark pad + highlight
+      const pad = document.createElementNS(ns, 'circle');
+      pad.setAttribute('cx', kx); pad.setAttribute('cy', ky);
+      pad.setAttribute('r', baseR * 0.78);
+      pad.setAttribute('fill', APP.playing ? '#ff5a4a' : '#3a3028');
+      pad.setAttribute('stroke', APP.playing ? '#e04030' : '#222');
+      pad.setAttribute('stroke-width', '0.6');
+      svg.appendChild(pad);
+      const hi = document.createElementNS(ns, 'circle');
+      hi.setAttribute('cx', kx - baseR*0.25);
+      hi.setAttribute('cy', ky - baseR*0.25);
+      hi.setAttribute('r', baseR * 0.32);
+      hi.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.45)' : 'rgba(255,255,255,0.25)');
+      hi.setAttribute('stroke', 'none');
+      svg.appendChild(hi);
+    } else if (isH) {
+      // Half-hole: tone hole visible, pad covers top half
+      const hole = document.createElementNS(ns, 'circle');
+      hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
+      hole.setAttribute('r', baseR * 0.65);
+      hole.setAttribute('fill', fill);
+      hole.setAttribute('stroke', bodyStroke);
+      hole.setAttribute('stroke-width', '0.5');
+      svg.appendChild(hole);
+      const innerHole = document.createElementNS(ns, 'circle');
+      innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
+      innerHole.setAttribute('r', baseR * 0.38);
+      innerHole.setAttribute('fill', '#8a7a60');
+      svg.appendChild(innerHole);
+      // Semicircular pad covering top half of hole
+      const half = document.createElementNS(ns, 'path');
+      half.setAttribute('d', `M ${kx - baseR*0.6} ${ky} A ${baseR*0.6} ${baseR*0.6} 0 0 1 ${kx + baseR*0.6} ${ky} L ${kx + baseR*0.6} ${ky - baseR*0.6} L ${kx - baseR*0.6} ${ky - baseR*0.6} Z`);
+      half.setAttribute('fill', APP.playing ? '#ff5a4a' : '#3a3028');
+      half.setAttribute('stroke', APP.playing ? '#e04030' : '#222');
+      half.setAttribute('stroke-width', '0.4');
+      svg.appendChild(half);
+    } else {
+      // Open: tone hole
+      const hole = document.createElementNS(ns, 'circle');
+      hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
+      hole.setAttribute('r', baseR * 0.65);
+      hole.setAttribute('fill', fill);
+      hole.setAttribute('stroke', bodyStroke);
+      hole.setAttribute('stroke-width', '0.5');
+      svg.appendChild(hole);
+      const innerHole = document.createElementNS(ns, 'circle');
+      innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
+      innerHole.setAttribute('r', baseR * 0.38);
+      innerHole.setAttribute('fill', '#8a7a60');
+      svg.appendChild(innerHole);
+    }
+
+    // Key arm
+    if (!isFlute && hand !== 'T') {
+      const cxLine = hand === 'L' ? (type==='bassoon'? 57 : 60) : (type==='bassoon'? 65 : 63);
+      const arm = document.createElementNS(ns, 'line');
+      arm.setAttribute('x1', kx); arm.setAttribute('y1', ky);
+      arm.setAttribute('x2', cxLine); arm.setAttribute('y2', ky);
+      arm.setAttribute('stroke', bodyStroke);
+      arm.setAttribute('stroke-width', '0.5');
+      arm.setAttribute('stroke-dasharray', '1.2,1.2');
+      svg.appendChild(arm);
+    }
+
+    // ── Key label ─────────────────────────────────────────────
+    const lbl = document.createElementNS(ns, 'text');
+    lbl.setAttribute('x', kx);
+    lbl.setAttribute('y', isFlute ? ky + baseR + 8 : ky + baseR + 7);
+    lbl.setAttribute('style', keyLabelStyle);
+    lbl.textContent = label;
+    svg.appendChild(lbl);
   });
+
+  // ── Hand labels ───────────────────────────────────────────────
+  const labelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:6px;font-weight:700;fill:#b8a080;pointer-events:none';
+  for (const hand of ['T','L','R']) {
+    if (!regionBounds[hand]) continue;
+    const midY = hand === 'T' ? regionBounds[hand].minY :
+                 (regionBounds[hand].minY + regionBounds[hand].maxY) / 2;
+    let lx = hand === 'T' ? 36 :
+             hand === 'L' ? (type==='bassoon'? 42 : 48) : (type==='bassoon'? 70 : 74);
+    if (isFlute) {
+      lx = hand === 'L' ? 42 : 113;
+      const fl = document.createElementNS(ns, 'text');
+      fl.setAttribute('x', lx); fl.setAttribute('y', hand === 'L' ? 18 : 18);
+      fl.setAttribute('style', labelStyle);
+      fl.setAttribute('text-anchor', 'middle');
+      fl.textContent = hand === 'L' ? 'LH' : 'RH';
+      svg.appendChild(fl);
+      continue;
+    }
+    const lb = document.createElementNS(ns, 'text');
+    lb.setAttribute('x', lx); lb.setAttribute('y', midY + 2);
+    lb.setAttribute('style', labelStyle);
+    lb.setAttribute('text-anchor', 'middle');
+    lb.textContent = hand === 'T' ? 'Th' : hand;
+    svg.appendChild(lb);
+  }
+
+  // ── Note name ────────────────────────────────────────────────
+  if (noteName) {
+    const nm = document.createElementNS(ns, 'text');
+    nm.setAttribute('x', w / 2);
+    nm.setAttribute('y', isFlute ? 10 : 12);
+    nm.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;fill:#555;text-anchor:middle;pointer-events:none');
+    nm.textContent = noteName;
+    svg.appendChild(nm);
+  }
+
+  // ── Alternate-fingering click overlay ─────────────────────────
+  if (fingArr.length > 1) {
+    const overlay = document.createElementNS(ns, 'rect');
+    overlay.setAttribute('x', '0'); overlay.setAttribute('y', '0');
+    overlay.setAttribute('width', w); overlay.setAttribute('height', h);
+    overlay.setAttribute('fill', 'transparent');
+    overlay.setAttribute('pointer-events', 'auto');
+    overlay.setAttribute('cursor', 'pointer');
+    overlay.addEventListener('click', e => {
+      e.stopPropagation();
+      const container = e.target.closest('[data-instr-type="woodwind"]');
+      if (!container) return;
+      const max = parseInt(container.getAttribute('data-fing-count') || '1');
+      let idx = parseInt(container.getAttribute('data-fing-index') || '0');
+      idx = (idx + 1) % max;
+      container.setAttribute('data-fing-index', idx);
+      updateWoodwindDiagram();
+    });
+    svg.appendChild(overlay);
+
+    const altText = document.createElementNS(ns, 'text');
+    altText.setAttribute('x', isFlute ? w - 4 : w - 6);
+    altText.setAttribute('y', isFlute ? h - 4 : h - 6);
+    altText.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:5px;fill:#998a70;text-anchor:end;pointer-events:none');
+    altText.textContent = `↻ ${altIndex + 1}/${fingArr.length}`;
+    svg.appendChild(altText);
+  }
 
   g.appendChild(svg);
   return g;
@@ -4668,9 +5309,18 @@ function updateWoodwindDiagram() {
   const mi = APP.selectedMeasure;
   const ni = APP.selectedNoteIdx;
   if (mi < 0 || ni < 0) {
-    diagEls.forEach(el => { el.innerHTML = ''; const fresh = renderWoodwindDiagram('', el.getAttribute('data-instr-name')||'flute'); while(fresh.firstChild) el.appendChild(fresh.firstChild); });
+    diagEls.forEach(el => {
+      el.innerHTML = '';
+      const name = el.getAttribute('data-instr-name') || 'flute';
+      const fresh = renderWoodwindDiagram([''], name, 0, '', false);
+      while (fresh.firstChild) el.appendChild(fresh.firstChild);
+      el.setAttribute('data-fing-index', '0');
+      el.setAttribute('data-fing-count', '1');
+      el.setAttribute('data-last-pitch', '');
+    });
     return;
   }
+  let si = APP.selectedStaff;
   let note = null;
   for (const part of APP.score.parts) {
     for (let s = 0; s < part.staves.length; s++) {
@@ -4679,27 +5329,47 @@ function updateWoodwindDiagram() {
     } if (note) break;
   }
   if (!note || note.type !== 'note') {
-    diagEls.forEach(el => { el.innerHTML = ''; const fresh = renderWoodwindDiagram('', el.getAttribute('data-instr-name')||'flute'); while(fresh.firstChild) el.appendChild(fresh.firstChild); });
+    diagEls.forEach(el => {
+      el.innerHTML = '';
+      const name = el.getAttribute('data-instr-name') || 'flute';
+      const fresh = renderWoodwindDiagram([''], name, 0, '', false);
+      while (fresh.firstChild) el.appendChild(fresh.firstChild);
+    });
     return;
   }
   const name = diagEls[0].getAttribute('data-instr-name') || 'flute';
   const pitch = note.pitch;
-  const fing = woodwindFingeringForPitch(pitch, name);
+  const fingArr = woodwindFingeringForPitch(pitch, name);
+  const lastPitch = diagEls[0].getAttribute('data-last-pitch') || '';
+  let altIndex = 0;
+  if (lastPitch === String(pitch)) {
+    altIndex = parseInt(diagEls[0].getAttribute('data-fing-index') || '0');
+    if (altIndex >= fingArr.length) altIndex = 0;
+  }
+  const regActive = (name === 'clarinet' && pitch >= 71) || (name === 'sax' && pitch >= 72);
+  const ks = si >= 0 ? getResolvedKeySig(mi, si) : 0;
+  const noteName = noteLabelForPitch(pitch, ks, note.accidental || null, 'letter') + Math.floor(pitch / 12 - 1);
   diagEls.forEach(el => {
     el.innerHTML = '';
-    const fresh = renderWoodwindDiagram(fing || '', name);
+    const fresh = renderWoodwindDiagram(fingArr, name, altIndex, noteName, regActive);
     while (fresh.firstChild) el.appendChild(fresh.firstChild);
+    el.setAttribute('data-fing-index', String(altIndex));
+    el.setAttribute('data-fing-count', String(fingArr.length));
+    el.setAttribute('data-last-pitch', String(pitch));
   });
 }
 
 // ── Brass Diagram ─────────────────────────────────────────────────
-// Simplified valve indicators and slide positions.
-// fing: valve string "000" etc., or slide position "1"-"7".
+// Improved valve indicators with metallic cup visuals, body silhouettes,
+// note name display, and alternate fingering cycling.
+// fingArr: array of valve strings (or single string), or slide position '1'-'7'
 // type: 'trumpet', 'horn', 'trombone', 'euphonium', 'tuba'
-function renderBrassDiagram(fing, type) {
+function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
-  g.setAttribute('pointer-events', 'none');
+
+  if (typeof fingArr === 'string') fingArr = [fingArr];
+  const fing = (fingArr && fingArr.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
 
   const isTrombone = type === 'trombone';
   const isHorn = type === 'horn';
@@ -4707,10 +5377,25 @@ function renderBrassDiagram(fing, type) {
   const nValves = has4Valves ? 4 : 3;
 
   const w = isTrombone ? 180 : 100;
-  const h = isTrombone ? 60 : 160;
+  const h = isTrombone ? 70 : 170;
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('pointer-events', 'none');
+
+  // ── Note name ──────────────────────────────────────────────
+  if (noteName) {
+    const nm = document.createElementNS(ns, 'text');
+    nm.setAttribute('x', w / 2);
+    nm.setAttribute('y', isTrombone ? 14 : 18);
+    nm.setAttribute('text-anchor', 'middle');
+    nm.setAttribute('font-size', isTrombone ? '9' : '10');
+    nm.setAttribute('font-weight', '700');
+    nm.setAttribute('fill', '#555');
+    nm.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    nm.textContent = noteName;
+    svg.appendChild(nm);
+  }
 
   if (isTrombone) {
     // Trombone: horizontal slide positions 1-7
@@ -4718,9 +5403,25 @@ function renderBrassDiagram(fing, type) {
     const startX = 16;
     const endX = w - 16;
     const spacing = (endX - startX) / 6;
-    const cy = 28;
+    const cy = 40;
 
-    // Draw the slide rail (thin line)
+    // Body silhouette — simple tube
+    const bodyLine = document.createElementNS(ns, 'line');
+    bodyLine.setAttribute('x1', 4); bodyLine.setAttribute('y1', cy);
+    bodyLine.setAttribute('x2', endX + 4); bodyLine.setAttribute('y2', cy);
+    bodyLine.setAttribute('stroke', '#e8dcc8'); bodyLine.setAttribute('stroke-width', '6');
+    bodyLine.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(bodyLine);
+
+    // Bell flare
+    const bell = document.createElementNS(ns, 'ellipse');
+    bell.setAttribute('cx', endX + 8); bell.setAttribute('cy', cy);
+    bell.setAttribute('rx', 12); bell.setAttribute('ry', 8);
+    bell.setAttribute('fill', '#e8dcc8'); bell.setAttribute('stroke', '#c0b0a0');
+    bell.setAttribute('stroke-width', '1');
+    svg.appendChild(bell);
+
+    // Slide rail
     const rail = document.createElementNS(ns, 'line');
     rail.setAttribute('x1', startX); rail.setAttribute('y1', cy);
     rail.setAttribute('x2', endX); rail.setAttribute('y2', cy);
@@ -4728,19 +5429,38 @@ function renderBrassDiagram(fing, type) {
     rail.setAttribute('stroke-linecap', 'round');
     svg.appendChild(rail);
 
-    // Draw position markers
+    // Position markers
     for (let i = 1; i <= 7; i++) {
       const x = startX + (i - 1) * spacing;
       const isActive = i === slidePos;
 
-      // Position circle
+      // Outer ring
+      const outer = document.createElementNS(ns, 'circle');
+      outer.setAttribute('cx', x); outer.setAttribute('cy', cy);
+      outer.setAttribute('r', isActive ? 11 : 8);
+      outer.setAttribute('fill', 'none');
+      outer.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
+      outer.setAttribute('stroke-width', isActive ? 2 : 1);
+      svg.appendChild(outer);
+
+      // Main circle
       const circle = document.createElementNS(ns, 'circle');
       circle.setAttribute('cx', x); circle.setAttribute('cy', cy);
-      circle.setAttribute('r', isActive ? 10 : 7);
+      circle.setAttribute('r', isActive ? 9 : 6);
       circle.setAttribute('fill', isActive ? (APP.playing ? '#ff5a4a' : '#c05621') : '#fff');
       circle.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
       circle.setAttribute('stroke-width', isActive ? 2 : 1.5);
       svg.appendChild(circle);
+
+      // Metallic highlight
+      if (isActive) {
+        const hi = document.createElementNS(ns, 'circle');
+        hi.setAttribute('cx', x - 1.5); hi.setAttribute('cy', cy - 1.5);
+        hi.setAttribute('r', 2.5);
+        hi.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.45)' : 'rgba(255,255,255,0.3)');
+        hi.setAttribute('stroke', 'none');
+        svg.appendChild(hi);
+      }
 
       // Position number
       const num = document.createElementNS(ns, 'text');
@@ -4755,8 +5475,7 @@ function renderBrassDiagram(fing, type) {
     }
 
   } else {
-    // Valve instruments: vertical column of circles
-    // Display order: 3-2-1 (3 on top, 1 on bottom) to match player's perspective
+    // Valve instruments: vertical column of metallic valve buttons
     const pressed = new Set();
     for (let i = 0; i < fing.length; i++) {
       if (fing[i] === '1') pressed.add(i);
@@ -4765,32 +5484,45 @@ function renderBrassDiagram(fing, type) {
     const circleR = 16;
     const spacing = 40;
     const startX = w / 2;
-    const startY = 30;
+    const startY = 35;
+
+    // Body silhouette — instrument tube behind valves
+    const bodyTube = document.createElementNS(ns, 'rect');
+    bodyTube.setAttribute('x', startX - 6); bodyTube.setAttribute('y', 10);
+    bodyTube.setAttribute('width', 12); bodyTube.setAttribute('height', h - 20);
+    bodyTube.setAttribute('rx', 6); bodyTube.setAttribute('fill', '#e8dcc8');
+    bodyTube.setAttribute('stroke', '#c0b0a0'); bodyTube.setAttribute('stroke-width', '0.8');
+    svg.appendChild(bodyTube);
+
+    // Bell (top)
+    const bell = document.createElementNS(ns, 'ellipse');
+    bell.setAttribute('cx', startX); bell.setAttribute('cy', 8);
+    bell.setAttribute('rx', isHorn ? 30 : 16); bell.setAttribute('ry', 6);
+    bell.setAttribute('fill', '#e8dcc8'); bell.setAttribute('stroke', '#c0b0a0');
+    bell.setAttribute('stroke-width', '0.8');
+    svg.appendChild(bell);
 
     for (let vi = 0; vi < nValves; vi++) {
       const cy = startY + vi * spacing;
       let valveNum, valveLabel, isP;
 
       if (isHorn && has4Valves) {
-        // Horn: display 3, 2, 1, T (trigger at bottom, under 1)
         if (vi < 3) {
           valveNum = 3 - vi;
           valveLabel = String(valveNum);
           isP = pressed.has(valveNum - 1);
         } else {
-          // Trigger (4th valve) at bottom
           valveNum = 4;
           valveLabel = 'T';
-          isP = pressed.has(3); // 4th position in fing string
+          isP = pressed.has(3);
         }
       } else {
-        // Other instruments: reversed order (3 on top, 1 on bottom)
         valveNum = nValves - vi;
         valveLabel = String(valveNum);
         isP = pressed.has(valveNum - 1);
       }
 
-      // Outer circle (shadow/border)
+      // Outer ring (shadow)
       const outer = document.createElementNS(ns, 'circle');
       outer.setAttribute('cx', startX); outer.setAttribute('cy', cy);
       outer.setAttribute('r', circleR + 2);
@@ -4799,7 +5531,7 @@ function renderBrassDiagram(fing, type) {
       outer.setAttribute('stroke-width', isP ? 2 : 1);
       svg.appendChild(outer);
 
-      // Main circle
+      // Main cup circle
       const circle = document.createElementNS(ns, 'circle');
       circle.setAttribute('cx', startX); circle.setAttribute('cy', cy);
       circle.setAttribute('r', circleR);
@@ -4807,6 +5539,23 @@ function renderBrassDiagram(fing, type) {
       circle.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
       circle.setAttribute('stroke-width', 1.5);
       svg.appendChild(circle);
+
+      // Inner cup ring (metallic)
+      const inner = document.createElementNS(ns, 'circle');
+      inner.setAttribute('cx', startX); inner.setAttribute('cy', cy);
+      inner.setAttribute('r', circleR * 0.7);
+      inner.setAttribute('fill', 'none');
+      inner.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : '#a04520') : '#c8c0b8');
+      inner.setAttribute('stroke-width', '0.8');
+      svg.appendChild(inner);
+
+      // 3D highlight
+      const hi = document.createElementNS(ns, 'circle');
+      hi.setAttribute('cx', startX - 3); hi.setAttribute('cy', cy - 3);
+      hi.setAttribute('r', circleR * 0.3);
+      hi.setAttribute('fill', isP ? (APP.playing ? 'rgba(255,90,74,0.4)' : 'rgba(255,255,255,0.25)') : 'rgba(255,255,255,0.35)');
+      hi.setAttribute('stroke', 'none');
+      svg.appendChild(hi);
 
       // Valve number
       const num = document.createElementNS(ns, 'text');
@@ -4821,6 +5570,36 @@ function renderBrassDiagram(fing, type) {
     }
   }
 
+  // ── Alternate-fingering click overlay ──────────────────────
+  if (fingArr.length > 1) {
+    const overlay = document.createElementNS(ns, 'rect');
+    overlay.setAttribute('x', '0'); overlay.setAttribute('y', '0');
+    overlay.setAttribute('width', w); overlay.setAttribute('height', h);
+    overlay.setAttribute('fill', 'transparent');
+    overlay.setAttribute('pointer-events', 'auto');
+    overlay.setAttribute('cursor', 'pointer');
+    overlay.addEventListener('click', e => {
+      e.stopPropagation();
+      const container = e.target.closest('[data-instr-type="brass"]');
+      if (!container) return;
+      const max = parseInt(container.getAttribute('data-fing-count') || '1');
+      let idx = parseInt(container.getAttribute('data-fing-index') || '0');
+      idx = (idx + 1) % max;
+      container.setAttribute('data-fing-index', idx);
+      updateBrassDiagram();
+    });
+    svg.appendChild(overlay);
+
+    const altText = document.createElementNS(ns, 'text');
+    altText.setAttribute('x', w - 4); altText.setAttribute('y', h - 4);
+    altText.setAttribute('text-anchor', 'end');
+    altText.setAttribute('font-size', '5');
+    altText.setAttribute('fill', '#998a70');
+    altText.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    altText.textContent = `↻ ${altIndex + 1}/${fingArr.length}`;
+    svg.appendChild(altText);
+  }
+
   g.appendChild(svg);
   return g;
 }
@@ -4831,9 +5610,18 @@ function updateBrassDiagram() {
   const mi = APP.selectedMeasure;
   const ni = APP.selectedNoteIdx;
   if (mi < 0 || ni < 0) {
-    diagEls.forEach(el => { el.innerHTML = ''; const fresh = renderBrassDiagram('', el.getAttribute('data-instr-name')||'trumpet'); while(fresh.firstChild) el.appendChild(fresh.firstChild); });
+    diagEls.forEach(el => {
+      el.innerHTML = '';
+      const name = el.getAttribute('data-instr-name') || 'trumpet';
+      const fresh = renderBrassDiagram([''], name, 0, '');
+      while (fresh.firstChild) el.appendChild(fresh.firstChild);
+      el.setAttribute('data-fing-index', '0');
+      el.setAttribute('data-fing-count', '1');
+      el.setAttribute('data-last-pitch', '');
+    });
     return;
   }
+  let si = APP.selectedStaff;
   let note = null;
   for (const part of APP.score.parts) {
     for (let s = 0; s < part.staves.length; s++) {
@@ -4842,17 +5630,113 @@ function updateBrassDiagram() {
     } if (note) break;
   }
   if (!note || note.type !== 'note') {
-    diagEls.forEach(el => { el.innerHTML = ''; const fresh = renderBrassDiagram('', el.getAttribute('data-instr-name')||'trumpet'); while(fresh.firstChild) el.appendChild(fresh.firstChild); });
+    diagEls.forEach(el => {
+      el.innerHTML = '';
+      const name = el.getAttribute('data-instr-name') || 'trumpet';
+      const fresh = renderBrassDiagram([''], name, 0, '');
+      while (fresh.firstChild) el.appendChild(fresh.firstChild);
+    });
     return;
   }
   const name = diagEls[0].getAttribute('data-instr-name') || 'trumpet';
-  const fing = brassFingeringForPitch(note.pitch, name);
+  const pitch = note.pitch;
+  const fingArr = brassFingeringForPitch(pitch, name);
+  const lastPitch = diagEls[0].getAttribute('data-last-pitch') || '';
+  let altIndex = 0;
+  if (lastPitch === String(pitch)) {
+    altIndex = parseInt(diagEls[0].getAttribute('data-fing-index') || '0');
+    if (altIndex >= fingArr.length) altIndex = 0;
+  }
+  const ks = si >= 0 ? getResolvedKeySig(mi, si) : 0;
+  const noteName = noteLabelForPitch(pitch, ks, note.accidental || null, 'letter') + Math.floor(pitch / 12 - 1);
   diagEls.forEach(el => {
-    const fresh = renderBrassDiagram(fing || '', name);
-    while (fresh.firstChild) el.insertBefore(fresh.firstChild, el.firstChild);
-    // Remove the old SVG element after new one is in place
-    const kids = el.children;
-    while (kids.length > 1) el.removeChild(kids[kids.length - 1]);
+    el.innerHTML = '';
+    const fresh = renderBrassDiagram(fingArr, name, altIndex, noteName);
+    while (fresh.firstChild) el.appendChild(fresh.firstChild);
+    el.setAttribute('data-fing-index', String(altIndex));
+    el.setAttribute('data-fing-count', String(fingArr.length));
+    el.setAttribute('data-last-pitch', String(pitch));
+  });
+}
+
+// ── Large-stave Notehead Post-processing ─────────────────────────
+// Handles both Boomwhacker and Beginning Recorder noteheads.
+// Uses position-primary matching: iterates over known note positions
+// and finds the nearest suitable path by geometry (not colour), so it
+// is robust against VexFlow changing how it paints fills.
+function renderBWNoteheads() {
+  const svgEl = document.getElementById('score-svg').querySelector('svg');
+  if (!svgEl || !APP.score) return;
+
+  // Build lookup sets: which global SIs are BW / BR?
+  const bwSIs = new Set(), brSIs = new Set();
+  let gsi = 0;
+  APP.score.parts.forEach(part => {
+    const instr = instrByName(part.instrument || part.name);
+    part.staves.forEach((_, s) => {
+      if (instr.boomwhacker)      bwSIs.add(gsi + s);
+      if (instr.beginnerRecorder) brSIs.add(gsi + s);
+      gsi++;
+    });
+  });
+  if (bwSIs.size === 0 && brSIs.size === 0) return;
+
+  const bwNotes = APP.noteLayout.filter(nl => bwSIs.has(nl.si));
+  const brNotes = APP.noteLayout.filter(nl => brSIs.has(nl.si));
+  if (bwNotes.length === 0 && brNotes.length === 0) return;
+
+  const HIT_RADIUS = 22;
+
+  // Build a cached array of eligible paths with their bounding boxes once.
+  // An eligible path is one whose bounding box looks like a notehead:
+  //   • width  ≥ 4 px   (filters out hairlines)
+  //   • height ≥ 3 px   (filters out horizontal ledger lines)
+  //   • aspect ratio ≤ 3  (filters out long stems / barlines)
+  const eligiblePaths = [];
+  svgEl.querySelectorAll('path').forEach(path => {
+    let bbox;
+    try { bbox = path.getBBox(); } catch(e) { return; }
+    if (bbox.width < 4 || bbox.height < 3) return;
+    if (bbox.width / bbox.height > 3 || bbox.height / bbox.width > 3) return;
+    eligiblePaths.push({
+      path,
+      cx: bbox.x + bbox.width  / 2,
+      cy: bbox.y + bbox.height / 2,
+    });
+  });
+
+  // For each note position find the closest eligible path and style it.
+  const claimedPaths = new Set();
+
+  function styleNearest(noteList, styleFn) {
+    noteList.forEach(nl => {
+      const m = getMeasureBySI(nl.si, nl.mi);
+      const n = m?.notes[nl.ni];
+      if (!n || n.type !== 'note') return;
+
+      let best = null, bestDist = HIT_RADIUS;
+      eligiblePaths.forEach(ep => {
+        if (claimedPaths.has(ep.path)) return;
+        const d = Math.hypot(ep.cx - nl.x, ep.cy - nl.y);
+        if (d < bestDist) { bestDist = d; best = ep; }
+      });
+      if (!best) return;
+      claimedPaths.add(best.path);
+      styleFn(best.path, best.cx, best.cy, n);
+    });
+  }
+
+  // Boomwhacker: add black outline + 10% scale
+  styleNearest(bwNotes, (path, cx, cy) => {
+    path.setAttribute('stroke', '#000');
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('transform', `translate(${cx},${cy}) scale(1.1) translate(${-cx},${-cy})`);
+  });
+
+  // Beginner Recorder: 10% scale only
+  styleNearest(brNotes, (path, cx, cy) => {
+    path.setAttribute('transform', `translate(${cx},${cy}) scale(1.1) translate(${-cx},${-cy})`);
   });
 }
 
@@ -4870,54 +5754,6 @@ function noteLetter(n, ks) {
     return NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]].toUpperCase();
   }
   return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
-}
-
-function renderNoteheadLabels() {
-  if (!APP.bwNoteNames) return;
-  const svgEl = document.getElementById('score-svg').querySelector('svg');
-  if (!svgEl || !APP.score) return;
-  const labeled = new Set();
-  const paths = svgEl.querySelectorAll('path');
-  paths.forEach(path => {
-    let bbox;
-    try { bbox = path.getBBox(); } catch(e) { return; }
-    if (bbox.width < 4 || bbox.height < 2) return;
-    const cx = bbox.x + bbox.width / 2;
-    const cy = bbox.y + bbox.height / 2;
-    let matched = null, bestDist = 22;
-    APP.noteLayout.forEach(nl => {
-      const d = Math.hypot(cx - nl.x, cy - nl.y);
-      if (d < bestDist) { bestDist = d; matched = nl; }
-    });
-    if (!matched) return;
-    const key = `${matched.si}:${matched.mi}:${matched.ni}`;
-    if (labeled.has(key)) return;
-    labeled.add(key);
-    const m = getMeasureBySI(matched.si, matched.mi);
-    const n = m?.notes[matched.ni];
-    if (!n || n.type !== 'note') return;
-    const fill = (path.getAttribute('fill') || '').toLowerCase().trim();
-    const isOpen = fill === '#ffffff' || fill === 'white' || fill === '#fff';
-    const ks = getResolvedKeySig(matched.mi, matched.si);
-    const letter = noteLetter(n, ks);
-    addNoteLabel(svgEl, letter, cx, cy, bbox.height, isOpen ? '#000' : '#ffffff');
-  });
-}
-
-// Draw a note-name letter centred on a notehead
-function addNoteLabel(svgEl, letter, cx, cy, bboxH, colour) {
-  const fontSize = Math.round(Math.max(Math.round(REND.STAVE_H * 0.11), Math.min(Math.round(REND.STAVE_H * 0.28), Math.round(bboxH * 0.62))) * 0.72);
-  const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
-  lbl.setAttribute('x', cx);
-  lbl.setAttribute('y', cy + fontSize * 0.37);
-  lbl.setAttribute('text-anchor', 'middle');
-  lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-  lbl.setAttribute('font-size', fontSize);
-  lbl.setAttribute('font-weight', '700');
-  lbl.setAttribute('fill', colour);
-  lbl.setAttribute('pointer-events', 'none');
-  lbl.textContent = letter;
-  svgEl.appendChild(lbl);
 }
 
 // ── Hit Testing / Input ──────────────────────────────────────────
@@ -4974,10 +5810,10 @@ function yToPitchAccurate(y, sl) {
 }
 
 function yToPitch(y, staveTop, clef) {
-  // Legacy fallback using REND.STAVE_H
-  const halfStep = REND.STAVE_H / 8;
+  // Legacy fallback using LAYOUT.STAVE_H
+  const halfStep = LAYOUT.STAVE_H / 8;
   if (clef === 'treble') {
-    const b4Y = staveTop + REND.STAVE_H / 2;
+    const b4Y = staveTop + LAYOUT.STAVE_H / 2;
     const steps = Math.round((b4Y - y) / halfStep);
     const dia = [0,2,4,5,7,9,11];
     let pos = 6 + steps;
@@ -4986,7 +5822,7 @@ function yToPitch(y, staveTop, clef) {
     const oct = 4 + octaveShift;
     return (oct + 1) * 12 + dia[noteInOct];
   } else {
-    const d3Y = staveTop + REND.STAVE_H / 2;
+    const d3Y = staveTop + LAYOUT.STAVE_H / 2;
     const steps = Math.round((d3Y - y) / halfStep);
     const dia = [0,2,4,5,7,9,11];
     let pos = 1 + steps;
@@ -5314,10 +6150,10 @@ function handleScoreTap(e) {
     const n = getMeasureBySI(hit.si, hit.mi)?.notes[APP.selectedNoteIdx];
     if (n && n.type === 'note') {
       const newPitch = yToPitchAccurate(y, hit);
-      pushUndo('Change pitch');
-      n.pitch = newPitch;
-      n.accidental = DIATONIC_PCS.has(newPitch % 12) ? null : (getResolvedKeySig(hit.mi, hit.si) < 0 ? 'b' : '#');
-      renderScore();
+      commitChange(score => {
+        n.pitch = newPitch;
+        n.accidental = DIATONIC_PCS.has(newPitch % 12) ? null : (getResolvedKeySig(hit.mi, hit.si) < 0 ? 'b' : '#');
+      });
       scrollToSelectedMeasure();
     }
   } else {
@@ -5336,25 +6172,15 @@ function insertNote(mi, si, pitch) {
   if (APP.chordMode && APP.selectedNoteIdx >= 0) {
     const targetNote = measure.notes[APP.selectedNoteIdx];
     if (targetNote && targetNote.type === 'note' && (targetNote.voice||1) === APP.curVoice) {
-      pushUndo('Add note');
-      if (!targetNote.extraPitches) targetNote.extraPitches = [];
-
-      // Find the highest pitch currently in the chord (root + extras)
+      const pc2 = pitch % 12;
       const existingPitches = [targetNote.pitch, ...(targetNote.extraPitches || []).map(e => e.pitch)];
       const highestPitch    = Math.max(...existingPitches);
-
-      // Prefer the octave that places the new note ABOVE the highest existing pitch
-      // but as close as possible (to build simple triads, not wide voicings)
-      const pc2 = pitch % 12;
-      const baseOct = Math.floor(highestPitch / 12) - 1; // octave of highest note
+      const baseOct = Math.floor(highestPitch / 12) - 1;
       const cands   = [baseOct, baseOct + 1].map(o => (o + 1) * 12 + pc2);
-      // Pick the lowest candidate that is >= highestPitch - 2 (allow minor 2nd below for clusters)
       const preferred = cands.find(m => m >= highestPitch - 2) || cands[cands.length - 1];
-
       const ks2 = getResolvedKeySig(mi, si);
       const km2 = getKeyAccidentals(ks2);
       const ka2 = km2[pc2] || null;
-      // Check if key sig covers this chromatic note via natural PC
       let keyCovers2 = ka2;
       if (!keyCovers2 && !DIATONIC_PCS.has(pc2)) {
         const npc = ks2 < 0 ? (pc2 + 1) % 12 : (pc2 + 11) % 12;
@@ -5362,9 +6188,10 @@ function insertNote(mi, si, pitch) {
         if (na && ((ks2 < 0 && na === 'b') || (ks2 > 0 && na === '#'))) keyCovers2 = na;
       }
       const ea  = APP.curAcc || (DIATONIC_PCS.has(pc2) ? (ka2 ? 'n' : null) : (keyCovers2 ? null : (ks2 < 0 ? 'b' : '#')));
-      targetNote.extraPitches.push({pitch: preferred, accidental: ea});
-      renderScore();
-      showToast('Added ' + NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase() + ' to chord');
+      commitChange(score => {
+        if (!targetNote.extraPitches) targetNote.extraPitches = [];
+        targetNote.extraPitches.push({pitch: preferred, accidental: ea});
+      }, { toast: 'Added ' + NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase() + ' to chord' });
       return;
     }
   }
@@ -5458,7 +6285,7 @@ function insertNote(mi, si, pitch) {
       return;
     }
 
-    pushUndo('Insert note');
+    pushUndo();
 
     const partialEntry = APP.curRest
       ? mkRest(partial.dur, partial.dots, APP.curVoice)
@@ -5487,7 +6314,7 @@ function insertNote(mi, si, pitch) {
     return;
   }
 
-  pushUndo('Insert note');
+  pushUndo();
 
   const entry = APP.curRest
     ? mkRest(APP.curDur, APP.curDot ? 1 : 0, APP.curVoice)
@@ -5627,18 +6454,15 @@ function shiftNoteOctave(direction) {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') return;
-  pushUndo('Change octave');
   const semitones = direction * 12;
-  n.pitch = Math.max(12, Math.min(120, n.pitch + semitones));
-  // Shift extra pitches (chord notes) by the same amount
-  if (n.extraPitches) {
-    n.extraPitches.forEach(ep => {
-      ep.pitch = Math.max(12, Math.min(120, ep.pitch + semitones));
-    });
-  }
-  renderScore();
-  const oct = Math.floor(n.pitch / 12) - 1;
-  showToast(`Octave ${oct}`);
+  commitChange(score => {
+    n.pitch = Math.max(12, Math.min(120, n.pitch + semitones));
+    if (n.extraPitches) {
+      n.extraPitches.forEach(ep => {
+        ep.pitch = Math.max(12, Math.min(120, ep.pitch + semitones));
+      });
+    }
+  }, { toast: `Octave ${Math.floor(n.pitch / 12) - 1}` });
 }
 
 function changePitchOfSelected(name) {
@@ -5646,36 +6470,30 @@ function changePitchOfSelected(name) {
               ?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest) to change pitch'); return; }
 
-  pushUndo('Change pitch');
   let pc = NAME_TO_PC[name];
   if (APP.curAcc === '#') pc = (pc + 1) % 12;
   if (APP.curAcc === 'b') pc = (pc + 11) % 12;
 
-  // Keep closest octave to current pitch
   const refPitch = n.pitch;
   const cands    = [-12, 0, 12].map(o => Math.floor(refPitch / 12) * 12 + pc + o).filter(m => m > 0);
   const newPitch = cands.reduce((best, m) =>
     Math.abs(m - refPitch) < Math.abs(best - refPitch) ? m : best, cands[0]);
 
-  n.pitch = newPitch;
-  // Recompute displayed accidental
   const mi  = APP.selectedMeasure;
   const si  = APP.selectedStaff;
-  const ks  = getResolvedKeySig(mi, si);
-  const kMap = getKeyAccidentals(ks);
-  const keyAcc = kMap[pc] || null;
-  if (APP.curAcc) {
-    n.accidental = APP.curAcc;
-  } else if (!DIATONIC_PCS.has(pc)) {
-    n.accidental = ks < 0 ? 'b' : '#';
-  } else {
-    n.accidental = keyAcc ? 'n' : null;
-  }
-  renderScore();
-  scrollToSelectedMeasure();
-  const noteName = NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
-  const oct = Math.floor(newPitch / 12) - 1;
-  showToast(`Changed to ${noteName}${oct}`);
+  commitChange(score => {
+    n.pitch = newPitch;
+    const ks  = getResolvedKeySig(mi, si);
+    const kMap = getKeyAccidentals(ks);
+    const keyAcc = kMap[pc] || null;
+    if (APP.curAcc) {
+      n.accidental = APP.curAcc;
+    } else if (!DIATONIC_PCS.has(pc)) {
+      n.accidental = ks < 0 ? 'b' : '#';
+    } else {
+      n.accidental = keyAcc ? 'n' : null;
+    }
+  }, { toast: `Changed to ${NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase()}${Math.floor(newPitch / 12) - 1}` });
 }
 
 function changeOctave(delta) {
@@ -5691,33 +6509,7 @@ function changeOctave(delta) {
 function updateOctaveDisplay() {
   const el = document.getElementById('oct-display');
   if (el) el.textContent = 'Octave ' + APP.curOctave;
-  const btn = document.getElementById('btn-bw-names');
-  const dot = document.getElementById('names-dot');
-  if (btn) {
-    btn.style.display = 'inline-block';
-    const on = APP.bwNoteNames;
-    btn.style.background  = on ? 'rgba(100,200,140,0.20)' : 'rgba(224,112,96,0.15)';
-    btn.style.borderColor = on ? 'rgba(100,200,140,0.55)' : 'rgba(224,112,96,0.40)';
-    btn.style.color       = on ? '#64c88c' : '#e07060';
-    if (dot) dot.style.background = on ? '#64c88c' : '#e07060';
-  }
 }
-
-function toggleBWNoteNames() {
-  APP.bwNoteNames = !APP.bwNoteNames;
-  const btn = document.getElementById('btn-bw-names');
-  const dot = document.getElementById('names-dot');
-  if (btn) {
-    const on = APP.bwNoteNames;
-    btn.style.background    = on ? 'rgba(100,200,140,0.20)' : 'rgba(224,112,96,0.15)';
-    btn.style.borderColor   = on ? 'rgba(100,200,140,0.55)' : 'rgba(224,112,96,0.40)';
-    btn.style.color         = on ? '#64c88c' : '#e07060';
-    if (dot) dot.style.background = on ? '#64c88c' : '#e07060';
-  }
-  renderScore();
-  showToast(APP.bwNoteNames ? 'Note names on' : 'Note names off');
-}
-
 
 // ── Note Name / Solfège Labels ──────────────────────────────────
 const SOLFEGE = [
@@ -5784,10 +6576,10 @@ function renderNoteLabels() {
     const label = noteLabelForPitch(n.pitch, ks, n.accidental, mode);
     const sl = APP.staveLayout.find(l => l.mi === nl.mi && l.si === nl.si);
     const staffBot = sl ? sl.bottomY : nl.y;
-    const fontSize = Math.round(REND.STAVE_H * 0.26);
+    const fontSize = Math.round(LAYOUT.STAVE_H * 0.26);
     const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
     lbl.setAttribute('x', nl.x);
-    lbl.setAttribute('y', staffBot + fontSize + Math.round(REND.STAVE_H * 0.16));
+    lbl.setAttribute('y', staffBot + fontSize + Math.round(LAYOUT.STAVE_H * 0.16));
     lbl.setAttribute('text-anchor', 'middle');
     lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
     lbl.setAttribute('font-size', fontSize);
@@ -5905,10 +6697,9 @@ function applyArticulation(type) {
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
-  pushUndo('Add articulation');
-  n.articulation = (n.articulation === type || !type) ? null : type;
-  renderScore();
-  showToast(n.articulation ? ARTIC_SYMBOLS[n.articulation] + ' ' + n.articulation : 'Articulation removed');
+  commitChange(score => {
+    n.articulation = (n.articulation === type || !type) ? null : type;
+  }, { toast: n.articulation ? ARTIC_SYMBOLS[n.articulation] + ' ' + n.articulation : 'Articulation removed' });
 }
 
 // ── Fingering ─────────────────────────────────────────────────────
@@ -5916,62 +6707,54 @@ function applyFingering(f) {
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
-  pushUndo('Add fingering');
-  n.fingering = (!f || n.fingering === f) ? null : f;
-  renderScore();
-  showToast(n.fingering ? `Fingering ${n.fingering}` : 'Fingering removed');
+  commitChange(score => {
+    n.fingering = (!f || n.fingering === f) ? null : f;
+  }, { toast: n.fingering ? `Fingering ${n.fingering}` : 'Fingering removed' });
 }
 
 // ── Barlines ─────────────────────────────────────────────────────
 function applyBarline(type) {
-  pushUndo('Change barline');
   const mi = APP.selectedMeasure;
-  APP.score.parts.forEach(p => p.staves.forEach(s => {
-    const m = s.measures[mi];
-    if (m) m.barline = type;
-  }));
-  renderScore();
-  showToast('Barline: ' + type);
+  commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => {
+      const m = s.measures[mi];
+      if (m) m.barline = type;
+    }));
+  }, { toast: 'Barline: ' + type });
 }
 
 // ── Clef Changes ─────────────────────────────────────────────────
 function applyClefChange(clef) {
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  pushUndo('Change clef');
-  APP.score.parts.forEach(p => p.staves.forEach(s => {
-    const m = s.measures[APP.selectedMeasure];
-    if (m) m.clef = clef;
-  }));
-  renderScore();
-  showToast(clef ? `Clef: ${clef.charAt(0).toUpperCase() + clef.slice(1)}` : 'Clef change removed');
+  commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => {
+      const m = s.measures[APP.selectedMeasure];
+      if (m) m.clef = clef;
+    }));
+  }, { toast: clef ? `Clef: ${clef.charAt(0).toUpperCase() + clef.slice(1)}` : 'Clef change removed' });
 }
 
 // ── Navigation Markers (segno, coda, Fine, D.C., D.S.) ────────────
 function applyMarker(type) {
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  pushUndo('Add marker');
-  // Clear existing markers of this type on this measure first
-  APP.score.parts[0].staves.forEach(s => {
-    const m = s.measures[APP.selectedMeasure];
-    if (m) {
-      // Toggle: if same marker present, remove it
-      if (m[type]) { delete m[type]; } else { m[type] = true; }
-    }
-  });
-  renderScore();
-  const labels = {segno:'Segno', coda:'Coda', fine:'Fine', dc:'D.C.', ds:'D.S.'};
-  showToast(`${labels[type] || type} ${APP.score.parts[0].staves[0].measures[APP.selectedMeasure]?.[type] ? 'added' : 'removed'}`);
+  commitChange(score => {
+    score.parts[0].staves.forEach(s => {
+      const m = s.measures[APP.selectedMeasure];
+      if (m) {
+        if (m[type]) { delete m[type]; } else { m[type] = true; }
+      }
+    });
+  }, { toast: `${{segno:'Segno', coda:'Coda', fine:'Fine', dc:'D.C.', ds:'D.S.'}[type] || type} ${APP.score.parts[0].staves[0].measures[APP.selectedMeasure]?.[type] ? 'added' : 'removed'}` });
 }
 
 function clearMarker() {
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  pushUndo('Clear marker');
-  APP.score.parts[0].staves.forEach(s => {
-    const m = s.measures[APP.selectedMeasure];
-    if (m) { delete m.segno; delete m.coda; delete m.fine; delete m.dc; delete m.ds; }
-  });
-  renderScore();
-  showToast('Navigation markers cleared');
+  commitChange(score => {
+    score.parts[0].staves.forEach(s => {
+      const m = s.measures[APP.selectedMeasure];
+      if (m) { delete m.segno; delete m.coda; delete m.fine; delete m.dc; delete m.ds; }
+    });
+  }, { toast: 'Navigation markers cleared' });
 }
 
 // ── Tempo ─────────────────────────────────────────────────────────
@@ -5988,9 +6771,10 @@ function toggleTempoDisplay() {
 }
 
 function applyTempo(name, bpm) {
-  pushUndo('Change tempo');
   const mi = APP.selectedMeasure;
-  APP.score.parts[0].staves[0].measures[mi].tempo = {name, bpm};
+  commitChange(score => {
+    score.parts[0].staves[0].measures[mi].tempo = {name, bpm};
+  });
   APP.tempo = bpm;
   document.getElementById('tempo-slider').value = Math.min(240, Math.max(40, bpm));
   document.getElementById('tempo-val').textContent = bpm;
@@ -6003,14 +6787,12 @@ function applyDynamic(dyn) {
     showToast('Select a note first, then tap a dynamic');
     return;
   }
-  pushUndo('Add dynamic');
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  // Toggle off if same dynamic
-  n.dynamic = (n.dynamic === dyn) ? null : dyn;
-  renderScore();
-  showToast(n.dynamic ? dyn : 'Dynamic removed');
+  commitChange(score => {
+    n.dynamic = (n.dynamic === dyn) ? null : dyn;
+  }, { toast: n.dynamic ? dyn : 'Dynamic removed' });
 }
 
 // ── Slurs / Ties / Hairpins ───────────────────────────────────────
@@ -6050,26 +6832,24 @@ function completeMarking(endMi, endSi, endNi) {
     showToast('End note must come after start note'); return;
   }
 
-  pushUndo('Add marking');
-  if (!APP.score.slurs)    APP.score.slurs    = [];
-  if (!APP.score.hairpins) APP.score.hairpins = [];
+  commitChange(score => {
+    if (!score.slurs)    score.slurs    = [];
+    if (!score.hairpins) score.hairpins = [];
 
-  if (type === 'tie') {
-    const n = getMeasureBySI(s.si, s.mi)?.notes[s.ni];
-    if (n) n.tieToNext = true;
-  } else if (type === 'slur') {
-    APP.score.slurs.push({si: s.si, startMi: s.mi, startNi: s.ni, endMi, endNi});
-  } else {
-    APP.score.hairpins.push({type, si: s.si, startMi: s.mi, startNi: s.ni, endMi, endNi});
-  }
+    if (type === 'tie') {
+      const n = getMeasureBySI(s.si, s.mi)?.notes[s.ni];
+      if (n) n.tieToNext = true;
+    } else if (type === 'slur') {
+      score.slurs.push({si: s.si, startMi: s.mi, startNi: s.ni, endMi, endNi});
+    } else {
+      score.hairpins.push({type, si: s.si, startMi: s.mi, startNi: s.ni, endMi, endNi});
+    }
 
-  APP.markingMode  = null;
-  APP.markingStart = null;
-  document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
-    .forEach(b => b.classList.remove('active'));
-  renderScore();
-  const labels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
-  showToast(`${labels[type]} added`);
+    APP.markingMode  = null;
+    APP.markingStart = null;
+    document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
+      .forEach(b => b.classList.remove('active'));
+  }, { toast: `${labels[type]} added` });
 }
 function selectDur(d) {
   APP.curDur = d;
@@ -6160,29 +6940,27 @@ function _checkVoltaComplete(mi) {
   const { label, startMi } = APP.voltaPending;
   if (mi === startMi) return false; // need a different measure
   const closed = label !== '2.';
-  pushUndo('Add volta');
-  if (!APP.score.voltas) APP.score.voltas = [];
-  APP.score.voltas.push({
-    startMi: Math.min(startMi, mi),
-    endMi:   Math.max(startMi, mi),
-    label,
-    closed,
-  });
-  APP.voltaPending = null;
-  document.querySelectorAll('.volta-btn').forEach(b => b.classList.remove('active'));
-  renderScore();
-  showToast(`${label} ending added`);
+  commitChange(score => {
+    if (!score.voltas) score.voltas = [];
+    score.voltas.push({
+      startMi: Math.min(startMi, mi),
+      endMi:   Math.max(startMi, mi),
+      label,
+      closed,
+    });
+    APP.voltaPending = null;
+    document.querySelectorAll('.volta-btn').forEach(b => b.classList.remove('active'));
+  }, { toast: `${label} ending added` });
   return true;
 }
 
 function clearVolta() {
-  pushUndo('Clear volta');
   const mi = APP.selectedMeasure;
-  APP.score.voltas = (APP.score.voltas || []).filter(
-    v => !(mi >= v.startMi && mi <= v.endMi)
-  );
-  renderScore();
-  showToast('Ending removed');
+  commitChange(score => {
+    score.voltas = (score.voltas || []).filter(
+      v => !(mi >= v.startMi && mi <= v.endMi)
+    );
+  }, { toast: 'Ending removed' });
 }
 
 // ── Ottava Controls ───────────────────────────────────────────────
@@ -6212,20 +6990,19 @@ function _checkOttavaComplete(mi, si, ni) {
   if (si !== p.si) { showToast('Ottava must stay on the same staff'); return false; }
   // End note must be at or after start note
   if (mi < p.startMi || (mi === p.startMi && ni <= p.startNi)) return false;
-  pushUndo('Add ottava');
-  if (!APP.score.ottavas) APP.score.ottavas = [];
-  APP.score.ottavas.push({
-    type:    p.type,
-    si:      p.si,
-    startMi: p.startMi,
-    startNi: p.startNi,
-    endMi:   mi,
-    endNi:   ni,
-  });
-  APP.ottavaPending = null;
-  document.querySelectorAll('.ottava-btn').forEach(b => b.classList.remove('active'));
-  renderScore();
-  showToast(`${p.type} line added`);
+  commitChange(score => {
+    if (!score.ottavas) score.ottavas = [];
+    score.ottavas.push({
+      type:    p.type,
+      si:      p.si,
+      startMi: p.startMi,
+      startNi: p.startNi,
+      endMi:   mi,
+      endNi:   ni,
+    });
+    APP.ottavaPending = null;
+    document.querySelectorAll('.ottava-btn').forEach(b => b.classList.remove('active'));
+  }, { toast: `${p.type} line added` });
   return true;
 }
 
@@ -6233,16 +7010,15 @@ function clearOttava() {
   const mi = APP.selectedMeasure;
   const si = APP.selectedStaff;
   const ni = APP.selectedNoteIdx;
-  pushUndo('Clear ottava');
-  APP.score.ottavas = (APP.score.ottavas || []).filter(o => {
-    const coversStart = o.si === si && o.startMi === mi && o.startNi === ni;
-    const coversEnd   = o.si === si && o.endMi   === mi && o.endNi   === ni;
-    const coversMid   = o.si === si && (mi > o.startMi || (mi === o.startMi && ni >= o.startNi))
-                                    && (mi < o.endMi   || (mi === o.endMi   && ni <= o.endNi));
-    return !(coversStart || coversEnd || coversMid);
-  });
-  renderScore();
-  showToast('Ottava removed');
+  commitChange(score => {
+    score.ottavas = (score.ottavas || []).filter(o => {
+      const coversStart = o.si === si && o.startMi === mi && o.startNi === ni;
+      const coversEnd   = o.si === si && o.endMi   === mi && o.endNi   === ni;
+      const coversMid   = o.si === si && (mi > o.startMi || (mi === o.startMi && ni >= o.startNi))
+                                      && (mi < o.endMi   || (mi === o.endMi   && ni <= o.endNi));
+      return !(coversStart || coversEnd || coversMid);
+    });
+  }, { toast: 'Ottava removed' });
 }
 
 // ── Grace Notes ───────────────────────────────────────────────────
@@ -6290,12 +7066,10 @@ function addGraceNote(name) {
   const midi    = (refOct + 1) * 12 + pc;
   const ks     = getResolvedKeySig(APP.selectedMeasure, APP.selectedStaff);
   const acc     = APP.curAcc || (DIATONIC_PCS.has(pc) ? null : (ks < 0 ? 'b' : '#'));
-  pushUndo('Add grace note');
-  if (!n.graceNotes) n.graceNotes = [];
-  n.graceNotes.push({ pitch: midi, accidental: acc, slashed: APP.graceSlashed });
-  renderScore();
-  const noteName = NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
-  showToast(`Grace note ${noteName} added`);
+  commitChange(score => {
+    if (!n.graceNotes) n.graceNotes = [];
+    n.graceNotes.push({ pitch: midi, accidental: acc, slashed: APP.graceSlashed });
+  }, { toast: `Grace note ${NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase()} added` });
   // Stay in grace mode so user can add more grace notes to same parent
 }
 
@@ -6303,17 +7077,16 @@ function clearGraceNotes() {
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  pushUndo('Remove grace note');
   if (APP.selectedGraceIdx >= 0 && n.graceNotes && n.graceNotes.length > APP.selectedGraceIdx) {
-    n.graceNotes.splice(APP.selectedGraceIdx, 1);
-    if (!n.graceNotes.length) delete n.graceNotes;
-    APP.selectedGraceIdx = -1;
-    renderScore();
-    showToast('Grace note deleted');
+    commitChange(score => {
+      n.graceNotes.splice(APP.selectedGraceIdx, 1);
+      if (!n.graceNotes.length) delete n.graceNotes;
+      APP.selectedGraceIdx = -1;
+    }, { toast: 'Grace note deleted' });
   } else {
-    delete n.graceNotes;
-    renderScore();
-    showToast('All grace notes removed');
+    commitChange(score => {
+      delete n.graceNotes;
+    }, { toast: 'All grace notes removed' });
   }
 }
 
@@ -6327,15 +7100,14 @@ function convertToGrace(slashed) {
   if (ni >= m.notes.length - 1) { showToast('Last note: no following note to attach to'); return; }
   const next = m.notes[ni + 1];
   if (next.type !== 'note') { showToast('The following item is not a note'); return; }
-  pushUndo('Convert to grace');
-  if (!next.graceNotes) next.graceNotes = [];
-  const gn = { pitch: n.pitch, accidental: n.accidental, slashed };
-  next.graceNotes.push(gn);
-  m.notes.splice(ni, 1);
-  APP.selectedNoteIdx = m.notes.indexOf(next);
-  renderScore();
   const label = slashed ? 'Acciaccatura' : 'Appoggiatura';
-  showToast(`Converted to ${label} of following note`);
+  commitChange(score => {
+    if (!next.graceNotes) next.graceNotes = [];
+    const gn = { pitch: n.pitch, accidental: n.accidental, slashed };
+    next.graceNotes.push(gn);
+    m.notes.splice(ni, 1);
+    APP.selectedNoteIdx = m.notes.indexOf(next);
+  }, { toast: `Converted to ${label} of following note` });
 }
 
 // ── Glissando ─────────────────────────────────────────────────────
@@ -6366,25 +7138,23 @@ function _checkGlissComplete(mi, si, ni) {
   const p = APP.glissPending;
   if (si !== p.si) return false;
   if (mi < p.startMi || (mi === p.startMi && ni <= p.startNi)) return false;
-  pushUndo('Add glissando');
-  if (!APP.score.glissandos) APP.score.glissandos = [];
-  APP.score.glissandos.push({ style: p.style, si: p.si, startMi: p.startMi, startNi: p.startNi, endMi: mi, endNi: ni });
-  APP.glissPending = null;
-  document.getElementById('btn-gliss-str')?.classList.remove('active');
-  document.getElementById('btn-gliss-wav')?.classList.remove('active');
-  renderScore();
-  showToast('Glissando added');
+  commitChange(score => {
+    if (!score.glissandos) score.glissandos = [];
+    score.glissandos.push({ style: p.style, si: p.si, startMi: p.startMi, startNi: p.startNi, endMi: mi, endNi: ni });
+    APP.glissPending = null;
+    document.getElementById('btn-gliss-str')?.classList.remove('active');
+    document.getElementById('btn-gliss-wav')?.classList.remove('active');
+  }, { toast: 'Glissando added' });
   return true;
 }
 
 function clearGlissando() {
   const mi = APP.selectedMeasure, si = APP.selectedStaff, ni = APP.selectedNoteIdx;
-  pushUndo('Clear glissando');
-  APP.score.glissandos = (APP.score.glissandos || []).filter(
-    g => !(g.si === si && ((g.startMi === mi && g.startNi === ni) || (g.endMi === mi && g.endNi === ni)))
-  );
-  renderScore();
-  showToast('Glissando removed');
+  commitChange(score => {
+    score.glissandos = (score.glissandos || []).filter(
+      g => !(g.si === si && ((g.startMi === mi && g.startNi === ni) || (g.endMi === mi && g.endNi === ni)))
+    );
+  }, { toast: 'Glissando removed' });
 }
 function toggleInputMode() {
   APP.inputMode = !APP.inputMode;
@@ -6402,21 +7172,20 @@ function toggleInputMode() {
 }
 function deleteSelected() {
   if (APP.selectedNoteIdx < 0) return;
-  pushUndo('Delete note');
   const m = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
   if (!m) return;
-  if (APP.selStartIdx >= 0) {
-    const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
-    const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
-    m.notes.splice(lo, hi - lo + 1);
-    APP.selStartIdx = -1;
-  } else {
-    m.notes.splice(APP.selectedNoteIdx, 1);
-  }
-  if (!m.notes.length) m.notes.push(mkRest('w'));
-  APP.selectedNoteIdx = -1;
-  renderScore();
-  showToast('Deleted');
+  commitChange(score => {
+    if (APP.selStartIdx >= 0) {
+      const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
+      const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
+      m.notes.splice(lo, hi - lo + 1);
+      APP.selStartIdx = -1;
+    } else {
+      m.notes.splice(APP.selectedNoteIdx, 1);
+    }
+    if (!m.notes.length) m.notes.push(mkRest('w'));
+    APP.selectedNoteIdx = -1;
+  }, { toast: 'Deleted' });
 }
 
 function copySelection() {
@@ -6445,47 +7214,44 @@ function cutSelection() {
   const si = APP.selectedStaff;
   const m = getMeasureBySI(si, mi);
   if (!m) return;
-  pushUndo('Cut selection');
-  if (APP.selStartIdx >= 0) {
-    const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
-    const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
-    m.notes.splice(lo, hi - lo + 1);
-    APP.selStartIdx = -1;
-  } else if (APP.selectedNoteIdx >= 0) {
-    m.notes.splice(APP.selectedNoteIdx, 1);
-  } else return;
-  if (!m.notes.length) m.notes.push(mkRest('w'));
-  APP.selectedNoteIdx = -1;
-  renderScore();
+  commitChange(score => {
+    if (APP.selStartIdx >= 0) {
+      const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
+      const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
+      m.notes.splice(lo, hi - lo + 1);
+      APP.selStartIdx = -1;
+    } else if (APP.selectedNoteIdx >= 0) {
+      m.notes.splice(APP.selectedNoteIdx, 1);
+    } else return;
+    if (!m.notes.length) m.notes.push(mkRest('w'));
+    APP.selectedNoteIdx = -1;
+  });
 }
 
 function pasteClipboard() {
   if (!APP.clipboard) { showToast('Nothing to paste'); return; }
-  pushUndo('Paste');
-  if (APP.clipboard.type === 'note') {
-    const mi = APP.selectedMeasure;
-    const si = APP.selectedStaff;
-    const m = getMeasureBySI(si, mi);
-    if (!m) return;
-    const ni = APP.selectedNoteIdx;
-    const note = JSON.parse(JSON.stringify(APP.clipboard.data));
-    if (ni >= 0) {
-      m.notes.splice(ni + 1, 0, note);
-      APP.selectedNoteIdx = ni + 1;
-    } else {
-      m.notes.push(note);
-      APP.selectedNoteIdx = m.notes.length - 1;
+  const clipType = APP.clipboard.type;
+  const clipData = JSON.parse(JSON.stringify(APP.clipboard.data));
+  const mi = APP.selectedMeasure;
+  const si = APP.selectedStaff;
+  commitChange(score => {
+    if (clipType === 'note') {
+      const m = getMeasureBySI(si, mi);
+      if (!m) return;
+      const ni = APP.selectedNoteIdx;
+      if (ni >= 0) {
+        m.notes.splice(ni + 1, 0, clipData);
+        APP.selectedNoteIdx = ni + 1;
+      } else {
+        m.notes.push(clipData);
+        APP.selectedNoteIdx = m.notes.length - 1;
+      }
+    } else if (clipType === 'measure') {
+      score.parts.forEach(p => p.staves.forEach(s => {
+        if (s.measures[mi]) s.measures[mi] = JSON.parse(JSON.stringify(clipData));
+      }));
     }
-    showToast('Note pasted');
-  } else if (APP.clipboard.type === 'measure') {
-    const mi = APP.selectedMeasure;
-    const data = JSON.parse(JSON.stringify(APP.clipboard.data));
-    APP.score.parts.forEach(p => p.staves.forEach(s => {
-      if (s.measures[mi]) s.measures[mi] = JSON.parse(JSON.stringify(data));
-    }));
-    showToast('Measure pasted');
-  }
-  renderScore();
+  }, { toast: clipType === 'note' ? 'Note pasted' : 'Measure pasted' });
 }
 
 // ── Selection helpers ────────────────────────────────────────────
@@ -6509,18 +7275,16 @@ function selectAllNotes() {
 function deleteMeasure() {
   const nM = APP.score.parts[0].staves[0].measures.length;
   if (nM <= 1) { showToast('Cannot delete the only measure'); return; }
-  pushFullUndo('Delete measure');
   const mi = APP.selectedMeasure;
-  APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 1)));
-  // Remove any volta/rehearsal/hairpin/slur that referenced this measure
-  APP.score.voltas          = (APP.score.voltas          || []).filter(v => v.startMi !== mi && v.endMi !== mi).map(v => ({...v, startMi: v.startMi > mi ? v.startMi-1 : v.startMi, endMi: v.endMi > mi ? v.endMi-1 : v.endMi}));
-  APP.score.rehearsalMarks  = (APP.score.rehearsalMarks  || []).filter(r => r.mi !== mi).map(r => ({...r, mi: r.mi > mi ? r.mi-1 : r.mi}));
-  APP.score.slurs           = (APP.score.slurs           || []).filter(s => s.startMi !== mi && s.endMi !== mi);
-  APP.score.hairpins        = (APP.score.hairpins        || []).filter(h => h.startMi !== mi && h.endMi !== mi);
-  APP.selectedMeasure       = Math.min(mi, nM - 2);
-  APP.selectedNoteIdx       = -1;
-  renderScore();
-  showToast('Measure deleted');
+  commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 1)));
+    score.voltas          = (score.voltas          || []).filter(v => v.startMi !== mi && v.endMi !== mi).map(v => ({...v, startMi: v.startMi > mi ? v.startMi-1 : v.startMi, endMi: v.endMi > mi ? v.endMi-1 : v.endMi}));
+    score.rehearsalMarks  = (score.rehearsalMarks  || []).filter(r => r.mi !== mi).map(r => ({...r, mi: r.mi > mi ? r.mi-1 : r.mi}));
+    score.slurs           = (score.slurs           || []).filter(s => s.startMi !== mi && s.endMi !== mi);
+    score.hairpins        = (score.hairpins        || []).filter(h => h.startMi !== mi && h.endMi !== mi);
+    APP.selectedMeasure   = Math.min(mi, nM - 2);
+    APP.selectedNoteIdx   = -1;
+  }, { toast: 'Measure deleted' });
 }
 
 function toggleLineBreak() {
@@ -6592,43 +7356,31 @@ const DIA_SEMITONES = [0,2,4,5,7,9,11]; // C D E F G A B
 // diaSteps is the diatonic shift (for accidental book-keeping, +/- integer).
 function transposeScore(semitones) {
   if (!semitones) return;
-  pushFullUndo('Transpose');
-  APP.score.parts.forEach(part => {
-    part.staves.forEach(stave => {
-      stave.measures.forEach(m => {
-        // Shift key signature
-        if (m.keySig !== null && m.keySig !== undefined) {
-          // Approximate new key sig by counting sharps/flats added per semitone interval
-          // We convert via pitch class: find the key note, add semitones, find new key.
-          const oldKS = m.keySig;
-          // key-note pitch class for each key sig value:
-          // 0=C(0) 1=G(7) 2=D(2) 3=A(9) 4=E(4) 5=B(11) 6=F#(6) 7=C#(1)
-          // -1=F(5) -2=Bb(10) -3=Eb(3) -4=Ab(8) -5=Db(1) -6=Gb(6) -7=Cb(11)
-          const KS_PC = [0,7,2,9,4,11,6,1,5,10,3,8,1,6,11]; // index = ks+7
-          const oldPC = KS_PC[oldKS + 7] ?? 0;
-          const newPC = ((oldPC + semitones) % 12 + 12) % 12;
-          // Find the new key sig that has this pitch class as its tonic
-          let newKS = 0;
-          for (let k = -7; k <= 7; k++) { if (KS_PC[k+7] === newPC) { newKS = k; break; } }
-          m.keySig = newKS;
-        }
-        // Shift notes
-        m.notes.forEach(n => {
-          if (n.type !== 'note') return;
-          n.pitch = Math.max(12, Math.min(120, n.pitch + semitones));
-          if (n.extraPitches) n.extraPitches.forEach(ep => {
-            ep.pitch = Math.max(12, Math.min(120, ep.pitch + semitones));
+  commitChange(score => {
+    score.parts.forEach(part => {
+      part.staves.forEach(stave => {
+        stave.measures.forEach(m => {
+          if (m.keySig !== null && m.keySig !== undefined) {
+            const KS_PC = [0,7,2,9,4,11,6,1,5,10,3,8,1,6,11];
+            const oldPC = KS_PC[m.keySig + 7] ?? 0;
+            const newPC = ((oldPC + semitones) % 12 + 12) % 12;
+            let newKS = 0;
+            for (let k = -7; k <= 7; k++) { if (KS_PC[k+7] === newPC) { newKS = k; break; } }
+            m.keySig = newKS;
+          }
+          m.notes.forEach(n => {
+            if (n.type !== 'note') return;
+            n.pitch = Math.max(12, Math.min(120, n.pitch + semitones));
+            if (n.extraPitches) n.extraPitches.forEach(ep => {
+              ep.pitch = Math.max(12, Math.min(120, ep.pitch + semitones));
+            });
+            const pc2 = n.pitch % 12;
+            n.accidental = DIATONIC_PCS.has(pc2) ? null : (m.keySig < 0 ? 'b' : '#');
           });
-          // Recalculate accidental based on new pitch class + new key sig context
-          const pc2 = n.pitch % 12;
-          n.accidental = DIATONIC_PCS.has(pc2) ? null : (newKS < 0 ? 'b' : '#');
         });
       });
     });
-  });
-  renderScore();
-  const sign = semitones > 0 ? '+' : '';
-  showToast(`Transposed ${sign}${semitones} semitone${Math.abs(semitones)===1?'':'s'}`);
+  }, { toast: `Transposed ${semitones > 0 ? '+' : ''}${semitones} semitone${Math.abs(semitones)===1?'':'s'}` });
 }
 
 function showTransposeDialog() {
@@ -6718,92 +7470,74 @@ function navigateNote(direction, extend) {
 }
 function insertMeasure() {
   const mi = APP.selectedMeasure;
-  pushFullUndo('Insert measure');
   const prevM = mi > 0 ? APP.score.parts[0].staves[0].measures[mi - 1] : null;
   const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [mkRest('w')] };
-  APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 0, JSON.parse(JSON.stringify(m)))));
-  const bump = ref => ref >= mi ? ref + 1 : ref;
-  APP.score.voltas         = (APP.score.voltas         || []).map(v => ({...v, startMi: bump(v.startMi), endMi: bump(v.endMi)}));
-  APP.score.rehearsalMarks = (APP.score.rehearsalMarks || []).map(r => ({...r, mi: bump(r.mi)}));
-  APP.score.slurs          = (APP.score.slurs          || []).map(s => ({...s, startMi: bump(s.startMi), endMi: bump(s.endMi)}));
-  APP.score.hairpins       = (APP.score.hairpins       || []).map(h => ({...h, startMi: bump(h.startMi), endMi: bump(h.endMi)}));
-  APP.score.ottavas        = (APP.score.ottavas        || []).map(o => ({...o, startMi: bump(o.startMi), endMi: bump(o.endMi)}));
-  APP.score.glissandos     = (APP.score.glissandos     || []).map(g => ({...g, startMi: bump(g.startMi), endMi: bump(g.endMi)}));
-  APP.score.staffTexts     = (APP.score.staffTexts     || []).map(st => ({...st, mi: bump(st.mi)}));
-  APP.selectedNoteIdx = -1;
-  renderScore();
-  showToast('Measure inserted');
+  commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 0, JSON.parse(JSON.stringify(m)))));
+    const bump = ref => ref >= mi ? ref + 1 : ref;
+    score.voltas         = (score.voltas         || []).map(v => ({...v, startMi: bump(v.startMi), endMi: bump(v.endMi)}));
+    score.rehearsalMarks = (score.rehearsalMarks || []).map(r => ({...r, mi: bump(r.mi)}));
+    score.slurs          = (score.slurs          || []).map(s => ({...s, startMi: bump(s.startMi), endMi: bump(s.endMi)}));
+    score.hairpins       = (score.hairpins       || []).map(h => ({...h, startMi: bump(h.startMi), endMi: bump(h.endMi)}));
+    score.ottavas        = (score.ottavas        || []).map(o => ({...o, startMi: bump(o.startMi), endMi: bump(o.endMi)}));
+    score.glissandos     = (score.glissandos     || []).map(g => ({...g, startMi: bump(g.startMi), endMi: bump(g.endMi)}));
+    score.staffTexts     = (score.staffTexts     || []).map(st => ({...st, mi: bump(st.mi)}));
+    APP.selectedNoteIdx = -1;
+  }, { toast: 'Measure inserted' });
 }
 function addMeasure() {
-  pushFullUndo('Add measure');
-  APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
-  renderScore();
-  showToast('Measure added');
+  commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+  }, { toast: 'Measure added' });
 }
 
 // ── Undo/Redo ────────────────────────────────────────────────────
-function captureMeasure(mi, si) {
-  const m = getMeasureBySI(si, mi);
-  return m ? JSON.parse(JSON.stringify(m)) : null;
+// Uses structuredClone() (3-5× faster than JSON round-trip, no type loss).
+// Falls back to JSON for environments that don't support it (Safari < 15.4).
+const _cloneScore = typeof structuredClone === 'function'
+  ? s => structuredClone(s)
+  : s => JSON.parse(JSON.stringify(s));
+
+// Lightweight dirty check: compare measure counts + last-note fingerprint
+// so we skip pushing if nothing actually changed (e.g. double-key on empty measure).
+function _scoreFingerprint(score) {
+  if (!score) return '';
+  try {
+    const parts = score.parts;
+    const mCount = parts.reduce((n, p) => n + (p.staves[0]?.measures?.length || 0), 0);
+    const firstM = parts[0]?.staves[0]?.measures[0];
+    const noteCount = firstM?.notes?.length ?? 0;
+    const lastPart  = parts[parts.length - 1];
+    const lastStave = lastPart?.staves?.[lastPart.staves.length - 1];
+    const lastM     = lastStave?.measures?.[lastStave.measures.length - 1];
+    const lastNote  = lastM?.notes?.[lastM.notes.length - 1];
+    return `${mCount}:${noteCount}:${lastNote?.pitch ?? ''}:${lastNote?.duration ?? ''}`;
+  } catch(e) { return Math.random().toString(); }
 }
 
-function pushFullUndo(type) {
-  APP.undoStack.push({ type: type || 'Edit', _full: JSON.parse(JSON.stringify(APP.score)) });
-  APP.redoStack = [];
-  if (APP.undoStack.length > 60) APP.undoStack.shift();
-}
-function pushUndo(type) {
-  const mi = APP.selectedMeasure;
-  const data = {}, sis = [];
-  APP.score.parts.forEach((part, pi) => part.staves.forEach((stave, si) => {
-    const gsi = _globalSIForPart(pi, si);
-    const m = getMeasureBySI(gsi, mi);
-    if (m) { data[gsi] = JSON.parse(JSON.stringify(m)); sis.push(gsi); }
-  }));
-  if (!sis.length) { APP.undoStack.push({ type: type || 'Edit' }); APP.redoStack = []; return; }
-  APP.undoStack.push({ type: type || 'Edit', mi, data, sis });
+function pushUndo() {
+  const fp = _scoreFingerprint(APP.score);
+  if (APP._lastUndoFP === fp) return;
+  APP._lastUndoFP = fp;
+  APP.undoStack.push(_cloneScore(APP.score));
   APP.redoStack = [];
   if (APP.undoStack.length > 60) APP.undoStack.shift();
 }
 function undo() {
   if (!APP.undoStack.length) { showToast('Nothing to undo'); return; }
-  const cmd = APP.undoStack.pop();
-  if (cmd._full) {
-    APP.redoStack.push({ type: cmd.type, _full: JSON.parse(JSON.stringify(APP.score)) });
-    APP.score = cmd._full;
-    APP.selectedNoteIdx = -1;
-    renderScore(); showToast(`Undo ${cmd.type}`);
-    return;
-  }
-  const after = {};
-  (cmd.sis || []).forEach(si => { const m = getMeasureBySI(si, cmd.mi); if (m) after[si] = JSON.parse(JSON.stringify(m)); });
-  APP.redoStack.push({ type: cmd.type, mi: cmd.mi, data: after, sis: cmd.sis });
-  (cmd.sis || []).forEach(si => {
-    const target = getMeasureBySI(si, cmd.mi);
-    if (target && cmd.data[si]) Object.assign(target, cmd.data[si]);
-  });
+  APP.redoStack.push(_cloneScore(APP.score));
+  APP.score = APP.undoStack.pop();
+  APP._lastUndoFP = _scoreFingerprint(APP.score);
   APP.selectedNoteIdx = -1;
-  renderScore(); showToast(`Undo ${cmd.type}`);
+  renderScore(); showToast('Undo');
 }
 function redo() {
   if (!APP.redoStack.length) { showToast('Nothing to redo'); return; }
-  const cmd = APP.redoStack.pop();
-  if (cmd._full) {
-    APP.undoStack.push({ type: cmd.type, _full: JSON.parse(JSON.stringify(APP.score)) });
-    APP.score = cmd._full;
-    APP.selectedNoteIdx = -1;
-    renderScore(); showToast(`Redo ${cmd.type}`);
-    return;
-  }
-  const after = {};
-  (cmd.sis || []).forEach(si => { const m = getMeasureBySI(si, cmd.mi); if (m) after[si] = JSON.parse(JSON.stringify(m)); });
-  APP.undoStack.push({ type: cmd.type, mi: cmd.mi, data: after, sis: cmd.sis });
-  (cmd.sis || []).forEach(si => {
-    const target = getMeasureBySI(si, cmd.mi);
-    if (target && cmd.data[si]) Object.assign(target, cmd.data[si]);
-  });
+  APP.undoStack.push(_cloneScore(APP.score));
+  APP.score = APP.redoStack.pop();
+  APP._lastUndoFP = _scoreFingerprint(APP.score);
   APP.selectedNoteIdx = -1;
-  renderScore(); showToast(`Redo ${cmd.type}`);
+  renderScore(); showToast('Redo');
 }
 
 // ── Audio Export ──────────────────────────────────────────────────
@@ -7535,23 +8269,22 @@ function commitLyric(mi, si, ni, rawText, separator) {
   const n    = getMeasureBySI(si, mi)?.notes[ni];
   if (!n) return;
 
-  pushUndo('Edit lyric');
-  if (!text) {
-    delete n.lyric;
-  } else {
-    const _fontEl = document.querySelector('#lyric-toolbar select');
-    const _sizeEl = document.querySelectorAll('#lyric-toolbar select')[1];
-    n.lyric = {
-      text,
-      separator,
-      font:   _fontEl?.value || document.getElementById('lyric-font')?.value || "'Helvetica Neue',Helvetica,Arial,sans-serif",
-      size:   parseInt(_sizeEl?.value) || parseInt(document.getElementById('lyric-size')?.value) || 11,
-      bold:   APP.lyricBold,
-      italic: APP.lyricItalic,
-    };
-  }
-
-  renderScore();
+  commitChange(score => {
+    if (!text) {
+      delete n.lyric;
+    } else {
+      const _fontEl = document.querySelector('#lyric-toolbar select');
+      const _sizeEl = document.querySelectorAll('#lyric-toolbar select')[1];
+      n.lyric = {
+        text,
+        separator,
+        font:   _fontEl?.value || document.getElementById('lyric-font')?.value || "'Helvetica Neue',Helvetica,Arial,sans-serif",
+        size:   parseInt(_sizeEl?.value) || parseInt(document.getElementById('lyric-size')?.value) || 11,
+        bold:   APP.lyricBold,
+        italic: APP.lyricItalic,
+      };
+    }
+  });
 
   // Auto-advance to next note
   if (separator !== null && text.length > 0) {
@@ -7579,7 +8312,7 @@ function commitLyric(mi, si, ni, rawText, separator) {
 function clearLyric() {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  pushUndo('Remove lyric'); delete n.lyric; renderScore(); showToast('Lyric removed');
+  commitChange(score => { delete n.lyric; }, { toast: 'Lyric removed' });
 }
 
 function saveLyric() {
@@ -7621,20 +8354,17 @@ function saveChordSymbol() {
   const text = document.getElementById('cs-input')?.value.trim();
   const n    = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) { closeModal(); return; }
-  pushUndo('Edit chord symbol');
-  n.chordSymbol = text || null;
-  closeModal();
-  renderScore();
-  showToast(text ? `Chord: ${text}` : 'Chord symbol removed');
+  commitChange(score => {
+    n.chordSymbol = text || null;
+  }, { toast: text ? `Chord: ${text}` : 'Chord symbol removed' });
 }
 
 function clearChordSymbol() {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  pushUndo('Clear chord symbol');
-  delete n.chordSymbol;
-  renderScore();
-  showToast('Chord symbol removed');
+  commitChange(score => {
+    delete n.chordSymbol;
+  }, { toast: 'Chord symbol removed' });
 }
 
 // ── Rehearsal Marks ───────────────────────────────────────────────
@@ -7656,13 +8386,11 @@ function _nextRehearsalLabel(type) {
 
 function addRehearsalMark(type) {
   const label = _nextRehearsalLabel(type);
-  pushUndo('Add rehearsal mark');
-  if (!APP.score.rehearsalMarks) APP.score.rehearsalMarks = [];
-  // Remove any existing mark on this measure
-  APP.score.rehearsalMarks = APP.score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
-  APP.score.rehearsalMarks.push({mi: APP.selectedMeasure, label});
-  renderScore();
-  showToast(`Rehearsal mark ${label} added`);
+  commitChange(score => {
+    if (!score.rehearsalMarks) score.rehearsalMarks = [];
+    score.rehearsalMarks = score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
+    score.rehearsalMarks.push({mi: APP.selectedMeasure, label});
+  }, { toast: `Rehearsal mark ${label} added` });
 }
 
 function editRehearsalMark() {
@@ -7683,18 +8411,17 @@ function editRehearsalMark() {
 function saveRehearsalMark() {
   const label = document.getElementById('rm-input')?.value.trim();
   if (!label) { closeModal(); return; }
-  pushUndo('Edit rehearsal mark');
-  if (!APP.score.rehearsalMarks) APP.score.rehearsalMarks = [];
-  APP.score.rehearsalMarks = APP.score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
-  APP.score.rehearsalMarks.push({mi: APP.selectedMeasure, label});
-  closeModal(); renderScore();
-  showToast(`Rehearsal mark: ${label}`);
+  commitChange(score => {
+    if (!score.rehearsalMarks) score.rehearsalMarks = [];
+    score.rehearsalMarks = score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
+    score.rehearsalMarks.push({mi: APP.selectedMeasure, label});
+  }, { toast: `Rehearsal mark: ${label}` });
 }
 
 function clearRehearsalMark() {
-  pushUndo('Clear rehearsal mark');
-  APP.score.rehearsalMarks = (APP.score.rehearsalMarks || []).filter(r => r.mi !== APP.selectedMeasure);
-  renderScore(); showToast('Rehearsal mark removed');
+  commitChange(score => {
+    score.rehearsalMarks = (score.rehearsalMarks || []).filter(r => r.mi !== APP.selectedMeasure);
+  }, { toast: 'Rehearsal mark removed' });
 }
 
 function renderRehearsalMarks() {
@@ -7788,35 +8515,32 @@ function saveStaffText() {
   const text  = document.getElementById('st-input')?.value.trim();
   const style = document.getElementById('st-style')?.value || 'normal';
   const size  = parseInt(document.getElementById('st-size')?.value) || 12;
-  pushUndo('Edit staff text');
-  if (!APP.score.staffTexts) APP.score.staffTexts = [];
+  commitChange(score => {
+    if (!score.staffTexts) score.staffTexts = [];
 
-  if (APP.selectedNoteIdx >= 0) {
-    // Attach to specific note
-    const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-    if (n) {
-      if (!text) { delete n.staffText; delete n.staffTextStyle; delete n.staffTextSize; }
-      else { n.staffText = text; n.staffTextStyle = style; n.staffTextSize = size; }
+    if (APP.selectedNoteIdx >= 0) {
+      const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
+      if (n) {
+        if (!text) { delete n.staffText; delete n.staffTextStyle; delete n.staffTextSize; }
+        else { n.staffText = text; n.staffTextStyle = style; n.staffTextSize = size; }
+      }
+    } else {
+      score.staffTexts = score.staffTexts.filter(t => t.mi !== APP.selectedMeasure || t.si !== 0);
+      if (text) score.staffTexts.push({mi: APP.selectedMeasure, si: 0, text, style, size});
     }
-  } else {
-    // Attach to measure
-    APP.score.staffTexts = APP.score.staffTexts.filter(t => t.mi !== APP.selectedMeasure || t.si !== 0);
-    if (text) APP.score.staffTexts.push({mi: APP.selectedMeasure, si: 0, text, style, size});
-  }
-  closeModal(); renderScore();
-  showToast(text ? `Text: "${text}"` : 'Text removed');
+  }, { toast: text ? `Text: "${text}"` : 'Text removed' });
 }
 
 function clearStaffText() {
-  pushUndo('Clear staff text');
-  if (APP.selectedNoteIdx >= 0) {
-    const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-    if (n) { delete n.staffText; delete n.staffTextStyle; delete n.staffTextSize; }
-  } else {
-    APP.score.staffTexts = (APP.score.staffTexts || []).filter(
-      t => t.mi !== APP.selectedMeasure || t.si !== 0);
-  }
-  renderScore(); showToast('Text removed');
+  commitChange(score => {
+    if (APP.selectedNoteIdx >= 0) {
+      const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
+      if (n) { delete n.staffText; delete n.staffTextStyle; delete n.staffTextSize; }
+    } else {
+      score.staffTexts = (score.staffTexts || []).filter(
+        t => t.mi !== APP.selectedMeasure || t.si !== 0);
+    }
+  }, { toast: 'Text removed' });
 }
 
 function renderStaffTexts() {
@@ -8131,34 +8855,29 @@ function setPickupMeasure() {
   const den = parseInt(document.getElementById('pu-den')?.value) || 4;
   const ts = resolvedTimeSig(0, 0);
   if (num >= ts.num) { showToast('Pickup must be shorter than the time signature'); return; }
-  pushUndo('Add pickup');
   const puBeat = num * (4 / den);
   const bestRest = beatsToBestRestDuration(puBeat);
   const restDur = bestRest ? bestRest.dur : 'q';
-  APP.score.parts.forEach(p => p.staves.forEach(s => {
-    const m = s.measures[0];
-    m.pickup = {num, den};
-    m.timeSigNum = ts.num;
-    m.timeSigDen = ts.den;
-    m.notes = [mkRest(restDur)];
-  }));
-  // Ensure at least 2 measures so the score has some content
-  while (APP.score.parts[0].staves[0].measures.length < 2) {
-    APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
-  }
-  closeModal();
-  renderScore();
-  showToast(`Pickup ${num}/${den} set`);
+  commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => {
+      const m = s.measures[0];
+      m.pickup = {num, den};
+      m.timeSigNum = ts.num;
+      m.timeSigDen = ts.den;
+      m.notes = [mkRest(restDur)];
+    }));
+    while (score.parts[0].staves[0].measures.length < 2) {
+      score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+    }
+  }, { toast: `Pickup ${num}/${den} set` });
 }
 
 function removePickupMeasure() {
-  pushUndo('Remove pickup');
-  APP.score.parts.forEach(p => p.staves.forEach(s => {
-    delete s.measures[0].pickup;
-  }));
-  closeModal();
-  renderScore();
-  showToast('Pickup removed');
+  commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => {
+      delete s.measures[0].pickup;
+    }));
+  }, { toast: 'Pickup removed' });
 }
 
 // ── Edit Menu ─────────────────────────────────────────────────────
@@ -8263,11 +8982,9 @@ function selectAIFamily(fam) {
 
 function confirmAddInstrument() {
   const instrName = document.getElementById('ai-instr')?.value || 'Piano';
-  pushFullUndo('Add instrument');
-  addInstrumentToScore(instrName);
-  closeModal();
-  renderScore();
-  showToast(`${instrName} added`);
+  commitChange(score => {
+    addInstrumentToScore(instrName);
+  }, { toast: `${instrName} added` });
 }
 
 // ── Time Signature Dialog (slider-based) ─────────────────────────
@@ -8355,24 +9072,21 @@ function tsApplyFromSliders() {
 }
 
 function applyTimeSig(num, den) {
-  pushUndo('Change time signature');
   const mi = APP.selectedMeasure;
-  APP.score.parts[0].staves.forEach(stave => {
-    const m = stave.measures[mi];
-    if (!m) return;
-    m.timeSigNum = num;
-    m.timeSigDen = den;
-    // Warn if existing notes exceed new capacity but don't delete them
-    const cap   = num * (4 / den);
-    const isEmpty = isWholeRestPlaceholder(m.notes);
-    const used  = isEmpty ? 0 : beatsUsed(m.notes);
-    if (used > cap + 0.001) {
-      showToast(`⚠ Measure ${mi+1} has more notes than ${num}/${den} allows — edit to fit`);
-    }
-  });
-  closeModal();
-  renderScore();
-  showToast(`Time signature: ${num}/${den}`);
+  commitChange(score => {
+    score.parts[0].staves.forEach(stave => {
+      const m = stave.measures[mi];
+      if (!m) return;
+      m.timeSigNum = num;
+      m.timeSigDen = den;
+      const cap   = num * (4 / den);
+      const isEmpty = isWholeRestPlaceholder(m.notes);
+      const used  = isEmpty ? 0 : beatsUsed(m.notes);
+      if (used > cap + 0.001) {
+        showToast(`⚠ Measure ${mi+1} has more notes than ${num}/${den} allows — edit to fit`);
+      }
+    });
+  }, { toast: `Time signature: ${num}/${den}` });
 }
 
 // ── Key Signature Dialog ──────────────────────────────────────────
@@ -8423,16 +9137,14 @@ function showKeySigDialog() {
 }
 
 function applyKeySig(ks) {
-  pushUndo('Change key signature');
   const mi = APP.selectedMeasure;
-  APP.score.parts[0].staves.forEach(stave => {
-    const m = stave.measures[mi];
-    if (m) m.keySig = ks;
-  });
-  closeModal();
-  renderScore();
   const info = ALL_KEY_SIGS.find(k => k.ks === ks);
-  showToast(`Key: ${info ? info.label + ' major / ' + info.sub : ks}`);
+  commitChange(score => {
+    score.parts[0].staves.forEach(stave => {
+      const m = stave.measures[mi];
+      if (m) m.keySig = ks;
+    });
+  }, { toast: `Key: ${info ? info.label + ' major / ' + info.sub : ks}` });
 }
 
 // ── File Operations ───────────────────────────────────────────────
@@ -8488,6 +9200,7 @@ function loadScoreFromXML(xmlStr, filename) {
     APP.selectedNoteIdx = -1;
     APP.undoStack = [];
     APP.redoStack = [];
+    APP._lastUndoFP = '';
     if (score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = score.showMeasureNumbers;
     if (score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = score.showMultiMeasureRests;
     document.getElementById('score-title').textContent =
@@ -8748,7 +9461,13 @@ function ndKSAdj(dir) {
   const staff = document.getElementById('nd-ks-staff');
   const label = document.getElementById('nd-ks-label');
   const accel = document.getElementById('nd-ks-accel');
-  staff.innerHTML = _ksMiniSVG(next);
+  // _ksMiniSVG returns internal, well-formed SVG — parse it safely via DOMParser
+  // rather than blasting innerHTML, so the element tree is always well-formed.
+  try {
+    const doc = new DOMParser().parseFromString(_ksMiniSVG(next), 'image/svg+xml');
+    const svgNode = doc.documentElement;
+    staff.replaceChildren(svgNode);
+  } catch(e) { staff.innerHTML = _ksMiniSVG(next); } // fallback for old parsers
   const data = KEY_SIG_DATA.find(k => k.ks === next);
   if (data) label.textContent = data.major + ' · ' + data.minor;
   const n = Math.abs(next);
@@ -8812,7 +9531,6 @@ function createNewScore() {
   const puDen     = pickup ? (parseInt(document.getElementById('nd-pu-den')?.value) || 4) : 0;
 
   APP.score = createScore({title, composer, ts, ks, instruments:[instrName]});
-  localStorage.removeItem(LS_KEY); // clear any auto-saved state from prior session
 
   // Add extra measures so the score has some content
   for (let i = 0; i < 3; i++) {
@@ -8831,7 +9549,7 @@ function createNewScore() {
     }));
   }
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
-  APP.undoStack = []; APP.redoStack = [];
+  APP.undoStack = []; APP.redoStack = []; APP._lastUndoFP = '';
   document.getElementById('score-title').textContent = title;
   closeModal();
   // Defer one frame so container has final CSS width
@@ -8889,15 +9607,13 @@ function applyTitleDialog() {
   const comp  = document.getElementById('td-composer').value.trim();
   const font  = document.getElementById('td-font').value;
   const size  = parseInt(document.getElementById('td-size').value) || 22;
-  pushFullUndo('Edit title');
-  APP.score.title    = title;
-  APP.score.composer = comp;
-  APP.score.titleFont = font;
-  APP.score.titleSize = size;
-  document.getElementById('score-title').textContent = title;
-  closeModal();
-  renderScore();
-  showToast('Title updated');
+  commitChange(score => {
+    score.title    = title;
+    score.composer = comp;
+    score.titleFont = font;
+    score.titleSize = size;
+    document.getElementById('score-title').textContent = title;
+  }, { toast: 'Title updated' });
 }
 
 function showScoreInfo() {
@@ -8992,30 +9708,67 @@ function showToast(msg) {
   _toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-// ── Auto-Save ───────────────────────────────────────────────────
-const LS_KEY = 'pauta_autosave';
-function autoSaveScore() {
-  if (!APP.score || !APP.score.parts || !APP.score.parts.length) return;
-  try {
-    const data = { score: JSON.parse(JSON.stringify(APP.score)), savedAt: Date.now() };
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-  } catch(e) { /* storage full or unavailable — silently ignore */ }
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
-function restoreAutoSavedScore() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data || !data.score || !data.score.parts) return null;
-    // Skip restore if it's still the blank single-measure template
-    const firstStave = data.score.parts[0]?.staves?.[0];
-    if (!firstStave || firstStave.measures.length <= 1) return null;
-    return data.score;
-  } catch(e) { return null; }
+
+// ── Auto-save ─────────────────────────────────────────────────────
+const AUTOSAVE_KEY      = 'pauta_autosave_v1';
+const AUTOSAVE_INTERVAL = 30_000; // ms
+
+function _autosaveNow() {
+  if (!APP.score) return;
+  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(APP.score)); } catch(e) { if (DEBUG) console.warn('[Pauta] autosave:', e.message); }
 }
-function startAutoSave() {
-  setInterval(autoSaveScore, 30000);
-  autoSaveScore(); // first save immediately
+
+function _startAutosave() {
+  setInterval(_autosaveNow, AUTOSAVE_INTERVAL);
+  window.addEventListener('beforeunload', _autosaveNow);
+}
+
+function restoreAutosave() {
+  const raw = localStorage.getItem(AUTOSAVE_KEY);
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    APP.score = saved;
+    const titleEl = document.getElementById('score-title');
+    if (titleEl) titleEl.textContent = saved.title || 'Untitled Score';
+    APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
+    closeModal();
+    renderScore();
+    showToast('Score restored from autosave ✓');
+  } catch(e) {
+    showToast('Could not restore autosave');
+    closeModal();
+  }
+}
+
+function _checkAndOfferRestore(onDecline) {
+  const raw = localStorage.getItem(AUTOSAVE_KEY);
+  if (!raw) { onDecline(); return; }
+  let saved;
+  try { saved = JSON.parse(raw); } catch(e) { onDecline(); return; }
+  const scoreTitle = saved?.title || 'Untitled Score';
+  window._autosaveDecline = onDecline;
+  makeModal(`
+    <h2 style="margin-bottom:10px">Restore autosaved score?</h2>
+    <p style="font-size:13px;color:var(--text-panel);line-height:1.5;margin-bottom:6px">
+      Pauta saved a copy of <b>${escHtml(scoreTitle)}</b> before you last closed it.
+    </p>
+    <p style="font-size:12px;color:var(--text-status);margin-bottom:18px">
+      Tap <b>Restore</b> to continue editing, or <b>New score</b> to start fresh.
+    </p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="modal-btn secondary" onclick="closeModal();window._autosaveDecline&&window._autosaveDecline()">New score</button>
+      <button class="modal-btn primary"   onclick="restoreAutosave()">Restore</button>
+    </div>
+  `);
 }
 
 
@@ -9023,7 +9776,9 @@ function startAutoSave() {
 window.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   if ((e.metaKey||e.ctrlKey) && e.key==='z') { e.preventDefault(); undo(); return; }
+  if (e.shiftKey && e.key==='Z')             { e.preventDefault(); undo(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='y') { e.preventDefault(); redo(); return; }
+  if (e.shiftKey && e.key==='Y')             { e.preventDefault(); redo(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='s') { e.preventDefault(); saveMSCZ(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='c') { e.preventDefault(); copySelection(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='v') { e.preventDefault(); pasteClipboard(); return; }
@@ -9080,11 +9835,6 @@ function bootApp() {
   }
   VF = Vex.Flow;
 
-  // Register service worker for CDN asset caching
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
-
   // Create a minimal blank score so renderScore never runs on null,
   // but don't render it — show the New Score dialog immediately instead.
   APP.score = createScore();
@@ -9097,22 +9847,12 @@ function bootApp() {
   loading.classList.add('hidden');
   setTimeout(() => loading.remove(), 500);
 
-  // Auto-save: persist score to localStorage every 30s
-  startAutoSave();
-  const savedScore = restoreAutoSavedScore();
-  if (savedScore) {
-    // Delay the prompt so the New Score dialog doesn't overlap
-    setTimeout(() => {
-      if (confirm('An unsaved score was found from a previous session. Restore it?')) {
-        APP.score = savedScore;
-        closeModal();
-        renderScore();
-        showToast('Restored from auto-save');
-      } else {
-        localStorage.removeItem(LS_KEY);
-      }
-    }, 600);
-  }
+  // Start autosave loop (runs every 30 s + on tab close)
+  _startAutosave();
+  _runBootSelfCheck();
+
+  // Offer to restore any autosaved score; opens New Score dialog if none found
+  _checkAndOfferRestore(showNewScoreDialog);
 
   // Double-tap on title for touch devices (set up once)
   let _titleTapT = 0;
@@ -9121,9 +9861,6 @@ function bootApp() {
     if (now - _titleTapT < 350) { e.preventDefault(); showTitleDialog(); }
     _titleTapT = now;
   });
-
-  // Open the New Score dialog straight away
-  showNewScoreDialog();
 }
 
 // PWA / iPad Install Hint
@@ -9136,14 +9873,53 @@ window.addEventListener('load', () => {
 });
 
 // ── Library Loader ────────────────────────────────────────────────
-function loadScript(src) {
+const _LIB_CACHE = 'pauta-libs-v1';
+
+// Inject a JS string as an inline blob script (used when serving from cache)
+function _execBlob(jsText) {
   return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('Failed: ' + src));
+    const blob = new Blob([jsText], { type: 'application/javascript' });
+    const url  = URL.createObjectURL(blob);
+    const s    = document.createElement('script');
+    s.src      = url;
+    s.onload   = () => { URL.revokeObjectURL(url); resolve(); };
+    s.onerror  = () => { URL.revokeObjectURL(url); reject(new Error('blob exec failed')); };
     document.head.appendChild(s);
   });
+}
+
+// Load a script — tries Cache API first, then network
+async function loadScript(src) {
+  // 1. Try the Cache API (works after first successful load)
+  if ('caches' in window) {
+    try {
+      const cache    = await caches.open(_LIB_CACHE);
+      const cached   = await cache.match(src);
+      if (cached) {
+        const text = await cached.text();
+        await _execBlob(text);
+        return; // served from cache ✓
+      }
+    } catch(e) { /* cache miss or unavailable — fall through to network */ }
+  }
+  // 2. Fetch from network
+  await new Promise((resolve, reject) => {
+    const s    = document.createElement('script');
+    s.src      = src;
+    s.onload   = resolve;
+    s.onerror  = () => reject(new Error('Failed: ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+// After a successful network load, silently populate the Cache API
+async function _cacheUrl(url) {
+  if (!('caches' in window)) return;
+  try {
+    const cache   = await caches.open(_LIB_CACHE);
+    const already = await cache.match(url);
+    if (!already) await cache.add(url);
+  } catch(e) { /* storage quota or CORS — non-fatal */ }
 }
 
 function setLoadingMsg(msg) {
@@ -9161,20 +9937,27 @@ function showLibError(msg) {
 }
 
 async function loadLibraries() {
-  // JSZip — two CDN options
+  // ── JSZip ──────────────────────────────────────────────────────
   setLoadingMsg('Loading JSZip…');
-  try {
-    await loadScript('https://unpkg.com/jszip@3.10.1/dist/jszip.min.js');
-  } catch(e) {
+  const jszipUrls = [
+    'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+  ];
+  let jszipLoaded = false;
+  for (const url of jszipUrls) {
     try {
-      await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
-    } catch(e2) {
-      showLibError('Could not load JSZip.<br>Please check your internet connection and tap Retry.');
-      return;
-    }
+      await loadScript(url);
+      _cacheUrl(url); // fire-and-forget — populates cache for next offline load
+      jszipLoaded = true;
+      break;
+    } catch(e) { /* try next */ }
+  }
+  if (!jszipLoaded) {
+    showLibError('Could not load JSZip.<br>Please check your internet connection and tap Retry.');
+    return;
   }
 
-  // VexFlow — try four known-good paths across two CDNs
+  // ── VexFlow ────────────────────────────────────────────────────
   setLoadingMsg('Loading VexFlow…');
   const vexCandidates = [
     'https://unpkg.com/vexflow@3.0.9/releases/vexflow-min.js',
@@ -9182,15 +9965,17 @@ async function loadLibraries() {
     'https://cdn.jsdelivr.net/npm/vexflow@3.0.9/releases/vexflow-min.js',
     'https://cdn.jsdelivr.net/npm/vexflow@3.0.9/build/vexflow-min.js',
   ];
-
   let vexOK = false;
   for (const url of vexCandidates) {
     try {
       await loadScript(url);
-      if (typeof Vex !== 'undefined' && Vex.Flow) { vexOK = true; break; }
+      if (typeof Vex !== 'undefined' && Vex.Flow) {
+        _cacheUrl(url); // cache the first URL that worked
+        vexOK = true;
+        break;
+      }
     } catch(e) { /* try next */ }
   }
-
   if (!vexOK) {
     showLibError('Could not load VexFlow (notation engine).<br>Please check your internet connection and tap Retry.');
     return;
@@ -9242,7 +10027,7 @@ window.showMixer=showMixer;window.showScoreInfo=showScoreInfo;
 window.showScoreMenu=showScoreMenu;window.showTimeSigDialog=showTimeSigDialog;
 window.startGlissando=startGlissando;window.startMarking=startMarking;
 window.startOttava=startOttava;window.startVolta=startVolta;
-window.stopPlayback=stopPlayback;window.toggleBWNoteNames=toggleBWNoteNames;
+window.stopPlayback=stopPlayback;
 window.toggleChordMode=toggleChordMode;window.toggleContinuousView=toggleContinuousView;
 window.toggleCountIn=toggleCountIn;window.toggleDot=toggleDot;
 window.toggleGraceMode=toggleGraceMode;window.toggleInputMode=toggleInputMode;
