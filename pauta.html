@@ -2792,6 +2792,69 @@ function _advanceSystemY(system, sysY, siOffset, ns, contentPad) {
   return systemBottom + contentPad + LAYOUT.SYS_SPACING;
 }
 
+// ── SVG Drawing Helpers ──────────────────────────────────────
+const _SVG_NS = 'http://www.w3.org/2000/svg';
+const _DEFAULT_FONT = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+
+function _svgCreate(tag, attrs, parent) {
+  const el = document.createElementNS(_SVG_NS, tag);
+  if (attrs) Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+function svgRect(parent, {x, y, w, h, rx, fill, stroke, strokeWidth, opacity, pointerEvents} = {}) {
+  return _svgCreate('rect', {
+    x, y, width: w, height: h,
+    rx: rx || 0, fill: fill || 'none',
+    stroke: stroke || 'none', 'stroke-width': strokeWidth || 0,
+    opacity: opacity ?? 1, 'pointer-events': pointerEvents || 'none',
+  }, parent);
+}
+
+function svgLine(parent, {x1, y1, x2, y2, stroke, strokeWidth, strokeLinecap} = {}) {
+  return _svgCreate('line', {
+    x1, y1, x2, y2,
+    stroke: stroke || '#000', 'stroke-width': strokeWidth || 1,
+    'stroke-linecap': strokeLinecap || 'round',
+    'pointer-events': 'none',
+  }, parent);
+}
+
+function svgCircle(parent, {cx, cy, r, fill, stroke, strokeWidth, opacity, pointerEvents} = {}) {
+  return _svgCreate('circle', {
+    cx, cy, r: r || 0,
+    fill: fill || 'none', stroke: stroke || 'none',
+    'stroke-width': strokeWidth || 0, opacity: opacity ?? 1,
+    'pointer-events': pointerEvents || 'none',
+  }, parent);
+}
+
+function svgText(parent, {x, y, text, fontSize, fontWeight, fontFamily, fill, anchor, pointerEvents, opacity} = {}) {
+  const el = _svgCreate('text', {
+    x, y,
+    'text-anchor': anchor || 'start',
+    'font-family': fontFamily || _DEFAULT_FONT,
+    'font-size': fontSize || 12,
+    'font-weight': fontWeight || 'normal',
+    fill: fill || '#111',
+    'pointer-events': pointerEvents || 'none',
+    opacity: opacity ?? 1,
+  }, parent);
+  el.textContent = text || '';
+  return el;
+}
+
+function svgPath(parent, {d, fill, stroke, strokeWidth, strokeLinecap, opacity} = {}) {
+  return _svgCreate('path', {
+    d: d || '',
+    fill: fill || 'none', stroke: stroke || 'none',
+    'stroke-width': strokeWidth || 1,
+    'stroke-linecap': strokeLinecap || 'round',
+    'pointer-events': 'none', opacity: opacity ?? 1,
+  }, parent);
+}
+
 // ── System packing ─────────────────────────────────────────────
 function packSystems(staves, allM, nM, ns, viewScale, container) {
   const FIRST_EXTRA_GLOBAL = Math.round(156 * viewScale);
@@ -2920,26 +2983,19 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         brG.setAttribute('data-diagram-cy', diagramCY);
         svgEl2.appendChild(brG);
       }
-      const labelG = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const labelBaseX = LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7);
-      labelG.setAttribute('data-label-x', labelBaseX);
-      labelG.setAttribute('data-label-y', midY + 7);
-      labelG.setAttribute('transform', `translate(${labelBaseX},${midY + 6})`);
-      const el = document.createElementNS('http://www.w3.org/2000/svg','text');
-      el.setAttribute('x', '0'); el.setAttribute('y', '0');
-      el.setAttribute('text-anchor','end');
-      el.setAttribute('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
-      el.setAttribute('font-size','11'); el.setAttribute('fill','#444');
+      const labelG = _svgCreate('g', {
+        'data-label-x': LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7),
+        'data-label-y': midY + 7,
+        transform: `translate(${LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7)},${midY + 6})`,
+      });
       const nm = part.name;
+      const el = svgText(labelG, {x: 0, y: 0, text: '', fontSize: 11, fill: '#444', anchor: 'end'});
       if (nm.length > 12 && nm.includes(' ')) {
         const si = nm.indexOf(' ');
         el.textContent = nm.slice(0, si);
-        const ts = document.createElementNS('http://www.w3.org/2000/svg','tspan');
-        ts.setAttribute('x', '0'); ts.setAttribute('dy', '13');
+        const ts = _svgCreate('tspan', {x: 0, dy: 13}, el);
         ts.textContent = nm.slice(si + 1);
-        el.appendChild(ts);
       } else { el.textContent = nm; }
-      labelG.appendChild(el);
       svgEl2.appendChild(labelG);
     }
     if (nStaves > 1) {
@@ -2971,16 +3027,8 @@ function renderPartBrackets(container, activeParts, system, siOffset, ns, vfStav
   const topSL = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === siOffset);
   const botSL = APP.staveLayout.find(sl => sl.mi === firstMi && sl.si === siOffset + ns - 1);
   if (topSL && botSL) {
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', LAYOUT.MARGIN_X);
-    line.setAttribute('y1', topSL.topLineY);
-    line.setAttribute('x2', LAYOUT.MARGIN_X);
-    line.setAttribute('y2', botSL.bottomY);
-    line.setAttribute('stroke', '#111');
-    line.setAttribute('stroke-width', '1.5');
-    line.setAttribute('stroke-linecap', 'square');
-    line.setAttribute('pointer-events', 'none');
-    svgEl.appendChild(line);
+    svgLine(svgEl, {x1: LAYOUT.MARGIN_X, y1: topSL.topLineY, x2: LAYOUT.MARGIN_X, y2: botSL.bottomY,
+      stroke: '#111', strokeWidth: 1.5, strokeLinecap: 'square'});
   }
   let flatIdx = 0;
   activeParts.forEach(part => {
@@ -3007,14 +3055,7 @@ function renderMeasureNumbers(container, ns, siOffset, sysIdx, system) {
     const topSL = APP.staveLayout.find(sl => sl.mi === firstMiOfSys && sl.si === siOffset);
     if (topSL) {
       const svgEl3 = document.getElementById('score-svg').querySelector('svg');
-      const mnEl = document.createElementNS('http://www.w3.org/2000/svg','text');
-      mnEl.setAttribute('x', topSL.x + 1); mnEl.setAttribute('y', topSL.topLineY - 6);
-      mnEl.setAttribute('text-anchor', 'start');
-      mnEl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-      mnEl.setAttribute('font-size', '10'); mnEl.setAttribute('font-weight', '500');
-      mnEl.setAttribute('fill', '#555'); mnEl.setAttribute('pointer-events', 'none');
-      mnEl.textContent = String(firstMiOfSys + 1);
-      svgEl3.appendChild(mnEl);
+      svgText(svgEl3, {x: topSL.x + 1, y: topSL.topLineY - 6, text: String(firstMiOfSys + 1), fontSize: 10, fontWeight: '500', fill: '#555'});
     }
   }
   if (APP.showMeasureNumbers) {
@@ -3022,14 +3063,7 @@ function renderMeasureNumbers(container, ns, siOffset, sysIdx, system) {
     system.forEach(mi => {
       const sl = APP.staveLayout.find(sl => sl.mi === mi && sl.si === siOffset + ns - 1);
       if (sl) {
-        const el = document.createElementNS('http://www.w3.org/2000/svg','text');
-        el.setAttribute('x', sl.x + sl.w / 2); el.setAttribute('y', sl.bottomY + 18);
-        el.setAttribute('text-anchor', 'middle');
-        el.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-        el.setAttribute('font-size', '9'); el.setAttribute('fill', '#777');
-        el.setAttribute('pointer-events', 'none');
-        el.textContent = String(mi + 1);
-        svgEl4.appendChild(el);
+        svgText(svgEl4, {x: sl.x + sl.w / 2, y: sl.bottomY + 18, text: String(mi + 1), fontSize: 9, fill: '#777', anchor: 'middle'});
       }
     });
   }
@@ -3215,19 +3249,10 @@ function _renderScoreBody() {
         // Selection highlight overlay — anchored to VexFlow's actual stave lines
         if (mi === APP.selectedMeasure && si === APP.selectedStaff) {
           const svgEl2  = container.querySelector('svg');
-          const lineTop = vfStave.getYForLine(0); // top staff line
-          const lineBot = vfStave.getYForLine(4); // bottom staff line
-          const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-          rect.setAttribute('x', mx);
-          rect.setAttribute('y', lineTop - 2);
-          rect.setAttribute('width', mWidth);
-          rect.setAttribute('height', lineBot - lineTop + 4);
-          rect.setAttribute('rx', 4);
-          rect.setAttribute('fill', 'rgba(192,86,33,0.18)');
-          rect.setAttribute('stroke', 'rgba(192,86,33,0.55)');
-          rect.setAttribute('stroke-width', '2');
-          rect.setAttribute('pointer-events', 'none');
-          svgEl2.appendChild(rect);
+          const lineTop = vfStave.getYForLine(0);
+          const lineBot = vfStave.getYForLine(4);
+          svgRect(svgEl2, {x: mx, y: lineTop - 2, w: mWidth, h: lineBot - lineTop + 4, rx: 4,
+            fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2});
         }
 
         // Build & draw notes — two voices rendered as independent VexFlow Voice objects
@@ -3397,43 +3422,15 @@ function _renderScoreBody() {
       const midY = (firstSL.topLineY + firstSL.bottomY) / 2;
       const barY = midY;
       // Thick horizontal bar
-      const barEl = document.createElementNS('http://www.w3.org/2000/svg','line');
-      barEl.setAttribute('x1', spanX + 4);
-      barEl.setAttribute('y1', barY);
-      barEl.setAttribute('x2', spanX + spanW - 4);
-      barEl.setAttribute('y2', barY);
-      barEl.setAttribute('stroke', '#444');
-      barEl.setAttribute('stroke-width', '3');
-      barEl.setAttribute('stroke-linecap', 'round');
-      barEl.setAttribute('pointer-events', 'none');
-      svgEl9.appendChild(barEl);
+      svgLine(svgEl9, {x1: spanX + 4, y1: barY, x2: spanX + spanW - 4, y2: barY, stroke: '#444', strokeWidth: 3});
       // End ticks
       const tickLen = 12;
       for (const xPos of [spanX + 4, spanX + spanW - 4]) {
-        const tick = document.createElementNS('http://www.w3.org/2000/svg','line');
-        tick.setAttribute('x1', xPos);
-        tick.setAttribute('y1', barY - tickLen / 2);
-        tick.setAttribute('x2', xPos);
-        tick.setAttribute('y2', barY + tickLen / 2);
-        tick.setAttribute('stroke', '#444');
-        tick.setAttribute('stroke-width', '2');
-        tick.setAttribute('stroke-linecap', 'round');
-        tick.setAttribute('pointer-events', 'none');
-        svgEl9.appendChild(tick);
+        svgLine(svgEl9, {x1: xPos, y1: barY - tickLen / 2, x2: xPos, y2: barY + tickLen / 2, stroke: '#444', strokeWidth: 2});
       }
       // Measure count above the bar
       const count = g.endMi - g.startMi + 1;
-      const txtEl = document.createElementNS('http://www.w3.org/2000/svg','text');
-      txtEl.setAttribute('x', spanX + spanW / 2);
-      txtEl.setAttribute('y', firstSL.topLineY - 8);
-      txtEl.setAttribute('text-anchor', 'middle');
-      txtEl.setAttribute('font-size', '11');
-      txtEl.setAttribute('font-weight', 'bold');
-      txtEl.setAttribute('fill', '#444');
-      txtEl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-      txtEl.setAttribute('pointer-events', 'none');
-      txtEl.textContent = String(count);
-      svgEl9.appendChild(txtEl);
+      svgText(svgEl9, {x: spanX + spanW / 2, y: firstSL.topLineY - 8, text: String(count), fontSize: 11, fontWeight: 'bold', fill: '#444', anchor: 'middle'});
     }
   }
   // Restore scroll position after re-render
@@ -8436,31 +8433,8 @@ function renderRehearsalMarks() {
     const boxX = sl.x;
     const boxY = sl.topLineY - bh - 4;
 
-    // Box
-    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x',      boxX);
-    rect.setAttribute('y',      boxY);
-    rect.setAttribute('width',  tw);
-    rect.setAttribute('height', bh);
-    rect.setAttribute('rx',     2);
-    rect.setAttribute('fill',   'none');
-    rect.setAttribute('stroke', '#111');
-    rect.setAttribute('stroke-width', '1.5');
-    rect.setAttribute('pointer-events','none');
-    svgEl.appendChild(rect);
-
-    // Label — centred in box
-    const el = document.createElementNS('http://www.w3.org/2000/svg','text');
-    el.setAttribute('x',           boxX + tw / 2);
-    el.setAttribute('y',           boxY + bh / 2 + fs * 0.36);
-    el.setAttribute('text-anchor', 'middle');
-    el.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-    el.setAttribute('font-size',   fs);
-    el.setAttribute('font-weight', '700');
-    el.setAttribute('fill',        '#111');
-    el.setAttribute('pointer-events','none');
-    el.textContent = rm.label;
-    svgEl.appendChild(el);
+    svgRect(svgEl, {x: boxX, y: boxY, w: tw, h: bh, rx: 2, stroke: '#111', strokeWidth: 1.5});
+    svgText(svgEl, {x: boxX + tw / 2, y: boxY + bh / 2 + fs * 0.36, text: rm.label, fontSize: fs, fontWeight: '700', anchor: 'middle'});
   });
 }
 
@@ -8548,18 +8522,9 @@ function renderStaffTexts() {
   if (!svgEl || !APP.score) return;
 
   const drawText = (x, y, text, style, size) => {
-    const el = document.createElementNS('http://www.w3.org/2000/svg','text');
-    el.setAttribute('x', x);
-    el.setAttribute('y', y);
-    el.setAttribute('text-anchor', 'start');
-    el.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-    el.setAttribute('font-size',   size || 14);   // default raised from 11 → 14
-    el.setAttribute('font-weight', (style||'').includes('bold') ? 'bold' : 'normal');
-    el.setAttribute('font-style',  (style||'').includes('italic') ? 'italic' : 'normal');
-    el.setAttribute('fill',        '#111');
-    el.setAttribute('pointer-events','none');
-    el.textContent = text;
-    svgEl.appendChild(el);
+    svgText(svgEl, {x, y, text, fontSize: size || 14,
+      fontWeight: (style||'').includes('bold') ? 'bold' : 'normal',
+      fill: '#111'});
   };
 
   // Note-attached staff texts
