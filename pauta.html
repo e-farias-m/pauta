@@ -6112,76 +6112,73 @@ function insertNote(mi, si, pitch) {
       return;
     }
 
-    pushUndo();
-
-    const partialEntry = APP.curRest
-      ? mkRest(partial.dur, partial.dots, APP.curVoice)
-      : mkNote(pitch, partial.dur, partial.dots, displayAcc, APP.curVoice);
-    if (!APP.curRest) partialEntry.tieToNext = true;
-
-    const ph2 = measure.notes.findIndex(
-      n => n.type==='rest' && n.duration==='w' && (n.voice||1)===APP.curVoice
-    );
-    if (ph2 >= 0) {
-      measure.notes.splice(ph2, 1, partialEntry);
-    } else {
-      const li2 = measure.notes.reduce((b, n, i) => (n.voice||1)===APP.curVoice ? i : b, -1);
-      measure.notes.splice(li2 + 1, 0, partialEntry);
-    }
+    commitChange(score => {
+      const m = getMeasureBySI(si, mi);
+      const ph2 = m.notes.findIndex(
+        n => n.type==='rest' && n.duration==='w' && (n.voice||1)===APP.curVoice
+      );
+      const partialEntry = APP.curRest
+        ? mkRest(partial.dur, partial.dots, APP.curVoice)
+        : mkNote(pitch, partial.dur, partial.dots, displayAcc, APP.curVoice);
+      if (!APP.curRest) partialEntry.tieToNext = true;
+      if (ph2 >= 0) {
+        m.notes.splice(ph2, 1, partialEntry);
+      } else {
+        const li2 = m.notes.reduce((b, n, i) => (n.voice||1)===APP.curVoice ? i : b, -1);
+        m.notes.splice(li2 + 1, 0, partialEntry);
+      }
+    });
 
     // Recurse for the leftover duration
-    const leftoverBeats = newBeats - partial.beats;
-    const remainder = findBestDuration(leftoverBeats);
-    APP.curDur  = remainder.dur;
-    APP.curDot  = remainder.dots > 0;
+  const leftoverBeats = newBeats - partial.beats;
+  const remainder = findBestDuration(leftoverBeats);
+  APP.curDur  = remainder.dur;
+  APP.curDot  = remainder.dots > 0;
 
-    APP.selectedMeasure = nextMi;
-    APP.selectedStaff   = si;
-    insertNote(nextMi, si, pitch);
-    return;
-  }
-
-  pushUndo();
-
-  const entry = APP.curRest
-    ? mkRest(APP.curDur, APP.curDot ? 1 : 0, APP.curVoice)
-    : mkNote(pitch, APP.curDur, APP.curDot ? 1 : 0, displayAcc, APP.curVoice);
-
-  if (APP.curNotehead && entry.type === 'note') entry.notehead = APP.curNotehead;
-
-  // ── Tuplet tagging ────────────────────────────────────────────
-  if (APP.curTuplet && !APP.curRest) {
-    // If no group is pending yet, start one
-    if (APP.tupletPending <= 0) APP.tupletPending = APP.curTuplet.num;
-    entry.tuplet = {
-      num: APP.curTuplet.num,
-      den: APP.curTuplet.den,
-      groupId: APP.tupletGroupId,
-    };
-    APP.tupletPending--;
-    if (APP.tupletPending <= 0) {
-      APP.tupletGroupId++;       // close this bracket; next notes start a new one
-      APP.tupletPending = 0;
-      // Auto-reload so next note immediately starts a new tuplet group
-      if (APP.curTuplet) APP.tupletPending = APP.curTuplet.num;
-    }
-  }
-
-  // Replace rest placeholder for this voice (whole rest, or pickup initial rest), or append
-  const phIdx = measure.notes.findIndex(
-    n => n.type==='rest' && (n.duration==='w' || measure.pickup) && (n.voice||1)===APP.curVoice
-  );
-  if (phIdx >= 0) {
-    measure.notes.splice(phIdx, 1, entry);
-  } else {
-    const lastIdx = measure.notes.reduce((b, n, i) => (n.voice||1)===APP.curVoice ? i : b, -1);
-    measure.notes.splice(lastIdx + 1, 0, entry);
-  }
-
-  APP.selectedMeasure = mi;
+  APP.selectedMeasure = nextMi;
   APP.selectedStaff   = si;
-  APP.selectedNoteIdx = measure.notes.indexOf(entry);
-  renderScore();
+  insertNote(nextMi, si, pitch);
+  return;
+  }
+
+  commitChange(score => {
+    const m = getMeasureBySI(si, mi);
+    const entry = APP.curRest
+      ? mkRest(APP.curDur, APP.curDot ? 1 : 0, APP.curVoice)
+      : mkNote(pitch, APP.curDur, APP.curDot ? 1 : 0, displayAcc, APP.curVoice);
+
+    if (APP.curNotehead && entry.type === 'note') entry.notehead = APP.curNotehead;
+
+    if (APP.curTuplet && !APP.curRest) {
+      if (APP.tupletPending <= 0) APP.tupletPending = APP.curTuplet.num;
+      entry.tuplet = {
+        num: APP.curTuplet.num,
+        den: APP.curTuplet.den,
+        groupId: APP.tupletGroupId,
+      };
+      APP.tupletPending--;
+      if (APP.tupletPending <= 0) {
+        APP.tupletGroupId++;
+        APP.tupletPending = 0;
+        if (APP.curTuplet) APP.tupletPending = APP.curTuplet.num;
+      }
+    }
+
+    const phIdx = m.notes.findIndex(
+      n => n.type==='rest' && (n.duration==='w' || m.pickup) && (n.voice||1)===APP.curVoice
+    );
+    if (phIdx >= 0) {
+      m.notes.splice(phIdx, 1, entry);
+    } else {
+      const lastIdx = m.notes.reduce((b, n, i) => (n.voice||1)===APP.curVoice ? i : b, -1);
+      m.notes.splice(lastIdx + 1, 0, entry);
+    }
+
+    APP.selectedMeasure = mi;
+    APP.selectedStaff   = si;
+    APP.selectedNoteIdx = m.notes.indexOf(entry);
+  });
+
   scrollToSelectedMeasure();
 
   const pc2     = pitch % 12;
