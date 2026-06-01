@@ -1560,10 +1560,7 @@ function keySigName(ks) {
   if (ks > 0)   return KEY_NAMES[Math.min(ks,7)] || 'C';
   return KEY_FLATS[Math.min(-ks,7)-1] || 'F';
 }
-function keySigVex(ks) {
-  if (!ks || ks === 0) return null;
-  return keySigName(ks);
-}
+
 
 function midiToVexKey(midi, acc) {
   const oct = Math.floor(midi / 12) - 1;
@@ -5660,30 +5657,6 @@ function yToPitchAccurate(y, sl) {
   return Math.max(12, Math.min(120, (octave + 1) * 12 + diaMidi[diaPos]));
 }
 
-function yToPitch(y, staveTop, clef) {
-  // Legacy fallback using LAYOUT.STAVE_H
-  const halfStep = LAYOUT.STAVE_H / 8;
-  if (clef === 'treble') {
-    const b4Y = staveTop + LAYOUT.STAVE_H / 2;
-    const steps = Math.round((b4Y - y) / halfStep);
-    const dia = [0,2,4,5,7,9,11];
-    let pos = 6 + steps;
-    const octaveShift = Math.floor(pos / 7);
-    const noteInOct = ((pos % 7) + 7) % 7;
-    const oct = 4 + octaveShift;
-    return (oct + 1) * 12 + dia[noteInOct];
-  } else {
-    const d3Y = staveTop + LAYOUT.STAVE_H / 2;
-    const steps = Math.round((d3Y - y) / halfStep);
-    const dia = [0,2,4,5,7,9,11];
-    let pos = 1 + steps;
-    const octaveShift = Math.floor(pos / 7);
-    const noteInOct = ((pos % 7) + 7) % 7;
-    const oct = 3 + octaveShift;
-    return (oct + 1) * 12 + dia[noteInOct];
-  }
-}
-
 // ── Touch / Stylus Input ─────────────────────────────────────────
 // Stroke recogniser: tracks pointer from down → move → up
 // Distinguishes: tap/short stroke → pitch-from-Y note input
@@ -7125,10 +7098,7 @@ function deleteMeasure() {
   const mi = APP.selectedMeasure;
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 1)));
-    score.voltas          = (score.voltas          || []).filter(v => v.startMi !== mi && v.endMi !== mi).map(v => ({...v, startMi: v.startMi > mi ? v.startMi-1 : v.startMi, endMi: v.endMi > mi ? v.endMi-1 : v.endMi}));
-    score.rehearsalMarks  = (score.rehearsalMarks  || []).filter(r => r.mi !== mi).map(r => ({...r, mi: r.mi > mi ? r.mi-1 : r.mi}));
-    score.slurs           = (score.slurs           || []).filter(s => s.startMi !== mi && s.endMi !== mi);
-    score.hairpins        = (score.hairpins        || []).filter(h => h.startMi !== mi && h.endMi !== mi);
+    shiftMeasureRefs(score, mi, 'delete');
     APP.selectedMeasure   = Math.min(mi, nM - 2);
     APP.selectedNoteIdx   = -1;
   }, { toast: 'Measure deleted' });
@@ -7321,14 +7291,7 @@ function insertMeasure() {
   const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [mkRest('w')] };
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 0, JSON.parse(JSON.stringify(m)))));
-    const bump = ref => ref >= mi ? ref + 1 : ref;
-    score.voltas         = (score.voltas         || []).map(v => ({...v, startMi: bump(v.startMi), endMi: bump(v.endMi)}));
-    score.rehearsalMarks = (score.rehearsalMarks || []).map(r => ({...r, mi: bump(r.mi)}));
-    score.slurs          = (score.slurs          || []).map(s => ({...s, startMi: bump(s.startMi), endMi: bump(s.endMi)}));
-    score.hairpins       = (score.hairpins       || []).map(h => ({...h, startMi: bump(h.startMi), endMi: bump(h.endMi)}));
-    score.ottavas        = (score.ottavas        || []).map(o => ({...o, startMi: bump(o.startMi), endMi: bump(o.endMi)}));
-    score.glissandos     = (score.glissandos     || []).map(g => ({...g, startMi: bump(g.startMi), endMi: bump(g.endMi)}));
-    score.staffTexts     = (score.staffTexts     || []).map(st => ({...st, mi: bump(st.mi)}));
+    shiftMeasureRefs(score, mi, 'insert');
     APP.selectedNoteIdx = -1;
   }, { toast: 'Measure inserted' });
 }
@@ -8722,6 +8685,7 @@ function showScoreMenu(btn) {
     {sep:true},
     {label:`🗑 Delete Measure ${mi}`, fn:deleteMeasure, danger:true},
     {sep:true},
+    {label:'➕ Add Measure at End', fn:addMeasure},
     {label:'ℹ️ Score Info', fn:showScoreInfo},
   ]);
 }
@@ -9007,22 +8971,19 @@ function openFile() {
 
 function loadScoreFromXML(xmlStr, filename) {
   try {
-    const score = parseMSCX(xmlStr);
-    APP.score = score;
+    const raw = parseMSCX(xmlStr);
+    adoptScore(raw);
     APP.selectedMeasure = 0;
     APP.selectedStaff   = 0;
     APP.selectedNoteIdx = -1;
-    APP.undoStack = [];
-    APP.redoStack = [];
-    APP._lastUndoFP = '';
-    if (score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = score.showMeasureNumbers;
-    if (score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = score.showMultiMeasureRests;
+    if (APP.score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = APP.score.showMeasureNumbers;
+    if (APP.score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = APP.score.showMultiMeasureRests;
     document.getElementById('score-title').textContent =
     APP_partView !== null
       ? (APP.score.title || 'Score') + ' — ' + (APP.score.parts[APP_partView]?.name || 'Part')
       : (APP.score.title || 'Untitled Score');
     renderScore();
-    showToast('Loaded: ' + score.title);
+    showToast('Loaded: ' + APP.score.title);
   } catch(err) {
     console.error(err);
     showToast('Parse error: ' + err.message);
@@ -9549,10 +9510,9 @@ function restoreAutosave() {
   const raw = localStorage.getItem(AUTOSAVE_KEY);
   if (!raw) return;
   try {
-    const saved = JSON.parse(raw);
-    APP.score = saved;
+    adoptScore(JSON.parse(raw), { clearHistory: true });
     const titleEl = document.getElementById('score-title');
-    if (titleEl) titleEl.textContent = saved.title || 'Untitled Score';
+    if (titleEl) titleEl.textContent = APP.score.title || 'Untitled Score';
     APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
     closeModal();
     renderScore();
@@ -9637,8 +9597,7 @@ function printScore() {
 }
 
 
-// Theme is fixed to "evening" — no runtime switching
-function cycleTheme(){} function applyTheme(){} function initTheme(){}
+
 
 
 function bootApp() {
@@ -9847,6 +9806,7 @@ _registerAction('editRehearsalMark', () => editRehearsalMark());
 _registerAction('enterPartView', (e) => enterPartView(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
 _registerAction('exitPartView', () => { exitPartView(); closeModal(); });
 _registerAction('exportPartMSCX', () => { closeModal(); exportPartMSCX(); });
+_registerAction('addMeasure', () => addMeasure());
 _registerAction('insertMeasure', () => insertMeasure());
 _registerAction('insertNoteByName', (e) => insertNoteByName(e.target.closest('[data-name]')?.dataset.name));
 _registerAction('insertRest', () => insertRest());
@@ -9975,6 +9935,9 @@ window.togglePlayback=togglePlayback;window.toggleTempoDisplay=toggleTempoDispla
 window.toggleTuplet=toggleTuplet;window.transposeScore=transposeScore;
 window.tsApplyFromSliders=tsApplyFromSliders;window.zoomIn=zoomIn;
 window.zoomOut=zoomOut;window.zoomReset=zoomReset;
+window.showTitleDialog=showTitleDialog;window.updateTempo=updateTempo;
+window.updateTempoFromInput=updateTempoFromInput;window.filterSearchPanels=filterSearchPanels;
+window.setPartVolume=setPartVolume;window.tsSliderChange=tsSliderChange;
 })();
 </script>
 </body>
