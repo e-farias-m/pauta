@@ -2803,13 +2803,15 @@ function _svgCreate(tag, attrs, parent) {
   return el;
 }
 
-function svgRect(parent, {x, y, w, h, rx, fill, stroke, strokeWidth, opacity, pointerEvents} = {}) {
-  return _svgCreate('rect', {
+function svgRect(parent, {x, y, w, h, rx, fill, stroke, strokeWidth, opacity, pointerEvents, cls} = {}) {
+  const attrs = {
     x, y, width: w, height: h,
     rx: rx || 0, fill: fill || 'none',
     stroke: stroke || 'none', 'stroke-width': strokeWidth || 0,
     opacity: opacity ?? 1, 'pointer-events': pointerEvents || 'none',
-  }, parent);
+  };
+  if (cls) attrs['class'] = cls;
+  return _svgCreate('rect', attrs, parent);
 }
 
 function svgLine(parent, {x1, y1, x2, y2, stroke, strokeWidth, strokeLinecap} = {}) {
@@ -3252,7 +3254,7 @@ function _renderScoreBody() {
           const lineTop = vfStave.getYForLine(0);
           const lineBot = vfStave.getYForLine(4);
           svgRect(svgEl2, {x: mx, y: lineTop - 2, w: mWidth, h: lineBot - lineTop + 4, rx: 4,
-            fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2});
+            fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'});
         }
 
         // Build & draw notes — two voices rendered as independent VexFlow Voice objects
@@ -3505,6 +3507,28 @@ function scrollToSelectedMeasure() {
     const dur = Math.max(80, Math.min(200, Math.abs(target - scrollTop) * 0.3));
     _smoothScroll(area, 'scrollTop', target, dur);
   }
+}
+
+function renderSelection() {
+  if (!APP.score || !APP.staveLayout || !APP.staveLayout.length) return;
+  const svgEl = document.getElementById('score-svg')?.querySelector('svg');
+  if (!svgEl) return;
+
+  svgEl.querySelectorAll('.sel-overlay').forEach(el => el.remove());
+
+  const sl = APP.staveLayout.find(l => l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0));
+  if (sl && APP.selectedMeasure >= 0) {
+    svgRect(svgEl, {
+      x: sl.x, y: sl.topLineY - 2, w: sl.w, h: sl.bottomY - sl.topLineY + 4, rx: 4,
+      fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'
+    });
+  }
+
+  updateRecorderDiagram();
+  updateWoodwindDiagram();
+  updateBrassDiagram();
+  updateStatusBar();
+  positionAllDiagrams();
 }
 
 // Keep diagram SVGs fixed during horizontal scroll in continuous view
@@ -5876,7 +5900,7 @@ function handleScoreTap(e) {
         APP.selectedStaff   = si;
         APP.selectedNoteIdx = ni;
         APP.selStartIdx = -1;
-        renderScore();
+        renderSelection();
         APP.selectedGraceIdx = gi;
         showToast('Grace note selected (tap Remove to delete)');
         return;
@@ -5911,7 +5935,7 @@ function handleScoreTap(e) {
       APP.selectedStaff   = bestNote.si;
       APP.selectedNoteIdx = bestNote.ni;
       APP.selStartIdx = -1;
-      renderScore();
+      renderSelection();
       scrollToSelectedMeasure();
       const _stave = getStaveBySI(bestNote.si);
       const n = _stave?.measures[bestNote.mi]?.notes[bestNote.ni];
@@ -5986,7 +6010,7 @@ function handleScoreTap(e) {
   } else {
     APP.selectedNoteIdx = -1;
     showToast(`Measure ${hit.mi + 1} selected`);
-    renderScore();
+    renderSelection();
   }
 }
 
@@ -7090,7 +7114,7 @@ function selectAllNotes() {
   if (!m || !m.notes.length) return;
   APP.selStartIdx = 0;
   APP.selectedNoteIdx = m.notes.length - 1;
-  renderScore();
+  renderSelection();
   showToast(`Selected ${m.notes.length} notes`);
 }
 
@@ -7281,7 +7305,7 @@ function navigateNote(direction, extend) {
       if (extend) APP.selStartIdx = -1;
     }
   }
-  renderScore();
+  renderSelection();
   scrollToSelectedMeasure();
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (n) {
@@ -7563,7 +7587,7 @@ function rewindPlayback() {
   if (scoreArea) scoreArea.scrollTop = 0;
   const scoreSvg = document.getElementById('score-svg');
   if (scoreSvg) scoreSvg.scrollLeft = 0;
-  renderScore();
+  renderSelection();
   showToast('Rewound to start');
 }
 
