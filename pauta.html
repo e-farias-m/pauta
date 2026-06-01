@@ -4168,7 +4168,6 @@ function buildTuplets(vfNotes, notes) {
 function renderVoltas() {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score) return;
-  if (!APP.score.voltas) APP.score.voltas = [];
 
   APP.score.voltas.forEach(volta => {
     // Find the stave layout entries on the TOP staff for start and end measures.
@@ -4240,7 +4239,6 @@ function renderVoltas() {
 function renderOttavas() {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score) return;
-  if (!APP.score.ottavas) APP.score.ottavas = [];
 
   APP.score.ottavas.forEach(ott => {
     const above = ott.type !== '8vb';
@@ -4307,7 +4305,6 @@ function renderOttavas() {
 function renderGlissandos() {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score) return;
-  if (!APP.score.glissandos) APP.score.glissandos = [];
 
   APP.score.glissandos.forEach(g => {
     const startNL = APP.noteLayout.find(nl => nl.mi === g.startMi && nl.si === g.si && nl.ni === g.startNi);
@@ -6086,8 +6083,9 @@ function insertNote(mi, si, pitch) {
   if (newBeats > remaining + 0.001) {
     const nextMi = mi + 1;
     if (nextMi >= APP.score.parts[0].staves[0].measures.length) {
-      APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
-      showToast('New measure added automatically');
+      commitChange(score => {
+        score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+      }, { toast: 'New measure added automatically' });
     }
 
     // Tuplets can't be split cleanly — move full note to next measure
@@ -8179,7 +8177,7 @@ function clearChordSymbol() {
 
 // ── Rehearsal Marks ───────────────────────────────────────────────
 function _nextRehearsalLabel(type) {
-  if (!APP.score.rehearsalMarks) APP.score.rehearsalMarks = [];
+  _ensureScoreAnnotationArrays(APP.score);
   const existing = APP.score.rehearsalMarks.map(r => r.label);
   if (type === 'number') {
     let n = 1;
@@ -8527,13 +8525,16 @@ function showMixer() {
 function togglePartMute(partIdx) {
   const part = APP.score?.parts[partIdx];
   if (!part) return;
-  part.muted = !part.muted;
-  showToast(`${part.name} ${part.muted ? 'muted' : 'unmuted'}`);
+  commitChange(score => {
+    score.parts[partIdx].muted = !score.parts[partIdx].muted;
+  }, { toast: `${part.name} ${!part.muted ? 'muted' : 'unmuted'}` });
 }
 function setPartVolume(partIdx, val) {
   const part = APP.score?.parts[partIdx];
   if (!part) return;
-  part.volume = Math.max(0, Math.min(1, val / 100));
+  commitChange(score => {
+    score.parts[partIdx].volume = Math.max(0, Math.min(1, val / 100));
+  });
 }
 
 function enterPartView(partIdx) {
@@ -9303,17 +9304,16 @@ function createNewScore() {
   const puNum     = pickup ? (parseInt(document.getElementById('nd-pu-num')?.value) || 1) : 0;
   const puDen     = pickup ? (parseInt(document.getElementById('nd-pu-den')?.value) || 4) : 0;
 
-  APP.score = createScore({title, composer, ts, ks, instruments:[instrName]});
+  const raw = createScore({title, composer, ts, ks, instruments:[instrName]});
 
-  // Add extra measures so the score has some content
   for (let i = 0; i < 3; i++) {
-    APP.score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+    raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
   }
   if (pickup && puNum > 0 && puNum < tsNum) {
     const puBeat = puNum * (4 / puDen);
     const bestRest = beatsToBestRestDuration(puBeat);
     const restDur = bestRest ? bestRest.dur : 'q';
-    APP.score.parts.forEach(p => p.staves.forEach(s => {
+    raw.parts.forEach(p => p.staves.forEach(s => {
       const m = s.measures[0];
       m.pickup = {num: puNum, den: puDen};
       m.timeSigNum = tsNum;
@@ -9321,11 +9321,12 @@ function createNewScore() {
       m.notes = [mkRest(restDur)];
     }));
   }
+
+  adoptScore(raw, { clearHistory: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   APP.undoStack = []; APP.redoStack = []; APP._lastUndoFP = '';
   document.getElementById('score-title').textContent = title;
   closeModal();
-  // Defer one frame so container has final CSS width
   requestAnimationFrame(() => {
     try { renderScore(); } catch(e) {
       showLibError('Notation engine error: ' + e.message + '<br>Please reload.');
