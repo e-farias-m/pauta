@@ -358,6 +358,398 @@ assertEq(restNote.type, 'rest', '_repairNote null becomes rest');
 const badMeasure = _repairMeasure({});
 assert(badMeasure.notes.length > 0, '_repairMeasure empty gets rest');
 
+// ── MSCX I/O helpers (extracted from pauta.html for testing) ─────
+const MSCX_TO_VEX  = {whole:'w',half:'h',quarter:'q',eighth:'8','16th':'16','32nd':'32','64th':'64'};
+const VEX_TO_MSCX  = {w:'whole',h:'half',q:'quarter','8':'eighth','16':'16th','32':'32nd','64':'64th'};
+
+const ACC_MAP = {'#':'accidentalSharp','b':'accidentalFlat','n':'accidentalNatural'};
+const DYN_MAP = {pppp:'pppp',ppp:'ppp',pp:'pp',p:'p',mp:'mp',mf:'mf',f:'f',ff:'ff',fff:'fff',ffff:'ffff',sfz:'sfz',fp:'fp',sfp:'sfp',rfz:'rfz'};
+
+function escXml(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function exportMSCXFromScore(s, opts) {
+  const showMN = opts?.showMeasureNumbers ?? false;
+  const showMMR = opts?.showMultiMeasureRests ?? false;
+  let x = `<?xml version="1.0" encoding="UTF-8"?>\n<museScore version="4.0">\n  <Score>\n`;
+  x += `    <Title>${escXml(s.title)}</Title>\n`;
+  if (s.composer) x += `    <Composer>${escXml(s.composer)}</Composer>\n`;
+  x += `    <PautaEngravingSettings showMeasureNumbers="${showMN?'1':'0'}" showMultiMeasureRests="${showMMR?'1':'0'}"/>\n`;
+  s.parts.forEach((part, pi) => {
+    x += `    <Part>\n      <Staff id="${pi+1}"/>\n      <trackName>${escXml(part.name)}</trackName>\n    </Part>\n`;
+  });
+  const staves = s.parts.flatMap(p => p.staves);
+  const gsiOf = (partIdx) => s.parts.slice(0, partIdx).reduce((a,p) => a + p.staves.length, 0);
+  staves.forEach((stave, si) => {
+    x += `    <Staff id="${si+1}">\n`;
+    stave.measures.forEach((m, mi) => {
+      let tsNum = m.timeSigNum, tsDen = m.timeSigDen;
+      if (tsNum === null || tsNum === undefined) {
+        for (let pm = mi - 1; pm >= 0; pm--) {
+          const pm_tn = stave.measures[pm]?.timeSigNum;
+          const pm_td = stave.measures[pm]?.timeSigDen;
+          if (pm_tn !== null && pm_tn !== undefined) { tsNum = pm_tn; tsDen = pm_td; break; }
+        }
+        if (tsNum === null || tsNum === undefined) { tsNum = 4; tsDen = 4; }
+      }
+      let measureLen = `${tsNum}/${tsDen}`;
+      x += `      <Measure number="${mi+1}" len="${measureLen}">\n`;
+      if (mi === 0 || m.clef) {
+        const clefVal = m.clef || 'treble';
+        x += `        <Clef>\n          <concertClefType>${clefVal}</concertClefType>\n        </Clef>\n`;
+      }
+      const rm = (s.rehearsalMarks||[]).find(r => r.mi === mi);
+      if (rm) x += `        <RehearsalMark>\n          <text>${escXml(rm.label)}</text>\n        </RehearsalMark>\n`;
+      if (m.tempo && si === 0) {
+        x += `        <Tempo>\n          <tempo>${(m.tempo.bpm/60).toFixed(4)}</tempo>\n`;
+        x += `          <text>${escXml(m.tempo.name)}</text>\n        </Tempo>\n`;
+      }
+      if (m.keySig !== null && m.keySig !== undefined) x += `        <KeySig><accidental>${m.keySig}</accidental></KeySig>\n`;
+      if (m.timeSigNum !== null && m.timeSigNum !== undefined) x += `        <TimeSig><sigN>${m.timeSigNum}</sigN><sigD>${m.timeSigDen}</sigD></TimeSig>\n`;
+      const voices = {};
+      m.notes.forEach(n => { const v = n.voice || 1; if (!voices[v]) voices[v] = []; voices[v].push(n); });
+      const writeNoteEl = (n, insideVoice) => {
+        const durType = VEX_TO_MSCX[n.duration] || 'quarter';
+        const vAttr = insideVoice ? '' : ` voice="${n.voice||1}"`;
+        if (n.type === 'rest') {
+          x += `          <Rest${vAttr}>\n            <durationType>${durType}</durationType>\n`;
+          if (n.dots) x += `            <dots>${n.dots}</dots>\n`;
+          x += `          </Rest>\n`;
+        } else {
+          x += `          <Chord${vAttr}>\n            <durationType>${durType}</durationType>\n`;
+          if (n.dots) x += `            <dots>${n.dots}</dots>\n`;
+          if (n.dynamic) x += `            <Dynamic>\n              <subtype>${DYN_MAP[n.dynamic]||n.dynamic}</subtype>\n            </Dynamic>\n`;
+          if (n.articulation) x += `            <Articulation>\n              <subtype>${escXml(n.articulation)}</subtype>\n            </Articulation>\n`;
+          if (n.staffText) x += `            <StaffText>\n              <text>${escXml(n.staffText)}</text>\n            </StaffText>\n`;
+          if (n.chordSymbol) x += `            <Harmony>\n              <root>${escXml(n.chordSymbol)}</root>\n            </Harmony>\n`;
+          const writeNote = (pitch, acc) => {
+            x += `            <Note>\n              <pitch>${pitch}</pitch>\n`;
+            if (acc) x += `              <Accidental><subtype>${ACC_MAP[acc]||'accidentalNatural'}</subtype></Accidental>\n`;
+            x += `            </Note>\n`;
+          };
+          writeNote(n.pitch, n.accidental);
+          (n.extraPitches||[]).forEach(ep => writeNote(ep.pitch, ep.accidental));
+          if (n.lyric) {
+            x += `            <Lyrics>\n              <text>${escXml(n.lyric.text)}</text>\n`;
+            if (n.lyric.separator === 'dash') x += `              <syllabic>middle</syllabic>\n`;
+            x += `            </Lyrics>\n`;
+          }
+          if (n.tieToNext) x += `            <Tie/>\n`;
+          x += `          </Chord>\n`;
+        }
+      };
+      Object.keys(voices).sort((a,b) => a-b).forEach(v => {
+        x += `        <voice num="${v}">\n`;
+        voices[v].forEach(n => writeNoteEl(n, true));
+        x += `        </voice>\n`;
+      });
+      x += `      </Measure>\n`;
+    });
+    (s.slurs||[]).filter(sl => sl.si === si).forEach(sl => {
+      x += `      <Spanner type="Slur">\n        <Slur/>\n`;
+      x += `        <next><location><measures>${sl.endMi - sl.startMi}</measures><notes>${sl.endNi - sl.startNi}</notes></location></next>\n`;
+      x += `      </Spanner>\n`;
+    });
+    (s.hairpins||[]).filter(h => h.si === si).forEach(h => {
+      const type = h.type === 'cresc' ? '0' : '1';
+      x += `      <Spanner type="HairPin">\n        <HairPin><subtype>${type}</subtype></HairPin>\n`;
+      x += `        <next><location><measures>${h.endMi - h.startMi}</measures><notes>${h.endNi - h.startNi}</notes></location></next>\n`;
+      x += `      </Spanner>\n`;
+    });
+    x += `    </Staff>\n`;
+  });
+  x += '  </Score>\n</museScore>';
+  return x;
+}
+
+function parseMSCX(xmlStr) {
+  const {DOMParser} = require('@xmldom/xmldom');
+  const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
+
+  function nq(parent, tag) {
+    const els = parent.getElementsByTagName(tag);
+    for (let i = 0; i < els.length; i++) { if (els[i].parentNode === parent) return els[i]; }
+    const walk = parent.getElementsByTagName(tag);
+    return walk.length ? walk[0] : null;
+  }
+  function nqa(parent, tag) {
+    return Array.from(parent.getElementsByTagName(tag));
+  }
+  function txt(parent, tag) {
+    const el = nq(parent, tag);
+    return el ? el.textContent.trim() : null;
+  }
+
+  const score = createScore();
+  let metaTitle = '', metaComposer = '';
+  const metaTags = doc.getElementsByTagName('metaTag');
+  for (let i = 0; i < metaTags.length; i++) {
+    const mt = metaTags[i];
+    const name = mt.getAttribute('name');
+    if (name === 'workTitle') metaTitle = mt.textContent.trim();
+    if (name === 'composer') metaComposer = mt.textContent.trim();
+  }
+  score.title    = metaTitle || txt(doc,'Title') || 'Untitled Score';
+  score.composer = metaComposer || txt(doc,'Composer') || '';
+  const mps = nq(doc, 'PautaEngravingSettings');
+  if (mps) {
+    score.showMeasureNumbers    = mps.getAttribute('showMeasureNumbers') === '1';
+    score.showMultiMeasureRests = mps.getAttribute('showMultiMeasureRests') === '1';
+  }
+  score.parts = [];
+
+  const staffEls = nqa(doc, 'Staff');
+  // Filter to top-level Staff elements (direct children of Score)
+  const topStaffs = staffEls.filter(s => s.parentNode && s.parentNode.tagName === 'Score');
+  const useStaffs = topStaffs.length ? topStaffs : staffEls;
+  if (!useStaffs.length) return score;
+
+  const stavesByPart = [];
+  let curTimeSigNum=4, curTimeSigDen=4, curKeySig=0, clefType = 'treble';
+  let anyStaffHadMeasures = false;
+
+  function parseMeasureEls(mEls, si, $stavesByPart, $score) {
+    const out = [];
+    let firstMeasure = true;
+    mEls.forEach(mEl => {
+      const measure = { timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [] };
+      const clefEl = (() => { const cp = nq(mEl, 'Clef'); return cp ? (nq(cp, 'concertClefType') || nq(cp, 'clefType')) : null; })();
+      if (clefEl) { const ct = clefEl.textContent.trim().toLowerCase(); clefType = ct.includes('bass') ? 'bass' : 'treble'; }
+      const kEl = nq(mEl, 'KeySig');
+      if (kEl) { const accEl = nq(kEl, 'accidental') || nq(kEl, 'atonal'); curKeySig = accEl ? (parseInt(accEl.textContent)||0) : 0; measure.keySig = curKeySig; }
+      if (firstMeasure && measure.keySig === null) measure.keySig = 0;
+      const tEl = nq(mEl, 'TimeSig');
+      if (tEl) { const n = nq(tEl, 'sigN'); const d = nq(tEl, 'sigD'); if (n && d) { curTimeSigNum = parseInt(n.textContent)||4; curTimeSigDen = parseInt(d.textContent)||4; measure.timeSigNum = curTimeSigNum; measure.timeSigDen = curTimeSigDen; } }
+      if (firstMeasure && measure.timeSigNum === null) { measure.timeSigNum = curTimeSigNum; measure.timeSigDen = curTimeSigDen; }
+
+      let curVoiceNum = 1;
+      const children = Array.from(mEl.childNodes).filter(n => n.nodeType === 1);
+      children.forEach(el => {
+        const tag = el.tagName;
+        if (tag === 'voice') {
+          curVoiceNum = parseInt(el.getAttribute('num') || '1');
+          Array.from(el.childNodes).filter(n => n.nodeType === 1).forEach(child => parseNoteEl(child, curVoiceNum));
+          return;
+        }
+        parseNoteEl(el, 1);
+      });
+
+      function parseNoteEl(el, voiceNum) {
+        const tag = el.tagName;
+        if (tag === 'Rest') {
+          const dur = MSCX_TO_VEX[txt(el,'durationType')||'quarter'] || 'q';
+          const dots = parseInt(txt(el,'dots')||'0') || 0;
+          measure.notes.push(mkRest(dur, dots, voiceNum));
+        } else if (tag === 'Chord') {
+          const dur = MSCX_TO_VEX[txt(el,'durationType')||'quarter'] || 'q';
+          const dots = parseInt(txt(el,'dots')||'0') || 0;
+          const noteEls = nqa(el, 'Note');
+          if (!noteEls.length) return;
+          const firstNoteEl = noteEls[0];
+          const pitch = parseInt(txt(firstNoteEl,'pitch')||'60') || 60;
+          const acc = parseAccidental(firstNoteEl);
+          const note = mkNote(pitch, dur, dots, acc, voiceNum);
+          noteEls.slice(1).forEach(ne => {
+            const ep = parseInt(txt(ne,'pitch')||'60') || 60;
+            const ea = parseAccidental(ne);
+            if (!note.extraPitches) note.extraPitches = [];
+            note.extraPitches.push({pitch: ep, accidental: ea});
+          });
+          if (nq(firstNoteEl, 'Tie')) note.tieToNext = true;
+          const dynEl = nq(el, 'Dynamic');
+          if (dynEl) { const sub = txt(dynEl,'subtype') || ''; if (DYN_MAP[sub]) note.dynamic = sub; }
+          const artEl = nq(el, 'Articulation');
+          if (artEl) note.articulation = txt(artEl,'subtype') || null;
+          measure.notes.push(note);
+        }
+      }
+
+      function parseAccidental(el) {
+        const accParent = nq(el, 'Accidental');
+        const accSub = accParent ? txt(accParent, 'subtype') : (txt(el,'accidentalType') || '');
+        if (accSub.includes('Sharp')) return '#'; if (accSub.includes('Flat')) return 'b'; if (accSub.includes('Natural')) return 'n'; return null;
+      }
+
+      const rmEl = nq(mEl, 'RehearsalMark');
+      if (rmEl) { const rmText = txt(rmEl,'text') || ''; if (rmText && $score.rehearsalMarks) { $score.rehearsalMarks.push({mi: out.length, label: rmText}); } }
+      const tempoEl = nq(mEl, 'Tempo');
+      if (tempoEl && $stavesByPart.length === 0) {
+        const bpmRaw = parseFloat(txt(tempoEl,'tempo') || '2');
+        const bpm = Math.round(bpmRaw * 60);
+        const name = txt(tempoEl,'text') || '';
+        if (!measure.tempo) measure.tempo = {name, bpm};
+      }
+      if (!measure.notes.length) measure.notes.push(mkRest('w'));
+      out.push(measure);
+      firstMeasure = false;
+    });
+    return out;
+  }
+
+  useStaffs.forEach((staffEl, si) => {
+    const staffMeasures = Array.from(staffEl.childNodes).filter(n => n.nodeType === 1 && n.tagName === 'Measure');
+    if (staffMeasures.length) anyStaffHadMeasures = true;
+    const measures = parseMeasureEls(staffMeasures, si, stavesByPart, score);
+    const staffClef = measures.length && staffMeasures.length ? clefType : (si % 2 === 0 ? 'treble' : 'bass');
+    stavesByPart.push({clef: staffClef, measures});
+  });
+
+  if (!anyStaffHadMeasures) {
+    const allMeasures = Array.from(doc.getElementsByTagName('Measure'));
+    if (allMeasures.length) {
+      stavesByPart.forEach(s => { s.measures = parseMeasureEls(allMeasures, 0, stavesByPart, score); });
+    }
+  }
+
+  const realStaves = stavesByPart.filter(s => s.measures.length > 0);
+  if (realStaves.length) { stavesByPart.length = 0; stavesByPart.push(...realStaves); }
+  const maxMeasures = Math.max(...stavesByPart.map(s => s.measures.length));
+  if (maxMeasures > 0) {
+    stavesByPart.forEach(s => { while (s.measures.length < maxMeasures) s.measures.push(emptyMeasure()); });
+  }
+
+  let partName = 'Piano';
+  const partEl = nq(doc, 'Part');
+  if (partEl) partName = txt(partEl, 'trackName') || txt(partEl, 'partName') || txt(partEl, 'longName') || 'Piano';
+  score.parts = [{ name: partName, staves: stavesByPart.length ? stavesByPart : createScore().parts[0].staves }];
+  if (!score.slurs) score.slurs = [];
+  if (!score.hairpins) score.hairpins = [];
+  if (!score.rehearsalMarks) score.rehearsalMarks = [];
+  if (!score.staffTexts) score.staffTexts = [];
+  return score;
+}
+
+// ── MSCX Export Tests ──────────────────────────────────────────
+
+// Basic roundtrip: create → export → parse → verify
+const rt1 = createScore({title:'Test Roundtrip', composer:'Pauta'});
+const xml1 = exportMSCXFromScore(rt1, {showMeasureNumbers: true});
+assert(xml1.includes('<Title>Test Roundtrip</Title>'), 'exportMSCX title');
+assert(xml1.includes('<Composer>Pauta</Composer>'), 'exportMSCX composer');
+assert(xml1.includes('showMeasureNumbers="1"'), 'exportMSCX engraving settings');
+assert(xml1.includes('<concertClefType>treble</concertClefType>'), 'exportMSCX treble clef');
+assert(xml1.includes('<concertClefType>treble</concertClefType>'), 'exportMSCX treble clef');
+assert(xml1.includes('<durationType>whole</durationType>'), 'exportMSCX whole rest');
+
+// Export with note content
+const rt2 = createScore({title:'Notes'});
+rt2.parts[0].staves[0].measures[0].notes = [
+  mkNote(60, 'q', 0, null, 1),
+  mkNote(64, 'q', 0, '#', 1),
+  mkRest('h', 0, 1),
+];
+const xml2 = exportMSCXFromScore(rt2);
+assert(xml2.includes('<pitch>60</pitch>'), 'exportMSCX note pitch');
+assert(xml2.includes('<pitch>64</pitch>'), 'exportMSCX note pitch 64');
+assert(xml2.includes('accidentalSharp'), 'exportMSCX sharp accidental');
+assert(xml2.includes('<durationType>quarter</durationType>'), 'exportMSCX quarter note');
+assert(xml2.includes('<durationType>half</durationType>'), 'exportMSCX half rest');
+
+// Export with dotted note
+const rt3 = createScore({title:'Dots'});
+rt3.parts[0].staves[0].measures[0].notes = [mkNote(67, 'h', 1, null, 1), mkNote(71, 'q', 0, null, 1)];
+const xml3 = exportMSCXFromScore(rt3);
+assert(xml3.includes('<dots>1</dots>'), 'exportMSCX dotted note');
+
+// Export XML escaping
+const rt4 = createScore({title:'A & B < C > "D"'});
+const xml4 = exportMSCXFromScore(rt4);
+assert(xml4.includes('A &amp; B &lt; C &gt; &quot;D&quot;'), 'exportMSCX escapes XML');
+
+// Export with dynamic
+const rt5 = createScore({title:'Dyn'});
+rt5.parts[0].staves[0].measures[0].notes = [
+  {...mkNote(60, 'q', 0, null, 1), dynamic: 'mf'},
+];
+const xml5 = exportMSCXFromScore(rt5);
+assert(xml5.includes('<Dynamic>'), 'exportMSCX dynamic element');
+assert(xml5.includes('<subtype>mf</subtype>'), 'exportMSCX mf dynamic');
+
+// Export with key/time signature
+const rt6 = createScore({title:'Keys', ts: {num: 3, den: 4}, ks: 2});
+const xml6 = exportMSCXFromScore(rt6);
+assert(xml6.includes('<sigN>3</sigN>'), 'exportMSCX time sig num');
+assert(xml6.includes('<sigD>4</sigD>'), 'exportMSCX time sig den');
+assert(xml6.includes('<accidental>2</accidental>'), 'exportMSCX key sig');
+
+// Export with slurs and hairpins
+const rt7 = createScore({title:'Slurs'});
+rt7.slurs = [{si: 0, startMi: 0, startNi: 0, endMi: 1, endNi: 2}];
+rt7.hairpins = [{si: 0, startMi: 0, startNi: 1, endMi: 2, endNi: 0, type: 'cresc'}];
+rt7.parts[0].staves[0].measures.push(emptyMeasure());
+rt7.parts[0].staves[0].measures.push(emptyMeasure());
+rt7.parts[0].staves[1].measures.push(emptyMeasure());
+rt7.parts[0].staves[1].measures.push(emptyMeasure());
+const xml7 = exportMSCXFromScore(rt7);
+assert(xml7.includes('type="Slur"'), 'exportMSCX slur spanner');
+assert(xml7.includes('type="HairPin"'), 'exportMSCX hairpin spanner');
+assert(xml7.includes('<subtype>0</subtype>'), 'exportMSCX crescendo type');
+
+// ── MSCX Import Tests ──────────────────────────────────────────
+
+const minimalXML = `<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.0">
+  <Score>
+    <Title>Import Test</Title>
+    <Composer>Test Author</Composer>
+    <PautaEngravingSettings showMeasureNumbers="1" showMultiMeasureRests="0"/>
+    <Part><Staff id="1"/><trackName>Piano</trackName></Part>
+    <Staff id="1">
+      <Measure number="1" len="4/4">
+        <Clef><concertClefType>treble</concertClefType></Clef>
+        <TimeSig><sigN>4</sigN><sigD>4</sigD></TimeSig>
+        <KeySig><accidental>0</accidental></KeySig>
+        <voice num="1">
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note><pitch>60</pitch></Note>
+          </Chord>
+          <Chord>
+            <durationType>quarter</durationType>
+            <Note><pitch>64</pitch><Accidental><subtype>accidentalSharp</subtype></Accidental></Note>
+          </Chord>
+          <Rest>
+            <durationType>half</durationType>
+          </Rest>
+        </voice>
+      </Measure>
+    </Staff>
+  </Score>
+</museScore>`;
+
+const imported = parseMSCX(minimalXML);
+assert(imported, 'parseMSCX returns score');
+assertEq(imported.title, 'Import Test', 'parseMSCX title');
+assertEq(imported.composer, 'Test Author', 'parseMSCX composer');
+assert(imported.parts.length > 0, 'parseMSCX has parts');
+assert(imported.parts[0].staves.length > 0, 'parseMSCX has staves');
+assert(imported.parts[0].staves[0].measures.length > 0, 'parseMSCX has measures');
+
+const impNotes = imported.parts[0].staves[0].measures[0].notes;
+assertEq(impNotes.length, 3, 'parseMSCX note count');
+assertEq(impNotes[0].type, 'note', 'parseMSCX first is note');
+assertEq(impNotes[0].pitch, 60, 'parseMSCX C4 pitch');
+assertEq(impNotes[0].duration, 'q', 'parseMSCX quarter duration');
+assertEq(impNotes[1].pitch, 64, 'parseMSCX E4 pitch');
+assertEq(impNotes[1].accidental, '#', 'parseMSCX sharp accidental');
+assertEq(impNotes[2].type, 'rest', 'parseMSCX third is rest');
+assertEq(impNotes[2].duration, 'h', 'parseMSCX half rest');
+
+// ── Roundtrip: create → export → parse → verify ──────────────────
+const rtScore = createScore({title:'Roundtrip Test', composer:'Bot'});
+rtScore.parts[0].staves[0].measures[0].notes = [
+  mkNote(60, 'q', 0, null, 1),
+  mkNote(64, 'q', 0, '#', 1),
+  mkNote(67, 'q', 0, null, 1),
+  mkNote(72, 'q', 0, 'b', 1),
+];
+const rtXml = exportMSCXFromScore(rtScore);
+const rtParsed = parseMSCX(rtXml);
+assertEq(rtParsed.title, 'Roundtrip Test', 'roundtrip title');
+assertEq(rtParsed.parts[0].staves[0].measures[0].notes.length, 4, 'roundtrip note count');
+assertEq(rtParsed.parts[0].staves[0].measures[0].notes[0].pitch, 60, 'roundtrip C4');
+assertEq(rtParsed.parts[0].staves[0].measures[0].notes[1].accidental, '#', 'roundtrip sharp');
+assertEq(rtParsed.parts[0].staves[0].measures[0].notes[3].accidental, 'b', 'roundtrip flat');
+
 // ── Summary ────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
