@@ -4660,14 +4660,94 @@ function renderRecorderFingSVG(fing, cx, cy, scale) {
   return g;
 }
 
+// ── Shared Diagram Helpers ───────────────────────────────────────
+// Shared SVG primitives used by recorder, woodwind, and brass diagram renderers.
+
+const NS_SVG = 'http://www.w3.org/2000/svg';
+
+function parseFing(fingArr, altIndex) {
+  if (typeof fingArr === 'string') fingArr = [fingArr];
+  const fing = (fingArr?.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
+  const covered = new Set();
+  const halfHole = new Set();
+  for (let i = 0; i < fing.length; i++) {
+    if (fing[i] === '1') covered.add(i);
+    else if (fing[i] === '2') halfHole.add(i);
+  }
+  return { fingArr, fing, covered, halfHole };
+}
+
+function diagNoteName(parent, text, x, y, opts) {
+  if (!text) return;
+  const el = document.createElementNS(NS_SVG, 'text');
+  el.setAttribute('x', x); el.setAttribute('y', y);
+  el.setAttribute('text-anchor', opts?.anchor || 'middle');
+  el.setAttribute('font-size', opts?.size || '9');
+  el.setAttribute('font-weight', '700');
+  el.setAttribute('fill', opts?.fill || '#555');
+  el.setAttribute('font-family', opts?.family || "'Helvetica Neue',Helvetica,sans-serif");
+  el.textContent = text;
+  parent.appendChild(el);
+}
+
+function diagAltOverlay(parent, containerType, fingArr, altIndex, w, h, updateFn, opts) {
+  if (fingArr.length <= 1) return;
+  const overlay = document.createElementNS(NS_SVG, 'rect');
+  overlay.setAttribute('x', opts?.x || '0'); overlay.setAttribute('y', opts?.y || '0');
+  overlay.setAttribute('width', w); overlay.setAttribute('height', h);
+  overlay.setAttribute('fill', 'transparent');
+  overlay.setAttribute('pointer-events', 'auto');
+  overlay.setAttribute('cursor', 'pointer');
+  overlay.addEventListener('click', e => {
+    e.stopPropagation();
+    const container = e.target.closest(`[data-instr-type="${containerType}"]`);
+    if (!container) return;
+    const max = parseInt(container.getAttribute('data-fing-count') || '1');
+    let idx = parseInt(container.getAttribute('data-fing-index') || '0');
+    idx = (idx + 1) % max;
+    container.setAttribute('data-fing-index', idx);
+    updateFn();
+  });
+  parent.appendChild(overlay);
+  const altText = document.createElementNS(NS_SVG, 'text');
+  altText.setAttribute('x', opts?.tx || w - 4); altText.setAttribute('y', opts?.ty || h - 4);
+  altText.setAttribute('text-anchor', 'end');
+  altText.setAttribute('font-size', opts?.fontSize || '5');
+  altText.setAttribute('fill', '#998a70');
+  altText.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+  altText.textContent = `\u21BB ${altIndex + 1}/${fingArr.length}`;
+  parent.appendChild(altText);
+}
+
+function diagHighlight(parent, cx, cy, r, isPlaying) {
+  const hi = document.createElementNS(NS_SVG, 'circle');
+  hi.setAttribute('cx', cx - r * 0.25); hi.setAttribute('cy', cy - r * 0.25);
+  hi.setAttribute('r', r * 0.32);
+  hi.setAttribute('fill', isPlaying ? 'rgba(255,90,74,0.45)' : 'rgba(255,255,255,0.25)');
+  hi.setAttribute('stroke', 'none');
+  parent.appendChild(hi);
+}
+
+function diagHalfPad(parent, cx, cy, r, isPlaying) {
+  const pad = document.createElementNS(NS_SVG, 'path');
+  pad.setAttribute('d', `M ${cx - r*0.9} ${cy} A ${r*0.9} ${r*0.9} 0 0 1 ${cx + r*0.9} ${cy} L ${cx + r*0.9} ${cy - r*0.9} L ${cx - r*0.9} ${cy - r*0.9} Z`);
+  pad.setAttribute('fill', isPlaying ? '#ff5a4a' : '#3a3028');
+  pad.setAttribute('stroke', isPlaying ? '#e04030' : '#222');
+  pad.setAttribute('stroke-width', '0.4');
+  parent.appendChild(pad);
+}
+
+function diagActiveFill(isPlaying) { return isPlaying ? '#ff5a4a' : '#c05621'; }
+function diagActiveStroke(isPlaying) { return isPlaying ? '#e04030' : '#c05621'; }
+
 // ── Large Baroque Recorder Diagram ─────────────────────────────
 function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('pointer-events', 'none');
 
-  if (typeof fingArr === 'string') fingArr = [fingArr];
-  const fing = (fingArr && fingArr.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
+  const pf = parseFing(fingArr, altIndex);
+  fingArr = pf.fingArr; const fing = pf.fing;
 
   // Scale wrapper: OpenClipArt SVG uses a 50×500 coordinate space
   const inner = document.createElementNS(ns, 'g');
@@ -4763,14 +4843,9 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   }
 
   // Hole overlays — fingering indicators
-  const covered = new Set(fing.split(''));
-  const halfHole = new Set(fing.split('').filter((ch,i) => ch === '2' || (ch !== '1' && ch !== '0' && ch !== 'X' && ch !== ' ' && i < fing.length && fing[i] === '2')));
-  // Rebuild halfHole from actual fing string
-  halfHole.clear();
-  for (let ci = 0; ci < fing.length; ci++) {
-    if (fing[ci] === '2') halfHole.add(ci);
-  }
-  const thumbPinched = covered.has('X');
+  const covered = pf.covered;
+  const halfHole = pf.halfHole;
+  const thumbPinched = fing.includes('X');
 
   const holeLabelStyle = 'font-family:"Helvetica Neue",Helvetica,sans-serif;font-size:3.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
 
@@ -4790,13 +4865,9 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
       el.setAttribute('r', drawRx);
     }
     if (isCovered) {
-      el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
-      el.setAttribute('stroke', APP.playing ? '#e04030' : '#c05621');
+      el.setAttribute('fill', diagActiveFill(APP.playing));
+      el.setAttribute('stroke', diagActiveStroke(APP.playing));
       el.setAttribute('stroke-width', '1');
-    } else if (isHalf) {
-      el.setAttribute('fill', '#7a5a30');
-      el.setAttribute('stroke', '#7a5a30');
-      el.setAttribute('stroke-width', '0.6');
     } else {
       el.setAttribute('fill', '#7a5a30');
       el.setAttribute('stroke', '#7a5a30');
@@ -4805,21 +4876,9 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
     inner.appendChild(el);
 
     if (isCovered) {
-      const inner2 = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
-      inner2.setAttribute('cx', hx - 0.5);
-      inner2.setAttribute('cy', hy - 0.5);
-      if (isEllipse) { inner2.setAttribute('rx', drawRx * 0.4); inner2.setAttribute('ry', drawRx * 0.4); }
-      else { inner2.setAttribute('r', drawRx * 0.4); }
-      inner2.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.5)' : 'rgba(192,86,33,0.4)');
-      inner2.setAttribute('stroke', 'none');
-      inner.appendChild(inner2);
+      diagHighlight(inner, hx, hy, drawRx, APP.playing);
     } else if (isHalf) {
-      const halfPad = document.createElementNS(ns, 'path');
-      halfPad.setAttribute('d', `M ${hx - drawRx*0.9} ${hy} A ${drawRx*0.9} ${drawRx*0.9} 0 0 1 ${hx + drawRx*0.9} ${hy} L ${hx + drawRx*0.9} ${hy - drawRx*0.9} L ${hx - drawRx*0.9} ${hy - drawRx*0.9} Z`);
-      halfPad.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
-      halfPad.setAttribute('stroke', APP.playing ? '#e04030' : '#c05621');
-      halfPad.setAttribute('stroke-width', '0.4');
-      inner.appendChild(halfPad);
+      diagHalfPad(inner, hx, hy, drawRx, APP.playing);
     }
 
     // Hole number label (above each hole)
@@ -4841,25 +4900,11 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   if (thumbCovered) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
-    el.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
-    el.setAttribute('stroke', APP.playing ? '#e04030' : '#c05621');
+    el.setAttribute('fill', diagActiveFill(APP.playing));
+    el.setAttribute('stroke', diagActiveStroke(APP.playing));
     el.setAttribute('stroke-width', '1');
     inner.appendChild(el);
-    if (APP.playing) {
-      const hi = document.createElementNS(ns, 'circle');
-      hi.setAttribute('cx', tx - 0.5); hi.setAttribute('cy', ty - 0.5);
-      hi.setAttribute('r', 1.6);
-      hi.setAttribute('fill', 'rgba(255,90,74,0.5)');
-      hi.setAttribute('stroke', 'none');
-      inner.appendChild(hi);
-    } else {
-      const hi = document.createElementNS(ns, 'circle');
-      hi.setAttribute('cx', tx - 0.5); hi.setAttribute('cy', ty - 0.5);
-      hi.setAttribute('r', 1.6);
-      hi.setAttribute('fill', 'rgba(192,86,33,0.4)');
-      hi.setAttribute('stroke', 'none');
-      inner.appendChild(hi);
-    }
+    diagHighlight(inner, tx, ty, 4, APP.playing);
   } else {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
@@ -4872,7 +4917,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   if (thumbPinched) {
     const semi = document.createElementNS(ns, 'path');
     semi.setAttribute('d', 'M 20.8,-245.3 A 4,2.5 0 0,0 28.8,-245.3 Z');
-    semi.setAttribute('fill', APP.playing ? '#ff5a4a' : '#c05621');
+    semi.setAttribute('fill', diagActiveFill(APP.playing));
     semi.setAttribute('stroke', 'none');
     inner.appendChild(semi);
   }
@@ -4887,48 +4932,10 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   inner.appendChild(lbl);
 
   // ── Note name ─────────────────────────────────────────────────
-  if (noteName) {
-    const nm = document.createElementNS(ns, 'text');
-    nm.setAttribute('x', '25'); nm.setAttribute('y', '-230');
-    nm.setAttribute('text-anchor', 'middle');
-    nm.setAttribute('font-size', '8');
-    nm.setAttribute('font-weight', '700');
-    nm.setAttribute('fill', '#555');
-    nm.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    nm.textContent = noteName;
-    inner.appendChild(nm);
-  }
+  diagNoteName(inner, noteName, 25, -230, { size: '8' });
 
   // ── Alternate-fingering click overlay ─────────────────────────
-  if (fingArr.length > 1) {
-    const overlay = document.createElementNS(ns, 'rect');
-    overlay.setAttribute('x', '12'); overlay.setAttribute('y', '-520');
-    overlay.setAttribute('width', '36'); overlay.setAttribute('height', '285');
-    overlay.setAttribute('fill', 'transparent');
-    overlay.setAttribute('pointer-events', 'auto');
-    overlay.setAttribute('cursor', 'pointer');
-    overlay.addEventListener('click', e => {
-      e.stopPropagation();
-      const container = e.target.closest('[data-instr-type="recorder"]');
-      if (!container) return;
-      const max = parseInt(container.getAttribute('data-fing-count') || '1');
-      let idx = parseInt(container.getAttribute('data-fing-index') || '0');
-      idx = (idx + 1) % max;
-      container.setAttribute('data-fing-index', idx);
-      updateRecorderDiagram();
-    });
-    inner.appendChild(overlay);
-
-    const altText = document.createElementNS(ns, 'text');
-    altText.setAttribute('x', '38'); altText.setAttribute('y', '-233');
-    altText.setAttribute('text-anchor', 'end');
-    altText.setAttribute('font-size', '4');
-    altText.setAttribute('fill', '#998a70');
-    altText.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    altText.style.cursor = 'pointer';
-    altText.textContent = `↻ ${altIndex + 1}/${fingArr.length}`;
-    inner.appendChild(altText);
-  }
+  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 285, updateRecorderDiagram, { x: '12', y: '-520', tx: '38', ty: '-233', fontSize: '4' });
 
   g.appendChild(inner);
 
@@ -5049,8 +5056,8 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
 
-  if (typeof fingArr === 'string') fingArr = [fingArr];
-  const fing = (fingArr && fingArr.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
+  const pf = parseFing(fingArr, altIndex);
+  fingArr = pf.fingArr; const fing = pf.fing;
 
   const spec = WOODWIND_SPEC[type] || WOODWIND_SPEC.clarinet;
   const {w, h, body:bodyD, fill, stroke:bodyStroke, keys, r, hR} = spec;
@@ -5105,11 +5112,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     regRing.setAttribute('stroke-width', '0.7');
     svg.appendChild(regRing);
     if (regActive) {
-      const hi = document.createElementNS(ns, 'circle');
-      hi.setAttribute('cx', rx - rR*0.2); hi.setAttribute('cy', ry - rR*0.2);
-      hi.setAttribute('r', rR * 0.3);
-      hi.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.45)' : 'rgba(255,255,255,0.25)');
-      svg.appendChild(hi);
+      diagHighlight(svg, rx, ry, rR, APP.playing);
     }
     const regLbl = document.createElementNS(ns, 'text');
     regLbl.setAttribute('x', rx); regLbl.setAttribute('y', ry + rR + 7);
@@ -5128,12 +5131,8 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   }
 
   // ── Keywork ───────────────────────────────────────────────────
-  const pressed = new Set();
-  const halfHole = new Set();
-  for (let i = 0; i < fing.length && i < keys.length; i++) {
-    if (fing[i] === '1') pressed.add(i);
-    else if (fing[i] === '2') halfHole.add(i);
-  }
+  const pressed = pf.covered;
+  const halfHole = pf.halfHole;
 
   const regionBounds = {};
   const keyLabelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4.2px;font-weight:600;fill:#998a70;text-anchor:middle;pointer-events:none';
@@ -5167,13 +5166,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       pad.setAttribute('stroke', APP.playing ? '#e04030' : '#222');
       pad.setAttribute('stroke-width', '0.6');
       svg.appendChild(pad);
-      const hi = document.createElementNS(ns, 'circle');
-      hi.setAttribute('cx', kx - baseR*0.25);
-      hi.setAttribute('cy', ky - baseR*0.25);
-      hi.setAttribute('r', baseR * 0.32);
-      hi.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.45)' : 'rgba(255,255,255,0.25)');
-      hi.setAttribute('stroke', 'none');
-      svg.appendChild(hi);
+      diagHighlight(svg, kx, ky, baseR, APP.playing);
     } else if (isH) {
       // Half-hole: tone hole visible, pad covers top half
       const hole = document.createElementNS(ns, 'circle');
@@ -5188,13 +5181,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       innerHole.setAttribute('r', baseR * 0.38);
       innerHole.setAttribute('fill', '#8a7a60');
       svg.appendChild(innerHole);
-      // Semicircular pad covering top half of hole
-      const half = document.createElementNS(ns, 'path');
-      half.setAttribute('d', `M ${kx - baseR*0.6} ${ky} A ${baseR*0.6} ${baseR*0.6} 0 0 1 ${kx + baseR*0.6} ${ky} L ${kx + baseR*0.6} ${ky - baseR*0.6} L ${kx - baseR*0.6} ${ky - baseR*0.6} Z`);
-      half.setAttribute('fill', APP.playing ? '#ff5a4a' : '#3a3028');
-      half.setAttribute('stroke', APP.playing ? '#e04030' : '#222');
-      half.setAttribute('stroke-width', '0.4');
-      svg.appendChild(half);
+      diagHalfPad(svg, kx, ky, baseR * 0.65, APP.playing);
     } else {
       // Open: tone hole
       const hole = document.createElementNS(ns, 'circle');
@@ -5259,42 +5246,11 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   }
 
   // ── Note name ────────────────────────────────────────────────
-  if (noteName) {
-    const nm = document.createElementNS(ns, 'text');
-    nm.setAttribute('x', w / 2);
-    nm.setAttribute('y', isFlute ? 10 : 12);
-    nm.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;fill:#555;text-anchor:middle;pointer-events:none');
-    nm.textContent = noteName;
-    svg.appendChild(nm);
-  }
+  diagNoteName(svg, noteName, w / 2, isFlute ? 10 : 12);
 
   // ── Alternate-fingering click overlay ─────────────────────────
-  if (fingArr.length > 1) {
-    const overlay = document.createElementNS(ns, 'rect');
-    overlay.setAttribute('x', '0'); overlay.setAttribute('y', '0');
-    overlay.setAttribute('width', w); overlay.setAttribute('height', h);
-    overlay.setAttribute('fill', 'transparent');
-    overlay.setAttribute('pointer-events', 'auto');
-    overlay.setAttribute('cursor', 'pointer');
-    overlay.addEventListener('click', e => {
-      e.stopPropagation();
-      const container = e.target.closest('[data-instr-type="woodwind"]');
-      if (!container) return;
-      const max = parseInt(container.getAttribute('data-fing-count') || '1');
-      let idx = parseInt(container.getAttribute('data-fing-index') || '0');
-      idx = (idx + 1) % max;
-      container.setAttribute('data-fing-index', idx);
-      updateWoodwindDiagram();
-    });
-    svg.appendChild(overlay);
-
-    const altText = document.createElementNS(ns, 'text');
-    altText.setAttribute('x', isFlute ? w - 4 : w - 6);
-    altText.setAttribute('y', isFlute ? h - 4 : h - 6);
-    altText.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:5px;fill:#998a70;text-anchor:end;pointer-events:none');
-    altText.textContent = `↻ ${altIndex + 1}/${fingArr.length}`;
-    svg.appendChild(altText);
-  }
+  diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
+    isFlute ? {} : { tx: w - 6, ty: h - 6 });
 
   g.appendChild(svg);
   return g;
@@ -5365,8 +5321,8 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
 
-  if (typeof fingArr === 'string') fingArr = [fingArr];
-  const fing = (fingArr && fingArr.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
+  const pf = parseFing(fingArr, altIndex);
+  fingArr = pf.fingArr; const fing = pf.fing;
 
   const isTrombone = type === 'trombone';
   const isHorn = type === 'horn';
@@ -5381,18 +5337,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   svg.setAttribute('pointer-events', 'none');
 
   // ── Note name ──────────────────────────────────────────────
-  if (noteName) {
-    const nm = document.createElementNS(ns, 'text');
-    nm.setAttribute('x', w / 2);
-    nm.setAttribute('y', isTrombone ? 14 : 18);
-    nm.setAttribute('text-anchor', 'middle');
-    nm.setAttribute('font-size', isTrombone ? '9' : '10');
-    nm.setAttribute('font-weight', '700');
-    nm.setAttribute('fill', '#555');
-    nm.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    nm.textContent = noteName;
-    svg.appendChild(nm);
-  }
+  diagNoteName(svg, noteName, w / 2, isTrombone ? 14 : 18, { size: isTrombone ? '9' : '10' });
 
   if (isTrombone) {
     // Trombone: horizontal slide positions 1-7
@@ -5451,12 +5396,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
 
       // Metallic highlight
       if (isActive) {
-        const hi = document.createElementNS(ns, 'circle');
-        hi.setAttribute('cx', x - 1.5); hi.setAttribute('cy', cy - 1.5);
-        hi.setAttribute('r', 2.5);
-        hi.setAttribute('fill', APP.playing ? 'rgba(255,90,74,0.45)' : 'rgba(255,255,255,0.3)');
-        hi.setAttribute('stroke', 'none');
-        svg.appendChild(hi);
+        diagHighlight(svg, x, cy, 9, APP.playing);
       }
 
       // Position number
@@ -5568,34 +5508,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   }
 
   // ── Alternate-fingering click overlay ──────────────────────
-  if (fingArr.length > 1) {
-    const overlay = document.createElementNS(ns, 'rect');
-    overlay.setAttribute('x', '0'); overlay.setAttribute('y', '0');
-    overlay.setAttribute('width', w); overlay.setAttribute('height', h);
-    overlay.setAttribute('fill', 'transparent');
-    overlay.setAttribute('pointer-events', 'auto');
-    overlay.setAttribute('cursor', 'pointer');
-    overlay.addEventListener('click', e => {
-      e.stopPropagation();
-      const container = e.target.closest('[data-instr-type="brass"]');
-      if (!container) return;
-      const max = parseInt(container.getAttribute('data-fing-count') || '1');
-      let idx = parseInt(container.getAttribute('data-fing-index') || '0');
-      idx = (idx + 1) % max;
-      container.setAttribute('data-fing-index', idx);
-      updateBrassDiagram();
-    });
-    svg.appendChild(overlay);
-
-    const altText = document.createElementNS(ns, 'text');
-    altText.setAttribute('x', w - 4); altText.setAttribute('y', h - 4);
-    altText.setAttribute('text-anchor', 'end');
-    altText.setAttribute('font-size', '5');
-    altText.setAttribute('fill', '#998a70');
-    altText.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    altText.textContent = `↻ ${altIndex + 1}/${fingArr.length}`;
-    svg.appendChild(altText);
-  }
+  diagAltOverlay(svg, 'brass', fingArr, altIndex, w, h, updateBrassDiagram);
 
   g.appendChild(svg);
   return g;
