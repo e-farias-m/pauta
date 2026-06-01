@@ -650,7 +650,7 @@ body{
     </svg>
     <span>Input</span>
   </button>
-  <div id="score-title" ondblclick="showTitleDialog()" title="Double-tap to edit">Untitled Score</div>
+  <div id="score-title" title="Double-tap to edit">Untitled Score</div>
   <div style="margin-left:auto;display:flex;align-items:center;opacity:0.35;font-size:28px;letter-spacing:0.5px;padding-right:6px">
     <span style="color:#c05621;font-weight:700">P</span><span style="color:#2d3748;font-weight:300">auta</span>
   </div>
@@ -680,10 +680,10 @@ body{
   </button>
   <div class="tempo-wrap">
     <span id="tempo-label">BPM</span>
-    <input type="range" id="tempo-slider" min="40" max="240" value="120"
-           oninput="updateTempo(this.value)" step="1" aria-label="Tempo in beats per minute">
-    <input type="number" id="tempo-input" min="40" max="240" value="120"
-           onchange="updateTempoFromInput(this.value)" aria-label="Tempo in BPM">
+<input type="range" id="tempo-slider" min="40" max="240" value="120"
+            step="1" aria-label="Tempo in beats per minute">
+     <input type="number" id="tempo-input" min="40" max="240" value="120"
+            aria-label="Tempo in BPM">
   </div>
   <span id="play-pos">0:00</span>
   <button id="btn-countin" data-action="toggleCountIn" aria-label="Toggle count-in clicks" style="
@@ -1062,7 +1062,7 @@ body{
   <div class="panel-page" id="panel-search">
     <div class="panel-title">Search Palette</div>
     <div style="margin:6px 0 8px">
-      <input id="search-input" type="text" placeholder="Search notation elements…" oninput="filterSearchPanels(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(192,86,33,0.30);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;outline:none;-webkit-appearance:none">
+      <input id="search-input" type="text" placeholder="Search notation elements…" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(192,86,33,0.30);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;outline:none;-webkit-appearance:none">
     </div>
     <div id="search-results" style="display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
   </div>
@@ -8486,7 +8486,7 @@ function showPartsDialog() {
         ${APP_partView === i ? '▶ ' : ''}${p.name}
       </button>
       <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
-        oninput="setPartVolume(${i},this.value)"
+        data-action="setPartVolume" data-idx="${i}"
         style="width:50px;height:4px;accent-color:#c05621;cursor:pointer"
         aria-label="${p.name} volume">
     </div>`).join('');
@@ -8517,7 +8517,7 @@ function showMixer() {
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="flex:0 0 70px;font-size:11px;color:#4a5568;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
       <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
-        oninput="setPartVolume(${i},this.value)"
+        data-action="setPartVolume" data-idx="${i}"
         style="flex:1;height:4px;accent-color:#c05621;cursor:pointer"
         aria-label="${p.name} volume">
       <span id="mix-part-${i}" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${Math.round((p.volume||1)*100)}</span>
@@ -8529,14 +8529,15 @@ function showMixer() {
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
         <span style="flex:0 0 70px;font-size:11px;color:#4a5568">Master</span>
         <input type="range" min="0" max="100" value="${masterPct}"
-          oninput="APP.masterVolume=this.value/100;if(APP.masterGain)APP.masterGain.gain.value=APP.masterVolume;document.getElementById('mix-master-val').textContent=this.value"
+          data-action="setMasterVolume"
           style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Master volume">
         <span id="mix-master-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${masterPct}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
         <span style="flex:0 0 70px;font-size:11px;color:#4a5568">Metronome</span>
         <input type="range" min="0" max="100" value="${metPct}"
-          oninput="APP.metronomeVolume=this.value/100;if(APP.metronomeGain)APP.metronomeGain.gain.value=APP.metronomeVolume;document.getElementById('mix-met-val').textContent=this.value"
+          data-action="setMetronomeVolume"
+          style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Metronome volume">
           style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Metronome volume">
         <span id="mix-met-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${metPct}</span>
       </div>
@@ -8831,7 +8832,7 @@ function showTimeSigDialog() {
     </label>
     <input type="range" id="ts-num" min="2" max="15" step="1" value="${curNum}"
            style="width:100%;margin:2px 0 8px"
-           oninput="tsSliderChange()">
+           data-action="tsSliderChange">
 
     <label style="color:rgba(74,85,104,0.6);font-size:11px;
                   letter-spacing:0.3px;text-transform:uppercase">
@@ -8839,7 +8840,7 @@ function showTimeSigDialog() {
     </label>
     <input type="range" id="ts-den" min="0" max="3" step="1" value="${denIdx}"
            style="width:100%;margin:2px 0 8px"
-           oninput="tsSliderChange()">
+           data-action="tsSliderChange">
 
     <button class="modal-btn primary" data-action="tsApplyFromSliders">Apply</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -9201,7 +9202,7 @@ function _renderNewScoreDialog() {
 
     <!-- Pickup measure toggle -->
     <div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding:2px 4px">
-      <input type="checkbox" id="nd-pickup" onchange="ndPickupToggle()"
+      <input type="checkbox" id="nd-pickup" data-action="ndPickupToggle"
         style="accent-color:#c05621;width:14px;height:14px;cursor:pointer" ${prevPickup ? 'checked' : ''}>
       <label for="nd-pickup" style="color:var(--pal-label);font-size:10px;cursor:pointer">Pickup measure</label>
       <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:4px;margin-left:auto">
@@ -9884,9 +9885,13 @@ _registerAction('toggleTempoDisplay', () => toggleTempoDisplay());
 _registerAction('toggleTuplet', (e) => toggleTuplet(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
 _registerAction('transposeScore', (e) => { transposeScore(parseInt(e.target.closest('[data-semitones]')?.dataset.semitones)); closeModal(); });
 _registerAction('tsApplyFromSliders', () => tsApplyFromSliders());
+_registerAction('tsSliderChange', () => tsSliderChange());
 _registerAction('zoomIn', () => zoomIn());
 _registerAction('zoomOut', () => zoomOut());
 _registerAction('zoomReset', () => zoomReset());
+_registerAction('setPartVolume', (e) => { const idx = parseInt(e.target.dataset.idx); setPartVolume(idx, e.target.value); });
+_registerAction('setMasterVolume', (e) => { APP.masterVolume = e.target.value / 100; if (APP.masterGain) APP.masterGain.gain.value = APP.masterVolume; document.getElementById('mix-master-val').textContent = e.target.value; });
+_registerAction('setMetronomeVolume', (e) => { APP.metronomeVolume = e.target.value / 100; if (APP.metronomeGain) APP.metronomeGain.gain.value = APP.metronomeVolume; document.getElementById('mix-met-val').textContent = e.target.value; });
 _registerAction('reload', () => location.reload());
 _registerAction('restoreAutosave', () => restoreAutosave());
 _registerAction('applyTitleDialog', () => applyTitleDialog());
@@ -9912,6 +9917,13 @@ document.addEventListener('click', (e) => {
   if (fn) { fn(e); return; }
   // Fallback: try calling window[action] for unconverted handlers
   if (typeof window[action] === 'function') { window[action](); }
+});
+// Delegated input handler for range sliders with data-action
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (el.tagName !== 'INPUT' || el.type !== 'range' || !el.dataset.action) return;
+  const fn = _ACTION_MAP[el.dataset.action];
+  if (fn) fn(e);
 });
 
 // Expose functions for HTML onclick handlers (gradually removing as data-action is added)
@@ -9960,10 +9972,13 @@ window.togglePlayback=togglePlayback;window.toggleTempoDisplay=toggleTempoDispla
 window.toggleTuplet=toggleTuplet;window.transposeScore=transposeScore;
 window.tsApplyFromSliders=tsApplyFromSliders;window.zoomIn=zoomIn;
 window.zoomOut=zoomOut;window.zoomReset=zoomReset;
-window.showTitleDialog=showTitleDialog;window.updateTempo=updateTempo;
-window.updateTempoFromInput=updateTempoFromInput;window.filterSearchPanels=filterSearchPanels;
-window.setPartVolume=setPartVolume;window.tsSliderChange=tsSliderChange;
+// ── Inline handler cleanup: bind via addEventListener instead of window exports ──
+document.getElementById('score-title')?.addEventListener('dblclick', showTitleDialog);
+document.getElementById('tempo-slider')?.addEventListener('input', e => updateTempo(e.target.value));
+document.getElementById('tempo-input')?.addEventListener('change', e => updateTempoFromInput(e.target.value));
+document.getElementById('search-input')?.addEventListener('input', e => filterSearchPanels(e.target.value));
 })();
+</script>
 </script>
 </body>
 </html>
