@@ -3099,6 +3099,30 @@ function renderScore() {
   }
 }
 
+let _selRAF = 0;
+function renderSelection() {
+  if (!APP.score || !APP.staveLayout || !APP.staveLayout.length) return;
+  if (_selRAF) cancelAnimationFrame(_selRAF);
+  _selRAF = requestAnimationFrame(() => {
+    _selRAF = 0;
+    const svgEl = document.getElementById('score-svg')?.querySelector('svg');
+    if (!svgEl) return;
+    svgEl.querySelectorAll('.sel-overlay').forEach(el => el.remove());
+    const sl = APP.staveLayout.find(l => l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0));
+    if (sl && APP.selectedMeasure >= 0) {
+      svgRect(svgEl, {
+        x: sl.x, y: sl.topLineY - 2, w: sl.w, h: sl.bottomY - sl.topLineY + 4, rx: 4,
+        fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'
+      });
+    }
+    updateRecorderDiagram();
+    updateWoodwindDiagram();
+    updateBrassDiagram();
+    updateStatusBar();
+    positionAllDiagrams();
+  });
+}
+
 function _renderScoreBody() {
   const container = document.getElementById('score-svg');
   // Save scroll position before clearing — otherwise clearing innerHTML resets scrollTop to 0
