@@ -8714,6 +8714,7 @@ function showScoreMenu(btn) {
     {label:'♭♯ Key Signature', fn:showKeySigDialog},
     {label:'↕ Transpose…', fn:showTransposeDialog},
     {label:'📄 Parts', fn:showPartsDialog},
+    {label:'➕ Add Instrument', fn:showAddInstrumentDialog},
     {sep:true},
     {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
@@ -9874,6 +9875,7 @@ _registerAction('showKeySigDialog', () => showKeySigDialog());
 _registerAction('showMixer', () => showMixer());
 _registerAction('showScoreInfo', () => showScoreInfo());
 _registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
+_registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startGlissando', (e) => startGlissando(e.target.closest('[data-style]')?.dataset.style));
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
