@@ -4942,22 +4942,23 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   return g;
 }
 
-function updateRecorderDiagram() {
-  const recEls = document.querySelectorAll('[data-instr-type="recorder"]');
-  if (!recEls.length || !APP.score) return;
+function updateDiagram(type, renderFn, fingeringFn, defaultName, opts) {
+  const els = document.querySelectorAll(`[data-instr-type="${type}"]`);
+  if (!els.length || !APP.score) return;
   const mi = APP.selectedMeasure;
   const ni = APP.selectedNoteIdx;
-  if (mi < 0 || ni < 0) {
-    recEls.forEach(el => {
+  const empty = () => {
+    els.forEach(el => {
       el.innerHTML = '';
-      const fresh = renderLargeRecorder([''], 0, '');
+      const name = opts?.nameAttr ? el.getAttribute(opts.nameAttr) || defaultName : defaultName;
+      const fresh = renderFn([''], name, 0, '', opts?.extra?.(name) ?? false);
       while (fresh.firstChild) el.appendChild(fresh.firstChild);
       el.setAttribute('data-fing-index', '0');
       el.setAttribute('data-fing-count', '1');
       el.setAttribute('data-last-pitch', '');
     });
-    return;
-  }
+  };
+  if (mi < 0 || ni < 0) { empty(); return; }
   let si = APP.selectedStaff;
   let note = null;
   for (const part of APP.score.parts) {
@@ -4968,31 +4969,47 @@ function updateRecorderDiagram() {
     if (note) break;
   }
   if (!note || note.type !== 'note') {
-    recEls.forEach(el => {
+    els.forEach(el => {
       el.innerHTML = '';
-      const fresh = renderLargeRecorder([''], 0, '');
+      const name = opts?.nameAttr ? el.getAttribute(opts.nameAttr) || defaultName : defaultName;
+      const fresh = renderFn([''], name, 0, '', opts?.extra?.(name) ?? false);
       while (fresh.firstChild) el.appendChild(fresh.firstChild);
     });
     return;
   }
-  const type = recEls[0].getAttribute('data-recorder-type') || 'soprano';
-  const fingArr = recorderFingeringForPitch(note.pitch, type);
-  const lastPitch = recEls[0].getAttribute('data-last-pitch') || '';
+  const name = opts?.nameAttr ? els[0].getAttribute(opts.nameAttr) || defaultName : defaultName;
+  const pitch = note.pitch;
+  const fingArr = fingeringFn(pitch, name);
+  const lastPitch = els[0].getAttribute('data-last-pitch') || '';
   let altIndex = 0;
-  if (lastPitch === String(note.pitch)) {
-    altIndex = parseInt(recEls[0].getAttribute('data-fing-index') || '0');
+  if (lastPitch === String(pitch)) {
+    altIndex = parseInt(els[0].getAttribute('data-fing-index') || '0');
     if (altIndex >= fingArr.length) altIndex = 0;
   }
   const ks = si >= 0 ? getResolvedKeySig(mi, si) : 0;
-  const noteName = noteLabelForPitch(note.pitch, ks, note.accidental || null, 'letter') + Math.floor(note.pitch / 12 - 1);
-  recEls.forEach(el => {
+  const noteName = noteLabelForPitch(pitch, ks, note.accidental || null, 'letter') + Math.floor(pitch / 12 - 1);
+  els.forEach(el => {
     el.innerHTML = '';
-    const fresh = renderLargeRecorder(fingArr, altIndex, noteName);
+    const fresh = renderFn(fingArr, name, altIndex, noteName, opts?.extra?.(name, pitch) ?? false);
     while (fresh.firstChild) el.appendChild(fresh.firstChild);
     el.setAttribute('data-fing-index', String(altIndex));
     el.setAttribute('data-fing-count', String(fingArr.length));
-    el.setAttribute('data-last-pitch', String(note.pitch));
+    el.setAttribute('data-last-pitch', String(pitch));
   });
+}
+
+function updateRecorderDiagram() {
+  updateDiagram('recorder', renderLargeRecorder, recorderFingeringForPitch, 'soprano',
+    { nameAttr: 'data-recorder-type' });
+}
+function updateWoodwindDiagram() {
+  updateDiagram('woodwind', renderWoodwindDiagram, woodwindFingeringForPitch, 'flute',
+    { nameAttr: 'data-instr-name',
+      extra: (n, p) => (n === 'clarinet' && p >= 71) || (n === 'sax' && p >= 72) });
+}
+function updateBrassDiagram() {
+  updateDiagram('brass', renderBrassDiagram, brassFingeringForPitch, 'trumpet',
+    { nameAttr: 'data-instr-name' });
 }
 
 // ── Woodwind Diagram ─────────────────────────────────────────────
@@ -5257,59 +5274,9 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 }
 
 function updateWoodwindDiagram() {
-  const diagEls = document.querySelectorAll('[data-instr-type="woodwind"]');
-  if (!diagEls.length || !APP.score) return;
-  const mi = APP.selectedMeasure;
-  const ni = APP.selectedNoteIdx;
-  if (mi < 0 || ni < 0) {
-    diagEls.forEach(el => {
-      el.innerHTML = '';
-      const name = el.getAttribute('data-instr-name') || 'flute';
-      const fresh = renderWoodwindDiagram([''], name, 0, '', false);
-      while (fresh.firstChild) el.appendChild(fresh.firstChild);
-      el.setAttribute('data-fing-index', '0');
-      el.setAttribute('data-fing-count', '1');
-      el.setAttribute('data-last-pitch', '');
-    });
-    return;
-  }
-  let si = APP.selectedStaff;
-  let note = null;
-  for (const part of APP.score.parts) {
-    for (let s = 0; s < part.staves.length; s++) {
-      note = part.staves[s].measures[mi]?.notes[ni];
-      if (note) break;
-    } if (note) break;
-  }
-  if (!note || note.type !== 'note') {
-    diagEls.forEach(el => {
-      el.innerHTML = '';
-      const name = el.getAttribute('data-instr-name') || 'flute';
-      const fresh = renderWoodwindDiagram([''], name, 0, '', false);
-      while (fresh.firstChild) el.appendChild(fresh.firstChild);
-    });
-    return;
-  }
-  const name = diagEls[0].getAttribute('data-instr-name') || 'flute';
-  const pitch = note.pitch;
-  const fingArr = woodwindFingeringForPitch(pitch, name);
-  const lastPitch = diagEls[0].getAttribute('data-last-pitch') || '';
-  let altIndex = 0;
-  if (lastPitch === String(pitch)) {
-    altIndex = parseInt(diagEls[0].getAttribute('data-fing-index') || '0');
-    if (altIndex >= fingArr.length) altIndex = 0;
-  }
-  const regActive = (name === 'clarinet' && pitch >= 71) || (name === 'sax' && pitch >= 72);
-  const ks = si >= 0 ? getResolvedKeySig(mi, si) : 0;
-  const noteName = noteLabelForPitch(pitch, ks, note.accidental || null, 'letter') + Math.floor(pitch / 12 - 1);
-  diagEls.forEach(el => {
-    el.innerHTML = '';
-    const fresh = renderWoodwindDiagram(fingArr, name, altIndex, noteName, regActive);
-    while (fresh.firstChild) el.appendChild(fresh.firstChild);
-    el.setAttribute('data-fing-index', String(altIndex));
-    el.setAttribute('data-fing-count', String(fingArr.length));
-    el.setAttribute('data-last-pitch', String(pitch));
-  });
+  updateDiagram('woodwind', renderWoodwindDiagram, woodwindFingeringForPitch, 'flute',
+    { nameAttr: 'data-instr-name',
+      extra: (n, p) => (n === 'clarinet' && p >= 71) || (n === 'sax' && p >= 72) });
 }
 
 // ── Brass Diagram ─────────────────────────────────────────────────
@@ -5515,58 +5482,8 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
 }
 
 function updateBrassDiagram() {
-  const diagEls = document.querySelectorAll('[data-instr-type="brass"]');
-  if (!diagEls.length || !APP.score) return;
-  const mi = APP.selectedMeasure;
-  const ni = APP.selectedNoteIdx;
-  if (mi < 0 || ni < 0) {
-    diagEls.forEach(el => {
-      el.innerHTML = '';
-      const name = el.getAttribute('data-instr-name') || 'trumpet';
-      const fresh = renderBrassDiagram([''], name, 0, '');
-      while (fresh.firstChild) el.appendChild(fresh.firstChild);
-      el.setAttribute('data-fing-index', '0');
-      el.setAttribute('data-fing-count', '1');
-      el.setAttribute('data-last-pitch', '');
-    });
-    return;
-  }
-  let si = APP.selectedStaff;
-  let note = null;
-  for (const part of APP.score.parts) {
-    for (let s = 0; s < part.staves.length; s++) {
-      note = part.staves[s].measures[mi]?.notes[ni];
-      if (note) break;
-    } if (note) break;
-  }
-  if (!note || note.type !== 'note') {
-    diagEls.forEach(el => {
-      el.innerHTML = '';
-      const name = el.getAttribute('data-instr-name') || 'trumpet';
-      const fresh = renderBrassDiagram([''], name, 0, '');
-      while (fresh.firstChild) el.appendChild(fresh.firstChild);
-    });
-    return;
-  }
-  const name = diagEls[0].getAttribute('data-instr-name') || 'trumpet';
-  const pitch = note.pitch;
-  const fingArr = brassFingeringForPitch(pitch, name);
-  const lastPitch = diagEls[0].getAttribute('data-last-pitch') || '';
-  let altIndex = 0;
-  if (lastPitch === String(pitch)) {
-    altIndex = parseInt(diagEls[0].getAttribute('data-fing-index') || '0');
-    if (altIndex >= fingArr.length) altIndex = 0;
-  }
-  const ks = si >= 0 ? getResolvedKeySig(mi, si) : 0;
-  const noteName = noteLabelForPitch(pitch, ks, note.accidental || null, 'letter') + Math.floor(pitch / 12 - 1);
-  diagEls.forEach(el => {
-    el.innerHTML = '';
-    const fresh = renderBrassDiagram(fingArr, name, altIndex, noteName);
-    while (fresh.firstChild) el.appendChild(fresh.firstChild);
-    el.setAttribute('data-fing-index', String(altIndex));
-    el.setAttribute('data-fing-count', String(fingArr.length));
-    el.setAttribute('data-last-pitch', String(pitch));
-  });
+  updateDiagram('brass', renderBrassDiagram, brassFingeringForPitch, 'trumpet',
+    { nameAttr: 'data-instr-name' });
 }
 
 // ── Large-stave Notehead Post-processing ─────────────────────────
