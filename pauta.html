@@ -1513,7 +1513,9 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.16.0 — Phase 1 score foundation (contract / repair / commit)
+//  v0.16.1 — AAR improvements: render decomposition, module boundaries,
+//            command-layer cleanup, inline chord editor, MusicXML import,
+//            MIDI input, export dialog
 // ================================================================
 //
 //  ARCHITECTURE MAP (single-file sections, top → bottom)
@@ -1532,7 +1534,9 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 
 let VF; // assigned in bootApp() after VexFlow loads dynamically
 
-// ── State ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 1: APP State & Configuration
+// ═══════════════════════════════════════════════════════════════════
 const APP = {
   score: null,
   selectedMeasure: 0,
@@ -1595,6 +1599,9 @@ const APP = {
   pauseVolumeRatio: 0.3,
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 2: Score Foundation & Model
+// ═══════════════════════════════════════════════════════════════════
 // ── Score Foundation (Phase 1) ───────────────────────────────────
 // Data contract version — bump when the score JSON shape changes.
 const SCORE_FORMAT_VERSION = 1;
@@ -2076,8 +2083,7 @@ function createScore(opts={}) {
 }
 
 // Add a new instrument part to the current score
-function addInstrumentToScore(instrName) {
-  const score  = APP.score;
+function addInstrumentToScore(score, instrName) {
   const instr  = instrByName(instrName);
   const nM     = score.parts[0].staves[0].measures.length;
   const refS   = score.parts[0].staves[0];
@@ -2297,6 +2303,9 @@ function commitChange(mutator, opts = {}) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 3: Import / Export
+// ═══════════════════════════════════════════════════════════════════
 // ── MSCX Parser ──────────────────────────────────────────────────
 function parseMSCX(xmlStr) {
   const doc = new DOMParser().parseFromString(xmlStr,'text/xml');
@@ -2562,6 +2571,359 @@ function parseMSCX(xmlStr) {
   return score;
 }
 
+// ── MusicXML Importer ────────────────────────────────────────────
+function parseMusicXML(xmlStr) {
+  const doc = new DOMParser().parseFromString(xmlStr,'text/xml');
+  if (doc.querySelector('parsererror')) throw new Error('Invalid XML');
+
+  // Namespace-safe helpers
+  function nq(parent, tag) {
+    let el = parent.querySelector(tag);
+    if (!el) { const all = parent.querySelectorAll('*'); for (const c of all) { if (c.localName === tag) { el = c; break; } } }
+    return el;
+  }
+  function nqa(parent, tag) {
+    let els = Array.from(parent.querySelectorAll(tag));
+    if (!els.length) { els = Array.from(parent.querySelectorAll('*')).filter(c => c.localName === tag); }
+    return els;
+  }
+  function txt(parent, tag) {
+    const el = nq(parent, tag);
+    return el ? el.textContent.trim() : null;
+  }
+
+  const stepToIdx = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+  const PC_TO_DIA2 = [0,0,1,1,2,3,3,4,4,5,5,6];
+
+  function mxmlPitch(step, octave, alter) {
+    const stepIdx = stepToIdx[step] !== undefined ? stepToIdx[step] : 0;
+    return (octave + 1) * 12 + stepIdx + (alter || 0);
+  }
+
+  function mxmlAccidental(alter) {
+    if (!alter || alter === 0) return null;
+    return alter > 0 ? '#' : 'b';
+  }
+
+  const _typeToDur = {
+    'maxima':'w','long':'w','breve':'w','whole':'w',
+    'half':'h','quarter':'q','eighth':'8',
+    '16th':'16','32nd':'32','64th':'64','128th':'64',
+  };
+
+  function mxmlDuration(typeStr, durDiv, divisions) {
+    const t = (typeStr||'').toLowerCase();
+    if (_typeToDur[t]) return _typeToDur[t];
+    // Fallback: convert divisions-based duration to our codes
+    if (divisions > 0 && durDiv > 0) {
+      const beats = durDiv / divisions;
+      const options = [[4,'w'],[2,'h'],[1,'q'],[0.5,'8'],[0.25,'16'],[0.125,'32'],[0.0625,'64']];
+      let best = 'q';
+      for (const [b, d] of options) {
+        if (Math.abs(beats - b) < 0.01) { best = d; break; }
+      }
+      return best;
+    }
+    return 'q';
+  }
+
+  const score = createScore();
+  const root = doc.documentElement;
+
+  // Title & composer
+  score.title    = txt(root, 'movement-title') || txt(root, 'work-title') || 'Untitled Score';
+  score.composer = txt(root, 'movement-creator') || '';
+  // Also check identification/creator
+  const idEl = nq(root, 'identification');
+  if (idEl) {
+    const creator = nq(idEl, 'creator');
+    if (creator && creator.getAttribute('type') === 'composer') score.composer = creator.textContent.trim();
+  }
+
+  const partListEl  = nq(root, 'part-list') || root;
+  const partList    = nqa(partListEl, 'score-part');
+  const partNames   = partList.map(el => txt(el, 'part-name') || 'Instrument');
+  const partEls     = nqa(root, 'part');
+
+  score.parts = [];
+
+  partEls.forEach((partEl, pi) => {
+    const part = {
+      name:    partNames[pi] || `Part ${pi+1}`,
+      instrument: 'Piano',
+      volume:  1,
+      osc:     'triangle',
+      muted:   false,
+      staves:  [],
+    };
+
+    // Determine number of staves for this part from part-list attributes
+    const staffEl = nq(partList[pi], 'staff') || nq(partList[pi], 'staff-layout');
+    const numStaves = partList[pi] ? parseInt(nq(partList[pi], 'staff')?.textContent) || 1 : 1;
+
+    for (let s = 0; s < numStaves; s++) {
+      part.staves.push({
+        measures: [],
+        clef: 'treble',
+        transposition: 0,
+        midiProgram: 0,
+        midiChannel: pi * numStaves + s,
+        pan: pi === 0 ? -0.3 : 0.3,
+      });
+    }
+
+    let divisions    = 4;
+    let curTimeSigNum= 4, curTimeSigDen=4;
+    let curKeySig    = 0;
+    let clefType     = 'treble';
+    let firstMeasure = true;
+
+    const measureEls = nqa(partEl, 'measure');
+
+    measureEls.forEach(mEl => {
+      const measure = {
+        timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [],
+      };
+
+      // Attributes
+      const attrs = nq(mEl, 'attributes');
+      if (attrs) {
+        const divEl = nq(attrs, 'divisions');
+        if (divEl) divisions = parseInt(divEl.textContent) || 4;
+
+        const keyEl = nq(attrs, 'key');
+        if (keyEl) {
+          const fifths = nq(keyEl, 'fifths');
+          if (fifths) { curKeySig = parseInt(fifths.textContent) || 0; measure.keySig = curKeySig; }
+        }
+
+        const timeEl = nq(attrs, 'time');
+        if (timeEl) {
+          const beats = nq(timeEl, 'beats');
+          const bt    = nq(timeEl, 'beat-type');
+          if (beats && bt) { curTimeSigNum = parseInt(beats.textContent) || 4; curTimeSigDen = parseInt(bt.textContent) || 4; measure.timeSigNum = curTimeSigNum; measure.timeSigDen = curTimeSigDen; }
+        }
+
+        const clefEl = nq(attrs, 'clef');
+        if (clefEl) {
+          const sign = (txt(clefEl, 'sign') || 'G').toUpperCase();
+          clefType = (sign === 'F') ? 'bass' : 'treble';
+          // Clef per staff
+          const staffIdxEl = nq(clefEl, 'number');
+          const staffIdx = staffIdxEl ? (parseInt(staffIdxEl.textContent) || 1) : 1;
+          const si = Math.min(staffIdx - 1, part.staves.length - 1);
+          if (part.staves[si]) part.staves[si].clef = clefType;
+        }
+      }
+
+      if (firstMeasure) {
+        if (measure.keySig === null) measure.keySig = 0;
+        if (measure.timeSigNum === null) { measure.timeSigNum = curTimeSigNum; measure.timeSigDen = curTimeSigDen; }
+        firstMeasure = false;
+      }
+
+      // Barline
+      const barlineEl = nq(mEl, 'barline');
+      if (barlineEl) {
+        const loc = txt(barlineEl, 'bar-style') || '';
+        if (loc === 'final') measure.lineBreak = true;
+      }
+
+      // Harmony (chord symbols) — may appear before/after notes
+      const harmonEls = nqa(mEl, 'harmony');
+      const harmonyMap = new Map(); // beat → string
+      let harmonyBeat = 0;
+      harmonEls.forEach(hEl => {
+        const rootEl = nq(hEl, 'root');
+        const kindEl = nq(hEl, 'kind');
+        if (rootEl) {
+          const rootStep = txt(rootEl, 'root-step') || '';
+          const rootAlt  = txt(rootEl, 'root-alter');
+          let sym = rootStep;
+          if (rootAlt === '1') sym += '#';
+          else if (rootAlt === '-1') sym += 'b';
+          if (kindEl) {
+            const kindText = kindEl.textContent.trim();
+            const kindMap = {
+              'major':'','minor':'m','augmented':'aug','diminished':'dim',
+              'dominant':'7','major-seventh':'maj7','minor-seventh':'m7',
+              'diminished-seventh':'dim7','augmented-seventh':'aug7',
+              'major-ninth':'maj9','minor-ninth':'m9','dominant-ninth':'9',
+              'suspended-fourth':'sus4','suspended-second':'sus2',
+              'major-sixth':'6','minor-sixth':'m6','power':'5',
+            };
+            sym += kindMap[kindText] || kindText;
+          }
+          harmonyMap.set(harmonyBeat, sym);
+        }
+        harmonyBeat += 1;
+      });
+
+      // Notes
+      const noteEls = nqa(mEl, 'note');
+      let lastNote = null;
+      let beatPos  = 0;
+      let harmonyIdx = 0;
+
+      noteEls.forEach(noteEl => {
+        const isChord = nq(noteEl, 'chord') !== null;
+        const isRest  = nq(noteEl, 'rest') !== null;
+        const isGrace = nq(noteEl, 'grace') !== null;
+
+        // Staff index (for multi-stave parts)
+        let si = 0;
+        const staffEl2 = nq(noteEl, 'staff');
+        if (staffEl2) si = Math.min(parseInt(staffEl2.textContent) - 1, part.staves.length - 1);
+
+        // Pitch
+        let pitch = 60, alter = 0;
+        if (!isRest) {
+          const pitchEl = nq(noteEl, 'pitch');
+          if (pitchEl) {
+            const step   = txt(pitchEl, 'step') || 'C';
+            const octave = parseInt(txt(pitchEl, 'octave')) || 4;
+            const altEl  = nq(pitchEl, 'alter');
+            alter = altEl ? parseFloat(altEl.textContent) || 0 : 0;
+            pitch = mxmlPitch(step, octave, alter);
+          }
+        }
+
+        // Duration
+        const durEl    = nq(noteEl, 'duration');
+        const durDiv   = durEl ? parseFloat(durEl.textContent) || 0 : 0;
+        const typeEl   = nq(noteEl, 'type');
+        const typeStr  = typeEl ? typeEl.textContent : '';
+        const durCode  = mxmlDuration(typeStr, durDiv, divisions);
+        const dotCount = nqa(noteEl, 'dot').length;
+
+        // Tie
+        const tieEl    = nq(noteEl, 'tie');
+        const tieStart = nqa(noteEl, 'tie').filter(t => t.getAttribute('type') === 'start').length > 0;
+
+        // Notehead
+        const headEl = nq(noteEl, 'notehead');
+        const notehead = headEl ? headEl.textContent.trim() : null;
+
+        // Voice
+        const voiceEl = nq(noteEl, 'voice');
+        const voice   = voiceEl ? parseInt(voiceEl.textContent) || 1 : 1;
+
+        // Dynamics from <direction> elements (collected per measure, applied to first note after)
+        // Simplified: we just look for dynamics in <direction> elements preceding this note
+
+        if (isGrace) {
+          // Skip grace notes for now — they need special handling
+          return;
+        }
+
+        if (isChord && lastNote) {
+          // Extra pitch on chord
+          if (!lastNote.extraPitches) lastNote.extraPitches = [];
+          lastNote.extraPitches.push(pitch);
+          return;
+        }
+
+        if (isRest) {
+          const note = {
+            type: 'rest', duration: durCode, dots: dotCount,
+            accidental: null, voice, pitch: 60,
+          };
+          // Assign chord symbol if harmony maps to this beat
+          const hSym = harmonyMap.get(harmonyIdx);
+          if (hSym) note.chordSymbol = hSym;
+          harmonyIdx++;
+          // Need to route to correct stave
+          let targetStave = part.staves[si] || part.staves[0];
+          targetStave.measures = targetStave.measures || [];
+          if (!targetStave.measures[measureEls.indexOf(mEl)]) {
+            // Ensure all staves have same measure count
+            part.staves.forEach((st, sIdx) => {
+              while (st.measures.length < measureEls.indexOf(mEl) + 1) {
+                st.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [] });
+              }
+            });
+          }
+          const measIdx = measureEls.indexOf(mEl);
+          targetStave = part.staves[si] || part.staves[0];
+          while (targetStave.measures.length <= measIdx) {
+            targetStave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [] });
+          }
+          targetStave.measures[measIdx].notes.push(note);
+          lastNote = note;
+          beatPos += durDiv;
+          return;
+        }
+
+        // Regular note
+        const note = {
+          type: 'note', duration: durCode, dots: dotCount,
+          accidental: mxmlAccidental(alter),
+          voice, pitch, tieToNext: tieStart || undefined,
+          notehead: notehead || undefined,
+        };
+
+        // Chord symbol
+        const hSym2 = harmonyMap.get(harmonyIdx);
+        if (hSym2) note.chordSymbol = hSym2;
+        harmonyIdx++;
+
+        // Direction dynamics — look for <direction><direction-type><dynamics> elements
+        const directions = nqa(mEl, 'direction');
+        for (const dEl of directions) {
+          const dirType = nq(dEl, 'direction-type');
+          if (dirType) {
+            const dynEl = nq(dirType, 'dynamics');
+            if (dynEl) {
+              const dynChild = dynEl.children[0];
+              if (dynChild) note.dynamic = dynChild.localName;
+            }
+          }
+        }
+
+        // Route to correct stave
+        const measIdx = measureEls.indexOf(mEl);
+        let targetStave2 = part.staves[si] || part.staves[0];
+        while (targetStave2.measures.length <= measIdx) {
+          targetStave2.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [] });
+        }
+        targetStave2.measures[measIdx].notes.push(note);
+        lastNote = note;
+        beatPos += durDiv;
+      });
+    });
+
+    // Fill in missing measures for staves that have fewer measures
+    const maxMeas = Math.max(...part.staves.map(s => s.measures.length));
+    part.staves.forEach(stave => {
+      while (stave.measures.length < maxMeas) {
+        stave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [] });
+      }
+      // Apply time/key sigs missing from later measures
+      let lastTSN = null, lastTSD = null, lastKS = null;
+      stave.measures.forEach((m, idx) => {
+        if (m.timeSigNum !== null) { lastTSN = m.timeSigNum; lastTSD = m.timeSigDen; }
+        if (m.keySig !== null) lastKS = m.keySig;
+        // Inherit key/time from first measure if not set
+        if (idx > 0) {
+          if (m.timeSigNum === null && lastTSN !== null) { m.timeSigNum = lastTSN; m.timeSigDen = lastTSD; }
+          if (m.keySig === null && lastKS !== null) m.keySig = lastKS;
+        }
+      });
+    });
+
+    score.parts.push(part);
+  });
+
+  // Copy first part's stave measures to all parts (MusicXML-only parts may share)
+  // Ensure measurements aren't lost for non-first parts
+  if (!score.slurs)          score.slurs          = [];
+  if (!score.hairpins)       score.hairpins       = [];
+  if (!score.rehearsalMarks) score.rehearsalMarks = [];
+  if (!score.staffTexts)     score.staffTexts     = [];
+
+  return score;
+}
+
 // ── MSCX Exporter ────────────────────────────────────────────────
 function exportMSCX() {
   return exportMSCXFromScore(APP.score);
@@ -2806,6 +3168,9 @@ function buildFillerRests(leftover, clef, capacity, stemDir) {
   return fillers;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 4: Rendering
+// ═══════════════════════════════════════════════════════════════════
 // ── Rendering ────────────────────────────────────────────────────
 // ── Rendering constants ────────────────────────────────────────
 // Immutable defaults — computed values live in LAYOUT (set per render).
@@ -3154,10 +3519,55 @@ function _showRenderFailure(err) {
 
 function _runBootSelfCheck() {
   if (!DEBUG) return;
+  let ok = true;
+
+  // ── Score validation ────────────────────────────────────────────
   const sample = createScore({ title: 'Self-check', instruments: ['Piano', 'Recorder (Soprano)'] });
   const check = validateScore(repairScore(sample));
-  if (!check.ok) console.warn('[Pauta] boot self-check failed:', check.issues);
-  else debugLog('[Pauta] boot self-check passed');
+  if (!check.ok) { console.warn('[Pauta] boot self-check failed:', check.issues); ok = false; }
+  else debugLog('[Pauta] boot self-check score validation passed');
+
+  // ── MSCX round-trip ─────────────────────────────────────────────
+  try {
+    const xml = exportMSCXFromScore(sample);
+    const reparsed = parseMSCX(xml);
+    if (reparsed.parts.length !== sample.parts.length) {
+      console.warn('[Pauta] self-check MSCX round-trip part count mismatch'); ok = false;
+    }
+    debugLog('[Pauta] boot self-check MSCX round-trip passed');
+  } catch(e) { console.warn('[Pauta] self-check MSCX round-trip error:', e.message); ok = false; }
+
+  // ── MusicXML import ─────────────────────────────────────────────
+  try {
+    const mxml = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Flute</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+  </part>
+</score-partwise>`;
+    const mxScore = parseMusicXML(mxml);
+    if (!mxScore.parts.length || !mxScore.parts[0].staves[0].measures.length) {
+      console.warn('[Pauta] self-check MusicXML import produced empty score'); ok = false;
+    } else {
+      const m = mxScore.parts[0].staves[0].measures[0];
+      if (m.notes.length !== 1 || m.notes[0].pitch !== 60) {
+        console.warn('[Pauta] self-check MusicXML note mismatch'); ok = false;
+      }
+    }
+    debugLog('[Pauta] boot self-check MusicXML import passed');
+  } catch(e) { console.warn('[Pauta] self-check MusicXML error:', e.message); ok = false; }
+
+  if (ok) debugLog('[Pauta] all boot self-checks passed');
+  else console.warn('[Pauta] some boot self-checks failed (see above)');
 }
 
 function renderScore() {
@@ -3171,14 +3581,23 @@ function renderScore() {
 
 let _selRAF = 0;
 function _renderScoreBody() {
+  const rc = _setupRender();
+  if (!rc) return;
+  _renderSystems(rc);
+  _renderScoreAnnotations(rc);
+  _renderScoreCompletions(rc);
+}
+
+// Render phases broken out of _renderScoreBody for maintainability.
+// rc = render context object returned by _setupRender.
+
+function _setupRender() {
   const container = document.getElementById('score-svg');
-  // Save scroll position before clearing — otherwise clearing innerHTML resets scrollTop to 0
   const area = document.getElementById('score-area');
   const savedScrollTop = area ? area.scrollTop : 0;
   container.innerHTML = '';
-  if (!APP.score) return;
+  if (!APP.score) return null;
 
-  // Page view is 30% smaller than continuous view
   const viewScale = APP.continuousView ? 1 : 0.7;
   LAYOUT.STAVE_H       = REND.STAVE_H;
   LAYOUT.STAVE_SPACING = REND.STAVE_SPACING;
@@ -3191,13 +3610,11 @@ function _renderScoreBody() {
   APP.noteLayout  = [];
 
   const score  = APP.score;
-  // In part view, only render the active part's staves
   const allParts  = score.parts;
   const activeParts = APP.partView !== null
     ? [score.parts[APP.partView]].filter(Boolean)
     : allParts;
   const staves = activeParts.flatMap(p => p.staves);
-  // Global SI offset for part view (so staveLayout si values stay consistent)
   const siOffset = APP.partView !== null ? _globalSIForPart(APP.partView, 0) : 0;
   const ns     = staves.length;
   const refStave = staves.find(s => s.measures.length) || staves[0];
@@ -3209,23 +3626,21 @@ function _renderScoreBody() {
   const totalH = LAYOUT.MARGIN_TOP + systems.length * (LAYOUT.STAVE_H + (ns-1) * LAYOUT.STAVE_SPACING + LAYOUT.SYS_SPACING) + 48;
   const { ctx, multiRestGroups } = initScoreRenderer(container, cW, totalH, score);
 
+  return { container, area, savedScrollTop, viewScale, score, activeParts, staves, siOffset, ns, allM,
+    systems, mNatW, cW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS, totalH, ctx, multiRestGroups };
+}
+
+function _renderSystems(rc) {
+  const { container, staves, ns, siOffset, allM, viewScale, systems, mNatW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS, ctx, multiRestGroups } = rc;
   let sysY = LAYOUT.MARGIN_TOP;
-  const vfStaveRef = {}; // key: `${globalSI}_${mi}` → VF.Stave object for StaveConnectors
+  const vfStaveRef = {};
 
   systems.forEach((system, sysIdx) => {
     const isFirstSysOfScore = sysIdx === 0;
     const firstExtra = isFirstSysOfScore
       ? (allM[0]?.pickup ? FIRST_EXTRA_SYS : FIRST_EXTRA_GLOBAL) : FIRST_EXTRA_SYS;
+    const mWidths = system.map(mi => Math.round(mNatW[mi]));
 
-    // Total natural content width for this system
-    const natContentW = system.reduce((s, mi) => s + mNatW[mi], 0);
-    const natTotal    = firstExtra + natContentW;
-
-    // Natural widths — same spacing in continuous and page view
-    const stretch = 1;
-    const mWidths = system.map(mi => Math.round(mNatW[mi] * stretch));
-
-    // In page view, force every system to exactly fill the usable width
     if (!APP.continuousView && mWidths.length > 0) {
       const total = mWidths.reduce((a,b) => a+b, 0);
       const target = usable - firstExtra;
@@ -3242,224 +3657,171 @@ function _renderScoreBody() {
       system.forEach((mi, li) => {
         const isFirstOfSys    = li === 0;
         const isGlobalFirst   = isFirstSysOfScore && li === 0;
-        let mWidth = (isFirstOfSys ? firstExtra : 0) + mWidths[li];
+        const staveY = sysY + si * LAYOUT.STAVE_SPACING;
+        const w = _renderStaveMeasure(rc, { mi, si, stave, mx, li, isFirstOfSys, isGlobalFirst, firstExtra, staveY, sysY, vfStaveRef, mWidths });
+        mx += w;
+      });
+    });
 
-        const staveY  = sysY + si * LAYOUT.STAVE_SPACING;
-        const isBWst  = isBoomwhackerSI(si + siOffset);
-        const isBRst  = isBeginnerRecorderSI(si + siOffset);
-        const isLarge = isBWst || isBRst;
-        const vfStave = new VF.Stave(mx, staveY, mWidth,
-          { space_above_staff_ln: 4, num_lines: 5, fill_style: '#000' }
-        );
-        try { vfStave.setSpacingBetweenLines(Math.round(33 * viewScale)); } catch(e) { if (DEBUG) console.warn('[Pauta] stave spacing:', e.message); }
-
-        // Clef — track per-measure changes
-        const currentClef = getResolvedClef(mi, si + siOffset);
-        if (isFirstOfSys) {
-          vfStave.addClef(currentClef, 'default');
-        } else if (mi > 0) {
-          const prevClef = getResolvedClef(mi - 1, si + siOffset);
-          if (prevClef !== currentClef) {
-            vfStave.addClef(currentClef, 'default');
-          }
-        }
-
-        // Key sig changes — show at measure where changed, and at global first
-        const ks = stave.measures[mi]?.keySig;
-        if (isGlobalFirst && ks !== null && ks !== undefined) {
-          if (ks !== 0) vfStave.addKeySignature(keySigName(ks));
-        } else if (!isGlobalFirst && ks !== null && ks !== undefined && mi > 0) {
-          if (ks !== 0) vfStave.addKeySignature(keySigName(ks));
-        }
-
-        // Time sig — show at global first, and at any measure where it changes
-        const tsMeasure = stave.measures[mi];
-        if (tsMeasure?.timeSigNum !== null && tsMeasure?.timeSigNum !== undefined) {
-          if (isGlobalFirst || mi > 0) {
-            vfStave.addTimeSignature(`${tsMeasure.timeSigNum}/${tsMeasure.timeSigDen}`);
-          }
-        }
-
-        // ── Barline types ─────────────────────────────────────────
-        // Read the barline stored on THIS measure (end barline) and
-        // also the barline stored on the NEXT measure (if it is a
-        // repeat_begin, we must set the begin barline of THIS stave).
-        const BT = VF.Barline.type;
-        const barlineType = stave.measures[mi]?.barline || 'single';
-        // Map our model strings → VexFlow Barline.type constants
-        const VF_END = {
-          single:       BT.SINGLE,
-          double:       BT.DOUBLE,
-          end:          BT.END,
-          repeat_end:   BT.REPEAT_END,
-          repeat_both:  BT.REPEAT_BOTH,
-        }[barlineType] ?? BT.SINGLE;
-
-        const VF_BEGIN = {
-          repeat_begin: BT.REPEAT_BEGIN,
-          repeat_both:  BT.REPEAT_BOTH,
-        }[barlineType] ?? BT.SINGLE;
-
-        vfStave.setEndBarType(VF_END);
-        if (VF_BEGIN !== BT.SINGLE) vfStave.setBegBarType(VF_BEGIN);
-
-        // Size stave exactly to fit modifiers + note content
-        if (isFirstOfSys) {
-          const actualExtra = vfStave.getNoteStartX() - mx;
-          const correctWidth = actualExtra + mWidths[li];
-          if (correctWidth !== mWidth) {
-            mWidth = correctWidth;
-            vfStave.setWidth(mWidth);
-          }
-        }
-
-        vfStave.setContext(ctx).draw();
-        vfStaveRef[`${si + siOffset}_${mi}`] = vfStave; // store for StaveConnectors
-
-        // Selection highlight overlay — anchored to VexFlow's actual stave lines
-        if (mi === APP.selectedMeasure && si === APP.selectedStaff) {
-          const svgEl2  = container.querySelector('svg');
-          const lineTop = vfStave.getYForLine(0);
-          const lineBot = vfStave.getYForLine(4);
-          svgRect(svgEl2, {x: mx, y: lineTop - 2, w: mWidth, h: lineBot - lineTop + 4, rx: 4,
-            fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'});
-        }
-
-        // Build & draw notes — two voices rendered as independent VexFlow Voice objects
-        const measure = stave.measures[mi];
-        const ts      = resolvedTimeSig(mi, si + siOffset);
-        const isBW    = isBoomwhackerSI(si + siOffset);
-        const isBR    = isBeginnerRecorderSI(si + siOffset);
-        const capacity = measureBeatsCapacity(mi, si + siOffset);
-
-        // Partition all notes by voice, preserving original indices for noteLayout
-        const v1Data    = measure.notes.map((n, idx) => ({n, idx})).filter(({n}) => (n.voice||1) === 1);
-        const v2Data    = measure.notes.map((n, idx) => ({n, idx})).filter(({n}) => (n.voice||1) === 2);
-        const v1Notes   = v1Data.map(d => d.n);
-        const v2Notes   = v2Data.map(d => d.n);
-        const v1Indices = v1Data.map(d => d.idx);
-        const v2Indices = v2Data.map(d => d.idx);
-
-        // V2 is "real" only when it has notes beyond a whole-rest placeholder
-        const hasV2Real = v2Notes.length > 0 && !isWholeRestPlaceholder(v2Notes);
-
-        // Stem directions: force V1 up / V2 down when two voices are present
-        const dirs1 = hasV2Real
-          ? v1Notes.map(() => VF.Stem.UP)
-          : calcStemDirections(v1Notes, stave.clef, ts);
-        const dirs2 = v2Notes.map(() => VF.Stem.DOWN);
-
-        const vfNotes1 = buildVFNotes(v1Notes, stave.clef, mi, si + siOffset, dirs1, isBW, isBR);
-        const vfNotes2 = buildVFNotes(v2Notes, stave.clef, mi, si + siOffset, dirs2, isBW, isBR);
-
-        // Filler rests (ghosted) for remaining beats in each voice
-        const v1Used   = isWholeRestPlaceholder(v1Notes) ? capacity : beatsUsed(v1Notes);
-        const fillers1 = buildFillerRests(capacity - v1Used, stave.clef, capacity, VF.Stem.UP);
-        const fillers2 = hasV2Real
-          ? buildFillerRests(capacity - beatsUsed(v2Notes), stave.clef, capacity, VF.Stem.DOWN)
-          : [];
-
-        const allVF1 = [...vfNotes1, ...fillers1];
-        const allVF2 = hasV2Real ? [...vfNotes2, ...fillers2] : [];
-
-        const gsi = si + siOffset;
-        const mmrGroup = multiRestGroups.find(g => g.gsi === gsi && g.startMi <= mi && g.endMi >= mi);
-
-        if (mmrGroup) {
-          // Multi-measure rest: skip VexFlow note rendering entirely
-          // (staff lines and barlines are already drawn by vfStave.draw)
-        } else if (allVF1.length || allVF2.length) {
-          try {
-            // ── Build beams BEFORE adding notes to Voice objects ──────
-            // VexFlow 3 removes individual flags from a note the moment it
-            // becomes a member of a Beam.  If we build beams after voice.draw()
-            // the flags are already painted and we get doubles.
-            const beams1 = buildBeams(vfNotes1, v1Notes, ts);
-            const beams2 = buildBeams(vfNotes2, v2Notes, ts);
-
-            const voices = [];
-
-            if (allVF1.length) {
-              const voice1 = new VF.Voice({num_beats: ts.num, beat_value: ts.den});
-              voice1.setStrict(false);
-              voice1.addTickables(allVF1);
-              voices.push(voice1);
-            }
-            if (allVF2.length) {
-              const voice2 = new VF.Voice({num_beats: ts.num, beat_value: ts.den});
-              voice2.setStrict(false);
-              voice2.addTickables(allVF2);
-              voices.push(voice2);
-            }
-
-            const noteStartX   = vfStave.getNoteStartX();
-            const staveEndX    = mx + mWidth;
-            const rawAvailable = Math.max(40, isFirstOfSys
-              ? Math.min(mWidths[li], staveEndX - noteStartX)
-              : staveEndX - noteStartX);
-            const rightMargin  = Math.min(38, Math.max(14, rawAvailable * 0.08));
-            const availableW   = rawAvailable - rightMargin;
-
-             new VF.Formatter({ softmaxFactor: 20 }).joinVoices(voices).format(voices, availableW);
-            voices.forEach(v => v.draw(ctx, vfStave));
-
-            // Record per-note positions using ORIGINAL measure.notes indices
-            vfNotes1.forEach((vfn, i) => {
-              try {
-                const nx = vfn.getAbsoluteX() + 6; // centre of notehead
-                const ys = vfn.getYs();
-                const ny = ys && ys.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
-                const sLen1 = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
-                const stemTipY1 = dirs1[i] === VF.Stem.UP ? ny - sLen1 : ny + sLen1;
-                APP.noteLayout.push({ mi, si: si + siOffset, ni: v1Indices[i], x: nx, y: ny, stemDir: dirs1[i], stemTipY: stemTipY1 });
-              } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v1:', e.message); }
-            });
-            vfNotes2.forEach((vfn, i) => {
-              try {
-                const nx = vfn.getAbsoluteX() + 6; // centre of notehead
-                const ys = vfn.getYs();
-                const ny = ys && ys.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
-                const sLen2 = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
-                const stemTipY2 = dirs2[i] === VF.Stem.UP ? ny - sLen2 : ny + sLen2;
-                APP.noteLayout.push({ mi, si: si + siOffset, ni: v2Indices[i], x: nx, y: ny, stemDir: dirs2[i], stemTipY: stemTipY2 });
-              } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
-            });
-
-            // Draw beams after voices (flags already stripped at construction above)
-            [...beams1, ...beams2].forEach(b => vfSafe(() => b.setContext(ctx).draw(), 'beam'));
-
-            // Tuplet brackets
-            const tups1 = buildTuplets(vfNotes1, v1Notes);
-            const tups2 = buildTuplets(vfNotes2, v2Notes);
-            [...tups1, ...tups2].forEach(t => vfSafe(() => t.setContext(ctx).draw(), 'tuplet'));
-
-          } catch(e) {
-            console.warn('Render measure', mi, e.message);
-          }
-        }
-
-        APP.staveLayout.push({
-          mi, si: si + siOffset, x: mx, y: staveY,
-          topLineY: vfStave.getYForLine(0),
-          bottomY:  vfStave.getYForLine(4),
-          w: mWidth, h: LAYOUT.STAVE_H, clef: stave.clef
-        });
-        mx += mWidth;
-      }); // end system.forEach measures
-
-    }); // end staves.forEach
-
-    renderInstrumentLabels(container, activeParts, system, sysY, siOffset, ns, isFirstSysOfScore, ctx, vfStaveRef);
-    renderPartBrackets(container, activeParts, system, siOffset, ns, vfStaveRef, ctx);
+    renderInstrumentLabels(container, rc.activeParts, system, sysY, siOffset, ns, isFirstSysOfScore, ctx, vfStaveRef);
+    renderPartBrackets(container, rc.activeParts, system, siOffset, ns, vfStaveRef, ctx);
     renderMeasureNumbers(container, ns, siOffset, sysIdx, system);
 
     sysY += LAYOUT.STAVE_H + (ns-1) * LAYOUT.STAVE_SPACING + LAYOUT.SYS_SPACING;
-  }); // end systems.forEach
+  });
 
   updateStatusBar();
-  updateOctaveDisplay(); // also updates BW note-names button visibility
+  updateOctaveDisplay();
+}
 
-  // ── Render markings (ties, slurs, hairpins, dynamics) ────────────
+function _renderStaveMeasure(rc, sm) {
+  const { container, ctx, siOffset, viewScale, multiRestGroups } = rc;
+  const { mi, si, stave, mx, li, isFirstOfSys, isGlobalFirst, staveY, vfStaveRef, mWidths } = sm;
+  let mWidth = mWidths[li] + (isFirstOfSys ? sm.firstExtra : 0);
+
+  const vfStave = new VF.Stave(mx, staveY, mWidth,
+    { space_above_staff_ln: 4, num_lines: 5, fill_style: '#000' }
+  );
+  try { vfStave.setSpacingBetweenLines(Math.round(33 * viewScale)); } catch(e) { if (DEBUG) console.warn('[Pauta] stave spacing:', e.message); }
+
+  const currentClef = getResolvedClef(mi, si + siOffset);
+  if (isFirstOfSys) {
+    vfStave.addClef(currentClef, 'default');
+  } else if (mi > 0) {
+    const prevClef = getResolvedClef(mi - 1, si + siOffset);
+    if (prevClef !== currentClef) vfStave.addClef(currentClef, 'default');
+  }
+
+  const ks = stave.measures[mi]?.keySig;
+  if (isGlobalFirst && ks !== null && ks !== undefined) {
+    if (ks !== 0) vfStave.addKeySignature(keySigName(ks));
+  } else if (!isGlobalFirst && ks !== null && ks !== undefined && mi > 0) {
+    if (ks !== 0) vfStave.addKeySignature(keySigName(ks));
+  }
+
+  const tsMeasure = stave.measures[mi];
+  if (tsMeasure?.timeSigNum !== null && tsMeasure?.timeSigNum !== undefined) {
+    if (isGlobalFirst || mi > 0) vfStave.addTimeSignature(`${tsMeasure.timeSigNum}/${tsMeasure.timeSigDen}`);
+  }
+
+  const BT = VF.Barline.type;
+  const barlineType = stave.measures[mi]?.barline || 'single';
+  const VF_END = { single:BT.SINGLE, double:BT.DOUBLE, end:BT.END, repeat_end:BT.REPEAT_END, repeat_both:BT.REPEAT_BOTH }[barlineType] ?? BT.SINGLE;
+  const VF_BEGIN = { repeat_begin:BT.REPEAT_BEGIN, repeat_both:BT.REPEAT_BOTH }[barlineType] ?? BT.SINGLE;
+  vfStave.setEndBarType(VF_END);
+  if (VF_BEGIN !== BT.SINGLE) vfStave.setBegBarType(VF_BEGIN);
+
+  // Adjust width if clef/key/time modifiers take more space than firstExtra accounted for
+  if (isFirstOfSys) {
+    const actualExtra = vfStave.getNoteStartX() - mx;
+    const correctWidth = actualExtra + mWidths[li];
+    if (correctWidth !== mWidth) { mWidth = correctWidth; vfStave.setWidth(mWidth); }
+  }
+
+  vfStave.setContext(ctx).draw();
+  vfStaveRef[`${si + siOffset}_${mi}`] = vfStave;
+
+  if (mi === APP.selectedMeasure && si === APP.selectedStaff) {
+    const svgEl2 = container.querySelector('svg');
+    const lineTop = vfStave.getYForLine(0);
+    const lineBot = vfStave.getYForLine(4);
+    svgRect(svgEl2, {x: mx, y: lineTop - 2, w: mWidth, h: lineBot - lineTop + 4, rx: 4,
+      fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'});
+  }
+
+  const measure = stave.measures[mi];
+  const ts      = resolvedTimeSig(mi, si + siOffset);
+  const isBW    = isBoomwhackerSI(si + siOffset);
+  const isBR    = isBeginnerRecorderSI(si + siOffset);
+  const capacity = measureBeatsCapacity(mi, si + siOffset);
+
+  const v1Data = measure.notes.map((n, idx) => ({n, idx})).filter(({n}) => (n.voice||1) === 1);
+  const v2Data = measure.notes.map((n, idx) => ({n, idx})).filter(({n}) => (n.voice||1) === 2);
+  const v1Notes = v1Data.map(d => d.n);
+  const v2Notes = v2Data.map(d => d.n);
+  const v1Indices = v1Data.map(d => d.idx);
+  const v2Indices = v2Data.map(d => d.idx);
+
+  const hasV2Real = v2Notes.length > 0 && !isWholeRestPlaceholder(v2Notes);
+  const dirs1 = hasV2Real ? v1Notes.map(() => VF.Stem.UP) : calcStemDirections(v1Notes, stave.clef, ts);
+  const dirs2 = v2Notes.map(() => VF.Stem.DOWN);
+
+  const vfNotes1 = buildVFNotes(v1Notes, stave.clef, mi, si + siOffset, dirs1, isBW, isBR);
+  const vfNotes2 = buildVFNotes(v2Notes, stave.clef, mi, si + siOffset, dirs2, isBW, isBR);
+
+  const v1Used = isWholeRestPlaceholder(v1Notes) ? capacity : beatsUsed(v1Notes);
+  const fillers1 = buildFillerRests(capacity - v1Used, stave.clef, capacity, VF.Stem.UP);
+  const fillers2 = hasV2Real ? buildFillerRests(capacity - beatsUsed(v2Notes), stave.clef, capacity, VF.Stem.DOWN) : [];
+
+  const allVF1 = [...vfNotes1, ...fillers1];
+  const allVF2 = hasV2Real ? [...vfNotes2, ...fillers2] : [];
+
+  const gsi = si + siOffset;
+  const mmrGroup = multiRestGroups.find(g => g.gsi === gsi && g.startMi <= mi && g.endMi >= mi);
+
+  if (!mmrGroup && (allVF1.length || allVF2.length)) {
+    try {
+      const beams1 = buildBeams(vfNotes1, v1Notes, ts);
+      const beams2 = buildBeams(vfNotes2, v2Notes, ts);
+      const voices = [];
+
+      if (allVF1.length) {
+        const voice1 = new VF.Voice({num_beats: ts.num, beat_value: ts.den});
+        voice1.setStrict(false); voice1.addTickables(allVF1); voices.push(voice1);
+      }
+      if (allVF2.length) {
+        const voice2 = new VF.Voice({num_beats: ts.num, beat_value: ts.den});
+        voice2.setStrict(false); voice2.addTickables(allVF2); voices.push(voice2);
+      }
+
+      const noteStartX = vfStave.getNoteStartX();
+      const staveEndX = mx + mWidth;
+      const rawAvailable = Math.max(40, isFirstOfSys ? Math.min(mWidths[li], staveEndX - noteStartX) : staveEndX - noteStartX);
+      const rightMargin = Math.min(38, Math.max(14, rawAvailable * 0.08));
+      const availableW = rawAvailable - rightMargin;
+
+      new VF.Formatter({ softmaxFactor: 20 }).joinVoices(voices).format(voices, availableW);
+      voices.forEach(v => v.draw(ctx, vfStave));
+
+      vfNotes1.forEach((vfn, i) => {
+        try {
+          const nx = vfn.getAbsoluteX() + 6;
+          const ys = vfn.getYs();
+          const ny = ys?.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
+          const sLen = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
+          const stemTipY = dirs1[i] === VF.Stem.UP ? ny - sLen : ny + sLen;
+          APP.noteLayout.push({ mi, si: si + siOffset, ni: v1Indices[i], x: nx, y: ny, stemDir: dirs1[i], stemTipY });
+        } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v1:', e.message); }
+      });
+      vfNotes2.forEach((vfn, i) => {
+        try {
+          const nx = vfn.getAbsoluteX() + 6;
+          const ys = vfn.getYs();
+          const ny = ys?.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
+          const sLen = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
+          const stemTipY = dirs2[i] === VF.Stem.UP ? ny - sLen : ny + sLen;
+          APP.noteLayout.push({ mi, si: si + siOffset, ni: v2Indices[i], x: nx, y: ny, stemDir: dirs2[i], stemTipY });
+        } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
+      });
+
+      [...beams1, ...beams2].forEach(b => vfSafe(() => b.setContext(ctx).draw(), 'beam'));
+      const tups1 = buildTuplets(vfNotes1, v1Notes);
+      const tups2 = buildTuplets(vfNotes2, v2Notes);
+      [...tups1, ...tups2].forEach(t => vfSafe(() => t.setContext(ctx).draw(), 'tuplet'));
+    } catch(e) { console.warn('Render measure', mi, e.message); }
+  }
+
+  APP.staveLayout.push({
+    mi, si: si + siOffset, x: mx, y: staveY,
+    topLineY: vfStave.getYForLine(0),
+    bottomY:  vfStave.getYForLine(4),
+    w: mWidth, h: LAYOUT.STAVE_H, clef: stave.clef
+  });
+  return mWidth;
+}
+
+function _renderScoreAnnotations(rc) {
+  const { ctx } = rc;
   renderMarkings(ctx);
   renderRehearsalMarks();
   renderStaffTexts();
@@ -3469,18 +3831,20 @@ function _renderScoreBody() {
   renderOttavas();
   renderGlissandos();
   renderNavigationMarkers();
-  renderLyricClickHandlers(); // attach click handlers to VF.Annotation lyric elements
-  renderBWNoteheads(); // must be last — patches SVG paths painted by VexFlow
+  renderLyricClickHandlers();
+  renderBWNoteheads();
   renderGraceClickOverlays();
+}
 
-  // Update line break button state
+function _renderScoreCompletions(rc) {
+  const { container, multiRestGroups, area, savedScrollTop } = rc;
+
   const lbBtn = document.getElementById('btn-linebreak');
   if (lbBtn) {
     const m = APP.score?.parts?.[0]?.staves?.[0]?.measures?.[APP.selectedMeasure];
     lbBtn.classList.toggle('active', !!m?.lineBreak);
   }
 
-  // ── Multi-measure rests ────────────────────────────────────────
   if (APP.showMultiMeasureRests && multiRestGroups.length) {
     const svgEl9 = container.querySelector('svg');
     for (const g of multiRestGroups) {
@@ -3489,21 +3853,16 @@ function _renderScoreBody() {
       if (!firstSL || !lastSL) continue;
       const spanX = firstSL.x;
       const spanW = (lastSL.x + lastSL.w) - firstSL.x;
-      const midY = (firstSL.topLineY + firstSL.bottomY) / 2;
-      const barY = midY;
-      // Thick horizontal bar
+      const barY = (firstSL.topLineY + firstSL.bottomY) / 2;
       svgLine(svgEl9, {x1: spanX + 4, y1: barY, x2: spanX + spanW - 4, y2: barY, stroke: '#444', strokeWidth: 3});
-      // End ticks
       const tickLen = 12;
       for (const xPos of [spanX + 4, spanX + spanW - 4]) {
         svgLine(svgEl9, {x1: xPos, y1: barY - tickLen / 2, x2: xPos, y2: barY + tickLen / 2, stroke: '#444', strokeWidth: 2});
       }
-      // Measure count above the bar
-      const count = g.endMi - g.startMi + 1;
-      svgText(svgEl9, {x: spanX + spanW / 2, y: firstSL.topLineY - 8, text: String(count), fontSize: 11, fontWeight: 'bold', fill: '#444', anchor: 'middle'});
+      svgText(svgEl9, {x: spanX + spanW / 2, y: firstSL.topLineY - 8, text: String(g.endMi - g.startMi + 1), fontSize: 11, fontWeight: 'bold', fill: '#444', anchor: 'middle'});
     }
   }
-  // Restore scroll position after re-render
+
   if (area) area.scrollTop = savedScrollTop;
   scrollToSelectedMeasure();
   updateRecorderDiagram();
@@ -3511,7 +3870,6 @@ function _renderScoreBody() {
   updateBrassDiagram();
   renderNoteLabels();
 
-  // In continuous view, keep recorders fixed during horizontal scroll
   if (APP.continuousView) {
     const svgContainer = document.getElementById('score-svg');
     if (svgContainer) {
@@ -5689,6 +6047,9 @@ function noteLetter(n, ks) {
   return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 5: Input & Controls
+// ═══════════════════════════════════════════════════════════════════
 // ── Hit Testing / Input ──────────────────────────────────────────
 function getEventXY(e) {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
@@ -7422,12 +7783,40 @@ function redo() {
 }
 
 // ── Audio Export ──────────────────────────────────────────────────
-function exportAudio() {
+function showExportDialog() {
+  makeModal(`
+    <h2>Export Audio</h2>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Format</div>
+      <select id="export-format" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+        <option value="wav">WAV (lossless, large)</option>
+        <option value="mp3">MP3 (compressed, smaller)</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Tempo (BPM) — override</div>
+      <input id="export-bpm" type="number" value="${APP.tempo}" min="20" max="400"
+        style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    </div>
+    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+      Renders the current score using the internal synth and saves as ${APP.score?.parts?.length > 1 ? 'a stereo mix' : 'a mono/stereo'} file.
+    </div>
+    <button class="modal-btn primary" data-action="confirmExportAudio">Export</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function confirmExportAudio() {
+  const format = document.getElementById('export-format')?.value || 'wav';
+  const bpm    = parseInt(document.getElementById('export-bpm')?.value) || APP.tempo;
+  closeModal();
+  _renderAudio(format, bpm);
+}
+
+function _renderAudio(format, bpm) {
   const ctx = getAudioCtx();
   const sampleRate = ctx.sampleRate;
-
-  // Calculate total duration
-  const beatDur = 60 / APP.tempo;
+  const beatDur = 60 / bpm;
   const playOrder = buildPlaybackOrder(APP.score);
   let totalBeats = 0;
   APP.score.parts.forEach(part => {
@@ -7441,17 +7830,13 @@ function exportAudio() {
       totalBeats = Math.max(totalBeats, beats);
     });
   });
-  const durSec = totalBeats * beatDur + 1; // +1 for reverb tail
+  const durSec = totalBeats * beatDur + 1;
 
-  // Create an OfflineAudioContext to render offline
   const offline = new OfflineAudioContext(2, Math.ceil(sampleRate * durSec), sampleRate);
-
-  // Build a minimal playback graph on the offline context
   const masterGain = offline.createGain();
   masterGain.gain.value = APP.masterVolume;
   masterGain.connect(offline.destination);
 
-  // Render every part's notes into the offline buffer
   APP.score.parts.forEach(part => {
     if (part.muted) return;
     const oscType = (part.instrument === 'Piano' || part.instrument === 'Harpsichord' || part.instrument === 'Organ')
@@ -7481,8 +7866,6 @@ function exportAudio() {
               osc.type = 'sine';
               osc.frequency.value = freq2;
               osc.connect(gain);
-
-              // Same gain envelope as scheduleNote
               const a = profile.attack, d = profile.decay;
               const s = profile.sustain, r = profile.release;
               gain.gain.setValueAtTime(0, t);
@@ -7490,7 +7873,6 @@ function exportAudio() {
               gain.gain.exponentialRampToValueAtTime(Math.max(gainVal * s, 0.001), t + a + d);
               gain.gain.setValueAtTime(Math.max(gainVal * s, 0.001), relTime);
               gain.gain.exponentialRampToValueAtTime(0.0001, endT);
-
               const panner = offline.createStereoPanner ? offline.createStereoPanner() : null;
               if (panner) { panner.pan.value = pan; gain.connect(panner); panner.connect(masterGain); }
               else { gain.connect(masterGain); }
@@ -7498,9 +7880,7 @@ function exportAudio() {
               osc.stop(endT + 0.05);
             }
 
-            // Fundamental
             spawnOsc(freq, effGain);
-            // Harmonics
             for (const [h, hGain] of (profile.harmonics || [])) {
               spawnOsc(freq * h, effGain * hGain);
             }
@@ -7513,15 +7893,96 @@ function exportAudio() {
 
   showToast('Rendering audio…');
   offline.startRendering().then(buffer => {
-    // Convert AudioBuffer to WAV blob
-    const wav = audioBufferToWav(buffer);
     const safe = safeName(APP.score.title);
-    dlBlob(wav, `${safe}.wav`);
-    showToast('Audio exported');
+    if (format === 'mp3') {
+      _exportMP3(buffer, safe);
+    } else {
+      const wav = audioBufferToWav(buffer);
+      dlBlob(wav, `${safe}.wav`);
+      showToast('Audio exported');
+    }
   }).catch(err => {
     console.error(err);
     showToast('Export failed: ' + err.message);
   });
+}
+
+function _exportMP3(buffer, name) {
+  // Load lamejs on demand, then encode
+  if (typeof lamejs !== 'undefined') {
+    _encodeMP3(buffer, name);
+    return;
+  }
+  showToast('Loading MP3 encoder…');
+  const urls = [
+    'https://unpkg.com/lamejs@1.2.1/lame.min.js',
+    'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js',
+  ];
+  async function tryLoad() {
+    for (const url of urls) {
+      try {
+        await loadScript(url);
+        if (typeof lamejs !== 'undefined') { _encodeMP3(buffer, name); return; }
+      } catch(e) { /* try next */ }
+    }
+    showToast('Could not load MP3 encoder. Exporting WAV instead.');
+    const wav = audioBufferToWav(buffer);
+    dlBlob(wav, `${name}.wav`);
+  }
+  tryLoad();
+}
+
+function _encodeMP3(buffer, name) {
+  try {
+    const numCh = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const mp3encoder = new lamejs.Mp3Encoder(numCh, sampleRate, 192);
+    const mp3Data = [];
+    const blockSize = 1152;
+
+    // Convert AudioBuffer channels to interleaved Int16 samples
+    const chData = [];
+    for (let ch = 0; ch < numCh; ch++) chData.push(buffer.getChannelData(ch));
+    const totalSamples = buffer.length;
+    let pos = 0;
+
+    function floatToInt16(float32) {
+      const s = Math.max(-1, Math.min(1, float32));
+      return s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+
+    while (pos < totalSamples) {
+      const end = Math.min(pos + blockSize, totalSamples);
+      const chunkLen = end - pos;
+      let sampleBlock;
+      if (numCh === 1) {
+        sampleBlock = new Int16Array(chunkLen);
+        for (let i = 0; i < chunkLen; i++) sampleBlock[i] = floatToInt16(chData[0][pos + i]);
+      } else {
+        sampleBlock = new Int16Array(chunkLen * numCh);
+        for (let i = 0; i < chunkLen; i++) {
+          for (let ch = 0; ch < numCh; ch++) {
+            sampleBlock[i * numCh + ch] = floatToInt16(chData[ch][pos + i]);
+          }
+        }
+      }
+      const mp3Buf = mp3encoder.encodeBuffer(sampleBlock);
+      if (mp3Buf.length > 0) mp3Data.push(mp3Buf);
+      pos = end;
+    }
+
+    const flushBuf = mp3encoder.flush();
+    if (flushBuf.length > 0) mp3Data.push(flushBuf);
+
+    const blob = new Blob(mp3Data, { type: 'audio/mpeg' });
+    dlBlob(blob, `${name}.mp3`);
+    showToast('MP3 exported');
+  } catch (err) {
+    console.error(err);
+    showToast('MP3 export failed, falling back to WAV: ' + err.message);
+    const wav = audioBufferToWav(buffer);
+    dlBlob(wav, `${name}.wav`);
+  }
 }
 
 function audioBufferToWav(buffer) {
@@ -7563,6 +8024,9 @@ function audioBufferToWav(buffer) {
   return new Blob([buf], {type:'audio/wav'});
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 6: Playback & Audio
+// ═══════════════════════════════════════════════════════════════════
 // ── Playback ─────────────────────────────────────────────────────
 function getAudioCtx() {
   if (!APP.audioCtx) {
@@ -7993,6 +8457,117 @@ function clearPlayCursor() {
   APP._lastPlayKey = '';
 }
 
+// ── MIDI Hardware Input ──────────────────────────────────────────
+function initMIDI() {
+  if (!navigator.requestMIDIAccess) {
+    debugLog('[MIDI] Web MIDI API not available');
+    return;
+  }
+  navigator.requestMIDIAccess({ sysex: false }).then(access => {
+    APP._midiAccess = access;
+    _updateMIDIDevices();
+    access.onstatechange = () => _updateMIDIDevices();
+    debugLog('[MIDI] Access granted');
+  }).catch(err => {
+    debugLog('[MIDI] Access denied:', err);
+  });
+}
+
+function _updateMIDIDevices() {
+  if (!APP._midiAccess) return;
+  const inputs = [];
+  APP._midiAccess.inputs.forEach(input => {
+    inputs.push({ id: input.id, name: input.name || 'MIDI Device', input });
+  });
+  APP._midiInputs = inputs;
+  // Keep previously selected device if still available
+  const prevId = APP._selectedMIDIDevice;
+  if (prevId && inputs.some(i => i.id === prevId)) {
+    _selectMIDIDevice(prevId);
+  } else if (inputs.length > 0) {
+    _selectMIDIDevice(inputs[0].id);
+  } else {
+    _selectMIDIDevice(null);
+  }
+  // Update mixer UI if open
+  const sel = document.getElementById('midi-device-select');
+  if (sel) {
+    sel.innerHTML = `<option value="">No device</option>${inputs.map(i =>
+      `<option value="${i.id}" ${i.id === APP._selectedMIDIDevice ? 'selected' : ''}>${i.name}</option>`
+    ).join('')}`;
+  }
+}
+
+function _selectMIDIDevice(deviceId) {
+  // Disconnect previous
+  if (APP._midiInput && APP._midiInput.onmidimessage) {
+    APP._midiInput.onmidimessage = null;
+  }
+  APP._selectedMIDIDevice = deviceId;
+  APP._midiInput = null;
+  if (!deviceId || !APP._midiAccess) return;
+  const entry = APP._midiInputs?.find(i => i.id === deviceId);
+  if (!entry) return;
+  APP._midiInput = entry.input;
+  APP._midiInput.onmidimessage = _onMIDIMessage;
+  debugLog('[MIDI] Connected:', entry.name);
+}
+
+function _onMIDIMessage(event) {
+  const [status, note, velocity] = event.data;
+  const msgType = status & 0xF0;
+  // Note on (0x90) with velocity > 0
+  if (msgType === 0x90 && velocity > 0) {
+    _handleMIDINoteOn(note, velocity);
+    return;
+  }
+  // Note off (0x80 or 0x90 with velocity 0)
+  if ((msgType === 0x80) || (msgType === 0x90 && velocity === 0)) {
+    // Optional: handle note-off (not needed for note entry)
+  }
+}
+
+function _handleMIDINoteOn(pitch, velocity) {
+  if (!APP.score) return;
+  // Determine what to do based on input mode
+  if (APP.inputMode || APP.chordMode) {
+    // Use the pitch to insert a note
+    const name = _midiPitchToName(pitch);
+    if (name) {
+      insertNoteByName(name);
+      // Flash a visual indicator
+      _flashMIDIIndicator(pitch);
+    }
+  } else if (APP.selectedNoteIdx >= 0) {
+    // Change selected note's pitch
+    changePitchOfSelected(_midiPitchToName(pitch));
+  }
+  // Low velocity → softer dynamic
+  if (velocity < 40 && !APP.inputMode && !APP.chordMode && APP.selectedNoteIdx >= 0) {
+    // Could apply dynamic based on velocity
+  }
+}
+
+function _midiPitchToName(pitch) {
+  const pc = pitch % 12;
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  return names[pc];
+}
+
+function _flashMIDIIndicator(pitch) {
+  const el = document.getElementById('midi-indicator');
+  if (!el) return;
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  el.textContent = names[pitch % 12] + Math.floor(pitch / 12 - 1);
+  el.style.opacity = '1';
+  clearTimeout(el._flashTimer);
+  el._flashTimer = setTimeout(() => { el.style.opacity = '0'; }, 300);
+}
+
+function selectMIDIDevice(deviceId) {
+  _selectMIDIDevice(deviceId);
+}
+
 // ── Lyrics ────────────────────────────────────────────────────────
 function toggleLyricStyle(style) {
   if (style === 'bold') {
@@ -8207,31 +8782,131 @@ function saveLyric() {
 function editChordSymbol() {
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-  if (!n) return;
-  const cur = n.chordSymbol || '';
-  makeModal(`
-    <h2>Chord Symbol</h2>
-    <p class="dialog-hint">
-      e.g. C, Am, F7, Gmaj7, Bdim, E♭sus4</p>
-    <input id="cs-input" value="${cur.replace(/"/g,'&quot;')}"
-      placeholder="e.g. Am7"
-      style="font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:18px;font-weight:600;text-align:center">
-    <button class="modal-btn primary" data-action="saveChordSymbol">Apply</button>
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
-  `);
-  setTimeout(() => {
-    const el = document.getElementById('cs-input');
-    if (el) { el.focus(); el.select(); }
-  }, 80);
+  if (!n || n.type === 'rest') { showToast('Chord symbols go on notes, not rests'); return; }
+  openInlineChordEditor(APP.selectedMeasure, APP.selectedStaff, APP.selectedNoteIdx);
 }
 
-function saveChordSymbol() {
-  const text = document.getElementById('cs-input')?.value.trim();
-  const n    = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-  if (!n) { closeModal(); return; }
+function openInlineChordEditor(mi, si, ni) {
+  closeChordEditor();
+
+  const nl = APP.noteLayout.find(l => l.mi===mi && l.si===si && l.ni===ni);
+  const sl = APP.staveLayout.find(l => l.mi===mi && l.si===si);
+  if (!nl || !sl) { showToast('Tap the note on screen first to select it'); return; }
+
+  const n       = getMeasureBySI(si, mi)?.notes[ni];
+  const curText = n?.chordSymbol || '';
+
+  const svgEl  = document.getElementById('score-svg').querySelector('svg');
+  const svgRect = svgEl.getBoundingClientRect();
+  const svgW   = parseFloat(svgEl.getAttribute('width'))  || svgRect.width;
+  const svgH   = parseFloat(svgEl.getAttribute('height')) || svgRect.height;
+  const scaleX = svgRect.width  / svgW;
+  const scaleY = svgRect.height / svgH;
+
+  const pageX = svgRect.left + nl.x * scaleX;
+  const pageY = svgRect.top  + (sl.topLineY - 36) * scaleY;
+
+  const inp = document.createElement('input');
+  inp.id    = 'chord-inline-input';
+  inp.type  = 'text';
+  inp.value = curText;
+  inp.placeholder = 'e.g. Am7';
+  inp.setAttribute('autocomplete','off');
+  Object.assign(inp.style, {
+    position:     'fixed',
+    left:         (pageX - 70) + 'px',
+    top:          (pageY - 14) + 'px',
+    width:        '140px',
+    padding:      '4px 8px',
+    fontSize:     '18px',
+    fontFamily:  "'Helvetica Neue',Helvetica,Arial,sans-serif",
+    fontWeight:   'bold',
+    background:   'rgba(255,255,240,0.97)',
+    border: '2px solid #c05621',
+    borderRadius: '5px',
+    color:        '#111',
+    zIndex:       '500',
+    outline:      'none',
+    boxShadow:    '0 2px 10px rgba(0,0,0,0.3)',
+    textAlign:    'center',
+  });
+
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commitChord(mi, si, ni, inp.value); return; }
+    if (e.key === 'Escape') { closeChordEditor(); return; }
+  });
+  inp.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.getElementById('chord-inline-input')) {
+        commitChord(mi, si, ni, inp.value);
+      }
+    }, 150);
+  });
+
+  document.body.appendChild(inp);
+
+  // Toolbar with chord quick-select + style controls
+  const toolbar = document.createElement('div');
+  toolbar.id = 'chord-toolbar';
+  Object.assign(toolbar.style, {
+    position:'fixed', left:(Math.max(8,pageX-100))+'px', top:(pageY+30)+'px',
+    display:'flex', gap:'3px', alignItems:'center', flexWrap:'wrap', maxWidth:'320px',
+    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(192,86,33,0.30)',
+    borderRadius:'8px', padding:'3px 6px', zIndex:'501', boxShadow:'0 3px 12px rgba(0,0,0,0.4)',
+  });
+
+  const mkBtn = (lbl, val) => {
+    const b = document.createElement('button');
+    b.textContent = lbl;
+    Object.assign(b.style, {
+      background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'4px',
+      color:'#cbd5e0', fontSize:'12px', padding:'1px 5px', cursor:'pointer', lineHeight:'18px',
+    });
+    b.onmousedown = ev => { ev.preventDefault(); _appendToChordInput(val); };
+    return b;
+  };
+
+  const suffixes = ['maj7','7','m7','dim','aug','sus4','sus2','m7♭5','dim7','9','m9','maj9','6','m6','add9','°','ø'];
+  suffixes.forEach(s => toolbar.appendChild(mkBtn(s, s)));
+
+  document.body.appendChild(toolbar);
+  inp.focus();
+  inp.select();
+}
+
+function _appendToChordInput(val) {
+  const inp = document.getElementById('chord-inline-input');
+  if (!inp) return;
+  const cursor = inp.selectionStart || inp.value.length;
+  inp.value = inp.value.slice(0, cursor) + val + inp.value.slice(cursor);
+  inp.focus();
+  const newPos = cursor + val.length;
+  inp.setSelectionRange(newPos, newPos);
+}
+
+function closeChordEditor() {
+  document.getElementById('chord-inline-input')?.remove();
+  document.getElementById('chord-toolbar')?.remove();
+}
+
+function commitChord(mi, si, ni, rawText) {
+  closeChordEditor();
+  const text = rawText.trim();
+  const n    = getMeasureBySI(si, mi)?.notes[ni];
+  if (!n) return;
   commitChange(score => {
     n.chordSymbol = text || null;
   }, { toast: text ? `Chord: ${text}` : 'Chord symbol removed' });
+}
+
+function saveChordSymbol() {
+  const input = document.getElementById('chord-inline-input');
+  if (!input) { editChordSymbol(); return; }
+  const mi = APP.selectedMeasure;
+  const si = APP.selectedStaff;
+  const ni = APP.selectedNoteIdx;
+  commitChord(mi, si, ni, input.value);
+  showToast('Chord saved');
 }
 
 function clearChordSymbol() {
@@ -8565,6 +9240,11 @@ function showMixer() {
       <span id="mix-part-${i}" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${Math.round((p.volume||1)*100)}</span>
     </div>`).join('');
 
+  const midiInputs = APP._midiInputs || [];
+  const midiOpts = midiInputs.map(i =>
+    `<option value="${i.id}" ${i.id === APP._selectedMIDIDevice ? 'selected' : ''}>${i.name}</option>`
+  ).join('');
+
   makeModal(`
     <h2>Mixer</h2>
     <div style="margin-bottom:8px">
@@ -8583,9 +9263,26 @@ function showMixer() {
         <span id="mix-met-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${metPct}</span>
       </div>
     </div>
+    <div class="modal-sep"></div>
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">MIDI Input</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <select id="midi-device-select" style="flex:1;padding:4px 6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">
+          <option value="">No device</option>
+          ${midiOpts}
+        </select>
+        <span id="midi-indicator" style="font-size:10px;color:#c05621;font-weight:bold;min-width:30px;opacity:0;transition:opacity 0.1s">—</span>
+      </div>
+    </div>
     ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
     <button class="modal-btn secondary" style="margin-top:8px" data-action="closeModal">Close</button>
   `);
+
+  // Bind MIDI device select
+  setTimeout(() => {
+    const sel = document.getElementById('midi-device-select');
+    if (sel) sel.addEventListener('change', () => selectMIDIDevice(sel.value));
+  }, 50);
 }
 
 function togglePartMute(partIdx) {
@@ -8828,7 +9525,7 @@ function selectAIFamily(fam) {
 function confirmAddInstrument() {
   const instrName = document.getElementById('ai-instr')?.value || 'Piano';
   commitChange(score => {
-    addInstrumentToScore(instrName);
+    addInstrumentToScore(score, instrName);
   }, { toast: `${instrName} added` });
 }
 
@@ -9001,7 +9698,7 @@ function showFileMenu(btn) {
     {label:'📄 Save as .mscx (XML)', fn:saveMSCX},
     {sep:true},
     {label:'🖨️ Print / Save as PDF', fn:printScore},
-    {label:'🔊 Export Audio (WAV)', fn:exportAudio},
+    {label:'🔊 Export Audio', fn:showExportDialog},
     {sep:true},
     {label:'✨ New Score', fn:showNewScoreDialog},
     {label:'ℹ️ Score Info', fn:showScoreInfo},
@@ -9011,19 +9708,20 @@ function showFileMenu(btn) {
 function openFile() {
   const inp = document.createElement('input');
   inp.type = 'file';
-  inp.accept = '.mscz,.mscx,.xml';
+  inp.accept = '.mscz,.mscx,.xml,.mxl,.musicxml';
   inp.onchange = async e => {
     const file = e.target.files[0];
     if (!file) return;
     showToast('Opening…');
     try {
       let xmlStr;
-      if (file.name.toLowerCase().endsWith('.mscz')) {
+      const fname = file.name.toLowerCase();
+      if (fname.endsWith('.mscz') || fname.endsWith('.mxl')) {
         const zip = await JSZip.loadAsync(file);
-        let mscxEntry = null;
-        zip.forEach((p, f) => { if (p.endsWith('.mscx')) mscxEntry = f; });
-        if (!mscxEntry) { showToast('No .mscx found inside .mscz'); return; }
-        xmlStr = await mscxEntry.async('string');
+        let entry = null;
+        zip.forEach((p, f) => { if (p.endsWith('.mscx') || p.endsWith('.xml')) entry = f; });
+        if (!entry) { showToast('No score file found inside archive'); return; }
+        xmlStr = await entry.async('string');
       } else {
         xmlStr = await file.text();
       }
@@ -9038,7 +9736,9 @@ function openFile() {
 
 function loadScoreFromXML(xmlStr, filename) {
   try {
-    const raw = parseMSCX(xmlStr);
+    // Detect format: MusicXML has <score-partwise> root, MSCX has <museScore>
+    const isMusicXML = xmlStr.includes('<score-partwise') || xmlStr.includes('<score-timewise');
+    const raw = isMusicXML ? parseMusicXML(xmlStr) : parseMSCX(xmlStr);
     adoptScore(raw);
     APP.selectedMeasure = 0;
     APP.selectedStaff   = 0;
@@ -9672,6 +10372,9 @@ function printScore() {
 
 
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 7: Boot & Event Wiring
+// ═══════════════════════════════════════════════════════════════════
 function bootApp() {
   if (typeof Vex === 'undefined' || typeof JSZip === 'undefined') {
     document.getElementById('loading').innerHTML =
@@ -9695,6 +10398,9 @@ function bootApp() {
   // Start autosave loop (runs every 30 s + on tab close)
   _startAutosave();
   _runBootSelfCheck();
+
+  // Initialise MIDI hardware input
+  initMIDI();
 
   // Offer to restore any autosaved score; opens New Score dialog if none found
   _checkAndOfferRestore(showNewScoreDialog);
@@ -9868,6 +10574,7 @@ _registerAction('clearRehearsalMark', () => clearRehearsalMark());
 _registerAction('clearStaffText', () => clearStaffText());
 _registerAction('clearVolta', () => clearVolta());
 _registerAction('closeModal', () => closeModal());
+_registerAction('confirmExportAudio', () => confirmExportAudio());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
 _registerAction('confirmAddInstrument', () => confirmAddInstrument());
 _registerAction('convertToGrace', (e) => convertToGrace(e.target.closest('[data-slashed]')?.dataset.slashed === 'true'));
