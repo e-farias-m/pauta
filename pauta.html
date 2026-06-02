@@ -1513,7 +1513,7 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.16.1 — AAR improvements: render decomposition, module boundaries,
+//  v0.16.2 — AAR improvements: render decomposition, module boundaries,
 //            command-layer cleanup, inline chord editor, MusicXML import,
 //            MIDI input, export dialog
 // ================================================================
@@ -5487,49 +5487,49 @@ function updateBrassDiagram() {
 // pos: [x, y, label, hand]  hand: 'L' / 'R' / 'T'(thumb)
 const WOODWIND_SPEC = {
   flute: {
-    w:200, h:60,
-    body: 'M 16,28 L 30,28 Q 28,24 16,22 L 10,22 Q 6,22 6,28 Q 6,34 10,34 L 16,32 Q 28,30 30,28 Z M 30,28 L 164,28 Q 164,24 172,20 L 194,16 Q 196,20 196,26 L 196,32 Q 196,38 194,42 L 172,36 Q 164,32 164,28 Z',
-    fill:'#ddd0b8', stroke:'#b8a080',
+    w:260, h:50,
+    body: 'M 8,25 L 30,25 Q 30,21 20,20 L 12,20 Q 8,20 8,25 Q 8,30 12,30 L 20,29 Q 30,28 30,25 Z M 30,25 L 248,25 Q 248,21 252,18 L 256,16 Q 258,18 258,22 L 258,28 Q 258,32 256,34 L 252,31 Q 248,28 248,25 Z',
+    fill:'url(#ww-flute-grad)', stroke:'#b8a080',
     keys:[
-      [45,30,'L1','L'],[63,30,'L2','L'],[80,30,'L3','L'],[96,27,'G♯','L'],
-      [113,30,'R1','R'],[131,30,'R2','R'],[148,30,'R3','R'],[170,34,'C♯','R'],
-    ], r:5, hR:5.5,
+      [55,26,'L1','L'],[75,26,'L2','L'],[95,26,'L3','L'],[115,24,'G♯','L'],
+      [135,26,'R1','R'],[155,26,'R2','R'],[175,26,'R3','R'],[198,28,'C♯','R'],
+    ], r:4.2, hR:4.8,
   },
   clarinet: {
-    w:140, h:240,
-    body: 'M 54,10 L 48,10 Q 46,4 48,2 L 50,0 Q 54,-2 56,2 L 60,10 L 60,28 Q 56,30 54,30 Z M 54,30 L 65,30 L 65,105 L 54,105 Z M 54,105 L 65,105 L 65,175 L 56,175 Z M 55,175 L 65,175 Q 70,192 78,215 L 42,215 Q 50,192 55,175 Z M 44,214 Q 36,219 34,224 L 86,224 Q 84,219 78,214 Z',
-    fill:'#e8d8c0', stroke:'#b8a080',
+    w:120, h:260,
+    body: 'M 52,6 L 46,6 Q 44,2 46,0 L 48,-2 Q 52,-4 54,0 L 56,6 L 56,22 Q 52,24 52,24 Z M 52,24 L 60,24 L 60,115 L 52,115 Z M 52,115 L 62,115 L 62,190 L 54,190 Z M 53,190 L 62,190 Q 66,210 72,235 L 38,235 Q 44,210 53,190 Z M 36,234 Q 30,238 28,244 L 82,244 Q 80,238 74,234 Z',
+    fill:'url(#ww-clarinet-grad)', stroke:'#a09070',
     keys:[
-      [46,44,'Th','T'],[58,52,'L1','L'],[58,72,'L2','L'],[58,92,'L3','L'],
-      [64,128,'R1','R'],[64,148,'R2','R'],[64,168,'R3','R'],[76,184,'R4','R'],
-    ], r:6, hR:6.5,
+      [42,48,'Th','T'],[54,58,'L1','L'],[54,80,'L2','L'],[54,102,'L3','L'],
+      [60,142,'R1','R'],[60,164,'R2','R'],[60,186,'R3','R'],[72,204,'R4','R'],
+    ], r:5.2, hR:5.8,
   },
   sax: {
-    w:140, h:240,
-    body: 'M 62,10 Q 72,2 78,0 L 82,0 Q 86,2 84,6 Q 78,14 72,20 L 64,28 Q 60,32 60,38 L 60,55 L 68,55 L 68,38 Q 64,38 64,36 Z M 60,55 L 68,55 L 68,140 Q 68,160 56,178 Q 44,196 32,215 L 100,215 Q 92,200 82,186 Q 72,172 68,152 L 68,140 Z M 36,214 Q 30,219 28,224 L 104,224 Q 102,219 96,214 Z',
-    fill:'#e8d8c0', stroke:'#b8a080',
+    w:140, h:260,
+    body: 'M 62,8 Q 72,0 78,-2 L 82,-2 Q 86,0 84,4 Q 78,12 72,18 L 64,26 Q 60,30 60,36 L 60,55 L 68,55 L 68,38 Q 64,38 64,36 Z M 60,55 L 68,55 L 68,155 Q 68,175 56,195 Q 44,215 32,235 L 100,235 Q 92,218 82,202 Q 72,186 68,165 L 68,155 Z M 36,234 Q 30,238 28,244 L 104,244 Q 102,238 96,234 Z',
+    fill:'url(#ww-sax-grad)', stroke:'#a09070',
     keys:[
-      [55,52,'L1','L'],[55,72,'L2','L'],[55,92,'L3','L'],[46,110,'G♯','L'],
-      [62,130,'R1','R'],[62,150,'R2','R'],[62,170,'R3','R'],[74,186,'C','R'],
-    ], r:6, hR:6.5,
+      [55,58,'L1','L'],[55,80,'L2','L'],[55,102,'L3','L'],[46,122,'G♯','L'],
+      [62,144,'R1','R'],[62,166,'R2','R'],[62,188,'R3','R'],[74,206,'C','R'],
+    ], r:5.5, hR:6,
   },
   oboe: {
-    w:140, h:240,
-    body: 'M 54,12 L 48,12 Q 46,6 48,4 L 50,2 Q 54,0 56,4 L 58,12 L 58,30 Q 56,32 54,32 Z M 54,32 L 64,32 L 64,105 L 54,105 Z M 54,105 L 66,105 L 66,160 Q 62,170 56,178 L 50,186 L 78,186 L 72,178 Q 66,170 64,160 L 64,105 Z M 52,186 Q 48,190 46,194 L 82,194 Q 80,190 76,186 Z',
-    fill:'#ddd0b8', stroke:'#b8a080',
+    w:130, h:260,
+    body: 'M 54,10 L 48,10 Q 46,4 48,2 L 50,0 Q 54,-2 56,2 L 58,10 L 58,28 Q 56,30 54,30 Z M 54,30 L 64,30 L 64,115 L 54,115 Z M 54,115 L 66,115 L 66,175 Q 62,186 56,195 L 50,204 L 78,204 L 72,195 Q 66,186 64,175 L 64,115 Z M 52,204 Q 48,208 46,214 L 82,214 Q 80,208 76,204 Z',
+    fill:'url(#ww-oboe-grad)', stroke:'#a09070',
     keys:[
-      [57,50,'L1','L'],[57,70,'L2','L'],[57,90,'L3','L'],[48,108,'L4','L'],
-      [63,130,'R1','R'],[63,150,'R2','R'],[63,170,'R3','R'],[74,183,'R4','R'],
-    ], r:5.5, hR:6,
+      [57,55,'L1','L'],[57,78,'L2','L'],[57,101,'L3','L'],[48,121,'L4','L'],
+      [63,145,'R1','R'],[63,168,'R2','R'],[63,191,'R3','R'],[74,210,'R4','R'],
+    ], r:5, hR:5.5,
   },
   bassoon: {
-    w:140, h:240,
-    body: 'M 46,12 Q 38,6 32,2 L 28,0 L 98,0 L 94,2 Q 88,6 80,12 L 80,105 Q 80,115 74,130 Q 68,145 62,155 L 56,165 L 60,170 L 66,160 Q 72,148 76,135 L 78,120 Q 82,125 86,120 L 86,105 Z M 30,0 Q 26,-4 30,-6 L 96,-6 Q 100,-4 96,0 Z M 78,8 L 84,0 L 88,-4 L 84,-4 L 78,2 Z M 56,168 Q 52,176 50,180 L 70,180 Q 68,176 64,168 Z',
-    fill:'#f0e0c8', stroke:'#b8a080',
+    w:150, h:280,
+    body: 'M 46,10 Q 38,4 32,0 L 28,-2 L 98,-2 L 94,0 Q 88,4 80,10 L 80,115 Q 80,128 74,144 Q 68,160 62,172 L 56,182 L 60,188 L 66,178 Q 72,166 76,152 L 78,136 Q 82,142 86,136 L 86,115 Z M 30,-2 Q 26,-6 30,-8 L 96,-8 Q 100,-6 96,-2 Z M 78,6 L 84,-2 L 88,-6 L 84,-6 L 78,0 Z M 56,186 Q 52,194 50,200 L 70,200 Q 68,194 64,186 Z',
+    fill:'url(#ww-bassoon-grad)', stroke:'#a09070',
     keys:[
-      [52,48,'L1','L'],[52,68,'L2','L'],[52,88,'L3','L'],[44,106,'L4','L'],
-      [60,130,'R1','R'],[60,150,'R2','R'],[60,170,'R3','R'],[72,185,'R4','R'],
-    ], r:5.5, hR:6,
+      [52,52,'L1','L'],[52,76,'L2','L'],[52,100,'L3','L'],[44,122,'L4','L'],
+      [60,148,'R1','R'],[60,172,'R2','R'],[60,196,'R3','R'],[72,218,'R4','R'],
+    ], r:5, hR:5.5,
   },
 };
 
@@ -5548,6 +5548,26 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
   svg.setAttribute('pointer-events', 'none');
+
+  // ── Gradient defs ─────────────────────────────────────────────
+  const defs = document.createElementNS(ns, 'defs');
+  const mkGrad = (id, stops) => {
+    const g = document.createElementNS(ns, 'linearGradient');
+    g.setAttribute('id', id); g.setAttribute('x1', '0%'); g.setAttribute('y1', '0%');
+    g.setAttribute('x2', '100%'); g.setAttribute('y2', '0%');
+    stops.forEach(([off, col]) => {
+      const s = document.createElementNS(ns, 'stop');
+      s.setAttribute('offset', off); s.setAttribute('stop-color', col);
+      g.appendChild(s);
+    });
+    defs.appendChild(g);
+  };
+  mkGrad('ww-flute-grad',  [['0%','#e8ddd0'],['30%','#f5f0e8'],['50%','#e8ddd0'],['70%','#ddd0c0'],['100%','#c8b8a8']]);
+  mkGrad('ww-clarinet-grad',[['0%','#d8c8b0'],['25%','#e8dcc8'],['50%','#d8c8b0'],['75%','#c8b8a0'],['100%','#b0a088']]);
+  mkGrad('ww-sax-grad',    [['0%','#d0c0a8'],['30%','#e0d4c0'],['50%','#d0c0a8'],['70%','#c0b098'],['100%','#a89880']]);
+  mkGrad('ww-oboe-grad',   [['0%','#c8b898'],['25%','#d8ccb8'],['50%','#c8b898'],['75%','#b8a888'],['100%','#a89878']]);
+  mkGrad('ww-bassoon-grad',[['0%','#c0b090'],['25%','#d0c4a8'],['50%','#c0b090'],['75%','#b0a080'],['100%','#a09070']]);
+  svg.appendChild(defs);
 
   // ── Body ──────────────────────────────────────────────────────
   const body = document.createElementNS(ns, 'path');
@@ -5760,12 +5780,29 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   const has4Valves = isHorn;
   const nValves = has4Valves ? 4 : 3;
 
-  const w = isTrombone ? 180 : 100;
-  const h = isTrombone ? 70 : 170;
+  const w = isTrombone ? 200 : 110;
+  const h = isTrombone ? 80 : 190;
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
   svg.setAttribute('pointer-events', 'none');
+
+  // ── Gradient defs ─────────────────────────────────────────────
+  const defs = document.createElementNS(ns, 'defs');
+  const mkGrad = (id, stops, x2='100%') => {
+    const g = document.createElementNS(ns, 'linearGradient');
+    g.setAttribute('id', id); g.setAttribute('x1', '0%'); g.setAttribute('y1', '0%');
+    g.setAttribute('x2', x2); g.setAttribute('y2', '0%');
+    stops.forEach(([off, col]) => {
+      const s = document.createElementNS(ns, 'stop');
+      s.setAttribute('offset', off); s.setAttribute('stop-color', col);
+      g.appendChild(s);
+    });
+    defs.appendChild(g);
+  };
+  mkGrad('brass-tube-grad', [['0%','#d4c4a8'],['20%','#f0e8d8'],['50%','#e0d4c0'],['80%','#d0c4a8'],['100%','#c0b090']]);
+  mkGrad('brass-bell-grad',  [['0%','#c8b898'],['30%','#e8dcc8'],['70%','#d8ccb8'],['100%','#b8a888']]);
+  svg.appendChild(defs);
 
   // ── Note name ──────────────────────────────────────────────
   diagNoteName(svg, noteName, w / 2, isTrombone ? 14 : 18, { size: isTrombone ? '9' : '10' });
