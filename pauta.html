@@ -209,6 +209,7 @@ body{
 .note-key .pal-sym{font-size:20px!important;font-weight:700!important;letter-spacing:0.5px}
 .note-key:active{background:rgba(192,86,33,0.20)!important}
 .pal-btn.active-accent{background:rgba(224,104,80,0.22);border-color:rgba(224,104,80,0.55);color:var(--danger)}
+.pal-btn.active-v2{background:rgba(240,120,96,0.22);border-color:rgba(240,120,96,0.55);color:#f07860}
 .pal-sym{font-size:17px;line-height:1}
 .pal-lbl{font-size:8.5px;opacity:0.75;letter-spacing:0.2px}
 
@@ -355,6 +356,7 @@ body{
   -webkit-tap-highlight-color:transparent;
 }
 .panel-btn-wide:active{opacity:0.6}
+.panel-btn-wide.active{background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621}
 .panel-btn-wide.danger-btn{
   color:#e07060;
   border-color:rgba(224,112,96,0.3);
@@ -568,6 +570,7 @@ body{
   border:1px solid rgba(192,86,33,0.40);
   color:#c05621;
 }
+.btn-action-sm.orange.active{background:rgba(192,86,33,0.30);border-color:rgba(192,86,33,0.60)}
 .zoom-btn{
   width:28px;height:28px;
   border-radius:6px;
@@ -647,6 +650,8 @@ body{
   border-radius:50%;background:#e07060;
   margin-right:5px;vertical-align:middle;
 }
+.note-labels-btn.active{background:rgba(100,200,140,0.20);border-color:rgba(100,200,140,0.55);color:#64c88c}
+.note-labels-dot.active{background:#64c88c}
 
 /* ── Toast ── */
 #toast{
@@ -911,7 +916,7 @@ body{
       <span class="pal-lbl">Triplet</span>
     </button>
     <button class="pal-btn" id="btn-chord" data-action="toggleChordMode"><span class="pal-sym" style="font-size:12px">♩+</span><span class="pal-lbl">Chord</span></button>
-    <button class="pal-btn" id="btn-voice1" data-action="setVoice" data-voice="1" style="background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621"><span class="pal-sym pal-sym-f12">V1</span><span class="pal-lbl">Voice</span></button>
+    <button class="pal-btn" id="btn-voice1" data-action="setVoice" data-voice="1"><span class="pal-sym pal-sym-f12">V1</span><span class="pal-lbl">Voice</span></button>
     <button class="pal-btn" id="btn-voice2" data-action="setVoice" data-voice="2"><span class="pal-sym pal-sym-f12">V2</span><span class="pal-lbl">Voice</span></button>
   </div>
   <!-- Row 2: Durations -->
@@ -1413,8 +1418,8 @@ body{
   <!-- Tempo panel -->
   <div class="panel-page" id="panel-tempo" style="display:none">
     <div class="panel-title">Tempo</div>
-    <button class="panel-btn-wide" id="btn-tempo-toggle" data-action="toggleTempoDisplay"
-      style="margin-bottom:6px;background:rgba(192,86,33,0.12);border-color:rgba(192,86,33,0.45);color:#c05621">
+    <button class="panel-btn-wide active" id="btn-tempo-toggle" data-action="toggleTempoDisplay"
+      style="margin-bottom:6px">
       ✓ Show on score
     </button>
     <div class="panel-section-label">Slow</div>
@@ -3468,7 +3473,7 @@ function _renderScoreBody() {
   const lbBtn = document.getElementById('btn-linebreak');
   if (lbBtn) {
     const m = APP.score?.parts?.[0]?.staves?.[0]?.measures?.[APP.selectedMeasure];
-    lbBtn.style.borderColor = m?.lineBreak ? '#c05621' : 'rgba(192,86,33,0.40)';
+    lbBtn.classList.toggle('active', !!m?.lineBreak);
   }
 
   // ── Multi-measure rests ────────────────────────────────────────
@@ -6481,11 +6486,9 @@ function updateNoteLabelsButton() {
   const btn = document.getElementById('btn-note-labels');
   if (!btn) return;
   const on = APP.showNoteLabels;
-  btn.style.background    = on ? 'rgba(100,200,140,0.20)' : 'rgba(224,112,96,0.15)';
-  btn.style.borderColor   = on ? 'rgba(100,200,140,0.55)' : 'rgba(224,112,96,0.40)';
-  btn.style.color         = on ? '#64c88c' : '#e07060';
+  btn.classList.toggle('active', on);
   const dot = document.getElementById('note-labels-dot');
-  if (dot) dot.style.background = on ? '#64c88c' : '#e07060';
+  if (dot) dot.classList.toggle('active', on);
   const txt = document.getElementById('note-labels-text');
   if (txt) txt.textContent = on ? (APP.noteLabelMode === 'solfege' ? '𝅘 Solfège' : '𝅘 Names') : '𝅘 Solfege';
 }
@@ -6645,9 +6648,7 @@ function toggleTempoDisplay() {
   const btn = document.getElementById('btn-tempo-toggle');
   if (btn) {
     btn.textContent = APP.showTempoOnScore ? '✓ Show on score' : '○ Show on score';
-    btn.style.color = APP.showTempoOnScore ? '#c05621' : 'rgba(74,85,104,0.50)';
-    btn.style.borderColor = APP.showTempoOnScore ? 'rgba(192,86,33,0.45)' : 'rgba(192,86,33,0.12)';
-    btn.style.background  = APP.showTempoOnScore ? 'rgba(192,86,33,0.14)' : 'rgba(192,86,33,0.07)';
+    btn.classList.toggle('active', APP.showTempoOnScore);
   }
   renderScore();
 }
@@ -6755,16 +6756,7 @@ function toggleChordMode() {
 function setVoice(v) {
   APP.curVoice = v;
   document.getElementById('btn-voice1').classList.toggle('active', v === 1);
-  document.getElementById('btn-voice2').classList.toggle('active', v === 2);
-  // Reset voice button highlight colours
-  const v1 = document.getElementById('btn-voice1');
-  const v2 = document.getElementById('btn-voice2');
-  v1.style.background    = v===1 ? 'rgba(192,86,33,0.18)' : '';
-  v1.style.borderColor   = v===1 ? 'rgba(192,86,33,0.50)' : '';
-  v1.style.color         = v===1 ? '#c05621' : '';
-  v2.style.background    = v===2 ? 'rgba(240,120,96,0.22)'  : '';
-  v2.style.borderColor   = v===2 ? 'rgba(240,120,96,0.55)'  : '';
-  v2.style.color         = v===2 ? '#f07860' : '';
+  document.getElementById('btn-voice2').classList.toggle('active-v2', v === 2);
   showToast('Voice ' + v);
 }
 function setAcc(a) {
@@ -7177,10 +7169,7 @@ function toggleLineBreak() {
 
 function toggleContinuousView() {
   APP.continuousView = !APP.continuousView;
-  document.getElementById('btn-continuous').style.background =
-    APP.continuousView ? 'rgba(192,86,33,0.30)' : 'rgba(192,86,33,0.14)';
-  document.getElementById('btn-continuous').style.borderColor =
-    APP.continuousView ? 'rgba(192,86,33,0.60)' : 'rgba(192,86,33,0.40)';
+  document.getElementById('btn-continuous').classList.toggle('active', APP.continuousView);
   renderScore();
   showToast(APP.continuousView ? 'Continuous view' : 'Page view');
 }
