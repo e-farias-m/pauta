@@ -767,6 +767,44 @@ body{
   [data-instr-type="recorder"], [data-instr-type="brass"], [data-instr-type="woodwind"] { display:none !important; }
 }
 
+/* ── High Contrast Mode ─────────────────────────────────────────── */
+body.high-contrast {
+  --bg-body: #000 !important;
+  --bg-score-area: #000 !important;
+  --bg-score: #fff !important;
+  --btn-bg: #fff !important;
+  --border-subtle: #fff !important;
+  --text-primary: #fff !important;
+  --text-secondary: #fff !important;
+  --accent: #ff0 !important;
+  --accent-hover: #ff0 !important;
+  --danger: #f00 !important;
+  --input-bg: #000 !important;
+  --input-border: #fff !important;
+}
+body.high-contrast #score-svg svg { background: #fff !important; }
+body.high-contrast .stave-line { stroke: #000 !important; stroke-width: 2 !important; }
+body.high-contrast .notehead { fill: #000 !important; }
+body.high-contrast .panel-btn, body.high-contrast .panel-btn-wide {
+  background: #000 !important; color: #fff !important; border: 2px solid #fff !important;
+}
+body.high-contrast .btn-util {
+  background: #000 !important; color: #fff !important; border: 2px solid #fff !important;
+}
+body.high-contrast .sel-overlay {
+  fill: rgba(255,255,0,0.3) !important; stroke: #ff0 !important; stroke-width: 3 !important;
+}
+body.high-contrast .play-cursor { fill: rgba(255,0,0,0.6) !important; stroke: #f00 !important; }
+body.high-contrast #score-title { color: #fff !important; }
+body.high-contrast .modal-content {
+  background: #000 !important; color: #fff !important; border: 3px solid #fff !important;
+}
+body.high-contrast .modal-btn.primary { background: #ff0 !important; color: #000 !important; }
+body.high-contrast .modal-btn.secondary { background: #000 !important; color: #fff !important; border: 2px solid #fff !important; }
+body.high-contrast .topbar, body.high-contrast .sidebar, body.high-contrast .transport {
+  background: #000 !important; border-bottom: 2px solid #fff !important;
+}
+
 </style>
 </head>
 <body>
@@ -2083,6 +2121,111 @@ function createScore(opts={}) {
 }
 
 // Add a new instrument part to the current score
+// ── Recorder Exercises ───────────────────────────────────────────
+const RECORDER_EXERCISES = {
+  'hot-cross-buns': {
+    title: 'Hot Cross Buns', ts: {num:4,den:4}, tempoName: 'Moderato', tempoBpm: 80,
+    notes: [
+      {pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
+      {pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
+      {pitch:67,dur:'8'},{pitch:67,dur:'8'},{pitch:67,dur:'8'},{pitch:67,dur:'8'},
+      {pitch:69,dur:'8'},{pitch:69,dur:'8'},{pitch:69,dur:'8'},{pitch:69,dur:'8'},
+      {pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
+    ]
+  },
+  'mary-lamb': {
+    title: 'Mary Had a Little Lamb', ts: {num:4,den:4}, tempoName: 'Moderato', tempoBpm: 80,
+    notes: [
+      {pitch:69,dur:'q'},{pitch:71,dur:'q'},{pitch:72,dur:'q'},{pitch:71,dur:'q'},
+      {pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:69,dur:'h'},
+      {pitch:71,dur:'q'},{pitch:71,dur:'q'},{pitch:71,dur:'h'},
+      {pitch:69,dur:'q'},{pitch:67,dur:'q'},{pitch:67,dur:'h'},
+      {pitch:69,dur:'q'},{pitch:71,dur:'q'},{pitch:72,dur:'q'},{pitch:71,dur:'q'},
+      {pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:69,dur:'q'},
+      {pitch:71,dur:'q'},{pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:71,dur:'q'},{pitch:72,dur:'h'},
+    ]
+  },
+  'twinkle': {
+    title: 'Twinkle Twinkle Little Star', ts: {num:4,den:4}, tempoName: 'Andante', tempoBpm: 72,
+    notes: [
+      {pitch:60,dur:'q'},{pitch:60,dur:'q'},{pitch:67,dur:'q'},{pitch:67,dur:'q'},
+      {pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
+      {pitch:65,dur:'q'},{pitch:65,dur:'q'},{pitch:64,dur:'q'},{pitch:64,dur:'q'},
+      {pitch:62,dur:'q'},{pitch:62,dur:'q'},{pitch:60,dur:'h'},
+    ]
+  },
+  'ode-to-joy': {
+    title: 'Ode to Joy (Beethoven)', ts: {num:4,den:4}, tempoName: 'Moderato', tempoBpm: 90,
+    notes: [
+      {pitch:64,dur:'q'},{pitch:64,dur:'q'},{pitch:65,dur:'q'},{pitch:67,dur:'q'},
+      {pitch:67,dur:'q'},{pitch:65,dur:'q'},{pitch:64,dur:'q'},{pitch:62,dur:'q'},
+      {pitch:60,dur:'q'},{pitch:60,dur:'q'},{pitch:62,dur:'q'},{pitch:64,dur:'q'},
+      {pitch:64,dur:'q'},{pitch:62,dur:'q'},{pitch:62,dur:'h'},
+    ]
+  },
+  'jingle-bells': {
+    title: 'Jingle Bells', ts: {num:4,den:4}, tempoName: 'Allegro', tempoBpm: 110,
+    notes: [
+      {pitch:64,dur:'q'},{pitch:64,dur:'q'},{pitch:64,dur:'h'},
+      {pitch:64,dur:'q'},{pitch:64,dur:'q'},{pitch:64,dur:'h'},
+      {pitch:64,dur:'q'},{pitch:67,dur:'q'},{pitch:60,dur:'q'},{pitch:62,dur:'q'},{pitch:64,dur:'h'},
+    ]
+  },
+};
+
+function loadRecorderExercise(key) {
+  const ex = RECORDER_EXERCISES[key];
+  if (!ex) { showToast('Exercise not found'); return; }
+  const score = createScore({title: ex.title, instruments: ['Recorder (Soprano)'], ts: ex.ts, ks: 0});
+  const stave = score.parts[0].staves[0];
+  stave.measures = [];
+
+  const beatsPerMeasure = ex.ts.num * (4 / ex.ts.den);
+  let measureNotes = [], beats = 0;
+
+  for (const n of ex.notes) {
+    measureNotes.push(mkNote(n.pitch, n.dur));
+    beats += durBeats(n.dur, 0, null);
+    if (beats >= beatsPerMeasure - 0.001) {
+      stave.measures.push({
+        timeSigNum: stave.measures.length === 0 ? ex.ts.num : null,
+        timeSigDen: stave.measures.length === 0 ? ex.ts.den : null,
+        keySig: stave.measures.length === 0 ? 0 : null,
+        lineBreak: false, notes: measureNotes
+      });
+      measureNotes = []; beats = 0;
+    }
+  }
+  if (measureNotes.length) {
+    stave.measures.push({
+      timeSigNum: null, timeSigDen: null, keySig: null,
+      lineBreak: false, notes: measureNotes
+    });
+  }
+
+  adoptScore(score, { clearHistory: true });
+  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
+  renderScore();
+  showToast('Loaded: ' + ex.title);
+}
+
+function showRecorderExercises() {
+  const exercises = Object.entries(RECORDER_EXERCISES).map(([key, ex]) => `
+    <button class="panel-btn-wide" style="margin-bottom:4px;text-align:left"
+      data-action="loadRecorderExercise" data-key="${key}">
+      <span style="font-weight:700">${ex.title}</span>
+      <span style="float:right;opacity:0.6;font-size:11px">${ex.tempoName} · ♩=${ex.tempoBpm}</span>
+    </button>
+  `).join('');
+
+  makeModal(`
+    <h2>Recorder Exercises</h2>
+    <p class="dialog-hint">Built-in songs with automatic fingerings. Great for classroom practice.</p>
+    ${exercises}
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
 function addInstrumentToScore(score, instrName) {
   const instr  = instrByName(instrName);
   const nM     = score.parts[0].staves[0].measures.length;
@@ -6893,6 +7036,13 @@ function toggleNoteLabels() {
   showToast(!APP.showNoteLabels ? 'Labels off' : APP.noteLabelMode === 'solfege' ? 'Solfège on' : 'Letter names on');
 }
 
+function toggleHighContrast() {
+  document.body.classList.toggle('high-contrast');
+  const on = document.body.classList.contains('high-contrast');
+  showToast(on ? 'High contrast on' : 'High contrast off');
+  renderScore();
+}
+
 function renderNoteLabels() {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score || !APP.showNoteLabels) return;
@@ -8317,6 +8467,7 @@ function startPlayback() {
   document.getElementById('pause-icon').style.display = '';
 
   const playOrder = buildPlaybackOrder(APP.score);
+  APP._playOrder = playOrder; // cache for diagram animation
   const beatDur = 60 / APP.tempo;
   // Align to next beat boundary so music/count-in starts on the beat
   const baseTime = Math.ceil(ctx.currentTime / beatDur) * beatDur + 0.02;
@@ -8457,9 +8608,7 @@ function startPlayback() {
     // Update playback cursor
     const cursorElapsed = Date.now() - noteStartAt;
     if (cursorElapsed >= 0) updatePlayCursor(cursorElapsed);
-    updateRecorderDiagram();
-    updateWoodwindDiagram();
-    updateBrassDiagram();
+    _updatePlaybackDiagrams(cursorElapsed);
     APP.playTimers.push(setTimeout(tick, 200));
   }
   tick();
@@ -8479,6 +8628,58 @@ function stopPlayback() {
   APP.playTimers = [];
   // Restart standalone metronome if toggle is still on
   if (APP.metronome && !APP._metInterval) _startStandaloneMetronome();
+}
+
+// ── Playback Diagram Animation ─────────────────────────────────
+// Finds the note on a given staff at the current playback elapsed time.
+function _findNoteAtPlaybackTime(elapsedMs, staff, playOrder) {
+  const beatDur = 60 / APP.tempo;
+  let t = 0;
+  for (const mi of playOrder) {
+    const m = staff.measures[mi];
+    if (!m) continue;
+    for (let ni = 0; ni < m.notes.length; ni++) {
+      const n = m.notes[ni];
+      const dur = durBeats(n.duration, n.dots, n.tuplet) * beatDur * 1000;
+      if (elapsedMs >= t && elapsedMs < t + dur) {
+        return { mi, ni, note: n };
+      }
+      t += dur;
+    }
+  }
+  return null;
+}
+
+function _updatePlaybackDiagrams(elapsedMs) {
+  if (!APP.score || !APP._playOrder) return;
+  const prevMi = APP.selectedMeasure;
+  const prevNi = APP.selectedNoteIdx;
+  const prevSi = APP.selectedStaff;
+
+  let gsi = 0;
+  for (const part of APP.score.parts) {
+    for (let s = 0; s < part.staves.length; s++) {
+      const si = gsi + s;
+      const instr = getInstrForSI(si);
+      if (!instr || (!instr.recorder && !instr.woodwind && !instr.brass)) {
+        continue;
+      }
+      const active = _findNoteAtPlaybackTime(elapsedMs, part.staves[s], APP._playOrder);
+      if (active && active.note.type === 'note') {
+        APP.selectedMeasure = active.mi;
+        APP.selectedNoteIdx = active.ni;
+        APP.selectedStaff = si;
+        if (instr.recorder) updateRecorderDiagram();
+        else if (instr.woodwind) updateWoodwindDiagram();
+        else if (instr.brass) updateBrassDiagram();
+      }
+    }
+    gsi += part.staves.length;
+  }
+
+  APP.selectedMeasure = prevMi;
+  APP.selectedNoteIdx = prevNi;
+  APP.selectedStaff = prevSi;
 }
 
 function updatePlayCursor(elapsedMs) {
@@ -9509,6 +9710,8 @@ function showScoreMenu(btn) {
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
     {label:'𝄻 Pickup Measure', fn:showPickupDialog},
     {sep:true},
+    {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
+    {sep:true},
     {label:`🗑 Delete Measure ${mi}`, fn:deleteMeasure, danger:true},
     {sep:true},
     {label:'➕ Add Measure at End', fn:addMeasure},
@@ -9761,6 +9964,8 @@ function showFileMenu(btn) {
     {sep:true},
     {label:'🖨️ Print / Save as PDF', fn:printScore},
     {label:'🔊 Export Audio', fn:showExportDialog},
+    {sep:true},
+    {label:'🎵 Recorder Exercises', fn:showRecorderExercises},
     {sep:true},
     {label:'✨ New Score', fn:showNewScoreDialog},
     {label:'ℹ️ Score Info', fn:showScoreInfo},
@@ -10637,6 +10842,8 @@ _registerAction('clearStaffText', () => clearStaffText());
 _registerAction('clearVolta', () => clearVolta());
 _registerAction('closeModal', () => closeModal());
 _registerAction('confirmExportAudio', () => confirmExportAudio());
+_registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
+_registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
 _registerAction('confirmAddInstrument', () => confirmAddInstrument());
 _registerAction('convertToGrace', (e) => convertToGrace(e.target.closest('[data-slashed]')?.dataset.slashed === 'true'));
@@ -10694,6 +10901,7 @@ _registerAction('toggleLineBreak', () => toggleLineBreak());
 _registerAction('toggleLyricStyle', (e) => toggleLyricStyle(e.target.closest('[data-style]')?.dataset.style));
 _registerAction('toggleMetronome', () => toggleMetronome());
 _registerAction('toggleNoteLabels', () => toggleNoteLabels());
+_registerAction('toggleHighContrast', () => toggleHighContrast());
 _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
 _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
 _registerAction('togglePlayback', () => togglePlayback());
