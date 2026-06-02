@@ -890,6 +890,12 @@ body.high-contrast .topbar, body.high-contrast .sidebar, body.high-contrast .tra
   <span id="play-pos">0:00</span>
   <button id="btn-countin" class="btn-util" data-action="toggleCountIn" aria-label="Toggle count-in clicks">Count-in</button>
   <button id="btn-metronome" class="btn-util" data-action="toggleMetronome" aria-label="Toggle metronome">Metronome</button>
+  <select id="met-subdivision" data-action="setMetronomeSubdivision" title="Metronome subdivision" style="background:transparent;border:1px solid rgba(192,86,33,0.2);border-radius:5px;color:#4a5568;font-size:11px;padding:2px 4px;cursor:pointer;margin-left:-2px">
+    <option value="quarter">♩</option>
+    <option value="eighth">♪</option>
+    <option value="triplet">♩³</option>
+    <option value="sixteenth">♬</option>
+  </select>
   <button id="btn-mixer" class="btn-util" data-action="showMixer" aria-label="Mixer">Mixer</button>
 </div>
 
@@ -1551,7 +1557,7 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.16.3 — AAR improvements: render decomposition, module boundaries,
+//  v0.16.4 — Percussion notation + metronome subdivisions
 //            command-layer cleanup, inline chord editor, MusicXML import,
 //            MIDI input, export dialog
 // ================================================================
@@ -1626,6 +1632,7 @@ const APP = {
   playStartTime: 0,
   countIn: false,
   metronome: false,
+  metronomeSubdivision: 'quarter', // 'quarter' | 'eighth' | 'triplet' | 'sixteenth'
   clipboard: null,
   showMeasureNumbers: false,
   showMultiMeasureRests: false,
@@ -1866,6 +1873,11 @@ const INSTRUMENTS = [
   {name:'Orff Alto Xylophone',       family:'Orff', staves:['treble'],  osc:'triangle'},
   {name:'Orff Bass Xylophone',       family:'Orff', staves:['bass'],    osc:'triangle'},
   {name:'Orff Timpani',              family:'Orff', staves:['bass'],    osc:'sine'    },
+  // Percussion
+  {name:'Drum Kit',            family:'Percussion', staves:['percussion'], osc:'noise', percussion:true},
+  {name:'Snare Drum',          family:'Percussion', staves:['percussion'], osc:'noise', percussion:true},
+  {name:'Bass Drum',           family:'Percussion', staves:['percussion'], osc:'noise', percussion:true},
+  {name:'Hi-Hat',              family:'Percussion', staves:['percussion'], osc:'noise', percussion:true},
   // Classroom
   {name:'Boomwhacker',          family:'Classroom', staves:['treble'], osc:'sine', boomwhacker:true},
 ];
@@ -4398,6 +4410,32 @@ function calcStemDirections(notes, clef, ts) {
   return dirs;
 }
 
+// Map percussion MIDI pitch to VexFlow staff position + notehead.
+// General MIDI percussion mapping with sensible staff placements.
+function _percussionLinePos(midi) {
+  // Bass drum family (low on staff, below or bottom line)
+  if (midi >= 35 && midi <= 37) return { key: 'f/4', notehead: 'normal' };
+  // Snare (middle line)
+  if (midi >= 38 && midi <= 40) return { key: 'c/5', notehead: 'normal' };
+  // Hand clap / side stick
+  if (midi === 39) return { key: 'c/5', notehead: 'x' };
+  if (midi === 37) return { key: 'c/5', notehead: 'x' };
+  // Hi-hat family (above staff, X notehead)
+  if (midi >= 42 && midi <= 46) return { key: 'g/5', notehead: 'x' };
+  // Toms (on staff, different lines)
+  if (midi === 41 || midi === 43) return { key: 'a/4', notehead: 'normal' }; // low-mid tom
+  if (midi === 45 || midi === 47) return { key: 'b/4', notehead: 'normal' }; // mid tom
+  if (midi === 48 || midi === 50) return { key: 'd/5', notehead: 'normal' }; // high tom
+  // Crash / ride (above staff, X notehead)
+  if (midi >= 49 && midi <= 53) return { key: 'a/5', notehead: 'x' };
+  // Cowbell / triangle
+  if (midi === 56) return { key: 'b/5', notehead: 'triangle' };
+  // Default: map linearly to staff range
+  const line = Math.max(0, Math.min(8, Math.round((midi - 30) / 5)));
+  const keys = ['g/3','a/3','b/3','c/4','d/4','e/4','f/4','g/4','a/4'];
+  return { key: keys[line] || 'c/5', notehead: 'normal' };
+}
+
 function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
   const ks            = getResolvedKeySig(mi, si);
   const keyAccMap     = getKeyAccidentals(ks);
@@ -4412,14 +4450,37 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
       let vfNote;
 
       if (note.type === 'rest') {
-        const restKey = note.duration === 'w'
-          ? (clef === 'bass' ? 'f/3' : clef === 'alto' ? 'e/4' : clef === 'tenor' ? 'c/4' : 'd/5')
-          : (clef === 'bass' ? 'd/3' : clef === 'alto' ? 'c/4' : clef === 'tenor' ? 'a/3' : 'b/4');
+        let restKey;
+        if (clef === 'percussion') restKey = 'd/4';
+        else if (clef === 'bass') restKey = note.duration === 'w' ? 'f/3' : 'd/3';
+        else if (clef === 'alto') restKey = note.duration === 'w' ? 'e/4' : 'c/4';
+        else if (clef === 'tenor') restKey = note.duration === 'w' ? 'c/4' : 'a/3';
+        else restKey = note.duration === 'w' ? 'd/5' : 'b/4';
         const durStr  = note.duration + (note.dots ? 'd' : '') + 'r';
         vfNote = new VF.StaveNote({ keys: [restKey], duration: durStr, clef });
         if (note.dots) { vfSafe(() => vfNote.addDot(0), 'restDot'); }
 
       } else {
+        // ── Percussion ────────────────────────────────────────────
+        if (clef === 'percussion') {
+          const pos = _percussionLinePos(note.pitch);
+          const durStr = note.duration + (note.dots ? 'd' : '');
+          vfNote = new VF.StaveNote({
+            keys: [pos.key],
+            duration: durStr,
+            clef: 'percussion',
+            stem_direction: dirs[ni] || VF.Stem.UP
+          });
+          // Apply appropriate notehead for drum voice
+          const nhType = pos.notehead === 'x' ? VF.NoteHead.TYPE.X :
+                         pos.notehead === 'diamond' ? VF.NoteHead.TYPE.DIAMOND :
+                         pos.notehead === 'triangle' ? VF.NoteHead.TYPE.TRIANGLE :
+                         VF.NoteHead.TYPE.QUARTER;
+          vfSafe(() => vfNote.setNoteHead(nhType, 0), 'percNotehead');
+          if (note.dots) { vfSafe(() => vfNote.addDot(0), 'percDot'); }
+          arr.push(vfNote);
+          return arr;
+        }
         const pc  = note.pitch % 12;
         const oct = Math.floor(note.pitch / 12) - 1;
 
@@ -8312,10 +8373,17 @@ const SYNTH_PROFILES = {
 };
 
 function scheduleNote(ctx, midi, startTime, dur, oscType, partVolume) {
-  const freq    = 440 * Math.pow(2, (midi - 69) / 12);
-  const profile = SYNTH_PROFILES[oscType] || SYNTH_PROFILES.triangle;
   const vol     = partVolume ?? 1;
   const noteDur = Math.max(dur, 0.08);
+
+  // ── Percussion: noise-based synthesis ─────────────────────────
+  if (oscType === 'noise') {
+    _schedulePercussion(ctx, midi, startTime, noteDur, vol);
+    return;
+  }
+
+  const freq    = 440 * Math.pow(2, (midi - 69) / 12);
+  const profile = SYNTH_PROFILES[oscType] || SYNTH_PROFILES.triangle;
   const relTime = startTime + Math.min(noteDur, noteDur * 0.9);
   // Stereo pan: higher notes → right, lower → left
   const pan = Math.max(-0.6, Math.min(0.6, (midi - 60) / 40));
@@ -8369,11 +8437,96 @@ function scheduleNote(ctx, midi, startTime, dur, oscType, partVolume) {
   });
 }
 
+// Percussion synthesis using noise buffer + shaped envelopes
+function _schedulePercussion(ctx, midi, startTime, dur, vol) {
+  const dest = APP.masterGain || ctx.destination;
+  const rev  = APP.reverb || null;
+
+  // Create noise buffer (1 second of white noise)
+  const bufSize = ctx.sampleRate;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+
+  const gain = ctx.createGain();
+  const filt = ctx.createBiquadFilter();
+
+  // Map MIDI pitch to drum voice (General MIDI percussion)
+  // 35-36 = bass drum, 38-40 = snare, 42-46 = hi-hat, 49-52 = crash/tom, 60-62 = high bongo
+  let effGain = 0.5 * vol;
+  let filtFreq = 1000;
+  let filtQ = 1;
+  let decay = 0.15;
+  let attack = 0.002;
+
+  if (midi >= 35 && midi <= 36) {
+    // Kick / bass drum
+    filt.type = 'lowpass';
+    filtFreq = 120;
+    decay = 0.25;
+    effGain = 0.7 * vol;
+  } else if (midi >= 38 && midi <= 40) {
+    // Snare
+    filt.type = 'bandpass';
+    filtFreq = 1800;
+    filtQ = 2;
+    decay = 0.18;
+    effGain = 0.55 * vol;
+  } else if (midi >= 42 && midi <= 46) {
+    // Hi-hat (closed/open/pedal)
+    filt.type = 'highpass';
+    filtFreq = 7000;
+    decay = midi === 46 ? 0.35 : 0.06; // open hat rings longer
+    effGain = 0.35 * vol;
+  } else if (midi >= 49 && midi <= 52) {
+    // Crash / ride / tom
+    filt.type = 'bandpass';
+    filtFreq = 2500;
+    decay = 0.5;
+    effGain = 0.45 * vol;
+  } else {
+    // Generic percussion
+    filt.type = 'bandpass';
+    filtFreq = 800;
+    decay = 0.2;
+  }
+
+  filt.frequency.value = filtFreq;
+  filt.Q.value = filtQ;
+
+  src.connect(filt);
+  filt.connect(gain);
+  gain.connect(dest);
+  if (rev) gain.connect(rev);
+
+  const endT = startTime + Math.max(dur, decay);
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(effGain, startTime + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, endT);
+
+  src.start(startTime);
+  src.stop(endT + 0.02);
+}
+
 function toggleCountIn() {
   APP.countIn = !APP.countIn;
   const btn = document.getElementById('btn-countin');
   if (btn) btn.classList.toggle('active', APP.countIn);
   showToast(APP.countIn ? 'Count-in on (4 clicks)' : 'Count-in off');
+}
+
+function setMetronomeSubdivision(val) {
+  APP.metronomeSubdivision = val;
+  document.getElementById('met-subdivision').value = val;
+  // Restart metronome if running to pick up new subdivision
+  if (APP.metronome && !APP.playing) {
+    _stopStandaloneMetronome();
+    _startStandaloneMetronome();
+  }
+  showToast('Metronome: ' + val);
 }
 
 function toggleMetronome() {
@@ -8407,30 +8560,47 @@ function toggleMetronome() {
   showToast(APP.metronome ? 'Metronome on' : 'Metronome off');
 }
 
+function _getSubdivisionInfo() {
+  const sub = APP.metronomeSubdivision || 'quarter';
+  const beatDur = 60 / APP.tempo;
+  switch (sub) {
+    case 'eighth':    return { count: 2, dur: beatDur / 2, accent: [true, false] };
+    case 'triplet':   return { count: 3, dur: beatDur / 3, accent: [true, false, false] };
+    case 'sixteenth': return { count: 4, dur: beatDur / 4, accent: [true, false, false, false] };
+    default:          return { count: 1, dur: beatDur,      accent: [true] };
+  }
+}
+
 function _startStandaloneMetronome(ctx, beatDur) {
   if (APP._metInterval) return;
   const bd = beatDur || 60 / APP.tempo;
+  const subInfo = _getSubdivisionInfo();
+  const stepDur = subInfo.dur;
   APP._metBeat = 0;
+  APP._metSubIndex = 0;
   APP._metInterval = setInterval(() => {
     if (!APP.metronome) { _stopStandaloneMetronome(); return; }
     const ctx2 = ctx || getAudioCtx();
-    const bd2 = bd || 60 / APP.tempo;
-    scheduleMetronomeClick(ctx2, ctx2.currentTime + 0.02, APP._metBeat % 4 === 0);
-    APP._metBeat++;
-  }, bd * 1000);
+    const si = APP._metSubIndex;
+    const accent = subInfo.accent[si % subInfo.count];
+    scheduleMetronomeClick(ctx2, ctx2.currentTime + 0.02, accent, si % subInfo.count === 0 ? 1 : 0.5);
+    APP._metSubIndex = (si + 1) % subInfo.count;
+    if (si === subInfo.count - 1) APP._metBeat++;
+  }, stepDur * 1000);
 }
 
 function _stopStandaloneMetronome() {
   if (APP._metInterval) { clearInterval(APP._metInterval); APP._metInterval = null; }
 }
 
-function scheduleMetronomeClick(ctx, time, accent) {
+function scheduleMetronomeClick(ctx, time, accent, intensity = 1) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = 'sine';
   osc.frequency.value = accent ? 1200 : 800;
+  const vol = 0.35 * intensity;
   gain.gain.setValueAtTime(0, time);
-  gain.gain.linearRampToValueAtTime(0.35, time + 0.004);
+  gain.gain.linearRampToValueAtTime(vol, time + 0.004);
   gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
   osc.connect(gain);
   gain.connect(APP.metronomeGain || ctx.destination);
@@ -8509,11 +8679,16 @@ function startPlayback() {
   if (APP.countIn) playCountIn(ctx, beatDur, countInBeats, baseTime);
 
   if (APP.metronome) {
+    const subInfo = _getSubdivisionInfo();
     let beatT = baseTime + countInOffset;
     playOrder.forEach(mi => {
       const cap = measureBeatsCapacity(mi, 0);
       for (let b = 0; b < cap; b++) {
-        scheduleMetronomeClick(ctx, beatT, b === 0);
+        for (let s = 0; s < subInfo.count; s++) {
+          const accent = subInfo.accent[s];
+          const intensity = s === 0 ? 1 : 0.5;
+          scheduleMetronomeClick(ctx, beatT + s * subInfo.dur, accent, intensity);
+        }
         beatT += beatDur;
       }
     });
@@ -10900,6 +11075,7 @@ _registerAction('toggleInputMode', () => toggleInputMode());
 _registerAction('toggleLineBreak', () => toggleLineBreak());
 _registerAction('toggleLyricStyle', (e) => toggleLyricStyle(e.target.closest('[data-style]')?.dataset.style));
 _registerAction('toggleMetronome', () => toggleMetronome());
+_registerAction('setMetronomeSubdivision', (e) => setMetronomeSubdivision(e.target.value));
 _registerAction('toggleNoteLabels', () => toggleNoteLabels());
 _registerAction('toggleHighContrast', () => toggleHighContrast());
 _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
