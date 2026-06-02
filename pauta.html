@@ -3582,6 +3582,7 @@ function _renderSelectionBody() {
   if (!svgEl) return;
 
   svgEl.querySelectorAll('.sel-overlay').forEach(el => el.remove());
+  svgEl.querySelectorAll('.sel-note').forEach(el => el.remove());
 
   const sl = APP.staveLayout.find(l => l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0));
   if (sl && APP.selectedMeasure >= 0) {
@@ -3589,6 +3590,18 @@ function _renderSelectionBody() {
       x: sl.x, y: sl.topLineY - 2, w: sl.w, h: sl.bottomY - sl.topLineY + 4, rx: 4,
       fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'
     });
+  }
+
+  if (APP.selectedNoteIdx >= 0 && APP.selectedMeasure >= 0) {
+    const nl = APP.noteLayout.find(l =>
+      l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0) && l.ni === APP.selectedNoteIdx);
+    if (nl) {
+      svgCircle(svgEl, {
+        cx: nl.x + (nl.stemDir === 1 ? 14 : -14),
+        cy: nl.y, r: 10,
+        fill: 'none', stroke: '#c05621', strokeWidth: 2.5, cls: 'sel-note'
+      });
+    }
   }
 
   updateRecorderDiagram();
@@ -7354,6 +7367,17 @@ function addMeasure() {
   }, { toast: 'Measure added' });
 }
 
+function navigateStaff(dir) {
+  const nStaves = APP.score.parts.reduce((s, p) => s + p.staves.length, 0);
+  const next = APP.selectedStaff + dir;
+  if (next < 0 || next >= nStaves) return;
+  APP.selectedStaff = next;
+  APP.selectedNoteIdx = -1;
+  renderSelection();
+  scrollToSelectedMeasure();
+  showToast('Staff ' + (APP.selectedStaff + 1));
+}
+
 // ── Undo/Redo ────────────────────────────────────────────────────
 // Uses structuredClone() (3-5× faster than JSON round-trip, no type loss).
 // Falls back to JSON for environments that don't support it (Safari < 15.4).
@@ -9608,8 +9632,10 @@ window.addEventListener('keydown', e => {
   if (e.key === ' ') { e.preventDefault(); togglePlayback(); return; }
   if (e.key === 'Enter') { e.preventDefault(); toggleInputMode(); return; }
   if (e.key === 'i' || e.key === 'I') { toggleInputMode(); return; }
-  if (e.key === 'ArrowUp')    { e.preventDefault(); changeOctave(1);           return; }
-  if (e.key === 'ArrowDown')  { e.preventDefault(); changeOctave(-1);          return; }
+  if (e.key === 'ArrowUp'    && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(1);  return; }
+  if (e.key === 'ArrowDown'  && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(-1); return; }
+  if (e.key === 'ArrowUp')    { e.preventDefault(); navigateStaff(-1); return; }
+  if (e.key === 'ArrowDown')  { e.preventDefault(); navigateStaff(1);  return; }
   if (e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); navigateNote(1,true);  return; }
   if (e.key === 'ArrowLeft'  && e.shiftKey) { e.preventDefault(); navigateNote(-1,true); return; }
   if (e.key === 'ArrowRight') { e.preventDefault(); navigateNote(1,false);     return; }
