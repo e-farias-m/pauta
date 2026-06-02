@@ -6361,15 +6361,14 @@ function shiftNoteOctave(direction) {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') return;
-  const semitones = direction * 12;
   commitChange(score => {
-    n.pitch = Math.max(12, Math.min(120, n.pitch + semitones));
+    n.pitch = Math.max(12, Math.min(120, n.pitch + direction));
     if (n.extraPitches) {
       n.extraPitches.forEach(ep => {
-        ep.pitch = Math.max(12, Math.min(120, ep.pitch + semitones));
+        ep.pitch = Math.max(12, Math.min(120, ep.pitch + direction));
       });
     }
-  }, { toast: `Octave ${Math.floor(n.pitch / 12) - 1}` });
+  }, { toast: `${NOTE_NAMES[PC_TO_DIA[n.pitch % 12]].toUpperCase()}${Math.floor(n.pitch / 12) - 1}` });
 }
 
 function changePitchOfSelected(name) {
