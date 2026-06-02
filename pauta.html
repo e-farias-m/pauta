@@ -2887,12 +2887,13 @@ function svgLine(parent, {x1, y1, x2, y2, stroke, strokeWidth, strokeLinecap} = 
   }, parent);
 }
 
-function svgCircle(parent, {cx, cy, r, fill, stroke, strokeWidth, opacity, pointerEvents} = {}) {
+function svgCircle(parent, {cx, cy, r, fill, stroke, strokeWidth, opacity, pointerEvents, cls} = {}) {
   return _svgCreate('circle', {
     cx, cy, r: r || 0,
     fill: fill || 'none', stroke: stroke || 'none',
     'stroke-width': strokeWidth || 0, opacity: opacity ?? 1,
     'pointer-events': pointerEvents || 'none',
+    class: cls,
   }, parent);
 }
 
@@ -3597,8 +3598,7 @@ function _renderSelectionBody() {
       l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0) && l.ni === APP.selectedNoteIdx);
     if (nl) {
       svgCircle(svgEl, {
-        cx: nl.x + (nl.stemDir === 1 ? 14 : -14),
-        cy: nl.y, r: 6,
+        cx: nl.x, cy: nl.y, r: 6,
         fill: 'rgba(192,86,33,0.45)', stroke: '#c05621', strokeWidth: 1.2, cls: 'sel-note'
       });
     }
@@ -6020,7 +6020,7 @@ function handleScoreTap(e) {
     const dist   = Math.abs(y - mid) + (xMatch ? 0 : 1000);
     if (dist < bestDist2) { bestDist2 = dist; hit = layout; }
   }
-  if (!hit) return;
+  if (!hit) { APP.selectedNoteIdx = -1; renderSelection(); return; }
 
   APP.selectedMeasure = hit.mi;
   APP.selectedStaff   = hit.si;
