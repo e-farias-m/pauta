@@ -7761,6 +7761,7 @@ function startPlayback() {
   APP.playing = true;
   if (APP.masterGain) APP.masterGain.gain.value = APP.masterVolume;
   if (APP.metronomeGain) APP.metronomeGain.gain.value = APP.metronomeVolume;
+  if (APP.reverbGain) APP.reverbGain.gain.value = 0.12;
   document.getElementById('play-icon').style.display = 'none';
   document.getElementById('pause-icon').style.display = '';
 
@@ -7919,6 +7920,7 @@ function stopPlayback() {
   if (APP._playScrollRAF) cancelAnimationFrame(APP._playScrollRAF);
   if (APP.masterGain) APP.masterGain.gain.value = 0;
   if (APP.metronomeGain) APP.metronomeGain.gain.value = 0;
+  if (APP.reverbGain) APP.reverbGain.gain.value = 0;
   document.getElementById('play-icon').style.display = '';
   document.getElementById('pause-icon').style.display = 'none';
   document.getElementById('play-pos').textContent = '0:00';
