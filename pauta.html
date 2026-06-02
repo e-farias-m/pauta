@@ -652,6 +652,7 @@ body{
 }
 .note-labels-btn.active{background:rgba(100,200,140,0.20);border-color:rgba(100,200,140,0.55);color:#64c88c}
 .note-labels-dot.active{background:#64c88c}
+.nd-sel{background:rgba(192,86,33,0.18)!important;border-color:rgba(192,86,33,0.50)!important;color:#c05621!important;font-weight:600!important}
 
 /* ── Toast ── */
 #toast{
@@ -9107,10 +9108,12 @@ function _ksMiniSVG(ks) {
 
 // ── New Score Dialog ─────────────────────────────────────────────
 let _ndFamily = 'Recorder'; // tracks selected family between renders
+let _ndSelectedInstruments = new Set();
 const TS_DEN_VALUES = [1, 2, 4, 8, 16, 32];
 
 function showNewScoreDialog() {
   _ndFamily = 'Recorder';
+  _ndSelectedInstruments = new Set();
   _renderNewScoreDialog();
 }
 
@@ -9125,9 +9128,6 @@ function _renderNewScoreDialog() {
     return a.localeCompare(b);
   });
   const instrList = INSTRUMENTS.filter(i => i.family === _ndFamily);
-  const firstInstr = _ndFamily === 'Recorder'
-    ? INSTRUMENTS.find(i => i.name === 'Soprano Recorder')?.name || instrList[0]?.name || ''
-    : instrList[0]?.name || '';
 
   // Family tab buttons
   const famBtns = families.map(f => `
@@ -9230,7 +9230,7 @@ function _renderNewScoreDialog() {
     </div>
 
     <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;
-                  letter-spacing:0.3px;margin-top:4px;display:block;font-weight:600">Instrument</label>
+                  letter-spacing:0.3px;margin-top:4px;display:block;font-weight:600">Instruments <span id="nd-instr-count" style="font-weight:400">(0)</span></label>
 
     <!-- Family tabs -->
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
@@ -9238,7 +9238,6 @@ function _renderNewScoreDialog() {
     </div>
 
     <!-- Instrument grid -->
-    <input type="hidden" id="nd-instr" value="${firstInstr}">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;
                 max-height:160px;overflow-y:auto;-webkit-overflow-scrolling:touch;
                 padding-right:2px">
@@ -9249,13 +9248,13 @@ function _renderNewScoreDialog() {
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 
-  // Highlight first instrument by default; add styles for nd-sel
+  // Apply selections from multi-select set
   setTimeout(() => {
-    const first = document.querySelector(`.nd-instr-btn[data-name="${firstInstr}"]`) || document.querySelector('.nd-instr-btn');
-    if (first) first.classList.add('nd-sel');
-    const style = document.createElement('style');
-    style.textContent = `.nd-sel{background:rgba(192,86,33,0.18)!important;border-color:rgba(192,86,33,0.50)!important;color:#c05621!important;font-weight:600!important}`;
-    document.head.appendChild(style);
+    document.querySelectorAll('.nd-instr-btn').forEach(b => {
+      if (_ndSelectedInstruments.has(b.dataset.name)) b.classList.add('nd-sel');
+    });
+    const c = document.getElementById('nd-instr-count');
+    if (c) c.textContent = '(' + _ndSelectedInstruments.size + ')';
   }, 30);
 }
 
@@ -9334,7 +9333,10 @@ function createNewScore() {
   const title     = document.getElementById('nd-title')?.value.trim()    || 'Untitled Score';
   const composer  = document.getElementById('nd-composer')?.value.trim() || '';
   const ks        = parseInt(document.getElementById('nd-ks')?.value)     || 0;
-  const instrName = document.getElementById('nd-instr')?.value           || 'Piano';
+  const instrNames = _ndSelectedInstruments.size
+    ? [..._ndSelectedInstruments]
+    : (() => { showToast('Select at least one instrument'); return null; })();
+  if (!instrNames) return;
   const tsNum     = parseInt(document.getElementById('nd-ts-num')?.value) || 4;
   const tsDen     = parseInt(document.getElementById('nd-ts-den')?.value) || 4;
   const ts        = {num:tsNum, den:tsDen};
@@ -9342,7 +9344,7 @@ function createNewScore() {
   const puNum     = pickup ? (parseInt(document.getElementById('nd-pu-num')?.value) || 1) : 0;
   const puDen     = pickup ? (parseInt(document.getElementById('nd-pu-den')?.value) || 4) : 0;
 
-  const raw = createScore({title, composer, ts, ks, instruments:[instrName]});
+  const raw = createScore({title, composer, ts, ks, instruments:instrNames});
 
   for (let i = 0; i < 3; i++) {
     raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
@@ -9918,10 +9920,18 @@ _registerAction('selectAIInstr', (e) => {
   e.target.closest('.ai-instr-btn')?.classList.add('nd-sel');
 });
 _registerAction('selectNDInstr', (e) => {
-  const name = e.target.closest('[data-name]')?.dataset.name;
-  document.getElementById('nd-instr').value = name;
-  document.querySelectorAll('.nd-instr-btn').forEach(b => b.classList.remove('nd-sel'));
-  e.target.closest('.nd-instr-btn')?.classList.add('nd-sel');
+  const btn = e.target.closest('.nd-instr-btn');
+  if (!btn) return;
+  const name = btn.dataset.name;
+  if (_ndSelectedInstruments.has(name)) {
+    _ndSelectedInstruments.delete(name);
+    btn.classList.remove('nd-sel');
+  } else {
+    _ndSelectedInstruments.add(name);
+    btn.classList.add('nd-sel');
+  }
+  const c = document.getElementById('nd-instr-count');
+  if (c) c.textContent = '(' + _ndSelectedInstruments.size + ')';
 });
 
 // Single delegated click handler for all [data-action] elements
