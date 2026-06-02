@@ -6401,7 +6401,7 @@ function renderNoteLabels() {
     const label = noteLabelForPitch(n.pitch, ks, n.accidental, mode);
     const sl = APP.staveLayout.find(l => l.mi === nl.mi && l.si === nl.si);
     const staffBot = sl ? sl.bottomY : nl.y;
-    const fontSize = Math.round(LAYOUT.STAVE_H * 0.26);
+    const fontSize = Math.round(LAYOUT.STAVE_H * 0.22);
     const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
     lbl.setAttribute('x', nl.x);
     lbl.setAttribute('y', staffBot + fontSize + Math.round(LAYOUT.STAVE_H * 0.16));
