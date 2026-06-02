@@ -3061,6 +3061,8 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         el.textContent = nm.slice(0, si);
         const ts = _svgCreate('tspan', {x: 0, dy: 13}, el);
         ts.textContent = nm.slice(si + 1);
+        labelG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7)},${midY - 6.5})`);
+        labelG.setAttribute('data-label-y', midY - 6.5);
       } else { el.textContent = nm; }
       svgEl2.appendChild(labelG);
     }
