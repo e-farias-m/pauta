@@ -102,7 +102,7 @@ body{
   transition:background 0.5s;
 }
 #topbar{
-  height:56px;display:flex;align-items:center;
+  height:48px;display:flex;align-items:center;
   padding:0 10px;gap:6px;flex-shrink:0;z-index:10;
 }
 .btn-top{
@@ -117,14 +117,14 @@ body{
   flex:1;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;position:relative;
 }
-#score-canvas-container{padding:20px;min-height:100%;}
+#score-canvas-container{padding:12px;min-height:100%;}
 #score-svg{width:100%;border-radius:6px;touch-action:manipulation;}
 #score-svg svg{width:100%;display:block}
 
 /* ── Status Bar ── */
 #status-bar{
   display:flex;gap:14px;align-items:center;flex-shrink:0;
-  height:40px;padding:0 14px;
+  height:32px;padding:0 14px;
   background:var(--bg-status-glass);
   backdrop-filter:saturate(180%) blur(20px);
   -webkit-backdrop-filter:saturate(180%) blur(20px);
@@ -137,7 +137,7 @@ body{
 
 /* ── Transport Bar ── */
 #transport-bar{
-  height:48px;
+  height:44px;
   background:var(--bg-transport-glass);
   backdrop-filter:saturate(180%) blur(20px);
   -webkit-backdrop-filter:saturate(180%) blur(20px);
@@ -147,7 +147,7 @@ body{
   order:-1;
 }
 .btn-circle{
-  width:48px;height:48px;
+  width:44px;height:44px;
   border-radius:50%;
   border:none;
   display:flex;align-items:center;justify-content:center;
@@ -173,7 +173,7 @@ body{
 #palette{
   background:var(--bg-palette-glass);
   border-top:1px solid rgba(192,86,33,0.06);
-  padding:7px 10px;
+  padding:5px 8px;
   flex-shrink:0;
   display:flex;
   flex-direction:column;
@@ -726,7 +726,7 @@ body{
   .pal-label { width:34px; font-size:8px; }
   .palette-row { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #oct-display { font-size:9px; }
-  #score-canvas-container { padding:10px; }
+  #score-canvas-container { padding:8px; }
 }
 
 /* ── Print ── */
