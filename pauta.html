@@ -1513,7 +1513,7 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.16.2 — AAR improvements: render decomposition, module boundaries,
+//  v0.16.3 — AAR improvements: render decomposition, module boundaries,
 //            command-layer cleanup, inline chord editor, MusicXML import,
 //            MIDI input, export dialog
 // ================================================================
@@ -5815,20 +5815,26 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
     const spacing = (endX - startX) / 6;
     const cy = 40;
 
-    // Body silhouette — simple tube
-    const bodyLine = document.createElementNS(ns, 'line');
-    bodyLine.setAttribute('x1', 4); bodyLine.setAttribute('y1', cy);
-    bodyLine.setAttribute('x2', endX + 4); bodyLine.setAttribute('y2', cy);
-    bodyLine.setAttribute('stroke', '#e8dcc8'); bodyLine.setAttribute('stroke-width', '6');
-    bodyLine.setAttribute('stroke-linecap', 'round');
-    svg.appendChild(bodyLine);
+    // Body silhouette — tapered brass tube
+    const tbPath = document.createElementNS(ns, 'path');
+    tbPath.setAttribute('d',
+      'M 4,' + (cy - 3) + ' L ' + (endX - 4) + ',' + (cy - 2.5)
+      + ' Q ' + (endX + 2) + ',' + (cy - 5) + ' ' + (endX + 10) + ',' + (cy - 7)
+      + ' L ' + (endX + 10) + ',' + (cy + 7)
+      + ' Q ' + (endX + 2) + ',' + (cy + 5) + ' ' + (endX - 4) + ',' + (cy + 2.5)
+      + ' L 4,' + (cy + 3) + ' Z');
+    tbPath.setAttribute('fill', 'url(#brass-tube-grad)');
+    tbPath.setAttribute('stroke', '#a89878');
+    tbPath.setAttribute('stroke-width', '0.6');
+    svg.appendChild(tbPath);
 
-    // Bell flare
+    // Bell flare with gradient
     const bell = document.createElementNS(ns, 'ellipse');
-    bell.setAttribute('cx', endX + 8); bell.setAttribute('cy', cy);
-    bell.setAttribute('rx', 12); bell.setAttribute('ry', 8);
-    bell.setAttribute('fill', '#e8dcc8'); bell.setAttribute('stroke', '#c0b0a0');
-    bell.setAttribute('stroke-width', '1');
+    bell.setAttribute('cx', endX + 9); bell.setAttribute('cy', cy);
+    bell.setAttribute('rx', 11); bell.setAttribute('ry', 7);
+    bell.setAttribute('fill', 'url(#brass-bell-grad)');
+    bell.setAttribute('stroke', '#a89878');
+    bell.setAttribute('stroke-width', '0.8');
     svg.appendChild(bell);
 
     // Slide rail
@@ -5891,21 +5897,40 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
     const startX = w / 2;
     const startY = 35;
 
-    // Body silhouette — instrument tube behind valves
-    const bodyTube = document.createElementNS(ns, 'rect');
-    bodyTube.setAttribute('x', startX - 6); bodyTube.setAttribute('y', 10);
-    bodyTube.setAttribute('width', 12); bodyTube.setAttribute('height', h - 20);
-    bodyTube.setAttribute('rx', 6); bodyTube.setAttribute('fill', '#e8dcc8');
-    bodyTube.setAttribute('stroke', '#c0b0a0'); bodyTube.setAttribute('stroke-width', '0.8');
-    svg.appendChild(bodyTube);
+    // Body silhouette — tapered brass tube with gradient
+    const tx = startX, tTop = 8, tBot = h - 14;
+    const bellW = isHorn ? 32 : 18;
+    const tubeW = 7;
+    const tubePath = document.createElementNS(ns, 'path');
+    tubePath.setAttribute('d',
+      'M ' + (tx - tubeW) + ',' + tBot + ' Q ' + (tx - tubeW - 2) + ',' + (tBot - 10) + ' ' + (tx - bellW) + ',' + (tTop + 8)
+      + ' Q ' + (tx - bellW) + ',' + tTop + ' ' + (tx - bellW + 4) + ',' + (tTop - 2)
+      + ' L ' + (tx + bellW - 4) + ',' + (tTop - 2) + ' Q ' + (tx + bellW) + ',' + tTop + ' ' + (tx + bellW) + ',' + (tTop + 8)
+      + ' Q ' + (tx + tubeW + 2) + ',' + (tBot - 10) + ' ' + (tx + tubeW) + ',' + tBot + ' Z');
+    tubePath.setAttribute('fill', 'url(#brass-tube-grad)');
+    tubePath.setAttribute('stroke', '#a89878');
+    tubePath.setAttribute('stroke-width', '0.8');
+    svg.appendChild(tubePath);
 
-    // Bell (top)
+    // Bell flare with gradient
     const bell = document.createElementNS(ns, 'ellipse');
-    bell.setAttribute('cx', startX); bell.setAttribute('cy', 8);
-    bell.setAttribute('rx', isHorn ? 30 : 16); bell.setAttribute('ry', 6);
-    bell.setAttribute('fill', '#e8dcc8'); bell.setAttribute('stroke', '#c0b0a0');
-    bell.setAttribute('stroke-width', '0.8');
+    bell.setAttribute('cx', tx); bell.setAttribute('cy', tTop - 1);
+    bell.setAttribute('rx', bellW - 2); bell.setAttribute('ry', 5);
+    bell.setAttribute('fill', 'url(#brass-bell-grad)');
+    bell.setAttribute('stroke', '#a89878');
+    bell.setAttribute('stroke-width', '0.7');
     svg.appendChild(bell);
+
+    // Valve stems (connecting tubes behind valves)
+    for (let vi = 0; vi < nValves; vi++) {
+      const vsy = startY + vi * spacing;
+      const stem = document.createElementNS(ns, 'rect');
+      stem.setAttribute('x', tx - 2); stem.setAttribute('y', tTop + 4);
+      stem.setAttribute('width', 4); stem.setAttribute('height', vsy - tTop - 4);
+      stem.setAttribute('fill', '#c8b898');
+      stem.setAttribute('stroke', 'none');
+      svg.appendChild(stem);
+    }
 
     for (let vi = 0; vi < nValves; vi++) {
       const cy = startY + vi * spacing;
