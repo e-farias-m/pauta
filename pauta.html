@@ -519,6 +519,10 @@ body{
   white-space:nowrap;
   min-height:32px;
 }
+.btn-util.active{
+  background:rgba(192,86,33,0.30);
+  border-color:rgba(192,86,33,0.60);
+}
 .btn-danger{
   background:rgba(240,120,96,0.10);
   border:1px solid rgba(240,120,96,0.30);
@@ -6534,7 +6538,6 @@ function populateSearchPanel() {
   const allBtns = document.querySelectorAll('.palette-row .pal-btn');
   allBtns.forEach(btn => {
     const clone = btn.cloneNode(true);
-    clone.onclick = null;
     const origId = btn.id;
     if (origId) clone.id = 'search-'+origId;
     container.appendChild(clone);
@@ -7157,9 +7160,9 @@ function deleteMeasure() {
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 1)));
     shiftMeasureRefs(score, mi, 'delete');
-    APP.selectedMeasure   = Math.min(mi, nM - 2);
-    APP.selectedNoteIdx   = -1;
   }, { toast: 'Measure deleted' });
+  APP.selectedMeasure = Math.min(mi, nM - 2);
+  APP.selectedNoteIdx = -1;
 }
 
 function toggleLineBreak() {
@@ -7371,15 +7374,10 @@ const _cloneScore = typeof structuredClone === 'function'
 function _scoreFingerprint(score) {
   if (!score) return '';
   try {
-    const parts = score.parts;
-    const mCount = parts.reduce((n, p) => n + (p.staves[0]?.measures?.length || 0), 0);
-    const firstM = parts[0]?.staves[0]?.measures[0];
-    const noteCount = firstM?.notes?.length ?? 0;
-    const lastPart  = parts[parts.length - 1];
-    const lastStave = lastPart?.staves?.[lastPart.staves.length - 1];
-    const lastM     = lastStave?.measures?.[lastStave.measures.length - 1];
-    const lastNote  = lastM?.notes?.[lastM.notes.length - 1];
-    return `${mCount}:${noteCount}:${lastNote?.pitch ?? ''}:${lastNote?.duration ?? ''}`;
+    const s = JSON.stringify(score);
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
+    return (h >>> 0).toString(36);
   } catch(e) { return Math.random().toString(); }
 }
 
@@ -7683,22 +7681,14 @@ function scheduleNote(ctx, midi, startTime, dur, oscType, partVolume) {
 function toggleCountIn() {
   APP.countIn = !APP.countIn;
   const btn = document.getElementById('btn-countin');
-  if (btn) {
-    btn.style.background = APP.countIn ? 'rgba(192,86,33,0.30)' : 'rgba(192,86,33,0.14)';
-    btn.style.borderColor = APP.countIn ? 'rgba(192,86,33,0.60)' : 'rgba(192,86,33,0.30)';
-    btn.style.color = APP.countIn ? '#c05621' : '#c05621';
-  }
+  if (btn) btn.classList.toggle('active', APP.countIn);
   showToast(APP.countIn ? 'Count-in on (4 clicks)' : 'Count-in off');
 }
 
 function toggleMetronome() {
   APP.metronome = !APP.metronome;
   const btn = document.getElementById('btn-metronome');
-  if (btn) {
-    btn.style.background = APP.metronome ? 'rgba(192,86,33,0.30)' : 'rgba(192,86,33,0.14)';
-    btn.style.borderColor = APP.metronome ? 'rgba(192,86,33,0.60)' : 'rgba(192,86,33,0.30)';
-    btn.style.color = APP.metronome ? '#c05621' : '#c05621';
-  }
+  if (btn) btn.classList.toggle('active', APP.metronome);
 
   if (APP.metronome) {
     const ctx = getAudioCtx();
@@ -9460,11 +9450,13 @@ function showScoreInfo() {
   `);
 }
 function applyScoreInfo() {
+  const title    = document.getElementById('si-title').value;
+  const composer = document.getElementById('si-composer').value;
   commitChange(score => {
-    score.title    = document.getElementById('si-title').value;
-    score.composer = document.getElementById('si-composer').value;
+    score.title    = title;
+    score.composer = composer;
   });
-  document.getElementById('score-title').textContent = document.getElementById('si-title').value;
+  document.getElementById('score-title').textContent = title;
   closeModal();
 }
 
