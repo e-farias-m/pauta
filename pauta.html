@@ -817,6 +817,16 @@ body.assignment-mode .panel-btn[data-action="startMarking"],
 body.assignment-mode .panel-btn[data-action="startOttava"],
 body.assignment-mode .panel-btn[data-action="startGlissando"] { display: none; }
 
+/* Exercise mode UI */
+body.exercise-mode #score-title::after {
+  content: ' — EXERCISE';
+  color: #c05621;
+  font-size: 11px;
+  margin-left: 6px;
+}
+body.exercise-mode .btn-top:not([data-action="togglePlayback"]):not([data-action="stopPlayback"]) { opacity: 0.5; pointer-events: none; }
+body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
+
 </style>
 </head>
 <body>
@@ -856,6 +866,14 @@ body.assignment-mode .panel-btn[data-action="startGlissando"] { display: none; }
       <circle cx="14" cy="17" r="1.5" fill="currentColor"/>
     </svg>
     <span>Score</span>
+  </button>
+  <button class="btn-top" data-action="showViewMenu" title="Display options, difficulty, view settings">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="10" cy="10" r="2"/>
+      <path d="M10 1 v3 M10 16 v3 M1 10 h3 M16 10 h3"/>
+      <path d="M3.34 3.34 l2.12 2.12 M14.54 14.54 l2.12 2.12 M3.34 16.66 l2.12-2.12 M14.54 5.46 l2.12-2.12"/>
+    </svg>
+    <span>View</span>
   </button>
   <button class="btn-top" id="btn-input-mode" data-action="toggleInputMode" aria-label="Toggle input mode" title="Toggle note-input mode">
     <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -1653,6 +1671,9 @@ const APP = {
   micInput: false,
   assignmentMode: false,
   currentAssignment: null,
+  exerciseMode: false,
+  exerciseSession: null,
+  exerciseDifficulty: 'beginner',
   uiProfile: 'advanced',
   clipboard: null,
   showMeasureNumbers: false,
@@ -1712,7 +1733,9 @@ const UI_PROFILES = {
 
 function applyUIProfile(profileName) {
   const profile = UI_PROFILES[profileName] || UI_PROFILES.advanced;
+  const prev = UI_PROFILES[APP.uiProfile] || UI_PROFILES.advanced;
   APP.uiProfile = profileName;
+
   // Durations
   document.querySelectorAll('.pal-btn[data-dur]').forEach(btn => {
     btn.hidden = profile.hideDurations.includes(btn.dataset.dur);
@@ -1739,6 +1762,31 @@ function applyUIProfile(profileName) {
       tab.hidden = profile.hidePanels.includes(panel);
     }
   });
+  // If the currently open side panel is now hidden, close it
+  if (_activePanel && profile.hidePanels.includes(_activePanel)) {
+    togglePanel(_activePanel);
+  }
+
+  // Build explicit change summary for toast
+  const changes = [];
+  const durLabels = {w:'whole', h:'half', q:'quarter', '8':'eighth', '16':'16th', '32':'32nd', '64':'64th'};
+  const newlyHiddenDurs = profile.hideDurations.filter(d => !prev.hideDurations.includes(d));
+  const newlyShownDurs  = prev.hideDurations.filter(d => !profile.hideDurations.includes(d));
+  if (newlyHiddenDurs.length) changes.push('hiding ' + newlyHiddenDurs.map(d => durLabels[d] || d).join(', ') + ' notes');
+  if (newlyShownDurs.length)  changes.push('showing ' + newlyShownDurs.map(d => durLabels[d] || d).join(', ') + ' notes');
+  const newlyHiddenPanels = profile.hidePanels.filter(p => !prev.hidePanels.includes(p));
+  const newlyShownPanels  = prev.hidePanels.filter(p => !profile.hidePanels.includes(p));
+  if (newlyHiddenPanels.length) changes.push('hiding ' + newlyHiddenPanels.length + ' panel' + (newlyHiddenPanels.length > 1 ? 's' : ''));
+  if (newlyShownPanels.length)  changes.push('showing ' + newlyShownPanels.length + ' panel' + (newlyShownPanels.length > 1 ? 's' : ''));
+
+  let msg;
+  if (changes.length) {
+    msg = profileName.charAt(0).toUpperCase() + profileName.slice(1) + ' profile: ' + changes.join('; ');
+  } else {
+    msg = profileName.charAt(0).toUpperCase() + profileName.slice(1) + ' profile (no change)';
+  }
+  showToast(msg, changes.length ? 2500 : 1200);
+
   // Store preference
   try { localStorage.setItem('pauta_ui_profile', profileName); } catch(e) {}
 }
@@ -2268,7 +2316,7 @@ const RECORDER_EXERCISES = {
 function loadRecorderExercise(key) {
   const ex = RECORDER_EXERCISES[key];
   if (!ex) { showToast('Exercise not found'); return; }
-  const score = createScore({title: ex.title, instruments: ['Recorder (Soprano)'], ts: ex.ts, ks: 0});
+  const score = createScore({title: ex.title, instruments: ['Soprano Recorder'], ts: ex.ts, ks: 0});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
 
@@ -3775,7 +3823,7 @@ function _runBootSelfCheck() {
   let ok = true;
 
   // ── Score validation ────────────────────────────────────────────
-  const sample = createScore({ title: 'Self-check', instruments: ['Piano', 'Recorder (Soprano)'] });
+  const sample = createScore({ title: 'Self-check', instruments: ['Piano', 'Soprano Recorder'] });
   const check = validateScore(repairScore(sample));
   if (!check.ok) { console.warn('[Pauta] boot self-check failed:', check.issues); ok = false; }
   else debugLog('[Pauta] boot self-check score validation passed');
@@ -7126,6 +7174,22 @@ function insertNoteByName(name) {
     changePitchOfSelected(name);
     return;
   }
+  // Exercise mode: palette input submits answers
+  if (APP.exerciseMode && APP.exerciseSession) {
+    const ex = APP.exerciseSession.current;
+    if (ex.type === EXERCISE_TYPES.NOTE_ID) {
+      // Build answer with octave from target
+      const ansPc = NAME_TO_PC[name];
+      const targetOct = ex.target.octave;
+      const octGuess = APP.curAcc === '#' ? (ansPc + 1) % 12 : APP.curAcc === 'b' ? (ansPc + 11) % 12 : ansPc;
+      const finalName = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][octGuess];
+      checkExerciseAnswer(finalName + targetOct);
+    } else if (ex.type === EXERCISE_TYPES.MELODY_DICT) {
+      // In melody dictation, palette notes build the answer incrementally
+      changePitchOfSelected(name);
+    }
+    return;
+  }
   // Assignment mode: must select an existing note, cannot insert new ones
   if (APP.assignmentMode) {
     if (APP.selectedNoteIdx >= 0 && _isInAssignmentRange(APP.selectedMeasure)) {
@@ -8413,6 +8477,422 @@ function _evaluateAssignment(asgn) {
     });
   }
   return { correct, incorrect, partial, total, details };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 5c: Exercise Engine
+// ═══════════════════════════════════════════════════════════════════
+// A self-contained practice system with generated exercises,
+// real-time feedback, hints, and progress tracking.
+
+const EXERCISE_TYPES = {
+  NOTE_ID:      'note_id',
+  INTERVAL_ID:  'interval_id',
+  RHYTHM_READ:  'rhythm_read',
+  MELODY_DICT:  'melody_dictation',
+  KEY_SIG_ID:   'key_sig_id',
+};
+
+const INTERVAL_NAMES = {
+  0: 'Unison', 1: 'Minor 2nd', 2: 'Major 2nd', 3: 'Minor 3rd',
+  4: 'Major 3rd', 5: 'Perfect 4th', 6: 'Tritone', 7: 'Perfect 5th',
+  8: 'Minor 6th', 9: 'Major 6th', 10: 'Minor 7th', 11: 'Major 7th', 12: 'Octave'
+};
+
+const KEY_SIG_NAMES = {
+  '-7':'Cb', '-6':'Gb', '-5':'Db', '-4':'Ab', '-3':'Eb', '-2':'Bb', '-1':'F',
+  '0':'C', '1':'G', '2':'D', '3':'A', '4':'E', '5':'B', '6':'F#', '7':'C#'
+};
+
+// ── Exercise Generators ──────────────────────────────────────────
+function generateExercise(type, difficulty = 'beginner') {
+  const diffs = { beginner: 0, intermediate: 1, advanced: 2 };
+  const d = diffs[difficulty] ?? 0;
+
+  switch (type) {
+    case EXERCISE_TYPES.NOTE_ID:
+      return _genNoteId(d);
+    case EXERCISE_TYPES.INTERVAL_ID:
+      return _genIntervalId(d);
+    case EXERCISE_TYPES.RHYTHM_READ:
+      return _genRhythmRead(d);
+    case EXERCISE_TYPES.MELODY_DICT:
+      return _genMelodyDict(d);
+    case EXERCISE_TYPES.KEY_SIG_ID:
+      return _genKeySigId(d);
+    default:
+      return _genNoteId(d);
+  }
+}
+
+function _genNoteId(difficulty) {
+  const ranges = [
+    [60, 72],   // beginner: C4–C5
+    [57, 76],   // intermediate: A3–E5
+    [48, 84],   // advanced: C3–C6
+  ];
+  const [min, max] = ranges[difficulty];
+  const pitch = Math.floor(Math.random() * (max - min + 1)) + min;
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const pc = pitch % 12;
+  const oct = Math.floor(pitch / 12) - 1;
+  const answer = names[pc] + oct;
+  return {
+    type: EXERCISE_TYPES.NOTE_ID,
+    difficulty,
+    target: { pitch, name: names[pc], octave: oct },
+    answer,
+    hint: `Count lines and spaces from the bottom of the staff.`,
+  };
+}
+
+function _genIntervalId(difficulty) {
+  const intervals = difficulty === 0 ? [2,3,4,5,7] : difficulty === 1 ? [1,2,3,4,5,6,7,8] : [0,1,2,3,4,5,6,7,8,9,10,11,12];
+  const semitones = intervals[Math.floor(Math.random() * intervals.length)];
+  const dir = Math.random() > 0.5 ? 1 : -1;
+  const bottom = 60 + Math.floor(Math.random() * 12); // C4–B4 base
+  const top = Math.max(48, Math.min(84, bottom + semitones * dir));
+  const actualSemitones = Math.abs(top - bottom);
+  return {
+    type: EXERCISE_TYPES.INTERVAL_ID,
+    difficulty,
+    target: { bottom, top, semitones: actualSemitones, direction: dir },
+    answer: INTERVAL_NAMES[actualSemitones] || 'Unknown',
+    hint: `Count the half steps between the two notes.`,
+  };
+}
+
+function _genRhythmRead(difficulty) {
+  const patterns = [
+    // beginner
+    [['q','q','q','q'], ['q','q','h'], ['h','q','q'], ['q','h','q']],
+    // intermediate
+    [['q','q','8','8','q'], ['q','8','8','q','q'], ['h','8','8'], ['q.','8','q','q']],
+    // advanced
+    [['q','8','8','8','8','q'], ['q.','8','q.','8'], ['8','8','8','8','q','q'], ['q','q','8','16','16','q']],
+  ];
+  const pool = patterns[difficulty];
+  const durations = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    type: EXERCISE_TYPES.RHYTHM_READ,
+    difficulty,
+    target: { durations },
+    answer: durations.join(','),
+    hint: `Tap or clap the rhythm you see, then compare with playback.`,
+  };
+}
+
+function _genMelodyDict(difficulty) {
+  const lengths = [4, 6, 8];
+  const len = lengths[Math.min(difficulty, 2)];
+  const basePitch = 60 + Math.floor(Math.random() * 12);
+  const notes = [];
+  for (let i = 0; i < len; i++) {
+    const step = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
+    const pitch = Math.max(48, Math.min(84, (notes.length ? notes[i-1].pitch : basePitch) + step));
+    const durs = difficulty === 0 ? ['q','h'] : difficulty === 1 ? ['q','h','8'] : ['q','h','8','16'];
+    notes.push({ pitch, duration: durs[Math.floor(Math.random() * durs.length)] });
+  }
+  return {
+    type: EXERCISE_TYPES.MELODY_DICT,
+    difficulty,
+    target: { notes },
+    answer: notes.map(n => n.pitch).join(','),
+    hint: `Listen first, then enter one note at a time.`,
+  };
+}
+
+function _genKeySigId(difficulty) {
+  const keys = difficulty === 0 ? [-1,0,1] : difficulty === 1 ? [-3,-2,-1,0,1,2,3] : [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7];
+  const ks = keys[Math.floor(Math.random() * keys.length)];
+  return {
+    type: EXERCISE_TYPES.KEY_SIG_ID,
+    difficulty,
+    target: { keySig: ks },
+    answer: KEY_SIG_NAMES[String(ks)],
+    hint: ks === 0 ? 'No sharps or flats = C major / A minor.' :
+          ks > 0 ? `Look for the sharp farthest to the right — go up a half step.` :
+          `The second-to-last flat is the key name.`,
+  };
+}
+
+// ── Exercise Session Manager ────────────────────────────────────
+function startExerciseSession(type, difficulty) {
+  const ex = generateExercise(type, difficulty);
+  APP.exerciseSession = {
+    type, difficulty,
+    current: ex,
+    completed: [],
+    correctCount: 0,
+    totalCount: 0,
+    streak: 0,
+    maxStreak: 0,
+    startedAt: Date.now(),
+  };
+  APP.exerciseMode = true;
+  _setExerciseUI(true);
+  _presentExercise(ex);
+}
+
+function endExerciseSession() {
+  const s = APP.exerciseSession;
+  if (!s) return;
+  const total = s.totalCount;
+  const correct = s.correctCount;
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const time = Math.floor((Date.now() - s.startedAt) / 1000);
+
+  makeModal(`
+    <h2>Session Complete</h2>
+    <div style="font-size:14px;color:#4a5568;margin-bottom:12px;text-align:center">
+      <div style="font-size:32px;font-weight:700;color:#c05621;margin-bottom:4px">${pct}%</div>
+      <div>${correct} / ${total} correct</div>
+      <div style="font-size:12px;color:rgba(74,85,104,0.6);margin-top:4px">Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
+    </div>
+    <div style="margin-bottom:12px;max-height:200px;overflow-y:auto;font-size:12px;color:#4a5568">
+      ${s.completed.map((c,i) => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <span style="width:16px;text-align:center;font-size:14px">${c.ok?'🟢':'🔴'}</span>
+        <span>#${i+1}: ${c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer : c.type === EXERCISE_TYPES.MELODY_DICT ? 'Melody' : 'Rhythm'}</span>
+      </div>`).join('')}
+    </div>
+    <button class="modal-btn primary" data-action="closeModalExercise">Close</button>
+    <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
+  `);
+
+  APP.exerciseMode = false;
+  APP.exerciseSession = null;
+  _setExerciseUI(false);
+}
+
+function closeModalExercise() {
+  closeModal();
+  renderScore();
+}
+
+function restartExerciseSession() {
+  closeModal();
+  const s = APP.exerciseSession;
+  if (s) startExerciseSession(s.type, s.difficulty);
+}
+
+function _presentExercise(ex) {
+  switch (ex.type) {
+    case EXERCISE_TYPES.NOTE_ID:
+      _presentNoteId(ex);
+      break;
+    case EXERCISE_TYPES.INTERVAL_ID:
+      _presentIntervalId(ex);
+      break;
+    case EXERCISE_TYPES.RHYTHM_READ:
+      _presentRhythmRead(ex);
+      break;
+    case EXERCISE_TYPES.MELODY_DICT:
+      _presentMelodyDict(ex);
+      break;
+    case EXERCISE_TYPES.KEY_SIG_ID:
+      _presentKeySigId(ex);
+      break;
+  }
+  _updateExerciseInputBar();
+}
+
+function _presentNoteId(ex) {
+  // Build a minimal score with one note
+  const score = createScore({title: 'Note Identification', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  score.parts[0].staves[0].measures[0].notes = [mkNote(ex.target.pitch, 'q')];
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
+  renderScore();
+  showToast('Name this note! (tap palette or type letter)');
+}
+
+function _presentIntervalId(ex) {
+  const score = createScore({title: 'Interval Identification', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  score.parts[0].staves[0].measures[0].notes = [
+    mkNote(ex.target.bottom, 'q'),
+    mkNote(ex.target.top, 'q'),
+  ];
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+  showToast('Name the interval! (e.g. Major 3rd, Perfect 5th)');
+}
+
+function _presentRhythmRead(ex) {
+  const score = createScore({title: 'Rhythm Reading', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
+  const notes = ex.target.durations.map(d => mkNote(60, d));
+  score.parts[0].staves[0].measures[0].notes = notes;
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+  showToast('Tap ▶ to hear, then clap/tap it back');
+}
+
+function _presentMelodyDict(ex) {
+  const score = createScore({title: 'Melody Dictation', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  score.parts[0].staves[0].measures = [];
+  let mNotes = [], beats = 0;
+  const beatsPerMeasure = 4;
+  for (const n of ex.target.notes) {
+    mNotes.push(mkNote(n.pitch, n.duration));
+    beats += durBeats(n.duration, 0, null);
+    if (beats >= beatsPerMeasure - 0.001) {
+      score.parts[0].staves[0].measures.push({timeSigNum: 4, timeSigDen: 4, keySig: 0, lineBreak: false, notes: mNotes});
+      mNotes = []; beats = 0;
+    }
+  }
+  if (mNotes.length) {
+    score.parts[0].staves[0].measures.push({timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: mNotes});
+  }
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+  showToast('Tap ▶ to hear the melody, then enter the notes');
+}
+
+function _presentKeySigId(ex) {
+  const score = createScore({title: 'Key Signature ID', instruments: ['Piano'], ts: {num:4,den:4}, ks: ex.target.keySig});
+  score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+  showToast('Name the key! (e.g. C, G, F#, Bb)');
+}
+
+// ── Answer Checking ──────────────────────────────────────────────
+function checkExerciseAnswer(userAnswer) {
+  const s = APP.exerciseSession;
+  if (!s || !s.current) return;
+  const ex = s.current;
+  const normalizedUser = String(userAnswer).trim().toLowerCase().replace(/\s+/g, '');
+  const normalizedTarget = String(ex.answer).trim().toLowerCase().replace(/\s+/g, '');
+  const isCorrect = normalizedUser === normalizedTarget;
+
+  s.totalCount++;
+  if (isCorrect) {
+    s.correctCount++;
+    s.streak++;
+    if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+  } else {
+    s.streak = 0;
+  }
+
+  s.completed.push({ type: ex.type, answer: userAnswer, ok: isCorrect, hint: ex.hint });
+
+  if (isCorrect) {
+    showToast(`✓ Correct! · Streak: ${s.streak}`, 1200);
+    // Generate next exercise after short delay
+    setTimeout(() => {
+      s.current = generateExercise(ex.type, ex.difficulty);
+      _presentExercise(s.current);
+    }, 1200);
+  } else {
+    _showExerciseFeedback(ex, userAnswer, isCorrect);
+  }
+}
+
+function _showExerciseFeedback(ex, userAnswer, isCorrect) {
+  makeModal(`
+    <h2>${isCorrect ? '✓ Correct!' : 'Not quite'}</h2>
+    <div style="font-size:13px;color:#4a5568;margin-bottom:12px">
+      <p><b>Your answer:</b> ${userAnswer}</p>
+      <p><b>Correct answer:</b> ${ex.answer}</p>
+    </div>
+    <div style="background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.15);border-radius:6px;padding:10px;margin-bottom:12px;font-size:12px;color:#4a5568">
+      <b>Hint:</b> ${ex.hint}
+    </div>
+    <button class="modal-btn primary" data-action="nextExercise">Next Exercise</button>
+    <button class="modal-btn secondary" data-action="endExerciseSession">End Session</button>
+  `);
+}
+
+function nextExercise() {
+  closeModal();
+  const s = APP.exerciseSession;
+  if (!s) return;
+  s.current = generateExercise(s.type, s.difficulty);
+  _presentExercise(s.current);
+}
+
+// ── Exercise UI ─────────────────────────────────────────────────
+function _setExerciseUI(enabled) {
+  document.body.classList.toggle('exercise-mode', enabled);
+  const transport = document.getElementById('transport-bar');
+  if (transport) transport.style.opacity = enabled ? '0.5' : '';
+  _updateExerciseInputBar();
+}
+
+function _updateExerciseInputBar() {
+  const existing = document.getElementById('exercise-input-bar');
+  if (existing) existing.remove();
+  const s = APP.exerciseSession;
+  if (!APP.exerciseMode || !s) return;
+  const ex = s.current;
+  if (!ex) return;
+  // Only show text input bar for interval and key-sig exercises
+  if (ex.type !== EXERCISE_TYPES.INTERVAL_ID && ex.type !== EXERCISE_TYPES.KEY_SIG_ID) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'exercise-input-bar';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:8px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
+  const label = ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval name:' : 'Key:';
+  bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">${label}</span>
+    <input id="exercise-answer-input" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <button class="modal-btn primary" id="exercise-submit-btn" style="padding:4px 12px;font-size:12px">Submit</button>`;
+  document.body.appendChild(bar);
+
+  setTimeout(() => {
+    const inp = document.getElementById('exercise-answer-input');
+    const btn = document.getElementById('exercise-submit-btn');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') _submitTextExercise(); });
+    }
+    if (btn) btn.addEventListener('click', _submitTextExercise);
+  }, 50);
+}
+
+function _submitTextExercise() {
+  const inp = document.getElementById('exercise-answer-input');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) { showToast('Type your answer first'); return; }
+  checkExerciseAnswer(val);
+  inp.value = '';
+}
+
+function showExerciseDialog() {
+  const types = [
+    {key: EXERCISE_TYPES.NOTE_ID,      label:'🎵 Note Identification',    desc:'Name the note on the staff'},
+    {key: EXERCISE_TYPES.INTERVAL_ID,  label:'↔ Interval Identification', desc:'Name the interval between two notes'},
+    {key: EXERCISE_TYPES.RHYTHM_READ,  label:'𝅘𝅥𝅮 Rhythm Reading',          desc:'Read and clap rhythm patterns'},
+    {key: EXERCISE_TYPES.MELODY_DICT,  label:'🎼 Melody Dictation',       desc:'Hear a melody, then notate it'},
+    {key: EXERCISE_TYPES.KEY_SIG_ID,   label:'♭♯ Key Signature ID',       desc:'Name the key from the signature'},
+  ];
+  const diffs = ['beginner', 'intermediate', 'advanced'];
+  const currentDiff = APP.exerciseDifficulty || 'beginner';
+
+  makeModal(`
+    <h2>Exercise Browser</h2>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Difficulty</div>
+      <div style="display:flex;gap:6px">
+        ${diffs.map(d => `<button class="modal-btn ${d===currentDiff?'primary':'secondary'}" data-action="selectExerciseDifficulty" data-diff="${d}" style="flex:1;padding:8px 4px;font-size:12px">${d}</button>`).join('')}
+      </div>
+    </div>
+    <div style="max-height:260px;overflow-y:auto">
+      ${types.map(t => `
+        <button class="panel-btn-wide" style="margin-bottom:6px;text-align:left"
+          data-action="startExerciseSession" data-type="${t.key}" data-diff="${currentDiff}">
+          <div style="font-weight:600;font-size:13px;color:#2d3748">${t.label}</div>
+          <div style="font-size:11px;color:rgba(74,85,104,0.7)">${t.desc}</div>
+        </button>
+      `).join('')}
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function selectExerciseDifficulty(diff) {
+  APP.exerciseDifficulty = diff;
+  // Re-render dialog with new difficulty highlighted
+  showExerciseDialog();
 }
 
 function showTransposeDialog() {
@@ -10809,11 +11289,7 @@ function showScoreMenu(btn) {
     {label:'📄 Parts', fn:showPartsDialog},
     {label:'➕ Add Instrument', fn:showAddInstrumentDialog},
     {sep:true},
-    {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
-    {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
     {label:'𝄻 Pickup Measure', fn:showPickupDialog},
-    {sep:true},
-    {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
     {label:`🗑 Delete Measure ${mi}`, fn:deleteMeasure, danger:true},
     {sep:true},
@@ -10823,12 +11299,24 @@ function showScoreMenu(btn) {
   // Show assignment items if assignments exist in the score
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   if (hasAssignments || APP.assignmentMode) {
-    items.splice(6, 0, {sep:true}, {label:'📝 Assignment', fn:showAssignmentSubmenu});
+    items.splice(5, 0, {sep:true}, {label:'📝 Assignment', fn:showAssignmentSubmenu});
   } else {
-    items.splice(6, 0, {sep:true}, {label:'📝 Create Assignment', fn:showAssignmentDialog});
+    items.splice(5, 0, {sep:true}, {label:'📝 Create Assignment', fn:showAssignmentDialog});
   }
-  // UI profile switcher
-  items.splice(items.length - 3, 0, {sep:true}, {label:'🎓 Difficulty Profile', fn:showProfileSubmenu});
+  showDropdown(btn, items);
+}
+
+function showViewMenu(btn) {
+  const items = [
+    {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
+    {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
+    {label:`${APP.continuousView?'✓':'○'} Continuous View`, fn:toggleContinuousView},
+    {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
+    {sep:true},
+    {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
+    {sep:true},
+    {label:'🎹 Exercises', fn:showExerciseDialog},
+  ];
   showDropdown(btn, items);
 }
 
@@ -12045,6 +12533,7 @@ _registerAction('showKeySigDialog', () => showKeySigDialog());
 _registerAction('showMixer', () => showMixer());
 _registerAction('showScoreInfo', () => showScoreInfo());
 _registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
+_registerAction('showViewMenu', (e) => showViewMenu(e.target));
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startGlissando', (e) => startGlissando(e.target.closest('[data-style]')?.dataset.style));
@@ -12069,6 +12558,13 @@ _registerAction('confirmCreateAssignment', () => confirmCreateAssignment());
 _registerAction('checkAssignmentAnswers', () => checkAssignmentAnswers());
 _registerAction('submitAssignment', () => submitAssignment());
 _registerAction('exitAssignmentMode', () => exitAssignmentMode());
+_registerAction('showExerciseDialog', () => showExerciseDialog());
+_registerAction('startExerciseSession', (e) => startExerciseSession(e.target.closest('[data-type]')?.dataset.type, e.target.closest('[data-diff]')?.dataset.diff));
+_registerAction('selectExerciseDifficulty', (e) => selectExerciseDifficulty(e.target.closest('[data-diff]')?.dataset.diff));
+_registerAction('nextExercise', () => nextExercise());
+_registerAction('endExerciseSession', () => endExerciseSession());
+_registerAction('closeModalExercise', () => closeModalExercise());
+_registerAction('restartExerciseSession', () => restartExerciseSession());
 _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
 _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
 _registerAction('togglePlayback', () => togglePlayback());
