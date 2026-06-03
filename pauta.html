@@ -1710,7 +1710,7 @@ const SCORE_MEASURE_REF_RULES = [
 const UI_PROFILES = {
   beginner: {
     hideDurations: ['32', '64'],
-    hidePanels:    ['artic', 'lines', 'bars', 'tempo'],
+    hidePanels:    ['artic', 'lines', 'bars', 'tempo', 'clef', 'text'],
     hideButtons:   ['btn-triplet', 'btn-voice2', 'btn-chord', 'btn-notehead-x'],
     maxMeasures:   8,
     description:   'Beginner — simplified palette, limited measures',
@@ -7181,8 +7181,8 @@ function insertNoteByName(name) {
       // Build answer with octave from target
       const ansPc = NAME_TO_PC[name];
       const targetOct = ex.target.octave;
-      const octGuess = APP.curAcc === '#' ? (ansPc + 1) % 12 : APP.curAcc === 'b' ? (ansPc + 11) % 12 : ansPc;
-      const finalName = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][octGuess];
+      const chromPc = APP.curAcc === '#' ? (ansPc + 1) % 12 : APP.curAcc === 'b' ? (ansPc + 11) % 12 : ansPc;
+      const finalName = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][chromPc];
       checkExerciseAnswer(finalName + targetOct);
     } else if (ex.type === EXERCISE_TYPES.MELODY_DICT) {
       // In melody dictation, palette notes build the answer incrementally
@@ -8499,6 +8499,29 @@ const INTERVAL_NAMES = {
   8: 'Minor 6th', 9: 'Major 6th', 10: 'Minor 7th', 11: 'Major 7th', 12: 'Octave'
 };
 
+const INTERVAL_ALIASES = {
+  'unison':        ['unison','p1','u','0','perfectunison','perfect1st'],
+  'minor 2nd':     ['minor2nd','m2','minorsecond','semitone','halfstep'],
+  'major 2nd':     ['major2nd','M2','majorsecond','tone','wholestep','wholetone','2nd','second'],
+  'minor 3rd':     ['minor3rd','m3','minorthird','3rd','third'],
+  'major 3rd':     ['major3rd','M3','majorthird'],
+  'perfect 4th':   ['perfect4th','P4','perfectfourth','fourth','4th'],
+  'tritone':       ['tritone','aug4','dim5','A4','d5','tt'],
+  'perfect 5th':   ['perfect5th','P5','perfectfifth','fifth','5th'],
+  'minor 6th':     ['minor6th','m6','minorsixth','6th','sixth'],
+  'major 6th':     ['major6th','M6','majorsixth'],
+  'minor 7th':     ['minor7th','m7','minorseventh','7th','seventh'],
+  'major 7th':     ['major7th','M7','majorseventh'],
+  'octave':        ['octave','P8','perfectoctave','8ve','8va','8'],
+};
+
+function _intervalMatches(userInput, targetName) {
+  const norm = s => s.toLowerCase().replace(/[\s\-_]/g,'');
+  const n = norm(userInput);
+  const aliases = INTERVAL_ALIASES[targetName.toLowerCase()] || [];
+  return n === norm(targetName) || aliases.some(a => norm(a) === n);
+}
+
 const KEY_SIG_NAMES = {
   '-7':'Cb', '-6':'Gb', '-5':'Db', '-4':'Ab', '-3':'Eb', '-2':'Bb', '-1':'F',
   '0':'C', '1':'G', '2':'D', '3':'A', '4':'E', '5':'B', '6':'F#', '7':'C#'
@@ -8525,14 +8548,18 @@ function generateExercise(type, difficulty = 'beginner') {
   }
 }
 
+const NATURAL_PITCHES = {
+  beginner:     [60,62,64,65,67,69,71,72],     // C4–C5, naturals only
+  intermediate: [57,59,60,62,64,65,67,69,71,72,74,76], // A3–E5, naturals
+  advanced:     null,  // full chromatic range
+};
+
 function _genNoteId(difficulty) {
-  const ranges = [
-    [60, 72],   // beginner: C4–C5
-    [57, 76],   // intermediate: A3–E5
-    [48, 84],   // advanced: C3–C6
-  ];
-  const [min, max] = ranges[difficulty];
-  const pitch = Math.floor(Math.random() * (max - min + 1)) + min;
+  const levelNames = ['beginner','intermediate','advanced'];
+  const pool = NATURAL_PITCHES[levelNames[difficulty]];
+  const pitch = pool
+    ? pool[Math.floor(Math.random() * pool.length)]
+    : Math.floor(Math.random() * 37) + 48; // C3–C6 chromatic
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
@@ -8697,9 +8724,11 @@ function _presentExercise(ex) {
 }
 
 function _presentNoteId(ex) {
-  // Build a minimal score with one note
+  // Build a minimal score with one note — include accidental so chromatic
+  // pitches render correctly on the staff (e.g. F# not F natural)
+  const acc = midiAutoAcc(ex.target.pitch);
   const score = createScore({title: 'Note Identification', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
-  score.parts[0].staves[0].measures[0].notes = [mkNote(ex.target.pitch, 'q')];
+  score.parts[0].staves[0].measures[0].notes = [mkNote(ex.target.pitch, 'q', 0, acc)];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
   renderScore();
@@ -8727,24 +8756,83 @@ function _presentRhythmRead(ex) {
 }
 
 function _presentMelodyDict(ex) {
-  const score = createScore({title: 'Melody Dictation', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
-  score.parts[0].staves[0].measures = [];
+  // Phase 1: blank score — student hears but does NOT see the melody
+  const blankScore = createScore({title: 'Melody Dictation', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  // Fill with whole-measure rests so the score has structure but no pitches
+  const totalBeats = ex.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
+  const measureCount = Math.max(1, Math.ceil(totalBeats / 4));
+  blankScore.parts[0].staves[0].measures = [];
+  for (let i = 0; i < measureCount; i++) {
+    blankScore.parts[0].staves[0].measures.push({
+      timeSigNum: i === 0 ? 4 : null, timeSigDen: i === 0 ? 4 : null,
+      keySig: i === 0 ? 0 : null, lineBreak: false, notes: [mkRest('w')]
+    });
+  }
+  adoptScore(blankScore, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+
+  // Store target for playback-only (not rendered)
+  const s = APP.exerciseSession;
+  if (s) {
+    s._dictationTarget = ex.target.notes;
+    s._dictationPhase = 'listen';
+  }
+  _showDictationListenBar();
+}
+
+function _showDictationListenBar() {
+  const existing = document.getElementById('dictation-bar');
+  if (existing) existing.remove();
+  const bar = document.createElement('div');
+  bar.id = 'dictation-bar';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
+  bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">🎧 Listen</span>
+    <button class="modal-btn primary" id="dictation-play" style="padding:4px 12px;font-size:12px">▶ Play Melody</button>
+    <button class="modal-btn secondary" id="dictation-ready" style="padding:4px 12px;font-size:12px">📝 I'm Ready</button>`;
+  document.body.appendChild(bar);
+  setTimeout(() => {
+    document.getElementById('dictation-play')?.addEventListener('click', _playDictationMelody);
+    document.getElementById('dictation-ready')?.addEventListener('click', _startDictationNotate);
+  }, 50);
+}
+
+function _playDictationMelody() {
+  const s = APP.exerciseSession;
+  if (!s || !s._dictationTarget) return;
+  // Build a temporary score with the target notes for playback
+  const playScore = createScore({title: 'Playback', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  playScore.parts[0].staves[0].measures = [];
   let mNotes = [], beats = 0;
-  const beatsPerMeasure = 4;
-  for (const n of ex.target.notes) {
+  for (const n of s._dictationTarget) {
     mNotes.push(mkNote(n.pitch, n.duration));
     beats += durBeats(n.duration, 0, null);
-    if (beats >= beatsPerMeasure - 0.001) {
-      score.parts[0].staves[0].measures.push({timeSigNum: 4, timeSigDen: 4, keySig: 0, lineBreak: false, notes: mNotes});
+    if (beats >= 4 - 0.001) {
+      playScore.parts[0].staves[0].measures.push({timeSigNum: 4, timeSigDen: 4, keySig: 0, lineBreak: false, notes: mNotes});
       mNotes = []; beats = 0;
     }
   }
   if (mNotes.length) {
-    score.parts[0].staves[0].measures.push({timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: mNotes});
+    playScore.parts[0].staves[0].measures.push({timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: mNotes});
   }
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
-  showToast('Tap ▶ to hear the melody, then enter the notes');
+  // Quick playback without replacing current score
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  const beatDur = 60 / APP.tempo;
+  let t = ctx.currentTime + 0.05;
+  for (const n of s._dictationTarget) {
+    const dur = durBeats(n.duration, 0, null) * beatDur;
+    scheduleNote(ctx, n.pitch, t, dur * 0.88, 'triangle', 1);
+    t += dur;
+  }
+  showToast('Playing melody…');
+}
+
+function _startDictationNotate() {
+  const bar = document.getElementById('dictation-bar');
+  if (bar) bar.remove();
+  const s = APP.exerciseSession;
+  if (s) s._dictationPhase = 'notate';
+  showToast('Enter the notes you heard (tap palette or use MIDI/mic)');
 }
 
 function _presentKeySigId(ex) {
@@ -8760,9 +8848,16 @@ function checkExerciseAnswer(userAnswer) {
   const s = APP.exerciseSession;
   if (!s || !s.current) return;
   const ex = s.current;
-  const normalizedUser = String(userAnswer).trim().toLowerCase().replace(/\s+/g, '');
-  const normalizedTarget = String(ex.answer).trim().toLowerCase().replace(/\s+/g, '');
-  const isCorrect = normalizedUser === normalizedTarget;
+
+  // Interval exercises use fuzzy alias matching; others use exact string match
+  let isCorrect;
+  if (ex.type === EXERCISE_TYPES.INTERVAL_ID) {
+    isCorrect = _intervalMatches(userAnswer, ex.answer);
+  } else {
+    const normalizedUser = String(userAnswer).trim().toLowerCase().replace(/\s+/g, '');
+    const normalizedTarget = String(ex.answer).trim().toLowerCase().replace(/\s+/g, '');
+    isCorrect = normalizedUser === normalizedTarget;
+  }
 
   s.totalCount++;
   if (isCorrect) {
@@ -9402,20 +9497,27 @@ function showWelcomeModal() {
   if (seen) return;
   makeModal(`
     <h2>Welcome to Pauta</h2>
-    <div style="font-size:13px;color:#4a5568;line-height:1.5;margin-bottom:12px">
-      <p>Pauta is a free notation editor built for classrooms. Here's how to get started:</p>
-      <ol style="padding-left:18px;margin-bottom:0">
-        <li><b>Tap the score</b> to select a measure or note.</li>
-        <li><b>Tap ✏️ Input</b> to enter note-input mode, then use the palette to add notes.</li>
-        <li><b>Press Space</b> (or the ▶ button) to hear playback.</li>
-        <li><b>File → Export</b> to save as PDF, audio, or MuseScore file.</li>
-      </ol>
+    <div style="font-size:13px;color:#4a5568;line-height:1.5;margin-bottom:14px">
+      <p>What would you like to do?</p>
     </div>
-    <div style="margin-bottom:14px;font-size:12px;color:rgba(74,85,104,0.7)">
-      Tip: hover over any button for a quick description.
+    <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:8px;width:100%">🎓 I'm a student — start exercises</button>
+    <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%">🎼 I'm composing — open the editor</button>
+    <div style="margin-top:8px;font-size:12px;color:rgba(74,85,104,0.7)">
+      You can change your mind anytime via the View menu.
     </div>
-    <button class="modal-btn primary" data-action="closeWelcome">Start composing</button>
   `);
+}
+
+function startLearnerOnboarding() {
+  applyUIProfile('beginner');
+  localStorage.setItem('pauta_welcome_seen', '1');
+  closeModal();
+  setTimeout(() => showExerciseDialog(), 300);
+}
+
+function startComposerOnboarding() {
+  localStorage.setItem('pauta_welcome_seen', '1');
+  closeModal();
 }
 
 function closeWelcome() {
@@ -11019,9 +11121,6 @@ function updateTempo(v) {
   if (input) input.value = bpm;
   if (slider) slider.value = bpm;
 }
-function updateTempoFromInput(v) {
-  updateTempo(v);
-}
 
 // ── Score Menu ────────────────────────────────────────────────────
 // ── Parts System ─────────────────────────────────────────────────
@@ -12491,6 +12590,8 @@ _registerAction('confirmExportAudio', () => confirmExportAudio());
 _registerAction('confirmExportPDF', () => confirmExportPDF());
 _registerAction('showHelpPanel', () => showHelpPanel());
 _registerAction('closeWelcome', () => closeWelcome());
+_registerAction('startLearnerOnboarding', () => startLearnerOnboarding());
+_registerAction('startComposerOnboarding', () => startComposerOnboarding());
 _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
 _registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
@@ -12626,7 +12727,7 @@ document.addEventListener('input', (e) => {
 // ── Inline handler cleanup: bind via addEventListener instead of window exports ──
 document.getElementById('score-title')?.addEventListener('dblclick', showTitleDialog);
 document.getElementById('tempo-slider')?.addEventListener('input', e => updateTempo(e.target.value));
-document.getElementById('tempo-input')?.addEventListener('change', e => updateTempoFromInput(e.target.value));
+document.getElementById('tempo-input')?.addEventListener('change', e => updateTempo(e.target.value));
 document.getElementById('search-input')?.addEventListener('input', e => filterSearchPanels(e.target.value));
 })();
 </script>
