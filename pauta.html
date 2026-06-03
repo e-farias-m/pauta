@@ -805,6 +805,18 @@ body.high-contrast .topbar, body.high-contrast .sidebar, body.high-contrast .tra
   background: #000 !important; border-bottom: 2px solid #fff !important;
 }
 
+/* Assignment mode UI */
+body.assignment-mode #score-title::after {
+  content: ' — ASSIGNMENT MODE';
+  color: #c05621;
+  font-size: 11px;
+  margin-left: 6px;
+}
+body.assignment-mode .panel-btn { opacity: 0.4; pointer-events: none; }
+body.assignment-mode .panel-btn[data-action="startMarking"],
+body.assignment-mode .panel-btn[data-action="startOttava"],
+body.assignment-mode .panel-btn[data-action="startGlissando"] { display: none; }
+
 </style>
 </head>
 <body>
@@ -897,6 +909,7 @@ body.high-contrast .topbar, body.high-contrast .sidebar, body.high-contrast .tra
     <option value="sixteenth">♬</option>
   </select>
   <button id="btn-mixer" class="btn-util" data-action="showMixer" aria-label="Mixer">Mixer</button>
+  <button id="btn-practice" class="btn-util" data-action="togglePracticeMode" aria-label="Practice mode">Practice</button>
 </div>
 
 <!-- Score Area -->
@@ -1300,6 +1313,8 @@ body.high-contrast .topbar, body.high-contrast .sidebar, body.high-contrast .tra
       <button class="panel-btn" id="btn-dim"   aria-label="Diminuendo" data-action="startMarking" data-type="dim"><span class="panel-sym" style="font-size:0">
         <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17,2 1,8 17,14"/></svg>
       </span><span class="panel-lbl">Dim</span></button>
+      <button class="panel-btn" aria-label="Clear tie" data-action="clearTie" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Clear Tie</span></button>
+      <button class="panel-btn" aria-label="Clear slur" data-action="clearSlur" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Clear Slur</span></button>
     </div>
     <div class="panel-section-label">Ottava</div>
     <div class="panel-grid">
@@ -1633,6 +1648,10 @@ const APP = {
   countIn: false,
   metronome: false,
   metronomeSubdivision: 'quarter', // 'quarter' | 'eighth' | 'triplet' | 'sixteenth'
+  practiceMode: false,
+  micInput: false,
+  assignmentMode: false,
+  currentAssignment: null,
   clipboard: null,
   showMeasureNumbers: false,
   showMultiMeasureRests: false,
@@ -2129,7 +2148,8 @@ function createScore(opts={}) {
   });
   return {title: opts.title||'Untitled Score', composer: opts.composer||'',
           scoreVersion: SCORE_FORMAT_VERSION,
-          slurs:[], hairpins:[], rehearsalMarks:[], staffTexts:[], voltas:[], ottavas:[], glissandos:[], parts};
+          slurs:[], hairpins:[], rehearsalMarks:[], staffTexts:[], voltas:[], ottavas:[], glissandos:[],
+          assignments: [], studentAnswers: {}, parts};
 }
 
 // Add a new instrument part to the current score
@@ -2273,6 +2293,8 @@ function _ensureScoreAnnotationArrays(score) {
   for (const rule of SCORE_MEASURE_REF_RULES) {
     if (!Array.isArray(score[rule.key])) score[rule.key] = [];
   }
+  if (!Array.isArray(score.assignments)) score.assignments = [];
+  if (!score.studentAnswers || typeof score.studentAnswers !== 'object') score.studentAnswers = {};
   return score;
 }
 
@@ -2384,6 +2406,22 @@ function adoptScore(raw, opts = {}) {
   if (opts.clearHistory !== false) {
     APP.undoStack = [];
     APP.redoStack = [];
+  }
+  // Detect assignments on file open
+  if (score.assignments?.length && !opts.skipAssignmentPrompt) {
+    setTimeout(() => {
+      const pending = score.assignments.filter(a => !score.studentAnswers?.[a.id]?.submitted);
+      if (pending.length) {
+        makeModal(`
+          <h2>📚 Assignment Detected</h2>
+          <div style="font-size:13px;color:#4a5568;margin-bottom:12px">
+            This score contains ${pending.length} assignment${pending.length > 1 ? 's' : ''}.
+          </div>
+          ${pending.map(a => `<button class="modal-btn secondary" style="margin-bottom:6px;width:100%;text-align:left" data-action="startAssignment" data-id="${a.id}">${a.title} (measures ${a.range.startMi+1}–${a.range.endMi+1})</button>`).join('')}
+          <button class="modal-btn secondary" data-action="closeModal">Continue editing</button>
+        `);
+      }
+    }, 300);
   }
   return score;
 }
@@ -4174,48 +4212,116 @@ function renderMarkings(ctx) {
   if (!score) return;
 
   // ── Ties ─────────────────────────────────────────────────────────
-  score.parts[0].staves.forEach((stave, si) => {
-    stave.measures.forEach((measure, mi) => {
-      measure.notes.forEach((note, ni) => {
-        if (!note.tieToNext) return;
-        const startNL = findNoteVF(mi, si, ni);
-        let endNL = findNoteVF(mi, si, ni + 1);
-        if (!endNL) endNL = findNoteVF(mi + 1, si, 0);
-        if (!startNL || !endNL) return;
-        // Ties bow on the notehead side, same rule as slurs
-        const bowAbove = (startNL.stemDir ?? 1) < 0; // stem down → bow up
-        const arcY = bowAbove
-          ? Math.min(startNL.y, endNL.y) - 2
-          : Math.max(startNL.y, endNL.y) + 2;
-        drawArc(startNL.x + 18, endNL.x - 18, arcY, bowAbove, 14, '#333');
+  // Properly engraved ties attach to notehead edges and bow away from
+  // stems.  We iterate every part/staff so multi-part scores work.
+  let globalSI = 0;
+  score.parts.forEach(part => {
+    part.staves.forEach((stave, localSI) => {
+      const si = globalSI + localSI;
+      stave.measures.forEach((measure, mi) => {
+        measure.notes.forEach((note, ni) => {
+          if (!note.tieToNext) return;
+          const startNL = findNoteVF(mi, si, ni);
+          let endNL = findNoteVF(mi, si, ni + 1);
+          if (!endNL) endNL = findNoteVF(mi + 1, si, 0);
+          if (!startNL) return;
+
+          const staveObj = getStaveBySI(si);
+          const startNote = staveObj?.measures[mi]?.notes[ni];
+          const endNote   = endNL ? staveObj?.measures[endNL.mi]?.notes[endNL.ni] : null;
+
+          // Notehead width estimation: open heads (whole/half) are wider
+          const noteheadW = (dur) => (dur === 'w' || dur === 'h') ? 8 : 6;
+          const startRad = noteheadW(startNote?.duration);
+          const endRad   = endNL ? noteheadW(endNote?.duration) : startRad;
+
+          // Ties always bow on the notehead side (opposite stem)
+          const bowAbove = (startNL.stemDir ?? 1) < 0; // stem down → bow up
+          const bowDir   = bowAbove ? -1 : 1;
+
+          // Base arc Y at notehead center, offset for bow direction
+          let baseY = bowAbove
+            ? Math.min(startNL.y, endNL ? endNL.y : startNL.y) - 3
+            : Math.max(startNL.y, endNL ? endNL.y : startNL.y) + 3;
+
+          // Collision avoidance: lift tie over accidentals / dots
+          const hasLeftAcc  = startNote?.accidental || (startNote?.extraPitches || []).some(ep => ep.accidental);
+          const hasRightAcc = endNote?.accidental || (endNote?.extraPitches || []).some(ep => ep.accidental);
+          const hasDot = startNote?.dots || endNote?.dots;
+          let yOffset = 0;
+          if (hasLeftAcc || hasRightAcc)  yOffset += 5 * bowDir;
+          if (hasDot)                       yOffset += 3 * bowDir;
+
+          const arcY = baseY + yOffset;
+          const startX = startNL.x + startRad;    // right edge of start notehead
+          const endX   = endNL ? (endNL.x - endRad) : (findStaveLayout(mi, si)?.w || startX + 40);
+
+          if (endNL) {
+            // Normal same-system tie
+            drawArc(startX, endX, arcY, bowAbove, 10, '#333', arcY, 2.2);
+          } else {
+            // Cross-system tie: draw partial arc to end of system
+            const sl = findStaveLayout(mi, si);
+            if (sl) {
+              drawArc(startX, sl.x + sl.w - 4, arcY, bowAbove, 8, '#333', arcY, 2);
+            }
+          }
+        });
       });
     });
+    globalSI += part.staves.length;
   });
 
   // ── Slurs ─────────────────────────────────────────────────────────
   (score.slurs || []).forEach(slur => {
     const startNL = findNoteVF(slur.startMi, slur.si, slur.startNi);
     const endNL   = findNoteVF(slur.endMi,   slur.si, slur.endNi);
-    if (!startNL || !endNL) return;
-    const sl1 = findStaveLayout(slur.startMi, slur.si);
-    if (!sl1) return;
+    if (!startNL) return;
+
+    const staveObj = getStaveBySI(slur.si);
+    const startNote = staveObj?.measures[slur.startMi]?.notes[slur.startNi];
+    const endNote   = endNL ? staveObj?.measures[slur.endMi]?.notes[slur.endNi] : null;
+
+    const noteheadW = (dur) => (dur === 'w' || dur === 'h') ? 8 : 6;
+    const startRad = noteheadW(startNote?.duration);
+    const endRad   = endNL ? noteheadW(endNote?.duration) : startRad;
 
     // Slur bows on the notehead side — opposite to stems
-    // VF.Stem.UP = 1 → notehead at bottom → slur bows DOWN (above=false)
-    // VF.Stem.DOWN = -1 → notehead at top  → slur bows UP   (above=true)
     const startUp = (startNL.stemDir ?? 1) > 0;
-    const endUp   = (endNL.stemDir   ?? 1) > 0;
-    // Majority: if both up → down, if both down → up, if mixed → follow start
+    const endUp   = endNL ? (endNL.stemDir ?? 1) > 0 : startUp;
     const bowAbove = startUp && endUp ? false
                    : !startUp && !endUp ? true
                    : !startUp; // mixed: follow start note
+    const bowDir = bowAbove ? -1 : 1;
 
-    // arc at the notehead side (same as ties)
-    const arcY = bowAbove
-      ? Math.min(startNL.y, endNL.y) - 4
-      : Math.max(startNL.y, endNL.y) + 4;
+    // Asymmetric Y when start and end pitches differ
+    const startY = startNL.y;
+    const endY   = endNL ? endNL.y : startY;
+    const dy = Math.abs(endY - startY);
+    let baseY;
+    if (bowAbove) {
+      baseY = Math.min(startY, endY) - 4 - dy * 0.15;
+    } else {
+      baseY = Math.max(startY, endY) + 4 + dy * 0.15;
+    }
 
-    drawArc(startNL.x + 20, endNL.x - 20, arcY, bowAbove, 18, '#333');
+    // Collision avoidance
+    const hasLeftAcc  = startNote?.accidental || (startNote?.extraPitches || []).some(ep => ep.accidental);
+    const hasRightAcc = endNote?.accidental || (endNote?.extraPitches || []).some(ep => ep.accidental);
+    if (hasLeftAcc || hasRightAcc) baseY += 6 * bowDir;
+
+    const startX = startNL.x + startRad + 2;
+    const endX   = endNL ? (endNL.x - endRad - 2) : (findStaveLayout(slur.endMi, slur.si)?.w || startX + 60);
+    const span   = Math.abs(endX - startX);
+    const bowDepth = Math.min(22, Math.max(10, span * 0.18));
+
+    if (endNL) {
+      drawArc(startX, endX, baseY, bowAbove, bowDepth, '#333', baseY, 2.6);
+    } else {
+      // Cross-system slur: partial arc
+      const sl = findStaveLayout(slur.startMi, slur.si);
+      if (sl) drawArc(startX, sl.x + sl.w - 4, baseY, bowAbove, Math.min(bowDepth, 12), '#333', baseY, 2);
+    }
   });
 
   // ── Hairpins ──────────────────────────────────────────────────────
@@ -4300,25 +4406,57 @@ function renderMarkings(ctx) {
 
 // Draw a slur/tie arc as a cubic bezier — more natural curve than quadratic.
 // above=true bows upward, above=false bows downward.
-function drawArc(x1, x2, y1, above, bowDepth, color='#333', endY) {
+function drawArc(x1, x2, y1, above, bowDepth, color='#333', endY, thickness=1.5) {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl) return;
   const ey  = endY !== undefined ? endY : y1;
   const bow = above ? -Math.abs(bowDepth) : Math.abs(bowDepth);
-  // Cubic bezier: control points offset horizontally to create natural entry/exit angles
   const dx  = x2 - x1;
-  const cx1 = x1 + dx * 0.25;
-  const cx2 = x2 - dx * 0.25;
-  const cy1 = y1 + bow * 1.1;
-  const cy2 = ey + bow * 1.1;
-  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-  path.setAttribute('d', `M ${x1},${y1} C ${cx1},${cy1} ${cx2},${cy2} ${x2},${ey}`);
-  path.setAttribute('stroke', color);
-  path.setAttribute('stroke-width', '1.5');
-  path.setAttribute('fill', 'none');
-  path.setAttribute('stroke-linecap', 'round');
-  path.setAttribute('pointer-events', 'none');
-  svgEl.appendChild(path);
+  // Distance-scaled control-point offset: shorter ties get gentler curves,
+  // longer slurs get deeper, more graceful arcs.
+  const cpScale = Math.min(0.35, Math.max(0.22, 80 / (dx || 80)));
+  const cx1 = x1 + dx * cpScale;
+  const cx2 = x2 - dx * cpScale;
+  const cy1 = y1 + bow * 1.15;
+  const cy2 = ey + bow * 1.15;
+
+  // Build a filled shape for variable thickness (thicker in the middle,
+  // thinner at the ends) — closer to professional engraving.
+  if (thickness > 1.8) {
+    const steps = 24;
+    let topPts = [], botPts = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const mt = 1 - t;
+      // Cubic bezier point
+      const px = mt*mt*mt*x1 + 3*mt*mt*t*cx1 + 3*mt*t*t*cx2 + t*t*t*x2;
+      const py = mt*mt*mt*y1 + 3*mt*mt*t*cy1 + 3*mt*t*t*cy2 + t*t*t*ey;
+      // Derivative for normal
+      const dpx = 3*mt*mt*(cx1-x1) + 6*mt*t*(cx2-cx1) + 3*t*t*(x2-cx2);
+      const dpy = 3*mt*mt*(cy1-y1) + 6*mt*t*(cy2-cy1) + 3*t*t*(ey-cy2);
+      const len = Math.sqrt(dpx*dpx + dpy*dpy) || 1;
+      const nx = -dpy / len;
+      const ny =  dpx / len;
+      const halfW = thickness * (0.55 + 0.45 * Math.sin(t * Math.PI));
+      topPts.push(`${px + nx*halfW},${py + ny*halfW}`);
+      botPts.push(`${px - nx*halfW},${py - ny*halfW}`);
+    }
+    const d = `M ${topPts[0]} L ${topPts.slice(1).join(' L ')} L ${botPts.slice().reverse().join(' L ')} Z`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', color);
+    path.setAttribute('pointer-events', 'none');
+    svgEl.appendChild(path);
+  } else {
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${x1},${y1} C ${cx1},${cy1} ${cx2},${cy2} ${x2},${ey}`);
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', String(thickness));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('pointer-events', 'none');
+    svgEl.appendChild(path);
+  }
 }
 
 // Draw hairpin (crescendo or diminuendo)
@@ -4608,6 +4746,29 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           vfSafe(() => { vfNote.setNoteHead(VF.NoteHead.TYPE.X, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.X, ei + 1)); }, 'noteheadX');
         } else if (note.notehead === 'slash') {
           vfSafe(() => { vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, ei + 1)); }, 'noteheadSlash');
+        }
+
+        // ── Assignment mode placeholders ────────────────────────
+        if (APP.assignmentMode && _isInAssignmentRange(mi) && note.type === 'note') {
+          const asgn = APP.currentAssignment;
+          const hiddenSet = new Set(asgn?.hidden || ['pitch']);
+          const ans = APP.score?.studentAnswers?.[asgn?.id]?.notes?.[mi]?.[ni];
+          const isFirstNote = asgn?.hints?.showFirstNote && ni === 0;
+          if (hiddenSet.has('pitch') && !isFirstNote && (!ans || ans.pitch == null)) {
+            // Unanswered: grey diamond placeholder
+            vfSafe(() => vfNote.setNoteHead(VF.NoteHead.TYPE.DIAMOND, 0), 'asgnPlaceholder');
+            vfNote.setStyle({ fillStyle: '#bbb', strokeStyle: '#999' });
+          }
+          if (ans && ans.pitch != null) {
+            // Answered: tint green/red based on correctness
+            const target = note.pitch;
+            const isCorrect = ans.pitch === target;
+            if (isCorrect) {
+              vfNote.setStyle({ fillStyle: '#4caf50', strokeStyle: '#388e3c' });
+            } else {
+              vfNote.setStyle({ fillStyle: '#e07060', strokeStyle: '#c05040' });
+            }
+          }
         }
 
         // Add accidentals for primary pitch
@@ -6911,6 +7072,15 @@ function insertNoteByName(name) {
     changePitchOfSelected(name);
     return;
   }
+  // Assignment mode: must select an existing note, cannot insert new ones
+  if (APP.assignmentMode) {
+    if (APP.selectedNoteIdx >= 0 && _isInAssignmentRange(APP.selectedMeasure)) {
+      changePitchOfSelected(name);
+    } else {
+      showToast('Select a note inside the assignment range');
+    }
+    return;
+  }
   if (!canEnter) {
     showToast('Tap ✏️ Input, or select a note to change its pitch');
     return;
@@ -7012,6 +7182,12 @@ function changePitchOfSelected(name) {
   const newPitch = cands.reduce((best, m) =>
     Math.abs(m - refPitch) < Math.abs(best - refPitch) ? m : best, cands[0]);
 
+  // Assignment mode: store answer instead of mutating score
+  if (APP.assignmentMode && _isInAssignmentRange(APP.selectedMeasure)) {
+    _storeAssignmentAnswer(APP.selectedMeasure, APP.selectedNoteIdx, { pitch: newPitch });
+    return;
+  }
+
   const mi  = APP.selectedMeasure;
   const si  = APP.selectedStaff;
   commitChange(score => {
@@ -7027,6 +7203,40 @@ function changePitchOfSelected(name) {
       n.accidental = keyAcc ? 'n' : null;
     }
   }, { toast: `Changed to ${NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase()}${Math.floor(newPitch / 12) - 1}` });
+}
+
+function _isInAssignmentRange(mi) {
+  const asgn = APP.currentAssignment;
+  if (!asgn) return false;
+  return mi >= asgn.range.startMi && mi <= asgn.range.endMi;
+}
+
+function _storeAssignmentAnswer(mi, ni, answer) {
+  const asgn = APP.currentAssignment;
+  if (!asgn) return;
+  const id = asgn.id;
+  if (!APP.score.studentAnswers) APP.score.studentAnswers = {};
+  if (!APP.score.studentAnswers[id]) APP.score.studentAnswers[id] = { notes: {} };
+  if (!APP.score.studentAnswers[id].notes[mi]) APP.score.studentAnswers[id].notes[mi] = {};
+  const existing = APP.score.studentAnswers[id].notes[mi][ni] || {};
+  APP.score.studentAnswers[id].notes[mi][ni] = { ...existing, ...answer };
+
+  // Immediate visual feedback
+  const hiddenSet = new Set(asgn.hidden || ['pitch']);
+  const targetNote = getMeasureBySI(APP.selectedStaff, mi)?.notes[ni];
+  if (!targetNote) return;
+  let ok = true, msg = '';
+  if (hiddenSet.has('pitch') && answer.pitch != null) {
+    if (answer.pitch === targetNote.pitch) {
+      msg = 'Correct!';
+    } else if ((answer.pitch % 12) === (targetNote.pitch % 12)) {
+      ok = false; msg = 'Enharmonic — try again';
+    } else {
+      ok = false; msg = 'Wrong pitch — try again';
+    }
+  }
+  showToast(msg, ok ? 800 : 1500);
+  renderScore();
 }
 
 function changeOctave(delta) {
@@ -7289,6 +7499,34 @@ function clearMarker() {
       if (m) { delete m.segno; delete m.coda; delete m.fine; delete m.dc; delete m.ds; }
     });
   }, { toast: 'Navigation markers cleared' });
+}
+
+function clearTie() {
+  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
+  const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
+  if (!n || !n.tieToNext) { showToast('Selected note has no tie'); return; }
+  commitChange(score => {
+    const note = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure, score)?.notes[APP.selectedNoteIdx];
+    if (note) delete note.tieToNext;
+  }, { toast: 'Tie removed' });
+}
+
+function clearSlur() {
+  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
+  const si = APP.selectedStaff;
+  const mi = APP.selectedMeasure;
+  const ni = APP.selectedNoteIdx;
+  const score = APP.score;
+  if (!score || !score.slurs) { showToast('No slurs in score'); return; }
+  const before = score.slurs.length;
+  commitChange(sc => {
+    if (!sc.slurs) return;
+    sc.slurs = sc.slurs.filter(s =>
+      !(s.si === si && s.startMi === mi && s.startNi === ni) &&
+      !(s.si === si && s.endMi === mi && s.endNi === ni)
+    );
+  }, { toast: 'Slur removed' });
+  if (score.slurs.length === before) showToast('Selected note is not inside a slur');
 }
 
 // ── Tempo ─────────────────────────────────────────────────────────
@@ -7899,6 +8137,216 @@ function transposeScore(semitones) {
   }, { toast: `Transposed ${semitones > 0 ? '+' : ''}${semitones} semitone${Math.abs(semitones)===1?'':'s'}` });
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 5b: Assignments
+// ═══════════════════════════════════════════════════════════════════
+
+function showAssignmentDialog() {
+  const measureCount = APP.score?.parts?.[0]?.staves?.[0]?.measures?.length || 1;
+  const selected = APP.selectedMeasure;
+  const start = Math.max(0, Math.min(selected, measureCount - 1));
+  const end = Math.min(measureCount - 1, start + 3);
+  makeModal(`
+    <h2>Create Assignment</h2>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Title</div>
+      <input id="asgn-title" type="text" value="Exercise ${(APP.score?.assignments?.length || 0) + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Start measure</div>
+        <input id="asgn-start" type="number" min="1" max="${measureCount}" value="${start + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">End measure</div>
+        <input id="asgn-end" type="number" min="1" max="${measureCount}" value="${end + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Hide from student</div>
+      <select id="asgn-hidden" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+        <option value="pitch">Pitches (student enters note names / MIDI)</option>
+        <option value="duration">Rhythm (student enters durations)</option>
+        <option value="pitch+duration">Pitches + Rhythm</option>
+        <option value="lyric">Lyrics</option>
+        <option value="chordSymbol">Chord Symbols</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#4a5568;cursor:pointer">
+        <input type="checkbox" id="asgn-hint-first" checked> Show first note as hint
+      </label>
+    </div>
+    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+      The assignment is saved inside the score file. Share the .mscz with students.
+    </div>
+    <button class="modal-btn primary" data-action="confirmCreateAssignment">Create</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function confirmCreateAssignment() {
+  const title = document.getElementById('asgn-title')?.value?.trim() || 'Untitled';
+  const startMi = parseInt(document.getElementById('asgn-start')?.value) - 1;
+  const endMi   = parseInt(document.getElementById('asgn-end')?.value) - 1;
+  const hidden  = document.getElementById('asgn-hidden')?.value || 'pitch';
+  const hintFirst = document.getElementById('asgn-hint-first')?.checked ?? true;
+  const maxM = APP.score?.parts?.[0]?.staves?.[0]?.measures?.length || 1;
+  if (isNaN(startMi) || isNaN(endMi) || startMi < 0 || endMi < startMi || endMi >= maxM) {
+    showToast('Invalid measure range'); return;
+  }
+  commitChange(score => {
+    if (!score.assignments) score.assignments = [];
+    const id = 'a' + (Date.now() % 1000000);
+    score.assignments.push({
+      id, title,
+      range: { startMi, endMi },
+      hidden: hidden.split('+'),
+      hints: { showFirstNote: hintFirst },
+      createdAt: Date.now()
+    });
+  }, { toast: 'Assignment created: ' + title });
+  closeModal();
+}
+
+function startAssignment(id) {
+  const asgn = APP.score?.assignments?.find(a => a.id === id);
+  if (!asgn) { showToast('Assignment not found'); return; }
+  APP.assignmentMode = true;
+  APP.currentAssignment = asgn;
+  // Reset any previous student answers for this assignment if not submitted
+  if (APP.score?.studentAnswers?.[id] && !APP.score.studentAnswers[id].submitted) {
+    delete APP.score.studentAnswers[id];
+  }
+  // Hide palettes that aren't needed in student mode
+  _setAssignmentUI(true);
+  showToast('Assignment started: ' + asgn.title);
+  renderScore();
+}
+
+function exitAssignmentMode() {
+  APP.assignmentMode = false;
+  APP.currentAssignment = null;
+  _setAssignmentUI(false);
+  showToast('Exited assignment mode');
+  renderScore();
+}
+
+function _setAssignmentUI(enabled) {
+  document.body.classList.toggle('assignment-mode', enabled);
+  // Disable/enable tool palettes
+  const panels = ['panel-notes','panel-accidentals','panel-durations','panel-dynamics','panel-lines'];
+  panels.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.pointerEvents = enabled ? 'none' : '';
+  });
+}
+
+function submitAssignment() {
+  const asgn = APP.currentAssignment;
+  if (!asgn) return;
+  const results = _evaluateAssignment(asgn);
+  commitChange(score => {
+    if (!score.studentAnswers) score.studentAnswers = {};
+    score.studentAnswers[asgn.id] = {
+      submitted: true,
+      timestamp: Date.now(),
+      results
+    };
+  }, { toast: `Submitted! Score: ${results.correct}/${results.total}` });
+  exitAssignmentMode();
+}
+
+function checkAssignmentAnswers() {
+  const asgn = APP.currentAssignment;
+  if (!asgn) return;
+  const results = _evaluateAssignment(asgn);
+  makeModal(`
+    <h2>Check Answers — ${asgn.title}</h2>
+    <div style="font-size:13px;color:#4a5568;margin-bottom:12px">
+      <b>${results.correct}</b> / ${results.total} correct
+      ${results.incorrect > 0 ? `<br><span style="color:#e07060">${results.incorrect} incorrect</span>` : ''}
+      ${results.partial > 0 ? `<br><span style="color:#d4a017">${results.partial} partial (enharmonic)</span>` : ''}
+    </div>
+    <div style="max-height:200px;overflow-y:auto;font-size:12px;color:#4a5568;margin-bottom:12px">
+      ${results.details.map(d => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <span style="width:16px;text-align:center;font-size:14px">${d.ok?'🟢':'🔴'}</span>
+        Measure ${d.mi+1}, note ${d.ni+1}: ${d.msg}
+      </div>`).join('')}
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+  `);
+}
+
+function _evaluateAssignment(asgn) {
+  const answers = APP.score?.studentAnswers?.[asgn.id];
+  const hiddenSet = new Set(asgn.hidden || ['pitch']);
+  const details = [];
+  let correct = 0, incorrect = 0, partial = 0, total = 0;
+
+  for (let mi = asgn.range.startMi; mi <= asgn.range.endMi; mi++) {
+    const measures = APP.score.parts.map(p => p.staves[0].measures[mi]).filter(Boolean);
+    measures.forEach(m => {
+      m.notes.forEach((note, ni) => {
+        if (note.type !== 'note') return;
+        total++;
+        const answer = answers?.notes?.[mi]?.[ni];
+        let ok = true, msg = '';
+
+        if (hiddenSet.has('pitch') || hiddenSet.has('duration')) {
+          // Check pitch
+          if (hiddenSet.has('pitch')) {
+            if (!answer || answer.pitch == null) {
+              ok = false; msg = 'No pitch entered';
+            } else if (answer.pitch === note.pitch) {
+              msg = 'Pitch correct';
+            } else if ((answer.pitch % 12) === (note.pitch % 12)) {
+              ok = false; partial++; msg = `Pitch enharmonic (${answer.pitch} vs ${note.pitch})`; return;
+            } else {
+              ok = false; msg = `Pitch wrong (${answer.pitch} vs ${note.pitch})`;
+            }
+          }
+          // Check duration
+          if (ok && hiddenSet.has('duration')) {
+            const targetDur = durBeats(note.duration, note.dots, note.tuplet);
+            const ansDur = answer ? durBeats(answer.duration, answer.dots, answer.tuplet) : 0;
+            if (!answer || Math.abs(ansDur - targetDur) > 0.001) {
+              ok = false; msg = msg ? msg + ', duration wrong' : 'Duration wrong';
+            } else {
+              msg = msg ? msg + ', duration correct' : 'Duration correct';
+            }
+          }
+        }
+
+        if (hiddenSet.has('lyric') && note.lyric?.text) {
+          if (!answer || !answer.lyric) {
+            ok = false; msg = 'No lyric entered';
+          } else if (answer.lyric.trim().toLowerCase() !== note.lyric.text.trim().toLowerCase()) {
+            ok = false; msg = `Lyric wrong (${answer.lyric} vs ${note.lyric.text})`;
+          } else {
+            msg = 'Lyric correct';
+          }
+        }
+
+        if (hiddenSet.has('chordSymbol') && note.chordSymbol) {
+          if (!answer || !answer.chordSymbol) {
+            ok = false; msg = 'No chord symbol entered';
+          } else if (answer.chordSymbol.trim().toLowerCase() !== note.chordSymbol.trim().toLowerCase()) {
+            ok = false; msg = `Chord symbol wrong`;
+          } else {
+            msg = 'Chord symbol correct';
+          }
+        }
+
+        if (ok) correct++;
+        else if (!msg.includes('enharmonic')) incorrect++;
+        details.push({ mi, ni, ok, msg });
+      });
+    });
+  }
+  return { correct, incorrect, partial, total, details };
+}
+
 function showTransposeDialog() {
   makeModal(`
     <h2>Transpose</h2>
@@ -8125,15 +8573,14 @@ function _renderAudio(format, bpm) {
           const beats = durBeats(n.duration, n.dots, n.tuplet);
           const dur = beats * beatDur;
           if (n.type === 'note') {
-            const freq = 440 * Math.pow(2, (n.pitch - 69) / 12);
+            const chordPitches = [n.pitch, ...(n.extraPitches || []).map(ep => ep.pitch)];
             const profile = SYNTH_PROFILES[oscType] || SYNTH_PROFILES.triangle;
-            const effGain = profile.gain * vol;
+            const chordVol = vol / Math.sqrt(chordPitches.length);
             const noteDur = Math.max(dur, 0.08);
             const relTime = t + Math.min(noteDur, noteDur * 0.9);
             const endT = t + noteDur + profile.release;
-            const pan = Math.max(-0.6, Math.min(0.6, (n.pitch - 60) / 40));
 
-            function spawnOsc(freq2, gainVal) {
+            function spawnOsc(freq2, gainVal, panVal) {
               const osc = offline.createOscillator();
               const gain = offline.createGain();
               osc.type = 'sine';
@@ -8147,16 +8594,21 @@ function _renderAudio(format, bpm) {
               gain.gain.setValueAtTime(Math.max(gainVal * s, 0.001), relTime);
               gain.gain.exponentialRampToValueAtTime(0.0001, endT);
               const panner = offline.createStereoPanner ? offline.createStereoPanner() : null;
-              if (panner) { panner.pan.value = pan; gain.connect(panner); panner.connect(masterGain); }
+              if (panner) { panner.pan.value = panVal; gain.connect(panner); panner.connect(masterGain); }
               else { gain.connect(masterGain); }
               osc.start(t);
               osc.stop(endT + 0.05);
             }
 
-            spawnOsc(freq, effGain);
-            for (const [h, hGain] of (profile.harmonics || [])) {
-              spawnOsc(freq * h, effGain * hGain);
-            }
+            chordPitches.forEach(pitch => {
+              const freq = 440 * Math.pow(2, (pitch - 69) / 12);
+              const effGain = profile.gain * chordVol;
+              const pan = Math.max(-0.6, Math.min(0.6, (pitch - 60) / 40));
+              spawnOsc(freq, effGain, pan);
+              for (const [h, hGain] of (profile.harmonics || [])) {
+                spawnOsc(freq * h, effGain * hGain, pan);
+              }
+            });
           }
           t += dur;
         });
@@ -8295,6 +8747,105 @@ function audioBufferToWav(buffer) {
     off += 2;
   }
   return new Blob([buf], {type:'audio/wav'});
+}
+
+// ── PDF Export ────────────────────────────────────────────────────
+function showExportPDFDialog() {
+  makeModal(`
+    <h2>Export Engraved PDF</h2>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Page size</div>
+      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+        <option value="a4">A4</option>
+        <option value="letter">US Letter</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+      Renders the current score view as a high-resolution PDF image.
+    </div>
+    <button class="modal-btn primary" data-action="confirmExportPDF">Export</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function confirmExportPDF() {
+  const size = document.getElementById('pdf-page-size')?.value || 'a4';
+  closeModal();
+  _exportPDF(size);
+}
+
+async function _exportPDF(pageSize) {
+  const urls = {
+    html2canvas: [
+      'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+      'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js'
+    ],
+    jspdf: [
+      'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+      'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'
+    ]
+  };
+  showToast('Loading PDF libraries…');
+  try {
+    for (const url of urls.html2canvas) {
+      try { await loadScript(url); break; } catch(e) { /* try next */ }
+    }
+    for (const url of urls.jspdf) {
+      try { await loadScript(url); break; } catch(e) { /* try next */ }
+    }
+  } catch(e) {
+    showToast('Could not load PDF libraries');
+    return;
+  }
+  if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined' || !jspdf.jsPDF) {
+    showToast('PDF libraries failed to load');
+    return;
+  }
+  showToast('Rendering score…');
+  const container = document.getElementById('score-svg');
+  if (!container) { showToast('No score to export'); return; }
+  // Hide diagrams for clean print
+  positionAllDiagrams(0);
+  const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = jspdf;
+  const page = pageSize === 'letter' ? { w: 612, h: 792 } : { w: 595.28, h: 841.89 };
+  const margin = 36; // 0.5 inch
+  const availW = page.w - margin * 2;
+  const availH = page.h - margin * 2;
+  const imgW = canvas.width;
+  const imgH = canvas.height;
+  const scale = Math.min(availW / imgW, availH / imgH, 1);
+  const drawW = imgW * scale;
+  const drawH = imgH * scale;
+  const doc = new jsPDF({ unit: 'pt', format: pageSize === 'letter' ? 'letter' : 'a4' });
+  if (drawH <= availH) {
+    doc.addImage(imgData, 'PNG', margin, margin, drawW, drawH);
+  } else {
+    // Multi-page: scale to full width, chop vertically
+    const fullScale = availW / imgW;
+    const fullDrawW = imgW * fullScale;
+    const fullDrawH = imgH * fullScale;
+    let y = 0;
+    let pageNum = 0;
+    while (y < fullDrawH) {
+      if (pageNum > 0) doc.addPage();
+      const sy = (y / fullDrawH) * imgH;
+      const sh = Math.min((availH / fullDrawH) * imgH, imgH - sy);
+      const chunk = document.createElement('canvas');
+      chunk.width = imgW;
+      chunk.height = Math.ceil(sh);
+      const ctx = chunk.getContext('2d');
+      ctx.drawImage(canvas, 0, -Math.floor(sy));
+      const chunkData = chunk.toDataURL('image/png');
+      doc.addImage(chunkData, 'PNG', margin, margin, fullDrawW, (sh / imgH) * fullDrawH);
+      y += availH;
+      pageNum++;
+    }
+  }
+  const safe = safeName(APP.score?.title || 'score');
+  doc.save(`${safe}.pdf`);
+  showToast('PDF exported');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -8726,7 +9277,9 @@ function startPlayback() {
                 break;
               }
             }
-            scheduleNote(ctx, n.pitch + pitchShift, t, dur * 0.88, oscType, part.volume || 1);
+            const chordPitches = [n.pitch + pitchShift, ...(n.extraPitches || []).map(ep => ep.pitch + pitchShift)];
+            const chordVol = (part.volume || 1) / Math.sqrt(chordPitches.length);
+            chordPitches.forEach(p => scheduleNote(ctx, p, t, dur * 0.88, oscType, chordVol));
           }
           t += dur;
         });
@@ -8967,6 +9520,11 @@ function _onMIDIMessage(event) {
 
 function _handleMIDINoteOn(pitch, velocity) {
   if (!APP.score) return;
+  // Practice mode takes priority — gate playback on correct note
+  if (APP.practiceMode) {
+    _checkPracticeNote(pitch);
+    return;
+  }
   // Determine what to do based on input mode
   if (APP.inputMode || APP.chordMode) {
     // Use the pitch to insert a note
@@ -9002,8 +9560,239 @@ function _flashMIDIIndicator(pitch) {
   el._flashTimer = setTimeout(() => { el.style.opacity = '0'; }, 300);
 }
 
+// ── Practice Mode ───────────────────────────────────────────────
+// MIDI-gated playback: the student must play the correct note on
+// a connected MIDI device before the score advances to the next note.
+// Rests are skipped automatically. The current selection highlight
+// shows the target note.
+
+function togglePracticeMode() {
+  if (APP.practiceMode) {
+    _stopPracticeMode();
+  } else {
+    _startPracticeMode();
+  }
+}
+
+function _startPracticeMode() {
+  if (!APP.score) { showToast('Open or create a score first'); return; }
+  // Microphone is the default input for practice mode; MIDI is used
+  // automatically if a device is connected, but is not required.
+  if (!APP.micInput) _startMicInput();
+  APP.practiceMode = true;
+  APP.practiceWaiting = true;
+  stopPlayback();
+
+  // Start at the beginning of the selected staff
+  APP.selectedMeasure = 0;
+  APP.selectedNoteIdx = -1;
+  APP._practiceTargetPitch = null;
+
+  const ok = _practiceAdvance();
+  if (!ok) { APP.practiceMode = false; return; }
+
+  showToast('Practice mode ON — play each highlighted note');
+  const btn = document.getElementById('btn-practice');
+  if (btn) btn.classList.add('active');
+}
+
+function _stopPracticeMode() {
+  APP.practiceMode = false;
+  APP.practiceWaiting = false;
+  APP._practiceTargetPitch = null;
+  const btn = document.getElementById('btn-practice');
+  if (btn) btn.classList.remove('active');
+  showToast('Practice mode OFF');
+}
+
+// Advance to the next non-rest note on the selected staff.
+// Returns true if a note was found, false if end of score.
+function _practiceAdvance() {
+  if (!APP.practiceMode) return false;
+  const stave = getStaveBySI(APP.selectedStaff);
+  if (!stave || !stave.measures.length) {
+    _stopPracticeMode();
+    showToast('Practice complete!');
+    return false;
+  }
+
+  let mi = APP.selectedMeasure;
+  let ni = APP.selectedNoteIdx + 1;
+
+  while (true) {
+    const measure = stave.measures[mi];
+    if (!measure || ni >= measure.notes.length) {
+      mi++;
+      ni = 0;
+      if (mi >= stave.measures.length) {
+        _stopPracticeMode();
+        showToast('Practice complete!');
+        return false;
+      }
+      continue;
+    }
+    const note = measure.notes[ni];
+    if (note && note.type === 'note') {
+      APP.selectedMeasure = mi;
+      APP.selectedNoteIdx = ni;
+      APP._practiceTargetPitch = note.pitch;
+      renderScore();
+      APP.practiceWaiting = true;
+      return true;
+    }
+    // Skip rests, grace notes, etc.
+    ni++;
+  }
+}
+
+// Validate an incoming MIDI pitch against the target note.
+// Accepts any octave (pitch class match) so recorder / wind
+// students aren't penalised for octave displacement.
+function _checkPracticeNote(incomingPitch) {
+  if (!APP.practiceMode || !APP.practiceWaiting) return;
+  const measure = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
+  const note = measure?.notes[APP.selectedNoteIdx];
+  if (!note || note.type !== 'note') { _practiceAdvance(); return; }
+
+  const targetPC = note.pitch % 12;
+  const incomingPC = incomingPitch % 12;
+  const extras = (note.extraPitches || []).map(ep => ep.pitch % 12);
+  const isCorrect = (targetPC === incomingPC) || extras.includes(incomingPC);
+
+  if (isCorrect) {
+    // Brief audio confirmation
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    scheduleNote(ctx, note.pitch, ctx.currentTime, 0.35, 'sine', 1);
+    _flashMIDIIndicator(incomingPitch);
+    _practiceAdvance();
+  } else {
+    // Wrong note — brief visual feedback via toast
+    const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const targetName = names[targetPC];
+    showToast('Try again — play ' + targetName, 1200);
+    _flashMIDIIndicator(incomingPitch);
+  }
+}
+
 function selectMIDIDevice(deviceId) {
   _selectMIDIDevice(deviceId);
+}
+
+// ── Microphone Pitch Detection ──────────────────────────────────
+// Enables practice mode without a MIDI device by using the
+// computer microphone and autocorrelation pitch tracking.
+
+async function toggleMicInput() {
+  if (APP.micInput) {
+    _stopMicInput();
+  } else {
+    await _startMicInput();
+  }
+}
+
+async function _startMicInput() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false }
+    });
+    APP._micStream = stream;
+    const ctx = getAudioCtx();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+    APP._micAnalyser = analyser;
+    APP.micInput = true;
+    APP._micLastPitch = null;
+    APP._micStableFrames = 0;
+    showToast('Microphone input ON — play a note!');
+    const btn = document.getElementById('btn-mic-input');
+    if (btn) btn.classList.add('active');
+    _micPitchLoop();
+  } catch (err) {
+    showToast('Microphone access denied: ' + err.message);
+  }
+}
+
+function _stopMicInput() {
+  APP.micInput = false;
+  if (APP._micRAF) cancelAnimationFrame(APP._micRAF);
+  if (APP._micStream) {
+    APP._micStream.getTracks().forEach(t => t.stop());
+    APP._micStream = null;
+  }
+  APP._micAnalyser = null;
+  const btn = document.getElementById('btn-mic-input');
+  if (btn) btn.classList.remove('active');
+  showToast('Microphone input OFF');
+}
+
+function _micPitchLoop() {
+  if (!APP.micInput) return;
+  const analyser = APP._micAnalyser;
+  if (!analyser) return;
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  const freq = _autocorrelationPitch(buf, APP.audioCtx.sampleRate);
+  if (freq) {
+    const midi = _freqToMidi(freq);
+    if (midi === APP._micLastPitch) {
+      APP._micStableFrames = (APP._micStableFrames || 0) + 1;
+    } else {
+      APP._micStableFrames = 0;
+      APP._micLastPitch = midi;
+    }
+    if (APP._micStableFrames >= 3) {
+      _checkPracticeNote(midi);
+    }
+  }
+  APP._micRAF = requestAnimationFrame(_micPitchLoop);
+}
+
+function _autocorrelationPitch(audioBuffer, sampleRate) {
+  const SIZE = audioBuffer.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += audioBuffer[i] * audioBuffer[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.01) return null;
+
+  let r1 = 0, r2 = SIZE - 1;
+  const thres = 0.2;
+  for (let i = 0; i < SIZE; i++) {
+    if (Math.abs(audioBuffer[i]) < thres) { r1 = i; break; }
+  }
+  for (let i = 1; i < SIZE; i++) {
+    if (Math.abs(audioBuffer[SIZE - i]) < thres) { r2 = SIZE - 1 - i; break; }
+  }
+
+  const c = new Float32Array(SIZE);
+  for (let i = 0; i < SIZE; i++) {
+    for (let j = 0; j < SIZE - i; j++) {
+      c[i] += audioBuffer[j] * audioBuffer[j + i];
+    }
+  }
+
+  let d = 0;
+  while (c[d] > c[d + 1]) d++;
+  let maxval = -1, maxpos = -1;
+  for (let i = d; i < SIZE; i++) {
+    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  }
+  let T0 = maxpos;
+
+  if (T0 > 0 && T0 < SIZE - 1) {
+    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a !== 0) T0 = T0 - b / (2 * a);
+  }
+
+  return sampleRate / T0;
+}
+
+function _freqToMidi(freq) {
+  return Math.round(69 + 12 * Math.log2(freq / 440));
 }
 
 // ── Lyrics ────────────────────────────────────────────────────────
@@ -9712,6 +10501,11 @@ function showMixer() {
         <span id="midi-indicator" style="font-size:10px;color:#c05621;font-weight:bold;min-width:30px;opacity:0;transition:opacity 0.1s">—</span>
       </div>
     </div>
+    <div class="modal-sep"></div>
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Microphone Input</div>
+      <button id="btn-mic-input" class="modal-btn secondary ${APP.micInput ? 'active' : ''}" data-action="toggleMicInput" style="width:100%">${APP.micInput ? '🎤 Mic ON' : '🎤 Mic OFF'}</button>
+    </div>
     ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
     <button class="modal-btn secondary" style="margin-top:8px" data-action="closeModal">Close</button>
   `);
@@ -9874,7 +10668,7 @@ function showEditMenu(btn) {
 
 function showScoreMenu(btn) {
   const mi = APP.selectedMeasure + 1;
-  showDropdown(btn, [
+  const items = [
     {label:'𝄴 Time Signature', fn:showTimeSigDialog},
     {label:'♭♯ Key Signature', fn:showKeySigDialog},
     {label:'↕ Transpose…', fn:showTransposeDialog},
@@ -9891,7 +10685,35 @@ function showScoreMenu(btn) {
     {sep:true},
     {label:'➕ Add Measure at End', fn:addMeasure},
     {label:'ℹ️ Score Info', fn:showScoreInfo},
-  ]);
+  ];
+  // Show assignment items if assignments exist in the score
+  const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
+  if (hasAssignments || APP.assignmentMode) {
+    items.splice(6, 0, {sep:true}, {label:'📝 Assignment', fn:showAssignmentSubmenu});
+  } else {
+    items.splice(6, 0, {sep:true}, {label:'📝 Create Assignment', fn:showAssignmentDialog});
+  }
+  showDropdown(btn, items);
+}
+
+function showAssignmentSubmenu() {
+  const assignments = APP.score?.assignments || [];
+  const studentAnswers = APP.score?.studentAnswers || {};
+  const items = [];
+  if (!APP.assignmentMode) {
+    assignments.forEach(a => {
+      const completed = !!studentAnswers[a.id]?.submitted;
+      items.push({label:`${completed?'✓':'○'} ${a.title}`, fn:()=>startAssignment(a.id)});
+    });
+    items.push({sep:true});
+    items.push({label:'➕ New Assignment', fn:showAssignmentDialog});
+  } else {
+    items.push({label:'✅ Check Answers', fn:checkAssignmentAnswers});
+    items.push({label:'📤 Submit Assignment', fn:submitAssignment});
+    items.push({sep:true});
+    items.push({label:'🚪 Exit Assignment Mode', fn:exitAssignmentMode, danger:true});
+  }
+  showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
 
 let _aiFamily = 'Classroom';
@@ -10138,6 +10960,7 @@ function showFileMenu(btn) {
     {label:'📄 Save as .mscx (XML)', fn:saveMSCX},
     {sep:true},
     {label:'🖨️ Print / Save as PDF', fn:printScore},
+    {label:'📄 Export Engraved PDF', fn:showExportPDFDialog},
     {label:'🔊 Export Audio', fn:showExportDialog},
     {sep:true},
     {label:'🎵 Recorder Exercises', fn:showRecorderExercises},
@@ -11013,10 +11836,13 @@ _registerAction('clearLyric', () => clearLyric());
 _registerAction('clearMarker', () => clearMarker());
 _registerAction('clearOttava', () => clearOttava());
 _registerAction('clearRehearsalMark', () => clearRehearsalMark());
+_registerAction('clearSlur', () => clearSlur());
 _registerAction('clearStaffText', () => clearStaffText());
+_registerAction('clearTie', () => clearTie());
 _registerAction('clearVolta', () => clearVolta());
 _registerAction('closeModal', () => closeModal());
 _registerAction('confirmExportAudio', () => confirmExportAudio());
+_registerAction('confirmExportPDF', () => confirmExportPDF());
 _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
 _registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
@@ -11065,6 +11891,7 @@ _registerAction('startGlissando', (e) => startGlissando(e.target.closest('[data-
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
 _registerAction('startOttava', (e) => startOttava(e.target.closest('[data-type]')?.dataset.type));
 _registerAction('startVolta', (e) => startVolta(e.target.closest('[data-label]')?.dataset.label));
+_registerAction('startAssignment', (e) => startAssignment(e.target.closest('[data-id]')?.dataset.id));
 _registerAction('stopPlayback', () => stopPlayback());
 _registerAction('toggleChordMode', () => toggleChordMode());
 _registerAction('toggleContinuousView', () => toggleContinuousView());
@@ -11078,9 +11905,15 @@ _registerAction('toggleMetronome', () => toggleMetronome());
 _registerAction('setMetronomeSubdivision', (e) => setMetronomeSubdivision(e.target.value));
 _registerAction('toggleNoteLabels', () => toggleNoteLabels());
 _registerAction('toggleHighContrast', () => toggleHighContrast());
+_registerAction('confirmCreateAssignment', () => confirmCreateAssignment());
+_registerAction('checkAssignmentAnswers', () => checkAssignmentAnswers());
+_registerAction('submitAssignment', () => submitAssignment());
+_registerAction('exitAssignmentMode', () => exitAssignmentMode());
 _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
 _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
 _registerAction('togglePlayback', () => togglePlayback());
+_registerAction('togglePracticeMode', () => togglePracticeMode());
+_registerAction('toggleMicInput', () => toggleMicInput());
 _registerAction('toggleTempoDisplay', () => toggleTempoDisplay());
 _registerAction('toggleTuplet', (e) => toggleTuplet(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
 _registerAction('transposeScore', (e) => { transposeScore(parseInt(e.target.closest('[data-semitones]')?.dataset.semitones)); closeModal(); });
