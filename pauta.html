@@ -1675,6 +1675,8 @@ const APP = {
   exerciseSession: null,
   exerciseDifficulty: 'beginner',
   uiProfile: 'advanced',
+  teachingKit: null,        // null | 'recorder'
+  teachingKitLevel: 'advanced', // 'beginner' | 'intermediate' | 'advanced'
   clipboard: null,
   showMeasureNumbers: false,
   showMultiMeasureRests: false,
@@ -1730,6 +1732,86 @@ const UI_PROFILES = {
     description:   'Advanced — full notation toolkit',
   },
 };
+
+// ── Teaching Kits ─────────────────────────────────────────────────
+// Contextual presets that reconfigure the app for a specific
+// classroom use-case.  Manual composition remains unlimited;
+// kits only filter generated exercises and the Add-Instrument list.
+const KIT_CONFIGS = {
+  recorder: {
+    name: 'Recorder Classroom',
+    description: 'Soprano recorder pedagogy with optional alto and full consort',
+    // Instruments available at each level (used by Add-Instrument dialog)
+    instruments: {
+      beginner:     ['Soprano Recorder'],
+      intermediate: ['Soprano Recorder', 'Alto Recorder'],
+      advanced:     ['Sopranino Recorder','Soprano Recorder','Alto Recorder','Tenor Recorder','Bass Recorder','Great Bass Recorder'],
+    },
+    // Default instrument for generated exercises
+    defaultInstrument: 'Soprano Recorder',
+    // Pitch ranges for generated exercises (MIDI note numbers)
+    exerciseRanges: {
+      beginner:     { min: 72, max: 84 },   // C5–C6 (soprano, no low C)
+      intermediate: { min: 67, max: 84 },   // G4–C6 (soprano + alto overlap)
+      advanced:     { min: 60, max: 86 },   // C4–D6 (full recorder family)
+    },
+    // Key signatures allowed for generated material
+    exerciseKeys: {
+      beginner:     [0, -1, 1],              // C, F, G
+      intermediate: [-3,-2,-1,0,1,2,3],      // up to 3 accidentals
+      advanced:     [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7], // all
+    },
+    // Suggested UI profile for the level
+    suggestedProfile: {
+      beginner:     'beginner',
+      intermediate: 'intermediate',
+      advanced:     'advanced',
+    },
+  },
+};
+
+function applyKit(kitName, level) {
+  const kit = KIT_CONFIGS[kitName];
+  if (!kit) { showToast('Unknown teaching kit: ' + kitName); return; }
+  if (!kit.instruments[level]) { showToast('Unknown level: ' + level); return; }
+  APP.teachingKit = kitName;
+  APP.teachingKitLevel = level;
+  // Optionally sync the UI profile to the kit's suggestion
+  const suggested = kit.suggestedProfile[level];
+  if (suggested && UI_PROFILES[suggested]) applyUIProfile(suggested);
+  try { localStorage.setItem('pauta_kit', kitName); localStorage.setItem('pauta_kit_level', level); } catch(e) {}
+  showToast(`${kit.name} — ${level}`);
+}
+
+function clearKit() {
+  APP.teachingKit = null;
+  APP.teachingKitLevel = 'advanced';
+  try { localStorage.removeItem('pauta_kit'); localStorage.removeItem('pauta_kit_level'); } catch(e) {}
+  showToast('General Music mode');
+}
+
+function _kitInstrumentList() {
+  const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
+  if (!kit) return INSTRUMENTS.map(i => i.name);
+  return kit.instruments[APP.teachingKitLevel] || INSTRUMENTS.map(i => i.name);
+}
+
+function _kitDefaultInstrument() {
+  const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
+  return kit?.defaultInstrument || 'Piano';
+}
+
+function _kitExerciseRange() {
+  const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
+  if (!kit) return null; // no restriction
+  return kit.exerciseRanges[APP.teachingKitLevel] || null;
+}
+
+function _kitExerciseKeys() {
+  const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
+  if (!kit) return null;
+  return kit.exerciseKeys[APP.teachingKitLevel] || null;
+}
 
 function applyUIProfile(profileName) {
   const profile = UI_PROFILES[profileName] || UI_PROFILES.advanced;
@@ -8556,10 +8638,21 @@ const NATURAL_PITCHES = {
 
 function _genNoteId(difficulty) {
   const levelNames = ['beginner','intermediate','advanced'];
-  const pool = NATURAL_PITCHES[levelNames[difficulty]];
-  const pitch = pool
-    ? pool[Math.floor(Math.random() * pool.length)]
-    : Math.floor(Math.random() * 37) + 48; // C3–C6 chromatic
+  const kitRange = _kitExerciseRange();
+  let pitch;
+  if (kitRange) {
+    // Kit-aware: use kit range, still naturals-only for beginner
+    const pool = NATURAL_PITCHES[levelNames[difficulty]];
+    const validPool = pool ? pool.filter(p => p >= kitRange.min && p <= kitRange.max) : null;
+    pitch = validPool?.length
+      ? validPool[Math.floor(Math.random() * validPool.length)]
+      : Math.floor(Math.random() * (kitRange.max - kitRange.min + 1)) + kitRange.min;
+  } else {
+    const pool = NATURAL_PITCHES[levelNames[difficulty]];
+    pitch = pool
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : Math.floor(Math.random() * 37) + 48; // C3–C6 chromatic
+  }
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
@@ -8577,8 +8670,11 @@ function _genIntervalId(difficulty) {
   const intervals = difficulty === 0 ? [2,3,4,5,7] : difficulty === 1 ? [1,2,3,4,5,6,7,8] : [0,1,2,3,4,5,6,7,8,9,10,11,12];
   const semitones = intervals[Math.floor(Math.random() * intervals.length)];
   const dir = Math.random() > 0.5 ? 1 : -1;
-  const bottom = 60 + Math.floor(Math.random() * 12); // C4–B4 base
-  const top = Math.max(48, Math.min(84, bottom + semitones * dir));
+  const kitRange = _kitExerciseRange();
+  const baseMin = kitRange ? kitRange.min : 60;
+  const baseMax = kitRange ? kitRange.max : 72;
+  const bottom = Math.max(baseMin, Math.min(baseMax - semitones, baseMin + Math.floor(Math.random() * (baseMax - baseMin - semitones + 1))));
+  const top = Math.max(baseMin, Math.min(baseMax, bottom + semitones * dir));
   const actualSemitones = Math.abs(top - bottom);
   return {
     type: EXERCISE_TYPES.INTERVAL_ID,
@@ -8612,11 +8708,14 @@ function _genRhythmRead(difficulty) {
 function _genMelodyDict(difficulty) {
   const lengths = [4, 6, 8];
   const len = lengths[Math.min(difficulty, 2)];
-  const basePitch = 60 + Math.floor(Math.random() * 12);
+  const kitRange = _kitExerciseRange();
+  const baseMin = kitRange ? kitRange.min : 60;
+  const baseMax = kitRange ? kitRange.max : 72;
+  const basePitch = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
   const notes = [];
   for (let i = 0; i < len; i++) {
     const step = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
-    const pitch = Math.max(48, Math.min(84, (notes.length ? notes[i-1].pitch : basePitch) + step));
+    const pitch = Math.max(baseMin, Math.min(baseMax, (notes.length ? notes[i-1].pitch : basePitch) + step));
     const durs = difficulty === 0 ? ['q','h'] : difficulty === 1 ? ['q','h','8'] : ['q','h','8','16'];
     notes.push({ pitch, duration: durs[Math.floor(Math.random() * durs.length)] });
   }
@@ -8630,7 +8729,8 @@ function _genMelodyDict(difficulty) {
 }
 
 function _genKeySigId(difficulty) {
-  const keys = difficulty === 0 ? [-1,0,1] : difficulty === 1 ? [-3,-2,-1,0,1,2,3] : [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7];
+  const kitKeys = _kitExerciseKeys();
+  const keys = kitKeys || (difficulty === 0 ? [-1,0,1] : difficulty === 1 ? [-3,-2,-1,0,1,2,3] : [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7]);
   const ks = keys[Math.floor(Math.random() * keys.length)];
   return {
     type: EXERCISE_TYPES.KEY_SIG_ID,
@@ -8727,7 +8827,8 @@ function _presentNoteId(ex) {
   // Build a minimal score with one note — include accidental so chromatic
   // pitches render correctly on the staff (e.g. F# not F natural)
   const acc = midiAutoAcc(ex.target.pitch);
-  const score = createScore({title: 'Note Identification', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  const instr = _kitDefaultInstrument();
+  const score = createScore({title: 'Note Identification', instruments: [instr], ts: {num:4,den:4}, ks: 0});
   score.parts[0].staves[0].measures[0].notes = [mkNote(ex.target.pitch, 'q', 0, acc)];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
@@ -8736,7 +8837,8 @@ function _presentNoteId(ex) {
 }
 
 function _presentIntervalId(ex) {
-  const score = createScore({title: 'Interval Identification', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  const instr = _kitDefaultInstrument();
+  const score = createScore({title: 'Interval Identification', instruments: [instr], ts: {num:4,den:4}, ks: 0});
   score.parts[0].staves[0].measures[0].notes = [
     mkNote(ex.target.bottom, 'q'),
     mkNote(ex.target.top, 'q'),
@@ -8757,7 +8859,8 @@ function _presentRhythmRead(ex) {
 
 function _presentMelodyDict(ex) {
   // Phase 1: blank score — student hears but does NOT see the melody
-  const blankScore = createScore({title: 'Melody Dictation', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
+  const instr = _kitDefaultInstrument();
+  const blankScore = createScore({title: 'Melody Dictation', instruments: [instr], ts: {num:4,den:4}, ks: 0});
   // Fill with whole-measure rests so the score has structure but no pitches
   const totalBeats = ex.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
   const measureCount = Math.max(1, Math.ceil(totalBeats / 4));
@@ -8799,29 +8902,17 @@ function _showDictationListenBar() {
 function _playDictationMelody() {
   const s = APP.exerciseSession;
   if (!s || !s._dictationTarget) return;
-  // Build a temporary score with the target notes for playback
-  const playScore = createScore({title: 'Playback', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
-  playScore.parts[0].staves[0].measures = [];
-  let mNotes = [], beats = 0;
-  for (const n of s._dictationTarget) {
-    mNotes.push(mkNote(n.pitch, n.duration));
-    beats += durBeats(n.duration, 0, null);
-    if (beats >= 4 - 0.001) {
-      playScore.parts[0].staves[0].measures.push({timeSigNum: 4, timeSigDen: 4, keySig: 0, lineBreak: false, notes: mNotes});
-      mNotes = []; beats = 0;
-    }
-  }
-  if (mNotes.length) {
-    playScore.parts[0].staves[0].measures.push({timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: mNotes});
-  }
-  // Quick playback without replacing current score
+  // Quick playback using the kit instrument sound
   const ctx = getAudioCtx();
   if (ctx.state === 'suspended') ctx.resume();
   const beatDur = 60 / APP.tempo;
   let t = ctx.currentTime + 0.05;
+  const instr = _kitDefaultInstrument();
+  const instrDef = INSTRUMENTS.find(i => i.name === instr);
+  const oscType = instrDef?.osc || 'triangle';
   for (const n of s._dictationTarget) {
     const dur = durBeats(n.duration, 0, null) * beatDur;
-    scheduleNote(ctx, n.pitch, t, dur * 0.88, 'triangle', 1);
+    scheduleNote(ctx, n.pitch, t, dur * 0.88, oscType, 1);
     t += dur;
   }
   showToast('Playing melody…');
@@ -8836,7 +8927,8 @@ function _startDictationNotate() {
 }
 
 function _presentKeySigId(ex) {
-  const score = createScore({title: 'Key Signature ID', instruments: ['Piano'], ts: {num:4,den:4}, ks: ex.target.keySig});
+  const instr = _kitDefaultInstrument();
+  const score = createScore({title: 'Key Signature ID', instruments: [instr], ts: {num:4,den:4}, ks: ex.target.keySig});
   score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
@@ -11415,6 +11507,8 @@ function showViewMenu(btn) {
     {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
     {sep:true},
     {label:'🎹 Exercises', fn:showExerciseDialog},
+    {sep:true},
+    {label:'🎒 Teaching Kit', fn:showKitSubmenu},
   ];
   showDropdown(btn, items);
 }
@@ -11427,6 +11521,27 @@ function showProfileSubmenu() {
     fn: () => { applyUIProfile(p); showToast('Profile: ' + UI_PROFILES[p].description); }
   }));
   showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
+}
+
+function showKitSubmenu() {
+  const items = [];
+  // General Music (no kit)
+  items.push({
+    label: `${!APP.teachingKit ? '✓' : '○'} General Music (no kit)`,
+    fn: () => { clearKit(); }
+  });
+  items.push({sep:true});
+  // Recorder Classroom kit with levels
+  const recLevels = ['beginner', 'intermediate', 'advanced'];
+  const recLabel = { beginner:'Soprano only', intermediate:'Soprano + Alto', advanced:'Full consort' };
+  recLevels.forEach(lvl => {
+    const active = APP.teachingKit === 'recorder' && APP.teachingKitLevel === lvl;
+    items.push({
+      label: `${active ? '✓' : '○'} Recorder — ${recLabel[lvl]}`,
+      fn: () => { applyKit('recorder', lvl); }
+    });
+  });
+  showDropdown(document.querySelector('[data-action="showViewMenu"]'), items);
 }
 
 function showAssignmentSubmenu() {
@@ -11457,8 +11572,11 @@ function showAddInstrumentDialog() {
 }
 
 function _renderAddInstrumentDialog() {
+  const allowedNames = _kitInstrumentList();
+  const allowedInstrs = INSTRUMENTS.filter(i => allowedNames.includes(i.name));
+
   const famOrder = ['Recorder','Brass','Woodwinds','Voice'];
-  const families  = [...new Set(INSTRUMENTS.map(i => i.family))].sort((a,b) => {
+  const families  = [...new Set(allowedInstrs.map(i => i.family))].sort((a,b) => {
     const ia = famOrder.indexOf(a);
     const ib = famOrder.indexOf(b);
     if (ia !== -1 && ib !== -1) return ia - ib;
@@ -11466,10 +11584,20 @@ function _renderAddInstrumentDialog() {
     if (ib !== -1) return 1;
     return a.localeCompare(b);
   });
-  const instrList = INSTRUMENTS.filter(i => i.family === _aiFamily);
+
+  // If the previously selected family has no allowed instruments, pick first available
+  if (!families.includes(_aiFamily)) _aiFamily = families[0] || 'Recorder';
+
+  const instrList = allowedInstrs.filter(i => i.family === _aiFamily);
   const firstInstr = _aiFamily === 'Recorder'
-    ? INSTRUMENTS.find(i => i.name === 'Soprano Recorder')?.name || instrList[0]?.name || ''
+    ? allowedInstrs.find(i => i.name === 'Soprano Recorder')?.name || instrList[0]?.name || ''
     : instrList[0]?.name || '';
+
+  // If a kit is active, show a hint at the top
+  const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
+  const kitHint = kit
+    ? `<div style="font-size:11px;color:rgba(192,86,33,0.8);margin-bottom:6px">${kit.name} — ${APP.teachingKitLevel}</div>`
+    : '';
 
   const famBtns = families.map(f => `
     <button data-action="selectAIFamily" data-family="${f}"
@@ -11497,6 +11625,7 @@ function _renderAddInstrumentDialog() {
     <h2>Add Instrument</h2>
     <p style="color:rgba(74,85,104,0.60);font-size:11px;margin-top:-6px">
       Adds a new stave below existing score</p>
+    ${kitHint}
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">${famBtns}</div>
     <input type="hidden" id="ai-instr" value="${firstInstr}">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;
@@ -12398,6 +12527,16 @@ function bootApp() {
     }
   } catch(e) {}
 
+  // Restore teaching kit from previous session
+  try {
+    const savedKit = localStorage.getItem('pauta_kit');
+    const savedKitLevel = localStorage.getItem('pauta_kit_level');
+    if (savedKit && KIT_CONFIGS[savedKit] && savedKitLevel) {
+      APP.teachingKit = savedKit;
+      APP.teachingKitLevel = savedKitLevel;
+    }
+  } catch(e) {}
+
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
   setTimeout(() => loading.remove(), 500);
@@ -12635,6 +12774,7 @@ _registerAction('showMixer', () => showMixer());
 _registerAction('showScoreInfo', () => showScoreInfo());
 _registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
 _registerAction('showViewMenu', (e) => showViewMenu(e.target));
+_registerAction('showKitSubmenu', () => showKitSubmenu());
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startGlissando', (e) => startGlissando(e.target.closest('[data-style]')?.dataset.style));
