@@ -1653,6 +1653,7 @@ const APP = {
   micInput: false,
   assignmentMode: false,
   currentAssignment: null,
+  uiProfile: 'advanced',
   clipboard: null,
   showMeasureNumbers: false,
   showMultiMeasureRests: false,
@@ -1683,6 +1684,64 @@ const SCORE_MEASURE_REF_RULES = [
   { key: 'rehearsalMarks', range: false, field: 'mi' },
   { key: 'staffTexts',     range: false, field: 'mi' },
 ];
+
+// ── UI Difficulty Profiles ────────────────────────────────────────
+const UI_PROFILES = {
+  beginner: {
+    hideDurations: ['32', '64'],
+    hidePanels:    ['artic', 'lines', 'bars', 'tempo'],
+    hideButtons:   ['btn-triplet', 'btn-voice2', 'btn-chord', 'btn-notehead-x'],
+    maxMeasures:   8,
+    description:   'Beginner — simplified palette, limited measures',
+  },
+  intermediate: {
+    hideDurations: ['64'],
+    hidePanels:    ['bars'],
+    hideButtons:   ['btn-voice2'],
+    maxMeasures:   32,
+    description:   'Intermediate — most features, fewer limits',
+  },
+  advanced: {
+    hideDurations: [],
+    hidePanels:    [],
+    hideButtons:   [],
+    maxMeasures:   Infinity,
+    description:   'Advanced — full notation toolkit',
+  },
+};
+
+function applyUIProfile(profileName) {
+  const profile = UI_PROFILES[profileName] || UI_PROFILES.advanced;
+  APP.uiProfile = profileName;
+  // Durations
+  document.querySelectorAll('.pal-btn[data-dur]').forEach(btn => {
+    btn.hidden = profile.hideDurations.includes(btn.dataset.dur);
+  });
+  // Specific buttons
+  profile.hideButtons.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  });
+  // Unhide buttons not in the list
+  Object.keys(UI_PROFILES).forEach(k => {
+    if (k === profileName) return;
+    UI_PROFILES[k].hideButtons.forEach(id => {
+      if (!profile.hideButtons.includes(id)) {
+        const el = document.getElementById(id);
+        if (el) el.hidden = false;
+      }
+    });
+  });
+  // Side tabs (panels)
+  document.querySelectorAll('.side-tab').forEach(tab => {
+    const panel = tab.dataset.panel;
+    if (panel) {
+      tab.hidden = profile.hidePanels.includes(panel);
+    }
+  });
+  // Store preference
+  try { localStorage.setItem('pauta_ui_profile', profileName); } catch(e) {}
+}
 
 // ── Pitch / Duration Helpers ─────────────────────────────────────
 const NOTE_NAMES   = ['c','d','e','f','g','a','b'];
@@ -6123,12 +6182,6 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   return g;
 }
 
-function updateWoodwindDiagram() {
-  updateDiagram('woodwind', renderWoodwindDiagram, woodwindFingeringForPitch, 'flute',
-    { nameAttr: 'data-instr-name',
-      extra: (n, p) => (n === 'clarinet' && p >= 71) || (n === 'sax' && p >= 72) });
-}
-
 // ── Brass Diagram ─────────────────────────────────────────────────
 // Improved valve indicators with metallic cup visuals, body silhouettes,
 // note name display, and alternate fingering cycling.
@@ -7222,6 +7275,12 @@ function _storeAssignmentAnswer(mi, ni, answer) {
   const existing = APP.score.studentAnswers[id].notes[mi][ni] || {};
   APP.score.studentAnswers[id].notes[mi][ni] = { ...existing, ...answer };
 
+  // Persist to localStorage so answers survive reloads
+  try {
+    const key = `pauta_answers_${id}`;
+    localStorage.setItem(key, JSON.stringify(APP.score.studentAnswers[id]));
+  } catch(e) {}
+
   // Immediate visual feedback
   const hiddenSet = new Set(asgn.hidden || ['pitch']);
   const targetNote = getMeasureBySI(APP.selectedStaff, mi)?.notes[ni];
@@ -8215,10 +8274,18 @@ function startAssignment(id) {
   if (!asgn) { showToast('Assignment not found'); return; }
   APP.assignmentMode = true;
   APP.currentAssignment = asgn;
-  // Reset any previous student answers for this assignment if not submitted
-  if (APP.score?.studentAnswers?.[id] && !APP.score.studentAnswers[id].submitted) {
-    delete APP.score.studentAnswers[id];
-  }
+  // Try to restore unsaved answers from localStorage
+  try {
+    const saved = localStorage.getItem(`pauta_answers_${id}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (!APP.score.studentAnswers) APP.score.studentAnswers = {};
+      // Only restore if not already submitted in the score file
+      if (!APP.score.studentAnswers[id]?.submitted) {
+        APP.score.studentAnswers[id] = parsed;
+      }
+    }
+  } catch(e) {}
   // Hide palettes that aren't needed in student mode
   _setAssignmentUI(true);
   showToast('Assignment started: ' + asgn.title);
@@ -10463,17 +10530,17 @@ function renderLyrics() {
 }
 
 function updateTempo(v) {
-  APP.tempo = parseInt(v);
-  const input = document.getElementById('tempo-input');
-  if (input) input.value = v;
-}
-function updateTempoFromInput(v) {
   let bpm = parseInt(v);
   if (isNaN(bpm) || bpm < 40) bpm = 40;
   if (bpm > 240) bpm = 240;
   APP.tempo = bpm;
-  document.getElementById('tempo-slider').value = bpm;
-  document.getElementById('tempo-input').value = bpm;
+  const input = document.getElementById('tempo-input');
+  const slider = document.getElementById('tempo-slider');
+  if (input) input.value = bpm;
+  if (slider) slider.value = bpm;
+}
+function updateTempoFromInput(v) {
+  updateTempo(v);
 }
 
 // ── Score Menu ────────────────────────────────────────────────────
@@ -10760,7 +10827,19 @@ function showScoreMenu(btn) {
   } else {
     items.splice(6, 0, {sep:true}, {label:'📝 Create Assignment', fn:showAssignmentDialog});
   }
+  // UI profile switcher
+  items.splice(items.length - 3, 0, {sep:true}, {label:'🎓 Difficulty Profile', fn:showProfileSubmenu});
   showDropdown(btn, items);
+}
+
+function showProfileSubmenu() {
+  const profiles = ['beginner', 'intermediate', 'advanced'];
+  const current = APP.uiProfile || 'advanced';
+  const items = profiles.map(p => ({
+    label: `${p === current ? '✓' : '○'} ${UI_PROFILES[p].description}`,
+    fn: () => { applyUIProfile(p); showToast('Profile: ' + UI_PROFILES[p].description); }
+  }));
+  showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
 
 function showAssignmentSubmenu() {
@@ -11722,6 +11801,15 @@ function bootApp() {
   // iPad → continuous view by default; desktop → page view
   const isIPad = /iPad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   APP.continuousView = isIPad;
+
+  // Restore UI difficulty profile from previous session
+  try {
+    const savedProfile = localStorage.getItem('pauta_ui_profile');
+    if (savedProfile && UI_PROFILES[savedProfile]) {
+      APP.uiProfile = savedProfile;
+      applyUIProfile(savedProfile);
+    }
+  } catch(e) {}
 
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
