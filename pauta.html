@@ -875,6 +875,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
     </svg>
     <span>View</span>
   </button>
+  <button class="btn-top" data-action="showExercisesMenu" title="Exercises and teaching tools">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="10" cy="6" r="3"/>
+      <path d="M5 17 Q10 11 15 17"/>
+    </svg>
+    <span>Exercises</span>
+  </button>
   <button class="btn-top" id="btn-input-mode" data-action="toggleInputMode" aria-label="Toggle input mode" title="Toggle note-input mode">
     <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M13 2 L16 5 L7 14 L3 15 L4 11 Z"/>
@@ -1688,6 +1695,8 @@ const APP = {
   clipboard: null,
   showMeasureNumbers: false,
   showMultiMeasureRests: false,
+  showTheoryOverlay: false,
+  showRhythmCounting: false,
   zoom: 1,
   continuousView: false,
   // ── Mixer (volume) settings ────────────────────────────────────
@@ -1745,31 +1754,53 @@ const UI_PROFILES = {
 // Contextual presets that reconfigure the app for a specific
 // classroom use-case.  Manual composition remains unlimited;
 // kits only filter generated exercises and the Add-Instrument list.
+const FAMILY_KIT_MAP = { Recorder: 'recorder', Keyboard: 'keyboard' };
+
 const KIT_CONFIGS = {
   recorder: {
     name: 'Recorder Classroom',
     description: 'Soprano recorder pedagogy with optional alto and full consort',
-    // Instruments available at each level (used by Add-Instrument dialog)
     instruments: {
       beginner:     ['Soprano Recorder'],
       intermediate: ['Soprano Recorder', 'Alto Recorder'],
       advanced:     ['Sopranino Recorder','Soprano Recorder','Alto Recorder','Tenor Recorder','Bass Recorder','Great Bass Recorder'],
     },
-    // Default instrument for generated exercises
     defaultInstrument: 'Soprano Recorder',
-    // Pitch ranges for generated exercises (MIDI note numbers)
     exerciseRanges: {
-      beginner:     { min: 72, max: 84 },   // C5–C6 (soprano, no low C)
-      intermediate: { min: 67, max: 84 },   // G4–C6 (soprano + alto overlap)
-      advanced:     { min: 60, max: 86 },   // C4–D6 (full recorder family)
+      beginner:     { min: 72, max: 84 },
+      intermediate: { min: 67, max: 84 },
+      advanced:     { min: 60, max: 86 },
     },
-    // Key signatures allowed for generated material
     exerciseKeys: {
-      beginner:     [0, -1, 1],              // C, F, G
-      intermediate: [-3,-2,-1,0,1,2,3],      // up to 3 accidentals
-      advanced:     [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7], // all
+      beginner:     [0, -1, 1],
+      intermediate: [-3,-2,-1,0,1,2,3],
+      advanced:     [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7],
     },
-    // Suggested UI profile for the level
+    suggestedProfile: {
+      beginner:     'beginner',
+      intermediate: 'intermediate',
+      advanced:     'advanced',
+    },
+  },
+  keyboard: {
+    name: 'Keyboard Classroom',
+    description: 'Piano and keyboard fundamentals',
+    instruments: {
+      beginner:     ['Piano'],
+      intermediate: ['Piano', 'Celesta'],
+      advanced:     ['Piano', 'Organ', 'Harpsichord', 'Celesta'],
+    },
+    defaultInstrument: 'Piano',
+    exerciseRanges: {
+      beginner:     { min: 60, max: 79 },
+      intermediate: { min: 55, max: 84 },
+      advanced:     { min: 48, max: 96 },
+    },
+    exerciseKeys: {
+      beginner:     [0, -1, 1],
+      intermediate: [-3,-2,-1,0,1,2,3],
+      advanced:     [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7],
+    },
     suggestedProfile: {
       beginner:     'beginner',
       intermediate: 'intermediate',
@@ -1787,21 +1818,21 @@ function applyKit(kitName, level) {
   // Optionally sync the UI profile to the kit's suggestion
   const suggested = kit.suggestedProfile[level];
   if (suggested && UI_PROFILES[suggested]) applyUIProfile(suggested);
-  try { localStorage.setItem('pauta_kit', kitName); localStorage.setItem('pauta_kit_level', level); } catch(e) {}
+  try { localStorage.setItem('pauta_kit', kitName); localStorage.setItem('pauta_kit_level', level); } catch(e) { console.warn('[Pauta]', e.message); }
   showToast(`${kit.name} — ${level}`);
 }
 
 function clearKit() {
   APP.teachingKit = null;
   APP.teachingKitLevel = 'advanced';
-  try { localStorage.removeItem('pauta_kit'); localStorage.removeItem('pauta_kit_level'); } catch(e) {}
+  try { localStorage.removeItem('pauta_kit'); localStorage.removeItem('pauta_kit_level'); } catch(e) { console.warn('[Pauta]', e.message); }
   showToast('General Music mode');
 }
 
-function _kitInstrumentList() {
+function _kitInstrumentList(level) {
   const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
   if (!kit) return INSTRUMENTS.map(i => i.name);
-  return kit.instruments[APP.teachingKitLevel] || INSTRUMENTS.map(i => i.name);
+  return kit.instruments[level || APP.teachingKitLevel] || INSTRUMENTS.map(i => i.name);
 }
 
 function _kitDefaultInstrument() {
@@ -1878,7 +1909,7 @@ function applyUIProfile(profileName) {
   showToast(msg, changes.length ? 2500 : 1200);
 
   // Store preference
-  try { localStorage.setItem('pauta_ui_profile', profileName); } catch(e) {}
+  try { localStorage.setItem('pauta_ui_profile', profileName); } catch(e) { console.warn('[Pauta]', e.message); }
 }
 
 // ── Pitch / Duration Helpers ─────────────────────────────────────
@@ -3875,7 +3906,7 @@ function renderPartBrackets(container, activeParts, system, siOffset, ns, vfStav
           brace.setType(VF.StaveConnector.type.BRACE);
           brace.setContext(ctx).draw();
         }
-      } catch (e) {}
+      } catch (e) { console.warn('[Pauta]', e.message); }
     }
     flatIdx += nStaves;
   });
@@ -4218,6 +4249,91 @@ function _renderStaveMeasure(rc, sm) {
   return mWidth;
 }
 
+// ── Theory Overlay (scale degrees, intervals) ───────────────────
+const KEY_ROOT_PC = {};
+for (let ks = -7; ks <= 7; ks++) KEY_ROOT_PC[ks] = ((ks * 7) % 12 + 12) % 12;
+const DEGREE_LABELS = ['1̂','♭2̂','2̂','♭3̂','3̂','4̂','♯4̂','5̂','♭6̂','6̂','♭7̂','7̂'];
+
+function _getScaleDegree(pitch, ks) {
+  const pc = pitch % 12;
+  const rootPc = KEY_ROOT_PC[ks] ?? 0;
+  return DEGREE_LABELS[(pc - rootPc + 12) % 12];
+}
+
+function _getIntervalLabel(pitchA, pitchB) {
+  const semitones = Math.abs(pitchB - pitchA) % 12;
+  return INTERVAL_NAMES[semitones] || '';
+}
+
+function _renderTheoryOverlay() {
+  const svgEl = document.getElementById('score-svg')?.querySelector('svg');
+  if (!svgEl || !APP.score) return;
+  // Scale degrees below each note
+  for (const nl of APP.noteLayout) {
+    const ks = getResolvedKeySig(nl.mi, nl.si);
+    const note = getNoteByLayout(nl);
+    if (!note || note.type === 'rest') continue;
+    const deg = _getScaleDegree(note.pitch, ks);
+    svgText(svgEl, {x: nl.x, y: nl.y + 18, text: deg, fontSize: 10, fontWeight: '600', fill: '#c05621', anchor: 'middle', font: _DEFAULT_FONT});
+  }
+  // Interval label when 2 notes selected
+  if (APP.selectedNoteIdx >= 0 && APP.selStartIdx >= 0 && APP.selectedNoteIdx !== APP.selStartIdx) {
+    const mi = APP.selectedMeasure, si = APP.selectedStaff;
+    const nl1 = APP.noteLayout.find(l => l.mi === mi && l.si === si && l.ni === APP.selectedNoteIdx);
+    const nl2 = APP.noteLayout.find(l => l.mi === mi && l.si === si && l.ni === APP.selStartIdx);
+    if (nl1 && nl2) {
+      const n1 = getNoteByLayout(nl1), n2 = getNoteByLayout(nl2);
+      if (n1 && n2 && n1.type === 'note' && n2.type === 'note') {
+        const label = _getIntervalLabel(n1.pitch, n2.pitch);
+        if (label) {
+          const midX = (nl1.x + nl2.x) / 2, midY = Math.min(nl1.y, nl2.y) - 20;
+          svgText(svgEl, {x: midX, y: midY, text: label, fontSize: 12, fontWeight: '700', fill: '#2b6cb0', anchor: 'middle', font: _DEFAULT_FONT});
+        }
+      }
+    }
+  }
+}
+
+// ── Rhythm Counting ────────────────────────────────────────────
+const SIXTEENTH_LABELS = ['1','e','+','a','2','e','+','a','3','e','+','a','4','e','+','a'];
+
+function _renderRhythmCounting() {
+  const svgEl = document.getElementById('score-svg')?.querySelector('svg');
+  if (!svgEl || !APP.score) return;
+  for (const sl of APP.staveLayout) {
+    const m = APP.score.parts[0]?.staves?.[sl.si]?.measures?.[sl.mi];
+    if (!m || !m.notes) continue;
+    const beatUnit = 4 / (resolvedTimeSig(sl.mi, sl.si).den || 4);
+    let beatPos = 0;
+    for (let ni = 0; ni < m.notes.length; ni++) {
+      const n = m.notes[ni];
+      if (n.type !== 'note' && n.type !== 'rest') continue;
+      const beats = durBeats(n.duration, n.dots, n.tuplet);
+      const beatFloor = Math.floor(beatPos);
+      const subbeat = beatPos - beatFloor;
+      let label;
+      if (Math.abs(beats - 1) < 0.01) {
+        label = String(beatFloor + 1);
+      } else if (Math.abs(beats - 0.5) < 0.01) {
+        label = subbeat < 0.01 ? String(beatFloor + 1) : '+';
+      } else {
+        const sixteenthIdx = Math.round(beatPos * 4);
+        label = (sixteenthIdx >= 0 && sixteenthIdx < 16) ? SIXTEENTH_LABELS[sixteenthIdx] : '';
+      }
+      const nl = APP.noteLayout.find(l => l.mi === sl.mi && l.si === sl.si && l.ni === ni);
+      if (nl) {
+        svgText(svgEl, {x: nl.x, y: sl.bottomY + 24, text: label, fontSize: 9, fontWeight: '500', fill: '#555', anchor: 'middle', font: _DEFAULT_FONT});
+      }
+      beatPos += beats;
+    }
+  }
+}
+
+// ── Note lookup helper for theory overlay ──────────────────────
+function getNoteByLayout(nl) {
+  return APP.score?.parts?.[0]?.staves?.[nl.si]?.measures?.[nl.mi]?.notes?.[nl.ni];
+}
+
 function _renderScoreAnnotations(rc) {
   const { ctx } = rc;
   renderMarkings(ctx);
@@ -4232,6 +4348,8 @@ function _renderScoreAnnotations(rc) {
   renderLyricClickHandlers();
   renderBWNoteheads();
   renderGraceClickOverlays();
+  if (APP.showTheoryOverlay) _renderTheoryOverlay();
+  if (APP.showRhythmCounting) _renderRhythmCounting();
 }
 
 function _renderScoreCompletions(rc) {
@@ -5525,7 +5643,7 @@ function renderLyricClickHandlers() {
     if (!content) return;
 
     let bbox;
-    try { bbox = el.getBBox(); } catch(e) { return; }
+    try { bbox = el.getBBox(); } catch(e) { console.warn('[Pauta]', e.message); return; }
     const cx = bbox.x + bbox.width / 2;
     const cy = bbox.y + bbox.height / 2;
 
@@ -6595,7 +6713,7 @@ function renderBWNoteheads() {
   const eligiblePaths = [];
   svgEl.querySelectorAll('path').forEach(path => {
     let bbox;
-    try { bbox = path.getBBox(); } catch(e) { return; }
+    try { bbox = path.getBBox(); } catch(e) { console.warn('[Pauta]', e.message); return; }
     if (bbox.width < 4 || bbox.height < 3) return;
     if (bbox.width / bbox.height > 3 || bbox.height / bbox.width > 3) return;
     eligiblePaths.push({
@@ -7430,7 +7548,7 @@ function _storeAssignmentAnswer(mi, ni, answer) {
   try {
     const key = `pauta_answers_${id}`;
     localStorage.setItem(key, JSON.stringify(APP.score.studentAnswers[id]));
-  } catch(e) {}
+  } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Immediate visual feedback
   const hiddenSet = new Set(asgn.hidden || ['pitch']);
@@ -8284,6 +8402,18 @@ function toggleMultiMeasureRests() {
   showToast(APP.showMultiMeasureRests ? 'Multi-measure rests enabled' : 'Multi-measure rests disabled');
 }
 
+function toggleTheoryOverlay() {
+  APP.showTheoryOverlay = !APP.showTheoryOverlay;
+  renderScore();
+  showToast(APP.showTheoryOverlay ? 'Theory overlay on' : 'Theory overlay off');
+}
+
+function toggleRhythmCounting() {
+  APP.showRhythmCounting = !APP.showRhythmCounting;
+  renderScore();
+  showToast(APP.showRhythmCounting ? 'Rhythm counting on' : 'Rhythm counting off');
+}
+
 // ── Zoom ──────────────────────────────────────────────────────────
 function applyZoom() {
   const z = Math.round(APP.zoom * 100);
@@ -8436,7 +8566,7 @@ function startAssignment(id) {
         APP.score.studentAnswers[id] = parsed;
       }
     }
-  } catch(e) {}
+  } catch(e) { console.warn('[Pauta]', e.message); }
   // Hide palettes that aren't needed in student mode
   _setAssignmentUI(true);
   showToast('Assignment started: ' + asgn.title);
@@ -8614,6 +8744,10 @@ const KEY_SIG_NAMES = {
   '-7':'Cb', '-6':'Gb', '-5':'Db', '-4':'Ab', '-3':'Eb', '-2':'Bb', '-1':'F',
   '0':'C', '1':'G', '2':'D', '3':'A', '4':'E', '5':'B', '6':'F#', '7':'C#'
 };
+const KEY_SIG_MINOR_NAMES = {
+  '-7':'Abm', '-6':'Ebm', '-5':'Bbm', '-4':'Fm', '-3':'Cm', '-2':'Gm', '-1':'Dm',
+  '0':'Am', '1':'Em', '2':'Bm', '3':'F#m', '4':'C#m', '5':'G#m', '6':'D#m', '7':'A#m'
+};
 
 // ── Exercise Generators ──────────────────────────────────────────
 function generateExercise(type, difficulty = 'beginner') {
@@ -8737,17 +8871,28 @@ function _genMelodyDict(difficulty) {
 
 function _genKeySigId(difficulty) {
   const kitKeys = _kitExerciseKeys();
-  const keys = (kitKeys && kitKeys.length) ? kitKeys : (difficulty === 0 ? [-1,0,1] : difficulty === 1 ? [-3,-2,-1,0,1,2,3] : [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7]);
-  if (!keys.length) return { type:EXERCISE_TYPES.KEY_SIG_ID, difficulty, target:{keySig:0}, answer:'C', hint:'No keys available' };
+  const keys = (kitKeys && kitKeys.length) ? kitKeys : [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7];
+  if (!keys.length) return { type:EXERCISE_TYPES.KEY_SIG_ID, difficulty, target:{keySig:0}, askMinor:false, answer:'C', answerMinor:'Am', hint:'No keys available' };
   const ks = keys[Math.floor(Math.random() * keys.length)];
+  const major = KEY_SIG_NAMES[String(ks)];
+  const minor = KEY_SIG_MINOR_NAMES[String(ks)];
+  const askMinor = Math.random() < 0.5;
   return {
     type: EXERCISE_TYPES.KEY_SIG_ID,
     difficulty,
     target: { keySig: ks },
-    answer: KEY_SIG_NAMES[String(ks)],
-    hint: ks === 0 ? 'No sharps or flats = C major / A minor.' :
-          ks > 0 ? `Look for the sharp farthest to the right — go up a half step.` :
-          `The second-to-last flat is the key name.`,
+    askMinor,
+    answer: askMinor ? minor : major,
+    answerMajor: major,
+    answerMinor: minor,
+    answerLabel: askMinor ? minor : major,
+    hint: askMinor
+      ? (ks === 0 ? 'Minor key with no sharps/flats = A minor (down a minor third from C major).' :
+         ks > 0 ? `Find the major key (last sharp up a half step), then go down a minor third (3 half-steps).` :
+         `Find the major key (second-to-last flat), then go down a minor third (3 half-steps).`)
+      : (ks === 0 ? 'No sharps or flats = C major.' :
+         ks > 0 ? `Last sharp up a half step.` :
+         `Second-to-last flat is the key name.`),
   };
 }
 
@@ -8795,10 +8940,11 @@ function endExerciseSession() {
   `);
 
   // Clean up floating bars
-  ['dictation-bar','dictation-check-bar','exercise-input-bar'].forEach(id => {
+  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.remove();
   });
+  _hideSuccessBanner();
   APP.exerciseMode = false;
   APP.exerciseSession = null;
   _setExerciseUI(false);
@@ -8923,6 +9069,8 @@ function _playDictationMelody() {
   // Quick playback using the kit instrument sound
   const ctx = getAudioCtx();
   if (ctx.state === 'suspended') ctx.resume();
+  if (APP.masterGain) APP.masterGain.gain.value = APP.masterVolume;
+  if (APP.metronomeGain) APP.metronomeGain.gain.value = APP.metronomeVolume;
   const bpm = (APP.tempo > 0) ? APP.tempo : 120;
   const beatDur = 60 / bpm;
   let t = ctx.currentTime + 0.05;
@@ -9048,7 +9196,7 @@ function _presentKeySigId(ex) {
   score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  showToast('Name the key! (e.g. C, G, F#, Bb)');
+  showToast(ex.askMinor ? 'Name the minor key! (e.g. Am, Dm, F#m)' : 'Name the major key! (e.g. C, G, F#, Bb)');
 }
 
 // ── Answer Checking ──────────────────────────────────────────────
@@ -9061,6 +9209,15 @@ function checkExerciseAnswer(userAnswer) {
   let isCorrect;
   if (ex.type === EXERCISE_TYPES.INTERVAL_ID) {
     isCorrect = _intervalMatches(userAnswer, ex.answer);
+  } else if (ex.type === EXERCISE_TYPES.KEY_SIG_ID) {
+    // Key sig: accept the expected answer with abbreviations
+    const normKey = s => {
+      let v = String(s).trim().toLowerCase().replace(/\s+/g, '');
+      v = v.replace(/^(.*?)(?:minor|min)$/, '$1m');
+      v = v.replace(/^(.*?)major$/, '$1');
+      return v;
+    };
+    isCorrect = normKey(userAnswer) === normKey(ex.answer);
   } else {
     const normalizedUser = String(userAnswer).trim().toLowerCase().replace(/\s+/g, '');
     const normalizedTarget = String(ex.answer).trim().toLowerCase().replace(/\s+/g, '');
@@ -9080,38 +9237,73 @@ function checkExerciseAnswer(userAnswer) {
   _updateScoreDisplay();
 
   if (isCorrect) {
-    showToast(`✓ Correct! · Streak: ${s.streak}`, 1200);
-    // Generate next exercise after short delay
+    _showSuccessBanner(`✓ ${userAnswer} — correct! · Streak: ${s.streak}`);
     const session = s;
     const exType = ex.type, exDiff = ex.difficulty;
     setTimeout(() => {
       if (!APP.exerciseSession || APP.exerciseSession !== session) return;
+      _hideSuccessBanner();
+      let fb = document.getElementById('exercise-feedback-bar');
+      if (fb) fb.remove();
       session.current = generateExercise(exType, exDiff);
       _presentExercise(session.current);
-    }, 1200);
+    }, 1500);
   } else {
-    _showExerciseFeedback(ex, userAnswer, isCorrect);
+    _showExerciseFeedback(ex, userAnswer);
   }
 }
 
-function _showExerciseFeedback(ex, userAnswer, isCorrect) {
-  makeModal(`
-    <h2>${isCorrect ? '✓ Correct!' : 'Not quite'}</h2>
-    <div style="font-size:13px;color:#4a5568;margin-bottom:12px">
-      <p><b>Your answer:</b> ${userAnswer}</p>
-      <p><b>Correct answer:</b> ${ex.answer}</p>
-    </div>
-    <div style="background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.15);border-radius:6px;padding:10px;margin-bottom:12px;font-size:12px;color:#4a5568">
-      <b>Hint:</b> ${ex.hint}
-    </div>
-    <button class="modal-btn primary" data-action="nextExercise">Next Exercise</button>
-    ${isCorrect ? '' : '<button class="modal-btn secondary" data-action="retryExercise">Try Again</button>'}
-    <button class="modal-btn secondary" data-action="endExerciseSession">End Session</button>
-  `);
+function _showSuccessBanner(msg) {
+  const existing = document.getElementById('exercise-success-banner');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'exercise-success-banner';
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:2000;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:14px 32px;border-radius:10px;font-size:17px;font-weight:700;box-shadow:0 4px 20px rgba(34,197,94,0.35);opacity:0;transition:opacity 0.25s ease;pointer-events:none;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.style.opacity = '1');
+}
+
+function _hideSuccessBanner() {
+  const el = document.getElementById('exercise-success-banner');
+  if (el) el.style.opacity = '0';
+}
+
+function _showExerciseFeedback(ex, userAnswer) {
+  const existing = document.getElementById('exercise-feedback-bar');
+  if (existing) existing.remove();
+
+  const correctLabel = ex.answerLabel || ex.answer;
+  const hintText = escHtml(ex.hint || '');
+
+  const extraNote = (ex.type === EXERCISE_TYPES.KEY_SIG_ID)
+    ? (ex.askMinor ? `<span style="font-size:11px;color:rgba(74,85,104,0.6)"> (also ${ex.answerMajor})</span>`
+                  : `<span style="font-size:11px;color:rgba(74,85,104,0.6)"> (also ${ex.answerMinor})</span>`)
+    : '';
+
+  const bar = document.createElement('div');
+  bar.id = 'exercise-feedback-bar';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(255,245,235,0.98);border:1px solid rgba(192,86,33,0.25);border-radius:8px;padding:10px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;flex-wrap:wrap';
+  bar.innerHTML = `
+    <span style="font-weight:600;color:#c05421">Not quite</span>
+    <span><b>You:</b> ${escHtml(userAnswer)}</span>
+    <span><b>Correct:</b> ${correctLabel}${extraNote}</span>
+    ${hintText ? `<span style="background:rgba(192,86,33,0.06);border-radius:4px;padding:3px 8px;font-size:11px;color:rgba(74,85,104,0.7)">💡 ${hintText}</span>` : ''}
+    <button class="modal-btn primary" data-action="retryExercise" style="padding:4px 10px;font-size:12px">Try Again</button>
+    <button class="modal-btn secondary" data-action="endExerciseSession" style="padding:4px 10px;font-size:12px">End Session</button>
+  `;
+  document.body.appendChild(bar);
+
+  // Auto-dismiss after 12s to avoid clutter
+  setTimeout(() => {
+    const fb = document.getElementById('exercise-feedback-bar');
+    if (fb && fb.parentNode) fb.remove();
+  }, 12000);
 }
 
 function nextExercise() {
   closeModal();
+  _hideExerciseFeedback();
   const s = APP.exerciseSession;
   if (!s) return;
   s.current = generateExercise(s.type, s.difficulty);
@@ -9120,9 +9312,15 @@ function nextExercise() {
 
 function retryExercise() {
   closeModal();
+  _hideExerciseFeedback();
   const s = APP.exerciseSession;
   if (!s || !s.current) return;
   _presentExercise(s.current);
+}
+
+function _hideExerciseFeedback() {
+  const fb = document.getElementById('exercise-feedback-bar');
+  if (fb) fb.remove();
 }
 
 // ── Exercise UI ─────────────────────────────────────────────────
@@ -9166,7 +9364,7 @@ function _updateExerciseInputBar() {
   const bar = document.createElement('div');
   bar.id = 'exercise-input-bar';
   bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:8px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
-  const label = ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval name:' : 'Key:';
+  const label = ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval name:' : ex.askMinor ? 'Minor key:' : 'Major key:';
   bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">${label}</span>
     <input id="exercise-answer-input" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
     <button class="modal-btn primary" id="exercise-submit-btn" style="padding:4px 12px;font-size:12px">Submit</button>`;
@@ -9199,7 +9397,7 @@ function showExerciseDialog() {
     {key: EXERCISE_TYPES.INTERVAL_ID,  label:'↔ Interval Identification', desc:'Name the interval between two notes'},
     {key: EXERCISE_TYPES.RHYTHM_READ,  label:'𝅘𝅥𝅮 Rhythm Reading',          desc:'Read and clap rhythm patterns'},
     {key: EXERCISE_TYPES.MELODY_DICT,  label:'🎼 Melody Dictation',       desc:'Hear a melody, then notate it'},
-    {key: EXERCISE_TYPES.KEY_SIG_ID,   label:'♭♯ Key Signature ID',       desc:'Name the key from the signature'},
+    {key: EXERCISE_TYPES.KEY_SIG_ID,   label:'♭♯ What\'s the Key Signature?', desc:'Name the key from the signature'},
   ];
   const diffs = ['beginner', 'intermediate', 'advanced'];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
@@ -9759,7 +9957,7 @@ function showWelcomeModal() {
 }
 
 function startLearnerOnboarding() {
-  applyUIProfile('beginner');
+  applyKit('recorder', 'beginner');
   localStorage.setItem('pauta_welcome_seen', '1');
   closeModal();
   setTimeout(() => showExerciseDialog(), 300);
@@ -10414,107 +10612,7 @@ function clearPlayCursor() {
   APP._lastPlayKey = '';
 }
 
-// ── MIDI Hardware Input ──────────────────────────────────────────
-function initMIDI() {
-  if (!navigator.requestMIDIAccess) {
-    debugLog('[MIDI] Web MIDI API not available');
-    return;
-  }
-  navigator.requestMIDIAccess({ sysex: false }).then(access => {
-    APP._midiAccess = access;
-    _updateMIDIDevices();
-    access.onstatechange = () => _updateMIDIDevices();
-    debugLog('[MIDI] Access granted');
-  }).catch(err => {
-    debugLog('[MIDI] Access denied:', err);
-  });
-}
-
-function _updateMIDIDevices() {
-  if (!APP._midiAccess) return;
-  const inputs = [];
-  APP._midiAccess.inputs.forEach(input => {
-    inputs.push({ id: input.id, name: input.name || 'MIDI Device', input });
-  });
-  APP._midiInputs = inputs;
-  // Keep previously selected device if still available
-  const prevId = APP._selectedMIDIDevice;
-  if (prevId && inputs.some(i => i.id === prevId)) {
-    _selectMIDIDevice(prevId);
-  } else if (inputs.length > 0) {
-    _selectMIDIDevice(inputs[0].id);
-  } else {
-    _selectMIDIDevice(null);
-  }
-  // Update mixer UI if open
-  const sel = document.getElementById('midi-device-select');
-  if (sel) {
-    sel.innerHTML = `<option value="">No device</option>${inputs.map(i =>
-      `<option value="${i.id}" ${i.id === APP._selectedMIDIDevice ? 'selected' : ''}>${i.name}</option>`
-    ).join('')}`;
-  }
-}
-
-function _selectMIDIDevice(deviceId) {
-  // Disconnect previous
-  if (APP._midiInput && APP._midiInput.onmidimessage) {
-    APP._midiInput.onmidimessage = null;
-  }
-  APP._selectedMIDIDevice = deviceId;
-  APP._midiInput = null;
-  if (!deviceId || !APP._midiAccess) return;
-  const entry = APP._midiInputs?.find(i => i.id === deviceId);
-  if (!entry) return;
-  APP._midiInput = entry.input;
-  APP._midiInput.onmidimessage = _onMIDIMessage;
-  debugLog('[MIDI] Connected:', entry.name);
-}
-
-function _onMIDIMessage(event) {
-  const [status, note, velocity] = event.data;
-  const msgType = status & 0xF0;
-  // Note on (0x90) with velocity > 0
-  if (msgType === 0x90 && velocity > 0) {
-    _handleMIDINoteOn(note, velocity);
-    return;
-  }
-  // Note off (0x80 or 0x90 with velocity 0)
-  if ((msgType === 0x80) || (msgType === 0x90 && velocity === 0)) {
-    // Optional: handle note-off (not needed for note entry)
-  }
-}
-
-function _handleMIDINoteOn(pitch, velocity) {
-  if (!APP.score) return;
-  // Practice mode takes priority — gate playback on correct note
-  if (APP.practiceMode) {
-    _checkPracticeNote(pitch);
-    return;
-  }
-  // Determine what to do based on input mode
-  if (APP.inputMode || APP.chordMode) {
-    // Use the pitch to insert a note
-    const name = _midiPitchToName(pitch);
-    if (name) {
-      insertNoteByName(name);
-      // Flash a visual indicator
-      _flashMIDIIndicator(pitch);
-    }
-  } else if (APP.selectedNoteIdx >= 0) {
-    // Change selected note's pitch
-    changePitchOfSelected(_midiPitchToName(pitch));
-  }
-  // Low velocity → softer dynamic
-  if (velocity < 40 && !APP.inputMode && !APP.chordMode && APP.selectedNoteIdx >= 0) {
-    // Could apply dynamic based on velocity
-  }
-}
-
-function _midiPitchToName(pitch) {
-  const pc = pitch % 12;
-  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  return names[pc];
-}
+// ── MIDI Hardware Input (removed — browser permission warning) ──
 
 function _flashMIDIIndicator(pitch) {
   const el = document.getElementById('midi-indicator');
@@ -10542,8 +10640,7 @@ function togglePracticeMode() {
 
 function _startPracticeMode() {
   if (!APP.score) { showToast('Open or create a score first'); return; }
-  // Microphone is the default input for practice mode; MIDI is used
-  // automatically if a device is connected, but is not required.
+  // Microphone is the input method for practice mode
   if (!APP.micInput) _startMicInput();
   APP.practiceMode = true;
   APP.practiceWaiting = true;
@@ -10639,10 +10736,6 @@ function _checkPracticeNote(incomingPitch) {
     showToast('Try again — play ' + targetName, 1200);
     _flashMIDIIndicator(incomingPitch);
   }
-}
-
-function selectMIDIDevice(deviceId) {
-  _selectMIDIDevice(deviceId);
 }
 
 // ── Microphone Pitch Detection ──────────────────────────────────
@@ -11430,11 +11523,6 @@ function showMixer() {
       <span id="mix-part-${i}" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${Math.round((p.volume||1)*100)}</span>
     </div>`).join('');
 
-  const midiInputs = APP._midiInputs || [];
-  const midiOpts = midiInputs.map(i =>
-    `<option value="${i.id}" ${i.id === APP._selectedMIDIDevice ? 'selected' : ''}>${i.name}</option>`
-  ).join('');
-
   makeModal(`
     <h2>Mixer</h2>
     <div style="margin-bottom:8px">
@@ -11455,29 +11543,12 @@ function showMixer() {
     </div>
     <div class="modal-sep"></div>
     <div style="margin-bottom:8px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">MIDI Input</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <select id="midi-device-select" style="flex:1;padding:4px 6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">
-          <option value="">No device</option>
-          ${midiOpts}
-        </select>
-        <span id="midi-indicator" style="font-size:10px;color:#c05621;font-weight:bold;min-width:30px;opacity:0;transition:opacity 0.1s">—</span>
-      </div>
-    </div>
-    <div class="modal-sep"></div>
-    <div style="margin-bottom:8px">
       <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Microphone Input</div>
       <button id="btn-mic-input" class="modal-btn secondary ${APP.micInput ? 'active' : ''}" data-action="toggleMicInput" style="width:100%">${APP.micInput ? '🎤 Mic ON' : '🎤 Mic OFF'}</button>
     </div>
     ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
     <button class="modal-btn secondary" style="margin-top:8px" data-action="closeModal">Close</button>
   `);
-
-  // Bind MIDI device select
-  setTimeout(() => {
-    const sel = document.getElementById('midi-device-select');
-    if (sel) sel.addEventListener('change', () => selectMIDIDevice(sel.value));
-  }, 50);
 }
 
 function togglePartMute(partIdx) {
@@ -11662,11 +11733,17 @@ function showViewMenu(btn) {
     {label:`${APP.continuousView?'✓':'○'} Continuous View`, fn:toggleContinuousView},
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
+    {label:`${APP.showTheoryOverlay?'✓':'○'} 🎼 Theory Overlay`, fn:toggleTheoryOverlay},
+    {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
+    {sep:true},
     {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
-    {sep:true},
-    {label:'🎹 Exercises', fn:showExerciseDialog},
-    {sep:true},
-    {label:'🎒 Teaching Kit', fn:showKitSubmenu},
+  ];
+  showDropdown(btn, items);
+}
+
+function showExercisesMenu(btn) {
+  const items = [
+    {label:'🎹 Start Exercise…', fn:showExerciseDialog},
   ];
   showDropdown(btn, items);
 }
@@ -11679,27 +11756,6 @@ function showProfileSubmenu() {
     fn: () => { applyUIProfile(p); showToast('Profile: ' + UI_PROFILES[p].description); }
   }));
   showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
-}
-
-function showKitSubmenu() {
-  const items = [];
-  // General Music (no kit)
-  items.push({
-    label: `${!APP.teachingKit ? '✓' : '○'} General Music (no kit)`,
-    fn: () => { clearKit(); }
-  });
-  items.push({sep:true});
-  // Recorder Classroom kit with levels
-  const recLevels = ['beginner', 'intermediate', 'advanced'];
-  const recLabel = { beginner:'Soprano only', intermediate:'Soprano + Alto', advanced:'Full consort' };
-  recLevels.forEach(lvl => {
-    const active = APP.teachingKit === 'recorder' && APP.teachingKitLevel === lvl;
-    items.push({
-      label: `${active ? '✓' : '○'} Recorder — ${recLabel[lvl]}`,
-      fn: () => { applyKit('recorder', lvl); }
-    });
-  });
-  showDropdown(document.querySelector('[data-action="showViewMenu"]'), items);
 }
 
 function showAssignmentSubmenu() {
@@ -12120,17 +12176,28 @@ function _ksMiniSVG(ks) {
 
 // ── New Score Dialog ─────────────────────────────────────────────
 let _ndFamily = 'Recorder'; // tracks selected family between renders
-let _ndSelectedInstruments = new Set();
+let _ndSelectedInstruments = new Map(); // name → count (allows duplicates)
+let _ndLevel = 'advanced';              // beginner | intermediate | advanced
 const TS_DEN_VALUES = [1, 2, 4, 8, 16, 32];
 
 function showNewScoreDialog() {
   _ndFamily = 'Recorder';
-  _ndSelectedInstruments = new Set();
+  _ndSelectedInstruments = new Map();
+  // Default level from current kit (if any), or advanced
+  _ndLevel = APP.teachingKitLevel || 'advanced';
   _renderNewScoreDialog();
 }
 
 function _renderNewScoreDialog() {
   const famOrder = ['Recorder','Brass','Woodwinds','Voice'];
+  // Temporarily activate the kit for the current family during render
+  const _savedKit = APP.teachingKit;
+  const _savedLevel = APP.teachingKitLevel;
+  const _familyKit = FAMILY_KIT_MAP[_ndFamily];
+  if (_familyKit && !APP.teachingKit) { APP.teachingKit = _familyKit; APP.teachingKitLevel = _ndLevel; }
+  const levelInstrs = _kitInstrumentList(_ndLevel);
+  APP.teachingKit = _savedKit;
+  APP.teachingKitLevel = _savedLevel;
   const families  = [...new Set(INSTRUMENTS.map(i => i.family))].sort((a,b) => {
     const ia = famOrder.indexOf(a);
     const ib = famOrder.indexOf(b);
@@ -12139,7 +12206,7 @@ function _renderNewScoreDialog() {
     if (ib !== -1) return 1;
     return a.localeCompare(b);
   });
-  const instrList = INSTRUMENTS.filter(i => i.family === _ndFamily);
+  const instrList = INSTRUMENTS.filter(i => i.family === _ndFamily && levelInstrs.includes(i.name));
 
   // Family tab buttons
   const famBtns = families.map(f => `
@@ -12153,16 +12220,16 @@ function _renderNewScoreDialog() {
 
   // Instrument grid buttons
   const instrBtns = instrList.map(i => {
-    const staveLabel = '';
+    const count = _ndSelectedInstruments.get(i.name) || 0;
     return `
     <button data-action="selectNDInstr" data-name="${i.name}"
-      class="nd-instr-btn"
+      class="nd-instr-btn${count ? ' nd-sel' : ''}"
       data-name="${i.name}"
       style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
              background:rgba(192,86,33,0.04);color:#4a5568;font-size:11px;cursor:pointer;
              text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
              -webkit-tap-highlight-color:transparent">
-      ${i.name}${staveLabel}
+      ${i.name}${count ? ` <span class="nd-count" style="background:#c05621;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : ''}
     </button>`;
   }).join('');
 
@@ -12241,6 +12308,30 @@ function _renderNewScoreDialog() {
       </span>
     </div>
 
+    ${FAMILY_KIT_MAP[_ndFamily] ? (() => {
+      const _kitName = KIT_CONFIGS[FAMILY_KIT_MAP[_ndFamily]]?.name || '';
+      const _levelLabels = {
+        recorder: { beginner:'Soprano only', intermediate:'Soprano + Alto', advanced:'All recorders' },
+        keyboard: { beginner:'Piano only',   intermediate:'Piano + Celesta', advanced:'All keyboards' },
+      };
+      const _ll = _levelLabels[FAMILY_KIT_MAP[_ndFamily]] || { beginner:'', intermediate:'', advanced:'' };
+      return `
+    <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
+      <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;display:block;text-align:center;margin-bottom:4px;font-weight:600">Level<span style="font-weight:400;color:rgba(74,85,104,0.5)"> — ${_kitName}</span></label>
+      <div style="display:flex;gap:4px">
+          ${['beginner','intermediate','advanced'].map(lvl => `
+          <button data-action="ndSelectLevel" data-level="${lvl}"
+            style="flex:1;padding:6px 4px;border-radius:8px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
+                   background:${lvl===_ndLevel?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
+                   color:${lvl===_ndLevel?'#c05621':'#718096'};font-size:10px;font-weight:${lvl===_ndLevel?'700':'500'};
+                   cursor:pointer;font-family:'Helvetica Neue',Helvetica,sans-serif">
+            <div style="font-weight:700;font-size:11px">${lvl}</div>
+            <div style="font-size:9px;opacity:0.7">${_ll[lvl]}</div>
+          </button>`
+        ).join('')}
+      </div>
+    </div>`; })() : ''}
+
     <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;
                   letter-spacing:0.3px;margin-top:4px;display:block;font-weight:600">Instruments <span id="nd-instr-count" style="font-weight:400">(0)</span></label>
 
@@ -12260,18 +12351,34 @@ function _renderNewScoreDialog() {
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 
-  // Apply selections from multi-select set
+  // Update count display
   setTimeout(() => {
-    document.querySelectorAll('.nd-instr-btn').forEach(b => {
-      if (_ndSelectedInstruments.has(b.dataset.name)) b.classList.add('nd-sel');
-    });
+    const total = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
     const c = document.getElementById('nd-instr-count');
-    if (c) c.textContent = '(' + _ndSelectedInstruments.size + ')';
+    if (c) c.textContent = '(' + total + ')';
   }, 30);
 }
 
 function selectNDFamily(fam) {
   _ndFamily = fam;
+  _renderNewScoreDialog();
+}
+
+function ndSelectLevel(lvl) {
+  _ndLevel = lvl;
+  const kit = FAMILY_KIT_MAP[_ndFamily];
+  // Temporarily pretend this level is active so _kitInstrumentList works
+  const prevKit = APP.teachingKit;
+  const prevLevel = APP.teachingKitLevel;
+  APP.teachingKit = kit;
+  APP.teachingKitLevel = lvl;
+  const allowed = _kitInstrumentList();
+  APP.teachingKit = prevKit;
+  APP.teachingKitLevel = prevLevel;
+  // Remove instruments that aren't available in this level
+  for (const [name] of _ndSelectedInstruments) {
+    if (!allowed.includes(name)) _ndSelectedInstruments.delete(name);
+  }
   _renderNewScoreDialog();
 }
 
@@ -12345,8 +12452,9 @@ function createNewScore() {
   const title     = document.getElementById('nd-title')?.value.trim()    || 'Untitled Score';
   const composer  = document.getElementById('nd-composer')?.value.trim() || '';
   const ks        = parseInt(document.getElementById('nd-ks')?.value)     || 0;
-  const instrNames = _ndSelectedInstruments.size
-    ? [..._ndSelectedInstruments]
+  const totalInstrs = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
+  const instrNames = totalInstrs > 0
+    ? [..._ndSelectedInstruments].flatMap(([name, count]) => Array(count).fill(name))
     : (() => { showToast('Select at least one instrument'); return null; })();
   if (!instrNames) return;
   const tsNum     = parseInt(document.getElementById('nd-ts-num')?.value) || 4;
@@ -12375,6 +12483,18 @@ function createNewScore() {
   }
 
   adoptScore(raw, { clearHistory: true });
+  // Detect kit from selected instruments and apply
+  const selectedFamilies = new Set(instrNames.map(n => INSTRUMENTS.find(i => i.name === n)?.family).filter(Boolean));
+  let kitToApply = null;
+  for (const fam of selectedFamilies) {
+    const k = FAMILY_KIT_MAP[fam];
+    if (k) { kitToApply = k; break; }
+  }
+  if (kitToApply) {
+    applyKit(kitToApply, _ndLevel);
+  } else {
+    clearKit();
+  }
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   APP.undoStack = []; APP.redoStack = []; APP._lastUndoFP = '';
   document.getElementById('score-title').textContent = title;
@@ -12385,7 +12505,7 @@ function createNewScore() {
     }
     document.getElementById('score-area').focus({ preventScroll: true });
   });
-  showToast(`New score — ${instrName}`);
+  showToast(`New score — ${instrNames.length} stave${instrNames.length > 1 ? 's' : ''}`);
 }
 
 function showTitleDialog() {
@@ -12683,7 +12803,7 @@ function bootApp() {
       APP.uiProfile = savedProfile;
       applyUIProfile(savedProfile);
     }
-  } catch(e) {}
+  } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Restore teaching kit from previous session
   try {
@@ -12693,7 +12813,7 @@ function bootApp() {
       APP.teachingKit = savedKit;
       APP.teachingKitLevel = savedKitLevel;
     }
-  } catch(e) {}
+  } catch(e) { console.warn('[Pauta]', e.message); }
 
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
@@ -12702,9 +12822,6 @@ function bootApp() {
   // Start autosave loop (runs every 30 s + on tab close)
   _startAutosave();
   _runBootSelfCheck();
-
-  // Initialise MIDI hardware input
-  initMIDI();
 
   // Offer to restore any autosaved score; opens New Score dialog if none found
   _checkAndOfferRestore(showNewScoreDialog);
@@ -12918,6 +13035,7 @@ _registerAction('rewindPlayback', () => rewindPlayback());
 _registerAction('saveChordSymbol', () => saveChordSymbol());
 _registerAction('saveRehearsalMark', () => saveRehearsalMark());
 _registerAction('saveStaffText', () => saveStaffText());
+_registerAction('ndSelectLevel', (e) => ndSelectLevel(e.target.closest('[data-level]')?.dataset.level));
 _registerAction('selectAIFamily', (e) => selectAIFamily(e.target.closest('[data-family]')?.dataset.family));
 _registerAction('selectDur', (e) => selectDur(e.target.closest('[data-dur]')?.dataset.dur));
 _registerAction('selectNDFamily', (e) => selectNDFamily(e.target.closest('[data-family]')?.dataset.family));
@@ -12932,7 +13050,9 @@ _registerAction('showMixer', () => showMixer());
 _registerAction('showScoreInfo', () => showScoreInfo());
 _registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
 _registerAction('showViewMenu', (e) => showViewMenu(e.target));
-_registerAction('showKitSubmenu', () => showKitSubmenu());
+_registerAction('showExercisesMenu', (e) => showExercisesMenu(e.target));
+_registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.dataset.kit, e.target.closest('[data-level]')?.dataset.level); closeModal(); });
+_registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startGlissando', (e) => startGlissando(e.target.closest('[data-style]')?.dataset.style));
@@ -12958,9 +13078,16 @@ _registerAction('checkAssignmentAnswers', () => checkAssignmentAnswers());
 _registerAction('submitAssignment', () => submitAssignment());
 _registerAction('exitAssignmentMode', () => exitAssignmentMode());
 _registerAction('showExerciseDialog', () => showExerciseDialog());
-_registerAction('startExerciseSession', (e) => startExerciseSession(e.target.closest('[data-type]')?.dataset.type, e.target.closest('[data-diff]')?.dataset.diff));
+_registerAction('startExerciseSession', (e) => {
+  closeModal();
+  const type = e.target.closest('[data-type]')?.dataset.type;
+  const diff = e.target.closest('[data-diff]')?.dataset.diff;
+  if (type) startExerciseSession(type, diff);
+});
 _registerAction('selectExerciseDifficulty', (e) => selectExerciseDifficulty(e.target.closest('[data-diff]')?.dataset.diff));
 _registerAction('nextExercise', () => nextExercise());
+_registerAction('retryExercise', () => retryExercise());
+_registerAction('retryDictation', () => retryDictation());
 _registerAction('endExerciseSession', () => endExerciseSession());
 _registerAction('closeModalExercise', () => closeModalExercise());
 _registerAction('restartExerciseSession', () => restartExerciseSession());
@@ -12993,15 +13120,14 @@ _registerAction('selectNDInstr', (e) => {
   const btn = e.target.closest('.nd-instr-btn');
   if (!btn) return;
   const name = btn.dataset.name;
-  if (_ndSelectedInstruments.has(name)) {
-    _ndSelectedInstruments.delete(name);
-    btn.classList.remove('nd-sel');
-  } else {
-    _ndSelectedInstruments.add(name);
-    btn.classList.add('nd-sel');
-  }
+  const cur = _ndSelectedInstruments.get(name) || 0;
+  _ndSelectedInstruments.set(name, cur + 1);
+  btn.classList.add('nd-sel');
+  const badge = btn.querySelector('.nd-count');
+  if (badge) badge.textContent = cur + 1;
+  const total = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
   const c = document.getElementById('nd-instr-count');
-  if (c) c.textContent = '(' + _ndSelectedInstruments.size + ')';
+  if (c) c.textContent = '(' + total + ')';
 });
 
 // Single delegated click handler for all [data-action] elements
@@ -13011,8 +13137,6 @@ document.addEventListener('click', (e) => {
   const action = target.dataset.action;
   const fn = _ACTION_MAP[action];
   if (fn) { fn(e); return; }
-  // Fallback: try calling window[action] for unconverted handlers
-  if (typeof window[action] === 'function') { window[action](); }
 });
 // Delegated input handler for range sliders with data-action
 document.addEventListener('input', (e) => {
