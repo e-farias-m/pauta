@@ -9657,6 +9657,163 @@ function clearAllImported() {
   showToast('Imported data cleared');
 }
 
+// ── Starter Assignments ─────────────────────────────────────────
+const STARTER_TEMPLATES = [
+  { id: 'scale-major',      label: 'Major Scale (1 octave)',    desc: 'C, G, D, A, E, B, F',     fn: () => _genScaleAssignment('major', 1) },
+  { id: 'scale-minor-nat',  label: 'Natural Minor Scale',       desc: 'A, E, B, F#, C#, G#, D#', fn: () => _genScaleAssignment('natural-minor', 1) },
+  { id: 'scale-minor-har',  label: 'Harmonic Minor Scale',      desc: 'A, E, B, F#, C#, G#, D#', fn: () => _genScaleAssignment('harmonic-minor', 1) },
+  { id: 'scale-minor-mel',  label: 'Melodic Minor Scale',       desc: 'A, E, B, F#, C#, G#, D#', fn: () => _genScaleAssignment('melodic-minor', 1) },
+  { id: 'arpeggio-major',   label: 'Major Arpeggio',            desc: 'All 15 keys',             fn: () => _genScaleAssignment('major-arpeggio', 1) },
+  { id: 'arpeggio-minor',   label: 'Minor Arpeggio',            desc: 'All 15 keys',             fn: () => _genScaleAssignment('minor-arpeggio', 1) },
+  { id: 'rhythm-beginner',  label: 'Rhythm Worksheet (Beginner)', desc: '8 measures, 75% notes',  fn: () => _genRhythmAssignment('beginner') },
+  { id: 'rhythm-inter',     label: 'Rhythm Worksheet (Intermed.)', desc: '8 measures, 50% notes',  fn: () => _genRhythmAssignment('intermediate') },
+  { id: 'rhythm-adv',       label: 'Rhythm Worksheet (Advanced)', desc: '8 measures, 35% notes',   fn: () => _genRhythmAssignment('advanced') },
+  { id: 'melody-dict',      label: 'Melody Dictation Template', desc: '4-8 note melodies',       fn: () => _genMelodyDictAssignment() },
+];
+
+function showStarterAssignmentsDialog() {
+  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  makeModal(`
+    <h2>📋 Starter Assignments</h2>
+    <p style="color:#4a5568;font-size:13px;margin-bottom:10px">
+      Quick-generate common assignment templates as .mscz files.
+      Each includes answer key where applicable.
+    </p>
+    <div style="max-height:300px;overflow-y:auto">
+      ${STARTER_TEMPLATES.map(t => `
+        <button class="panel-btn-wide" style="margin-bottom:6px;text-align:left" onclick="event.stopPropagation(); downloadStarterAssignment('${t.id}')">
+          <div style="font-weight:600;font-size:13px;color:#2d3748">${t.label}</div>
+          <div style="font-size:11px;color:rgba(74,85,104,0.7)">${t.desc}</div>
+        </button>
+      `).join('')}
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function _genScaleAssignment(type, octaves) {
+  const keys = ['C','G','D','A','E','B','F#','C#','F','Bb','Eb','Ab','Db','Gb','Cb'];
+  const allKeys = keys.map(k => ({ key: k, ks: k === 'C' ? 0 : keys.indexOf(k) <= 6 ? keys.indexOf(k) : keys.indexOf(k) - 14 }));
+  const exercises = [];
+  allKeys.forEach(({key, ks}) => {
+    const scale = generateScale(ks, type, octaves, type.startsWith('minor') ? 5 : 4);
+    if (!scale.length) return;
+    const instr = _kitDefaultInstrument() || 'Piano';
+    const score = createScore({ title: `${key} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instr], ts: {num:4,den:4}, ks });
+    const stave = score.parts[0].staves[0];
+    stave.measures = [];
+    const notes = scale.map((n, i) => mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
+    const measuresNeeded = Math.ceil(notes.length / 4);
+    for (let m = 0; m < measuresNeeded; m++) {
+      const slice = notes.slice(m*4, m*4+4);
+      stave.measures.push({
+        timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
+        keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0, notes: slice
+      });
+    }
+    exercises.push({ title: `${key} ${type}`, score });
+  });
+  return exercises;
+}
+
+function _genRhythmAssignment(difficulty) {
+  const exercises = [];
+  for (let i = 0; i < 5; i++) {
+    const ws = _genRhythmWorksheet({ beginner:0, intermediate:1, advanced:2 }[difficulty]);
+    const score = createScore({ title: `Rhythm Worksheet ${i+1}`, instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0 });
+    const stave = score.parts[0].staves[0];
+    stave.measures = [];
+    for (let m = 0; m < 8; m++) {
+      const slice = ws.target.beats.slice(m*4, m*4+4);
+      const notes = slice.map((b, bi) => b === 'q' ? mkNote(60, 'q', bi === 0 ? 0 : null) : mkRest('q'));
+      stave.measures.push({
+        timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
+        keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0, notes
+      });
+    }
+    exercises.push({ title: `Rhythm ${i+1}`, score, answerKey: ws.target.beats.join(' ') });
+  }
+  return exercises;
+}
+
+function _genMelodyDictAssignment() {
+  const exercises = [];
+  for (let i = 0; i < 5; i++) {
+    const md = _genMelodyDict(1);
+    const score = createScore({ title: `Melody Dictation ${i+1}`, instruments: ['Piano'], ts: {num:4,den:4}, ks: 0 });
+    const stave = score.parts[0].staves[0];
+    stave.measures = [];
+    const totalBeats = md.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
+    const measureCount = Math.max(1, Math.ceil(totalBeats / 4));
+    for (let m = 0; m < measureCount; m++) {
+      stave.measures.push({
+        timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
+        keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0, notes: [mkRest('w')]
+      });
+    }
+    exercises.push({ title: `Melody Dictation ${i+1}`, score, answerKey: md.target.notes.map(n => n.pitch).join(',') });
+  }
+  return exercises;
+}
+
+function downloadStarterAssignment(templateId) {
+  closeModal();
+  const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
+  if (!tpl) return;
+  showToast('Generating…');
+  setTimeout(() => {
+    const exercises = tpl.fn();
+    if (!exercises.length) { showToast('No exercises generated'); return; }
+    if (exercises.length === 1) {
+      const { score, answerKey } = exercises[0];
+      adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+      renderScore();
+      _exportMSCZ(score, answerKey, exercises[0].title);
+    } else {
+      // Multiple exercises: zip them as a multi-file .mscz
+      _exportMSCZBatch(exercises, tpl.label);
+    }
+  }, 50);
+}
+
+function _exportMSCZ(score, answerKey, filename) {
+  const mscx = exportMSCXFromScore(score);
+  if (answerKey) {
+    score.answerKey = answerKey;
+    const mscxWithKey = exportMSCXFromScore(score);
+    _downloadBlob(new Blob([mscxWithKey], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
+  } else {
+    _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
+  }
+  showToast('Downloaded: ' + filename + '.mscx');
+}
+
+function _exportMSCZBatch(exercises, label) {
+  // Create a simple combined score with all exercises sequentially
+  const combined = createScore({ title: label, instruments: ['Piano'], ts: {num:4,den:4}, ks: 0 });
+  combined.parts[0].staves[0].measures = [];
+  exercises.forEach((ex, idx) => {
+    ex.score.parts[0].staves[0].measures.forEach((m, mi) => {
+      const newM = { ...m };
+      if (mi === 0 && idx === 0) newM.timeSigNum = 4;
+      combined.parts[0].staves[0].measures.push(newM);
+    });
+    if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [mkRest('w')] });
+  });
+  adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+  const mscx = exportMSCXFromScore(combined);
+  _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), label + '.mscx');
+  showToast('Downloaded: ' + label + '.mscx');
+}
+
+function _downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Diagnostic Assessment ──────────────────────────────────────
 const DIAG_CONFIG = {
   note:     { count: 5, difficulty: 0, label: 'Note ID' },
@@ -9936,8 +10093,10 @@ function _hideDiagBar() {
  showRhythmWorksheetDialog, _startRhythmWorksheet, checkRhythmWorksheet,
  _saveExerciseResult, _loadResults, showStudentProgress, exportProgress, importProgress,
  clearProgress, showTeacherDashboard, clearAllImported,
- showDiagnosticDialog, _startDiagnostic, _presentDiagQuestion, _answerDiag, _finishDiagnostic,
- _showDiagBar, _diagSubmit, _updateDiagBar, _hideDiagBar
+  showDiagnosticDialog, _startDiagnostic, _presentDiagQuestion, _answerDiag, _finishDiagnostic,
+  _showDiagBar, _diagSubmit, _updateDiagBar, _hideDiagBar,
+  showStarterAssignmentsDialog, downloadStarterAssignment, _genScaleAssignment, _genRhythmAssignment,
+  _genMelodyDictAssignment, _exportMSCZ, _exportMSCZBatch, _downloadBlob
 ].forEach(fn => { EXERCISE[fn.name] = fn; });
 
 function showTransposeDialog() {
@@ -12244,6 +12403,8 @@ function showExercisesMenu(btn) {
     {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
     {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},
+    {label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog},
+    {sep:true},
     {label:'📊 My Progress', fn:showStudentProgress},
     {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
     {sep:true},
@@ -13580,6 +13741,8 @@ _registerAction('showTeacherDashboard', () => showTeacherDashboard());
 _registerAction('clearAllImported', () => clearAllImported());
 _registerAction('showDiagnosticDialog', () => showDiagnosticDialog());
 _registerAction('diagSubmit', () => _diagSubmit());
+_registerAction('showStarterAssignmentsDialog', () => showStarterAssignmentsDialog());
+_registerAction('downloadStarterAssignment', (e) => downloadStarterAssignment(e.target.dataset.id));
 _registerAction('startExerciseSession', (e) => {
   closeModal();
   const type = e.target.closest('[data-type]')?.dataset.type;
