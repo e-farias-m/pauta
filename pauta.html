@@ -1684,7 +1684,7 @@ let VF; // assigned in bootApp() after VexFlow loads dynamically
   glissPending: ({startMi:number, startNi:number, si:number, style:string}|null),
   showNoteLabels: boolean, noteLabelMode: string,
   playing: boolean, tempo: number, pauseVolumeRatio: number,
-  undoStack: Score[], redoStack: Score[], _lastUndoFP: string,
+  undoStack: Array<{score:Score, ui:object}>, redoStack: Array<{score:Score, ui:object}>, _lastUndoFP: string,
   audioCtx: (AudioContext|null), staveLayout: Array, noteLayout: Array,
   playTimers: Array, playStartTime: number,
   countIn: boolean, metronome: boolean, metronomeSubdivision: string,
@@ -7889,6 +7889,7 @@ function insertNoteByName(name) {
 }
 
 function insertRest() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (!APP.inputMode) {
     showToast('Tap ✏️ Input first to enter note-input mode');
     return;
@@ -8230,6 +8231,7 @@ function applyBarline(type) {
 
 // ── Clef Changes ─────────────────────────────────────────────────
 function applyClefChange(clef) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
@@ -8241,6 +8243,7 @@ function applyClefChange(clef) {
 
 // ── Navigation Markers (segno, coda, Fine, D.C., D.S.) ────────────
 function applyMarker(type) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
   commitChange(score => {
     score.parts[0].staves.forEach(s => {
@@ -8253,6 +8256,7 @@ function applyMarker(type) {
 }
 
 function clearMarker() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
   commitChange(score => {
     score.parts[0].staves.forEach(s => {
@@ -8263,6 +8267,7 @@ function clearMarker() {
 }
 
 function clearTie() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || !n.tieToNext) { showToast('Selected note has no tie'); return; }
@@ -8273,6 +8278,7 @@ function clearTie() {
 }
 
 function clearSlur() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const si = APP.selectedStaff;
   const mi = APP.selectedMeasure;
@@ -8302,6 +8308,7 @@ function toggleTempoDisplay() {
 }
 
 function applyTempo(name, bpm) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   commitChange(score => {
     score.parts[0].staves[0].measures[mi].tempo = {name, bpm};
@@ -8488,6 +8495,7 @@ function _checkVoltaComplete(mi) {
 }
 
 function clearVolta() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   commitChange(score => {
     score.voltas = (score.voltas || []).filter(
@@ -8540,6 +8548,7 @@ function _checkOttavaComplete(mi, si, ni) {
 }
 
 function clearOttava() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   const si = APP.selectedStaff;
   const ni = APP.selectedNoteIdx;
@@ -8608,6 +8617,7 @@ function addGraceNote(name) {
 }
 
 function clearGraceNotes() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
@@ -8625,6 +8635,7 @@ function clearGraceNotes() {
 }
 
 function convertToGrace(slashed) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const m = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
   if (!m) return;
@@ -8683,6 +8694,7 @@ function _checkGlissComplete(mi, si, ni) {
 }
 
 function clearGlissando() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure, si = APP.selectedStaff, ni = APP.selectedNoteIdx;
   commitChange(score => {
     score.glissandos = (score.glissandos || []).filter(
@@ -8815,6 +8827,7 @@ function selectAllNotes() {
 
 // ── Delete Measure ────────────────────────────────────────────────
 function deleteMeasure() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const nM = APP.score.parts[0].staves[0].measures.length;
   if (nM <= 1) { showToast('Cannot delete the only measure'); return; }
   const mi = APP.selectedMeasure;
@@ -8828,6 +8841,7 @@ function deleteMeasure() {
 }
 
 function toggleLineBreak() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   const measure = APP.score.parts[0].staves[0].measures[mi];
   if (!measure) return;
@@ -8904,6 +8918,7 @@ const DIA_SEMITONES = [0,2,4,5,7,9,11]; // C D E F G A B
 // Transpose the entire score (all parts, all staves) by a number of semitones.
 // diaSteps is the diatonic shift (for accidental book-keeping, +/- integer).
 function transposeScore(semitones) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (!semitones) return;
   commitChange(score => {
     score.parts.forEach(part => {
@@ -9986,6 +10001,7 @@ function navigateNote(direction, extend) {
   }
 }
 function insertMeasure() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   const prevM = mi > 0 ? APP.score.parts[0].staves[0].measures[mi - 1] : null;
   const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [mkRest('w')] };
@@ -9997,6 +10013,7 @@ function insertMeasure() {
   _auditAnnotationsAfterEdit(APP.score, 'insertMeasure', mi);
 }
 function addMeasure() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
   }, { toast: 'Measure added' });
@@ -10033,29 +10050,62 @@ function _scoreFingerprint(score) {
   } catch(e) { return Math.random().toString(); }
 }
 
+function _snapshotUIState() {
+  return {
+    selectedMeasure: APP.selectedMeasure,
+    selectedStaff: APP.selectedStaff,
+    selectedNoteIdx: APP.selectedNoteIdx,
+    selStartIdx: APP.selStartIdx,
+    selectedGraceIdx: APP.selectedGraceIdx,
+    inputMode: APP.inputMode,
+    chordMode: APP.chordMode,
+    markingMode: APP.markingMode,
+    markingStart: APP.markingStart,
+    graceMode: APP.graceMode,
+    curDur: APP.curDur,
+    curDot: APP.curDot,
+    curRest: APP.curRest,
+    curAcc: APP.curAcc,
+    curNotehead: APP.curNotehead,
+    curOctave: APP.curOctave,
+    curVoice: APP.curVoice,
+    curTuplet: APP.curTuplet,
+    tupletPending: APP.tupletPending,
+    tupletGroupId: APP.tupletGroupId,
+    voltaPending: APP.voltaPending,
+    ottavaPending: APP.ottavaPending,
+    glissPending: APP.glissPending,
+  };
+}
+function _restoreUIState(snapshot) {
+  if (!snapshot) return;
+  Object.assign(APP, snapshot);
+}
 function pushUndo() {
   const fp = _scoreFingerprint(APP.score);
   if (APP._lastUndoFP === fp) return;
   APP._lastUndoFP = fp;
-  APP.undoStack.push(_cloneScore(APP.score));
+  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
   APP.redoStack = [];
   if (APP.undoStack.length > 60) APP.undoStack.shift();
 }
 function undo() {
   if (!APP.undoStack.length) { showToast('Nothing to undo'); return; }
-  APP.redoStack.push(_cloneScore(APP.score));
-  APP.score = APP.undoStack.pop();
+  APP.redoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  const entry = APP.undoStack.pop();
+  APP.score = entry.score;
+  _restoreUIState(entry.ui);
   APP._lastUndoFP = _scoreFingerprint(APP.score);
-  APP.selectedNoteIdx = -1;
   _checkInvariants(APP.score);
   renderScore(); showToast('Undo');
 }
 function redo() {
   if (!APP.redoStack.length) { showToast('Nothing to redo'); return; }
-  APP.undoStack.push(_cloneScore(APP.score));
-  APP.score = APP.redoStack.pop();
+  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  const entry = APP.redoStack.pop();
+  APP.score = entry.score;
+  _restoreUIState(entry.ui);
   APP._lastUndoFP = _scoreFingerprint(APP.score);
-  APP.selectedNoteIdx = -1;
   _checkInvariants(APP.score);
   renderScore(); showToast('Redo');
 }
@@ -11512,6 +11562,7 @@ function commitLyric(mi, si, ni, rawText, separator) {
 }
 
 function clearLyric() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
   commitChange(score => { delete n.lyric; }, { toast: 'Lyric removed' });
@@ -11652,6 +11703,7 @@ function commitChord(mi, si, ni, rawText) {
 }
 
 function saveChordSymbol() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const input = document.getElementById('chord-inline-input');
   if (!input) { editChordSymbol(); return; }
   const mi = APP.selectedMeasure;
@@ -11662,6 +11714,7 @@ function saveChordSymbol() {
 }
 
 function clearChordSymbol() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
   commitChange(score => {
@@ -11696,6 +11749,7 @@ function addRehearsalMark(type) {
 }
 
 function editRehearsalMark() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const cur = APP.score.rehearsalMarks?.find(r => r.mi === APP.selectedMeasure)?.label || '';
   makeModal(`
     <h2>Rehearsal Mark</h2>
@@ -11711,6 +11765,7 @@ function editRehearsalMark() {
 }
 
 function saveRehearsalMark() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const label = document.getElementById('rm-input')?.value.trim();
   if (!label) { closeModal(); return; }
   commitChange(score => {
@@ -11721,6 +11776,7 @@ function saveRehearsalMark() {
 }
 
 function clearRehearsalMark() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   commitChange(score => {
     score.rehearsalMarks = (score.rehearsalMarks || []).filter(r => r.mi !== APP.selectedMeasure);
   }, { toast: 'Rehearsal mark removed' });
@@ -11791,6 +11847,7 @@ function addStaffText() {
 }
 
 function saveStaffText() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const text  = document.getElementById('st-input')?.value.trim();
   const style = document.getElementById('st-style')?.value || 'normal';
   const size  = parseInt(document.getElementById('st-size')?.value) || 12;
@@ -11811,6 +11868,7 @@ function saveStaffText() {
 }
 
 function clearStaffText() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   commitChange(score => {
     if (APP.selectedNoteIdx >= 0) {
       const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
@@ -12125,6 +12183,7 @@ function showPickupDialog() {
 }
 
 function setPickupMeasure() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const num = parseInt(document.getElementById('pu-num')?.value) || 1;
   const den = parseInt(document.getElementById('pu-den')?.value) || 4;
   const ts = resolvedTimeSig(0, 0);
@@ -12147,6 +12206,7 @@ function setPickupMeasure() {
 }
 
 function removePickupMeasure() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
       delete s.measures[0].pickup;
@@ -12608,6 +12668,7 @@ function tsSliderChange() {
 }
 
 function tsApplyFromSliders() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const num    = parseInt(document.getElementById('ts-num').value);
   const denIdx = parseInt(document.getElementById('ts-den').value);
   const den    = DEN_VALUES[denIdx];
@@ -12615,6 +12676,7 @@ function tsApplyFromSliders() {
 }
 
 function applyTimeSig(num, den) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   commitChange(score => {
     score.parts[0].staves.forEach(stave => {
@@ -12680,6 +12742,7 @@ function showKeySigDialog() {
 }
 
 function applyKeySig(ks) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   const info = ALL_KEY_SIGS.find(k => k.ks === ks);
   commitChange(score => {
