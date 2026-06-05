@@ -1,0 +1,14 @@
+{
+  "name": "pauta",
+  "version": "0.21.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline-first classroom music-learning environment",
+  "devDependencies": {
+    "happy-dom": "^15.0.0"
+  },
+  "scripts": {
+    "test": "node test-score-model.js",
+    "test:all": "node test-score-model.js && node test-interactions.js"
+  }
+}
