@@ -9657,6 +9657,274 @@ function clearAllImported() {
   showToast('Imported data cleared');
 }
 
+// ── Diagnostic Assessment ──────────────────────────────────────
+const DIAG_CONFIG = {
+  note:     { count: 5, difficulty: 0, label: 'Note ID' },
+  interval: { count: 5, difficulty: 1, label: 'Intervals' },
+  keysig:   { count: 3, difficulty: 1, label: 'Key Signatures' },
+  rhythm:   { count: 1, difficulty: 1, label: 'Rhythm' },
+};
+const DIAG_PLACEMENTS = [
+  { minPct: 0,  label: 'Beginner',      profile: 'beginner',     desc: 'Keep practicing with the basics!' },
+  { minPct: 50, label: 'Intermediate',  profile: 'intermediate', desc: 'Good foundation! Ready for more.' },
+  { minPct: 80, label: 'Advanced',      profile: 'advanced',     desc: 'Strong skills! Challenge yourself.' },
+];
+
+function showDiagnosticDialog() {
+  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  makeModal(`
+    <h2>🧪 Diagnostic Assessment</h2>
+    <p style="color:#4a5568;font-size:13px;text-align:center;line-height:1.6;margin:8px 0">
+      A quick 5-minute placement test covering<Br>
+      <b>notes</b> · <b>intervals</b> · <b>key signatures</b> · <b>rhythm</b>
+    </p>
+    <div style="background:rgba(192,86,33,0.06);border-radius:6px;padding:8px 12px;font-size:11px;color:rgba(74,85,104,0.7);margin-bottom:12px;line-height:1.5">
+      You'll get a recommended difficulty profile at the end based on your scores.
+    </div>
+    <button class="modal-btn primary" id="diag-start-btn">▶ Start Assessment</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+  setTimeout(() => {
+    const btn = document.getElementById('diag-start-btn');
+    if (btn) btn.addEventListener('click', () => { closeModal(); _startDiagnostic(); });
+  }, 50);
+}
+
+function _startDiagnostic() {
+  const questions = [];
+  const cats = ['note', 'interval', 'keysig', 'rhythm'];
+  for (const cat of cats) {
+    const cfg = DIAG_CONFIG[cat];
+    for (let i = 0; i < cfg.count; i++) {
+      let ex;
+      if (cat === 'note')     ex = _genNoteId(cfg.difficulty);
+      else if (cat === 'interval') ex = _genIntervalId(cfg.difficulty);
+      else if (cat === 'keysig')   ex = _genKeySigId(cfg.difficulty);
+      else if (cat === 'rhythm')   ex = _genRhythmWorksheet(cfg.difficulty);
+      questions.push({ type: cat, ex });
+    }
+  }
+  APP.diagnostic = {
+    questions, idx: 0, results: [],
+    correct: { note: 0, interval: 0, keysig: 0, rhythm: 0 },
+    total:   { note: 5, interval: 5, keysig: 3, rhythm: 1 },
+    startedAt: Date.now(),
+  };
+  APP.exerciseMode = true;
+  _setExerciseUI(true);
+  _showDiagBar();
+  _presentDiagQuestion();
+}
+
+function _presentDiagQuestion() {
+  const d = APP.diagnostic;
+  if (!d || d.idx >= d.questions.length) { _finishDiagnostic(); return; }
+  const q = d.questions[d.idx];
+  // Present using existing functions
+  if (q.type === 'note')     _presentNoteId(q.ex);
+  else if (q.type === 'interval') _presentIntervalId(q.ex);
+  else if (q.type === 'keysig')   _presentKeySigId(q.ex);
+  else if (q.type === 'rhythm')   _presentRhythmWorksheet(q.ex);
+  _updateDiagBar();
+  // For rhythm, wire the check button to auto-advance
+  if (q.type === 'rhythm') {
+    const checkBtn = document.getElementById('rg-check-btn');
+    if (checkBtn) {
+      const origClick = checkBtn.onclick;
+      checkBtn.onclick = null;
+      checkBtn.addEventListener('click', () => {
+        const s = APP.exerciseSession;
+        if (s && s.current.type === EXERCISE_TYPES.RHYTHM_WS) {
+          const beforeTotal = s.totalCount;
+          checkRhythmWorksheet();
+          // After check, record the result for diagnostic
+          if (s.totalCount > beforeTotal) {
+            const last = s.completed[s.completed.length - 1];
+            d.results.push({ type: 'rhythm', correct: last.ok, pct: s.correctCount / s.totalCount * 100 });
+            if (last.ok) d.correct.rhythm++;
+            d.idx++;
+            setTimeout(() => _presentDiagQuestion(), 1000);
+          }
+        }
+      });
+    }
+  }
+}
+
+function _answerDiag(userAnswer) {
+  const d = APP.diagnostic;
+  if (!d) return;
+  const q = d.questions[d.idx];
+  if (!q || q.type === 'rhythm') return;
+
+  let isCorrect = false;
+  if (q.type === 'note') {
+    const norm = s => String(s).trim().toLowerCase().replace(/\s+/g, '');
+    isCorrect = norm(userAnswer) === norm(q.ex.answer);
+  } else if (q.type === 'interval') {
+    isCorrect = _intervalMatches(userAnswer, q.ex.answer);
+  } else if (q.type === 'keysig') {
+    const normKey = s => {
+      let v = String(s).trim().toLowerCase().replace(/\s+/g, '');
+      v = v.replace(/^(.*?)(?:minor|min)$/, '$1m');
+      v = v.replace(/^(.*?)major$/, '$1');
+      return v;
+    };
+    isCorrect = normKey(userAnswer) === normKey(q.ex.answer);
+  }
+
+  if (isCorrect) d.correct[q.type]++;
+  d.results.push({ type: q.type, correct: isCorrect, answer: userAnswer, expected: q.ex.answer });
+  d.idx++;
+
+  // Brief feedback
+  if (isCorrect) {
+    _showSuccessBanner('✓ Correct!');
+    setTimeout(() => { _hideSuccessBanner(); _presentDiagQuestion(); }, 800);
+  } else {
+    showToast('Not quite — answer: ' + q.ex.answer);
+    setTimeout(() => _presentDiagQuestion(), 1000);
+  }
+}
+
+function _finishDiagnostic() {
+  _hideDiagBar();
+  _hideSuccessBanner();
+  // Cleanup
+  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','diagnostic-bar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+
+  const d = APP.diagnostic;
+  if (!d) return;
+
+  const totalQs = d.questions.length;
+  const totalCorrect = d.correct.note + d.correct.interval + d.correct.keysig + d.correct.rhythm;
+  const pct = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0;
+  const time = Math.floor((Date.now() - d.startedAt) / 1000);
+
+  // Placement
+  let placement = DIAG_PLACEMENTS[0];
+  for (const p of DIAG_PLACEMENTS) {
+    if (pct >= p.minPct) placement = p;
+  }
+
+  const catResults = ['note', 'interval', 'keysig', 'rhythm'].map(cat => {
+    const tot = DIAG_CONFIG[cat].count;
+    const corr = d.correct[cat] || 0;
+    const catPct = tot > 0 ? Math.round((corr / tot) * 100) : 0;
+    const barW = Math.max(4, catPct);
+    const barColor = catPct >= 80 ? '#22c55e' : catPct >= 50 ? '#e6a817' : '#e06850';
+    return `<div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#4a5568;margin-bottom:2px">
+        <span style="font-weight:600">${DIAG_CONFIG[cat].label}</span>
+        <span>${corr}/${tot} (${catPct}%)</span>
+      </div>
+      <div style="height:6px;background:rgba(0,0,0,0.06);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${barW}%;background:${barColor};border-radius:3px;transition:width 0.6s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  APP.exerciseMode = false;
+  APP.diagnostic = null;
+  _setExerciseUI(false);
+  _validateModeState();
+
+  makeModal(`
+    <h2>🧪 Assessment Complete</h2>
+    <div style="text-align:center;margin-bottom:10px">
+      <div style="font-size:38px;font-weight:700;color:#c05621">${pct}%</div>
+      <div style="font-size:13px;color:#4a5568">${totalCorrect}/${totalQs} correct · ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
+    </div>
+    <div style="background:rgba(192,86,33,0.08);border-radius:8px;padding:8px 12px;text-align:center;margin-bottom:10px">
+      <div style="font-size:11px;color:rgba(74,85,104,0.6)">Recommended level</div>
+      <div style="font-size:20px;font-weight:700;color:#c05621;margin-top:2px">${placement.label}</div>
+      <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-top:2px">${placement.desc}</div>
+    </div>
+    <div style="margin-bottom:10px">${catResults}</div>
+    <button class="modal-btn primary" id="diag-apply-profile">Apply ${placement.label} Profile</button>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+  `);
+
+  setTimeout(() => {
+    const applyBtn = document.getElementById('diag-apply-profile');
+    if (applyBtn) applyBtn.addEventListener('click', () => {
+      closeModal();
+      const kitLevel = placement.label.toLowerCase();
+      applyKit(APP.teachingKit || 'recorder', kitLevel);
+      applyUIProfile(placement.profile);
+      showToast('Profile set to: ' + placement.label);
+      renderScore();
+    });
+  }, 50);
+
+  // Save diagnostic result
+  const results = _loadResults();
+  results.push({
+    type: 'diagnostic', difficulty: placement.label,
+    date: Date.now(), correct: totalCorrect, total: totalQs, pct,
+    streak: 0, maxStreak: 0, time,
+  });
+  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+}
+
+function _showDiagBar() {
+  const existing = document.getElementById('diagnostic-bar');
+  if (existing) existing.remove();
+  const bar = document.createElement('div');
+  bar.id = 'diagnostic-bar';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:8px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
+  bar.innerHTML = `
+    <span id="diag-progress" style="font-weight:600;white-space:nowrap;min-width:80px">Question 1/14</span>
+    <span id="diag-cat" style="font-size:11px;color:rgba(74,85,104,0.6);min-width:60px">Note ID</span>
+    <input id="diag-answer" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <button class="modal-btn primary" id="diag-submit" style="padding:4px 12px;font-size:12px">Submit</button>
+  `;
+  document.body.appendChild(bar);
+  setTimeout(() => {
+    const inp = document.getElementById('diag-answer');
+    const btn = document.getElementById('diag-submit');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') _diagSubmit(); });
+    }
+    if (btn) btn.addEventListener('click', _diagSubmit);
+  }, 50);
+}
+
+function _diagSubmit() {
+  const inp = document.getElementById('diag-answer');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) { showToast('Type your answer first'); return; }
+  inp.value = '';
+  _answerDiag(val);
+}
+
+function _updateDiagBar() {
+  const d = APP.diagnostic;
+  if (!d) return;
+  const q = d.questions[d.idx];
+  const progressEl = document.getElementById('diag-progress');
+  const catEl = document.getElementById('diag-cat');
+  const inputEl = document.getElementById('diag-answer');
+  if (progressEl) progressEl.textContent = `Q ${d.idx + 1}/${d.questions.length}`;
+  if (catEl) catEl.textContent = q ? DIAG_CONFIG[q.type]?.label || q.type : '';
+  // Hide input bar for rhythm (uses beat grid)
+  if (inputEl) {
+    inputEl.style.display = q?.type === 'rhythm' ? 'none' : '';
+    const submitBtn = document.getElementById('diag-submit');
+    if (submitBtn) submitBtn.style.display = q?.type === 'rhythm' ? 'none' : '';
+  }
+}
+
+function _hideDiagBar() {
+  const bar = document.getElementById('diagnostic-bar');
+  if (bar) bar.remove();
+}
+
 // ── Assign exercise functions to EXERCISE namespace ────────────
 [generateExercise, startExerciseSession, endExerciseSession, nextExercise, retryExercise,
  checkExerciseAnswer, showExerciseDialog, selectExerciseDifficulty,
