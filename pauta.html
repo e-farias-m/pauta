@@ -838,6 +838,29 @@ body.exercise-mode #score-title::after {
 body.exercise-mode .btn-top:not([data-action="togglePlayback"]):not([data-action="stopPlayback"]) { opacity: 0.5; pointer-events: none; }
 body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
+/* ── Debug Overlay ───────────────────────────────────────────── */
+#debug-overlay {
+  display: none;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: rgba(30, 30, 40, 0.92);
+  color: #e0e0e0;
+  font: 11px/1.4 'SF Mono', Menlo, monospace;
+  padding: 12px 16px;
+  z-index: 999;
+  max-height: 50%;
+  overflow-y: auto;
+  border-bottom: 2px solid #c05621;
+  white-space: pre;
+  pointer-events: auto;
+}
+#debug-overlay.open { display: block; }
+#debug-overlay .dbg-section { margin-bottom: 8px; }
+#debug-overlay .dbg-section strong { color: #f0a070; }
+#debug-overlay .dbg-warn { color: #f0c070; }
+#debug-overlay .dbg-err  { color: #e07060; }
+#debug-overlay .dbg-ok   { color: #70c070; }
+
 </style>
 </head>
 <body>
@@ -952,6 +975,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 <div id="score-area" tabindex="0">
   <div id="score-canvas-container">
     <div id="score-svg"></div>
+    <div id="debug-overlay"></div>
   </div>
 </div>
 
@@ -1611,8 +1635,8 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.16.5 — Exercise engine, practice mode, assignment mode,
-//            teaching kits, UI profiles, help system
+//  v0.19.0 — Invariant checks, annotation audit, mode guards,
+//            debug overlay, JSDoc types, scale generator
 // ================================================================
 //
 //  ARCHITECTURE MAP (single-file, top → bottom)
@@ -1643,6 +1667,37 @@ let VF; // assigned in bootApp() after VexFlow loads dynamically
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 1: APP State & Configuration
 // ═══════════════════════════════════════════════════════════════════
+/** @type {{
+  score: Score|null,
+  selectedMeasure: number, selectedStaff: number, selectedNoteIdx: number,
+  selectedGraceIdx: number, selStartIdx: number,
+  inputMode: boolean, chordMode: boolean, markingMode: string|null,
+  markingStart: ({mi:number, si:number, ni:number}|null),
+  graceMode: boolean, graceSlashed: boolean,
+  curDur: string, curDot: boolean, curRest: boolean, curAcc: string|null,
+  curNotehead: string|null, curOctave: number, curVoice: number,
+  lyricBold: boolean, lyricItalic: boolean, showTempoOnScore: boolean,
+  partView: number|null,
+  curTuplet: ({num:number, den:number}|null), tupletPending: number, tupletGroupId: number,
+  voltaPending: ({label:string, startMi:number}|null),
+  ottavaPending: ({type:string, startMi:number, startNi:number, si:number}|null),
+  glissPending: ({startMi:number, startNi:number, si:number, style:string}|null),
+  showNoteLabels: boolean, noteLabelMode: string,
+  playing: boolean, tempo: number, pauseVolumeRatio: number,
+  undoStack: Score[], redoStack: Score[], _lastUndoFP: string,
+  audioCtx: (AudioContext|null), staveLayout: Array, noteLayout: Array,
+  playTimers: Array, playStartTime: number,
+  countIn: boolean, metronome: boolean, metronomeSubdivision: string,
+  practiceMode: boolean, micInput: boolean,
+  assignmentMode: boolean, currentAssignment: object|null,
+  exerciseMode: boolean, exerciseSession: object|null, exerciseDifficulty: string,
+  uiProfile: string, teachingKit: string|null, teachingKitLevel: string,
+  clipboard: object|null,
+  showMeasureNumbers: boolean, showMultiMeasureRests: boolean,
+  showTheoryOverlay: boolean, showRhythmCounting: boolean,
+  zoom: number, continuousView: boolean,
+  masterVolume: number, metronomeVolume: number
+}} */
 const APP = {
   score: null,
   selectedMeasure: 0,
@@ -1718,12 +1773,151 @@ const APP = {
   pauseVolumeRatio: 0.3,
 };
 
+// ── Mode Validation ────────────────────────────────────────────────
+/** Mode constraint rules — each returns { ok, msg } or null to skip. */
+const MODE_RULES = [
+  // Input mode and marking mode are mutually exclusive
+  () => APP.inputMode && APP.markingMode ? { ok: false, msg: 'inputMode + markingMode' } : null,
+  // Chord mode without input or selection is a no-op
+  () => APP.chordMode && !APP.inputMode && APP.selectedNoteIdx < 0 ? { ok: false, msg: 'chordMode active but no input mode or selection' } : null,
+  // Grace mode requires input mode
+  () => APP.graceMode && !APP.inputMode ? { ok: false, msg: 'graceMode requires inputMode' } : null,
+  // Exercise mode should suppress editing modes
+  () => APP.exerciseMode && APP.inputMode ? { ok: false, msg: 'exerciseMode + inputMode' } : null,
+  () => APP.exerciseMode && APP.chordMode ? { ok: false, msg: 'exerciseMode + chordMode' } : null,
+  () => APP.exerciseMode && APP.markingMode ? { ok: false, msg: 'exerciseMode + markingMode' } : null,
+  // Assignment mode should suppress editing modes
+  () => APP.assignmentMode && APP.inputMode ? { ok: false, msg: 'assignmentMode + inputMode' } : null,
+  () => APP.assignmentMode && APP.chordMode ? { ok: false, msg: 'assignmentMode + chordMode' } : null,
+  () => APP.assignmentMode && APP.markingMode ? { ok: false, msg: 'assignmentMode + markingMode' } : null,
+  // Pending states are mutually exclusive
+  () => {
+    const pending = [APP.markingMode, APP.voltaPending, APP.ottavaPending, APP.glissPending].filter(Boolean);
+    return pending.length > 1 ? { ok: false, msg: `multiple pending states: ${pending.length}` } : null;
+  },
+  // Exercise session should match exercise mode
+  () => APP.exerciseMode && !APP.exerciseSession ? { ok: false, msg: 'exerciseMode true but session null' } : null,
+  () => !APP.exerciseMode && APP.exerciseSession ? { ok: false, msg: 'exerciseSession set but mode false' } : null,
+  // Current assignment should match assignment mode
+  () => APP.assignmentMode && !APP.currentAssignment ? { ok: false, msg: 'assignmentMode true but currentAssignment null' } : null,
+  () => !APP.assignmentMode && APP.currentAssignment ? { ok: false, msg: 'currentAssignment set but mode false' } : null,
+  // Tuplet pending should have active tuplet
+  () => APP.tupletPending > 0 && !APP.curTuplet ? { ok: false, msg: 'tupletPending > 0 but no curTuplet' } : null,
+];
+
+/** Check all mode rules and log warnings for violations. */
+function _validateModeState() {
+  for (const rule of MODE_RULES) {
+    const result = rule();
+    if (result && !result.ok) {
+      console.warn('[Pauta Mode]', result.msg);
+    }
+  }
+}
+
+/**
+ * Entry-point guard. Throws if any forbidden mode is active or any required mode is missing.
+ * Use at the top of UI handlers that depend on specific mode state.
+ *   _require({ require: ['selectedNote'], forbid: ['inputMode', 'markingMode'] });
+ * @param {{require?:string[], forbid?:string[]}} opts
+ */
+function _require(opts = {}) {
+  const require = opts.require || [];
+  const forbid  = opts.forbid  || [];
+  const checks = {
+    selectedNote: () => APP.selectedNoteIdx >= 0 || die('Select a note first'),
+    inputMode:    () => APP.inputMode    || die('Enter note input mode first'),
+    noInputMode:  () => !APP.inputMode   || die('Exit input mode first'),
+    noMarking:    () => !APP.markingMode || die('Complete or cancel current marking first'),
+    noExercise:   () => !APP.exerciseMode || die('Exit exercise mode first'),
+    noAssignment: () => !APP.assignmentMode || die('Exit assignment mode first'),
+    score:        () => APP.score        || die('No score open'),
+    selection:    () => APP.selectedMeasure >= 0 || die('Select a measure first'),
+  };
+  function die(msg) { throw new Error(msg); }
+  for (const key of require) {
+    if (checks[key]) checks[key]();
+  }
+  for (const key of forbid) {
+    const negKey = 'no' + key.charAt(0).toUpperCase() + key.slice(1);
+    if (checks[negKey]) checks[negKey]();
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 2: Score Foundation & Model
 // ═══════════════════════════════════════════════════════════════════
 // ── Score Foundation (Phase 1) ───────────────────────────────────
 // Data contract version — bump when the score JSON shape changes.
 const SCORE_FORMAT_VERSION = 1;
+
+/**
+ * @typedef {{startMi:number, startNi:number, endMi:number, endNi:number, si:number}} SlurEntry
+ * @typedef {{type:string, startMi:number, startNi:number, endMi:number, endNi:number, si:number}} HairpinEntry
+ * @typedef {{startMi:number, endMi:number, label:string, closed:boolean}} VoltaEntry
+ * @typedef {{startMi:number, endMi:number, type:string}} OttavaEntry
+ * @typedef {{mi:number, text:string}} StaffTextEntry
+ * @typedef {{mi:number, label:string}} RehearsalMarkEntry
+ * @typedef {{pitch:number, accidental:string|null, slashed:boolean}} GraceNote
+ * @typedef {{pitch:number, accidental:string|null}} ExtraPitch
+
+ * @typedef {Object} Note
+ * @property {'note'|'rest'} type
+ * @property {string} duration  - 'w'|'h'|'q'|'8'|'16'|'32'|'64'
+ * @property {number} [pitch]   - MIDI note number (12–120), required for notes
+ * @property {number} dots
+ * @property {number} voice     - 1 or 2
+ * @property {string|null} [accidental]
+ * @property {Array<{pitch:number, accidental:string|null}>} [extraPitches] - chord tones
+ * @property {boolean} [tieToNext]
+ * @property {string|null} [articulation]
+ * @property {string|null} [fingering]
+ * @property {string|null} [dynamic]
+ * @property {string|null} [lyric]
+ * @property {Array<{pitch:number, accidental:string|null, slashed:boolean}>} [graceNotes]
+ * @property {string|null} [chordSymbol]
+ * @property {string|null} [woodwindFingering]
+ * @property {number|null} [stringNum]
+ * @property {string|null} [notehead]
+ *
+ * @typedef {Object} Measure
+ * @property {number|null} timeSigNum
+ * @property {number|null} timeSigDen
+ * @property {number|null} keySig
+ * @property {boolean} lineBreak
+ * @property {Note[]} notes
+ * @property {string} [barline]
+ * @property {boolean} [pickup]
+ *
+ * @typedef {Object} Stave
+ * @property {string} clef
+ * @property {Measure[]} measures
+ *
+ * @typedef {Object} Part
+ * @property {string} name
+ * @property {string} instrument
+ * @property {string} osc
+ * @property {Stave[]} staves
+ * @property {number} [volume]
+ * @property {boolean} [muted]
+ *
+ * @typedef {Object} Score
+ * @property {string} title
+ * @property {string} composer
+ * @property {number} scoreVersion
+ * @property {Part[]} parts
+ * @property {Array<{si:number, startMi:number, startNi:number, endMi:number, endNi:number}>} slurs
+ * @property {Array<{type:string, si:number, startMi:number, startNi:number, endMi:number, endNi:number}>} hairpins
+ * @property {Array<{mi:number, label:string}>} rehearsalMarks
+ * @property {Array<{mi:number, text:string}>} staffTexts
+ * @property {Array<{startMi:number, endMi:number, label:string, closed:boolean}>} voltas
+ * @property {Array<{startMi:number, endMi:number, type:string}>} ottavas
+ * @property {Array<{startMi:number, startNi:number, endMi:number, endNi:number, si:number, style:string}>} glissandos
+ * @property {Array<{id:string, title:string, range:{startMi:number, endMi:number}, hidden:string[], hints:{showFirstNote:boolean}}>} assignments
+ * @property {Object<string, {answers:Array, submitted:boolean}>} studentAnswers
+ * @property {boolean} [showMeasureNumbers]
+ * @property {boolean} [showMultiMeasureRests]
+ */
 
 const VALID_DURATIONS = new Set(['w', 'h', 'q', '8', '16', '32', '64']);
 
@@ -2389,6 +2583,7 @@ function isBeginnerRecorderSI(si) { return !!getInstrForSI(si)?.beginnerRecorder
 function isLargeStaveSI(si) {
   return isBoomwhackerSI(si) || isBeginnerRecorderSI(si);
 }
+/** @param {{ts?:{num:number,den:number}, ks?:number, instruments?:string[], title?:string, composer?:string}} opts @returns {Score} */
 function createScore(opts={}) {
   const ts         = opts.ts          || {num:4,den:4};
   const ks         = opts.ks          || 0;
@@ -2537,16 +2732,20 @@ function addInstrumentToScore(score, instrName) {
     }))
   });
 }
+/** @param {number} pitch @param {string} dur @param {number} [dots] @param {string|null} [acc] @param {number} [voice] @returns {Note} */
 function mkNote(pitch, dur, dots=0, acc=null, voice=1) {
   return {type:'note', pitch, duration:dur, dots, accidental:acc, voice, extraPitches:[]};
 }
+/** @param {string} dur @param {number} [dots] @param {number} [voice] @returns {Note} */
 function mkRest(dur, dots=0, voice=1) {
   return {type:'rest', duration:dur, dots, voice};
 }
+/** @returns {Measure} */
 function emptyMeasure() {
   return {timeSigNum:null, timeSigDen:null, keySig:null, lineBreak:false, notes:[mkRest('w')]};
 }
 
+/** @param {Score} score @returns {Score} */
 function _ensureScoreAnnotationArrays(score) {
   for (const rule of SCORE_MEASURE_REF_RULES) {
     if (!Array.isArray(score[rule.key])) score[rule.key] = [];
@@ -2556,6 +2755,7 @@ function _ensureScoreAnnotationArrays(score) {
   return score;
 }
 
+/** @param {*} n @param {number} [voiceDefault] @returns {Note} */
 function _repairNote(n, voiceDefault = 1) {
   if (!n || typeof n !== 'object') return mkRest('q', 0, voiceDefault);
   const voice = n.voice === 2 ? 2 : 1;
@@ -2579,6 +2779,7 @@ function _repairNote(n, voiceDefault = 1) {
   return n;
 }
 
+/** @param {*} m @returns {Measure} */
 function _repairMeasure(m) {
   if (!m || typeof m !== 'object') return emptyMeasure();
   if (!Array.isArray(m.notes) || !m.notes.length) m.notes = [mkRest('w')];
@@ -2587,6 +2788,7 @@ function _repairMeasure(m) {
   return m;
 }
 
+/** @param {Score} score @returns {number} */
 function _syncMeasureCounts(score) {
   let maxM = 1;
   score.parts.forEach(part => {
@@ -2612,7 +2814,7 @@ function _syncMeasureCounts(score) {
   return maxM;
 }
 
-/** Normalize imported, autosaved, or legacy score data to the current contract. */
+/** Normalize imported, autosaved, or legacy score data to the current contract. @param {*} raw @returns {Score} */
 function repairScore(raw) {
   if (!raw || typeof raw !== 'object') return createScore();
   const score = raw;
@@ -2625,7 +2827,7 @@ function repairScore(raw) {
   return score;
 }
 
-/** Lightweight validation — repairScore fixes most issues; this catches hard failures. */
+/** Lightweight validation — repairScore fixes most issues; this catches hard failures. @param {Score} score @returns {{ok:boolean, fatal:string|null, issues:Array}} */
 function validateScore(score) {
   const issues = [];
   if (!score || typeof score !== 'object') {
@@ -2654,13 +2856,14 @@ function validateScore(score) {
   return { ok: !fatal, fatal: fatal?.msg || null, issues };
 }
 
-/** Install a score into APP after repair + validation (load, restore, import). */
+/** Install a score into APP after repair + validation (load, restore, import). @param {*} raw @param {{clearHistory?:boolean, skipAssignmentPrompt?:boolean}} [opts] @returns {Score} */
 function adoptScore(raw, opts = {}) {
   const score = repairScore(typeof structuredClone === 'function' ? structuredClone(raw) : JSON.parse(JSON.stringify(raw)));
   const result = validateScore(score);
   if (!result.ok) throw new Error(result.fatal || 'Invalid score data');
   APP.score = score;
   APP._lastUndoFP = _scoreFingerprint(score);
+  _checkInvariants(score);
   if (opts.clearHistory !== false) {
     APP.undoStack = [];
     APP.redoStack = [];
@@ -2684,7 +2887,7 @@ function adoptScore(raw, opts = {}) {
   return score;
 }
 
-/** Shift measure-indexed annotations when inserting or deleting a measure. */
+/** Shift measure-indexed annotations when inserting or deleting a measure. @param {Score} score @param {number} mi @param {'insert'|'delete'} mode */
 function shiftMeasureRefs(score, mi, mode) {
   _ensureScoreAnnotationArrays(score);
   if (mode === 'insert') {
@@ -2729,9 +2932,214 @@ function shiftMeasureRefs(score, mi, mode) {
   }
 }
 
+/** Validate structural invariants after a score mutation. Logs warnings but does not throw. @param {Score} score */
+function _checkInvariants(score) {
+  if (!score || typeof score !== 'object') return;
+  const warnings = [];
+
+  // 1. Measure count consistency across all staves
+  let expectedMeasures = -1;
+  if (Array.isArray(score.parts)) {
+    score.parts.forEach((part, pi) => {
+      if (!Array.isArray(part.staves)) return;
+      part.staves.forEach((stave, si) => {
+        const mCount = Array.isArray(stave.measures) ? stave.measures.length : 0;
+        if (expectedMeasures === -1) {
+          expectedMeasures = mCount;
+        } else if (mCount !== expectedMeasures) {
+          warnings.push(`Part ${pi + 1} stave ${si + 1} has ${mCount} measures; expected ${expectedMeasures}`);
+        }
+        // Check each measure has required fields
+        if (Array.isArray(stave.measures)) {
+          stave.measures.forEach((m, mi) => {
+            if (!Array.isArray(m.notes)) {
+              warnings.push(`Part ${pi + 1} stave ${si + 1} measure ${mi} has no notes array`);
+            } else {
+              m.notes.forEach((n, ni) => {
+                if (n && !VALID_DURATIONS.has(n.duration)) {
+                  warnings.push(`Part ${pi + 1} stave ${si + 1} measure ${mi} note ${ni} has invalid duration: '${n.duration}'`);
+                }
+                if (n && n.type === 'note' && typeof n.pitch !== 'number') {
+                  warnings.push(`Part ${pi + 1} stave ${si + 1} measure ${mi} note ${ni} is type 'note' but has no pitch`);
+                }
+              });
+            }
+          });
+        }
+      });
+    });
+  }
+
+  // 2. Annotation measure reference validity
+  if (expectedMeasures > 0) {
+    for (const rule of SCORE_MEASURE_REF_RULES) {
+      const arr = score[rule.key];
+      if (!Array.isArray(arr)) continue;
+      arr.forEach((item, idx) => {
+        if (rule.range) {
+          const start = item[rule.start];
+          const end = item[rule.end];
+          if (typeof start !== 'number' || start < 0 || start >= expectedMeasures) {
+            warnings.push(`${rule.key}[${idx}].${rule.start}=${start} out of range [0,${expectedMeasures - 1}]`);
+          }
+          if (typeof end !== 'number' || end < (start || 0) || end >= expectedMeasures) {
+            warnings.push(`${rule.key}[${idx}].${rule.end}=${end} invalid (start=${start}, max=${expectedMeasures - 1})`);
+          }
+        } else {
+          const mi = item[rule.field];
+          if (typeof mi !== 'number' || mi < 0 || mi >= expectedMeasures) {
+            warnings.push(`${rule.key}[${idx}].${rule.field}=${mi} out of range [0,${expectedMeasures - 1}]`);
+          }
+        }
+      });
+    }
+  }
+
+  // 3. Annotation cross-references — no duplicated slurs pointing at same pair
+  if (Array.isArray(score.slurs)) {
+    const seen = new Set();
+    score.slurs.forEach((s, idx) => {
+      const key = `${s.startMi}:${s.startNoteIdx}:${s.endMi}:${s.endNoteIdx}`;
+      if (seen.has(key)) warnings.push(`slurs[${idx}] duplicates existing slur at ${key}`);
+      seen.add(key);
+    });
+  }
+
+  // 4. Selection validity
+  if (typeof APP.selectedMeasure === 'number' && APP.selectedMeasure >= expectedMeasures) {
+    warnings.push(`APP.selectedMeasure=${APP.selectedMeasure} out of range [0,${expectedMeasures - 1}]`);
+  }
+  const totalStaves = (score.parts || []).reduce((s, p) => s + (p.staves || []).length, 0);
+  if (typeof APP.selectedStaff === 'number' && APP.selectedStaff >= totalStaves) {
+    warnings.push(`APP.selectedStaff=${APP.selectedStaff} out of range [0,${totalStaves - 1}]`);
+  }
+
+  for (const w of warnings) console.warn('[Pauta Invariant]', w);
+}
+
+/** Get a stave by global staff index from a score object (not APP). @param {Score} score @param {number} si @returns {Stave|null} */
+function _staveBySI(score, si) {
+  let idx = 0;
+  for (const part of (score.parts || [])) {
+    for (const stave of (part.staves || [])) {
+      if (idx === si) return stave;
+      idx++;
+    }
+  }
+  return null;
+}
+
+/**
+ * Audit annotations after a structural edit (insert/delete measure, transpose).
+ * Auto-repairs orphan ties; logs warnings for other issues.
+ * @param {Score} score
+ * @param {'deleteMeasure'|'insertMeasure'|'addMeasure'|'transpose'} editType
+ * @param {number} editArg
+ */
+function _auditAnnotationsAfterEdit(score, editType, editArg) {
+  if (!score || !Array.isArray(score.parts)) return;
+  const repairs = [], warnings = [];
+  const measureCount = score.parts[0]?.staves?.[0]?.measures?.length || 0;
+
+  // 1. Ties — check each n.tieToNext has a target note (next note in measure, or first note in next measure)
+  score.parts.forEach((part, pi) => {
+    (part.staves || []).forEach((stave, localSI) => {
+      (stave.measures || []).forEach((m, mi) => {
+        (m.notes || []).forEach((n, ni) => {
+          if (!n || n.type !== 'note' || !n.tieToNext) return;
+          let found = false;
+          // Look in same measure, same voice
+          for (let j = ni + 1; j < (m.notes || []).length; j++) {
+            const cand = m.notes[j];
+            if (cand && cand.type === 'note' && (cand.voice || 1) === (n.voice || 1)) { found = true; break; }
+          }
+          // Fallback to first note in next measure, same voice
+          if (!found && mi + 1 < measureCount) {
+            const nextM = stave.measures[mi + 1];
+            for (let j = 0; j < (nextM.notes || []).length; j++) {
+              const cand = nextM.notes[j];
+              if (cand && cand.type === 'note' && (cand.voice || 1) === (n.voice || 1)) { found = true; break; }
+            }
+          }
+          if (!found) {
+            delete n.tieToNext;
+            repairs.push(`orphan tie: part ${pi+1} stave ${localSI+1} measure ${mi} note ${ni}`);
+          }
+        });
+      });
+    });
+  });
+
+  // 2. Slurs — check start/end notes still exist
+  if (Array.isArray(score.slurs)) {
+    const valid = [];
+    score.slurs.forEach((s, idx) => {
+      const stave = _staveBySI(score, s.si);
+      const startM = stave?.measures?.[s.startMi];
+      const endM   = stave?.measures?.[s.endMi];
+      const startN = startM?.notes?.[s.startNi];
+      const endN   = endM?.notes?.[s.endNi];
+      if (!startN || startN.type !== 'note') {
+        warnings.push(`removed slur[${idx}]: start note missing (si=${s.si} m=${s.startMi} n=${s.startNi})`);
+        return;
+      }
+      if (!endN || endN.type !== 'note') {
+        warnings.push(`removed slur[${idx}]: end note missing (si=${s.si} m=${s.endMi} n=${s.endNi})`);
+        return;
+      }
+      valid.push(s);
+    });
+    if (valid.length !== score.slurs.length) {
+      score.slurs = valid;
+    }
+  }
+
+  // 3. Hairpins — check start/end notes still exist
+  if (Array.isArray(score.hairpins)) {
+    const valid = [];
+    score.hairpins.forEach((h, idx) => {
+      const stave = _staveBySI(score, h.si);
+      const startM = stave?.measures?.[h.startMi];
+      const endM   = stave?.measures?.[h.endMi];
+      const startN = startM?.notes?.[h.startNi];
+      const endN   = endM?.notes?.[h.endNi];
+      if (!startN || startN.type !== 'note') {
+        warnings.push(`removed hairpin[${idx}]: start note missing (si=${h.si} m=${h.startMi} n=${h.startNi})`);
+        return;
+      }
+      if (!endN || endN.type !== 'note') {
+        warnings.push(`removed hairpin[${idx}]: end note missing (si=${h.si} m=${h.endMi} n=${h.endNi})`);
+        return;
+      }
+      valid.push(h);
+    });
+    if (valid.length !== score.hairpins.length) {
+      score.hairpins = valid;
+    }
+  }
+
+  // 4. Insert-measure specific: warn about ties crossing the insertion
+  if (editType === 'insertMeasure' && editArg > 0) {
+    const prevM = score.parts[0]?.staves?.[0]?.measures?.[editArg - 1];
+    if (prevM) {
+      prevM.notes.forEach((n, ni) => {
+        if (n && n.type === 'note' && n.tieToNext) {
+          warnings.push(`tie from measure ${editArg - 1} note ${ni} may cross inserted measure ${editArg}`);
+        }
+      });
+    }
+  }
+
+  if (repairs.length) console.warn('[Pauta Audit] Repaired:', repairs.join('; '));
+  if (warnings.length) console.warn('[Pauta Audit] Warnings:', warnings.join('; '));
+}
+
 /**
  * Single front door for score edits.
  * Ensures undo snapshot → mutate → repair → validate → render → autosave.
+ * @param {function(Score):void} mutator
+ * @param {{undo?:boolean, render?:boolean, toast?:string|null}} [opts]
+ * @returns {boolean}
  */
 function commitChange(mutator, opts = {}) {
   const { undo = true, render = true, toast = null } = opts;
@@ -2742,6 +3150,7 @@ function commitChange(mutator, opts = {}) {
     APP.score = repairScore(APP.score);
     const check = validateScore(APP.score);
     if (!check.ok) throw new Error(check.fatal || 'Score validation failed');
+    _checkInvariants(APP.score);
     APP._lastUndoFP = _scoreFingerprint(APP.score);
     if (render) renderScore();
     if (toast) showToast(toast);
@@ -7789,7 +8198,7 @@ const ARTIC_SYMBOLS = {
 };
 
 function applyArticulation(type) {
-  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
+  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
   commitChange(score => {
@@ -7799,7 +8208,7 @@ function applyArticulation(type) {
 
 // ── Fingering ─────────────────────────────────────────────────────
 function applyFingering(f) {
-  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
+  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
   commitChange(score => {
@@ -7809,6 +8218,7 @@ function applyFingering(f) {
 
 // ── Barlines ─────────────────────────────────────────────────────
 function applyBarline(type) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
@@ -7903,10 +8313,7 @@ function applyTempo(name, bpm) {
 }
 
 function applyDynamic(dyn) {
-  if (APP.selectedNoteIdx < 0) {
-    showToast('Select a note first, then tap a dynamic');
-    return;
-  }
+  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n) return;
@@ -7928,8 +8335,16 @@ function startMarking(type) {
     document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
       .forEach(b => b.classList.remove('active'));
     showToast('Cancelled');
+    _validateModeState();
     return;
   }
+  // Clear conflicting modes
+  if (APP.inputMode) toggleInputMode();
+  APP.chordMode = false;
+  document.getElementById('btn-chord')?.classList.remove('active');
+  APP.voltaPending = null;
+  APP.ottavaPending = null;
+  APP.glissPending = null;
   APP.markingMode  = type;
   APP.markingStart = {
     mi: APP.selectedMeasure,
@@ -7942,6 +8357,7 @@ function startMarking(type) {
   document.getElementById('btn-' + type)?.classList.add('active');
   const labels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
   showToast(`${labels[type]}: now select the END note`);
+  _validateModeState();
 }
 
 function completeMarking(endMi, endSi, endNi) {
@@ -7970,6 +8386,7 @@ function completeMarking(endMi, endSi, endNi) {
     document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
       .forEach(b => b.classList.remove('active'));
   }, { toast: `${labels[type]} added` });
+  _validateModeState();
 }
 function selectDur(d) {
   APP.curDur = d;
@@ -7982,13 +8399,18 @@ function toggleDot() {
 }
 function toggleChordMode() {
   APP.chordMode = !APP.chordMode;
+  if (APP.chordMode) {
+    APP.markingMode  = null;
+    APP.markingStart = null;
+    document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim').forEach(b => b.classList.remove('active'));
+  }
   document.getElementById('btn-chord').classList.toggle('active', APP.chordMode);
   if (APP.chordMode) {
-    // Chord mode works in both select and input mode
     showToast('Chord mode — select a note, then tap note names to stack');
   } else {
     showToast('Chord mode off');
   }
+  _validateModeState();
 }
 
 function setVoice(v) {
@@ -8154,6 +8576,7 @@ function toggleGraceMode(slashed) {
   document.getElementById('btn-grace-app')?.classList.toggle('active', !slashed);
   const label = slashed ? 'Acciaccatura' : 'Appoggiatura';
   showToast(`${label}: tap a note name (C–B) to add grace note`);
+  _validateModeState();
 }
 
 function addGraceNote(name) {
@@ -8269,6 +8692,12 @@ function clearGlissando() {
 }
 function toggleInputMode() {
   APP.inputMode = !APP.inputMode;
+  // Clear conflicting modes when entering input mode
+  if (APP.inputMode) {
+    APP.markingMode  = null;
+    APP.markingStart = null;
+    document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim').forEach(b => b.classList.remove('active'));
+  }
   const btn = document.getElementById('btn-input-mode');
   btn.classList.toggle('active', APP.inputMode);
   btn.textContent = APP.inputMode ? '⏹ Input' : '✏️ Input';
@@ -8280,9 +8709,11 @@ function toggleInputMode() {
   } else {
     showToast('Select mode');
   }
+  _validateModeState();
 }
 function deleteSelected() {
   if (APP.selectedNoteIdx < 0) return;
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const m = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
   if (!m) return;
   commitChange(score => {
@@ -8393,6 +8824,7 @@ function deleteMeasure() {
   }, { toast: 'Measure deleted' });
   APP.selectedMeasure = Math.min(mi, nM - 2);
   APP.selectedNoteIdx = -1;
+  _auditAnnotationsAfterEdit(APP.score, 'deleteMeasure', mi);
 }
 
 function toggleLineBreak() {
@@ -8498,6 +8930,7 @@ function transposeScore(semitones) {
       });
     });
   }, { toast: `Transposed ${semitones > 0 ? '+' : ''}${semitones} semitone${Math.abs(semitones)===1?'':'s'}` });
+  _auditAnnotationsAfterEdit(APP.score, 'transpose', semitones);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -8577,6 +9010,7 @@ function startAssignment(id) {
   if (!asgn) { showToast('Assignment not found'); return; }
   APP.assignmentMode = true;
   APP.currentAssignment = asgn;
+  _validateModeState();
   // Try to restore unsaved answers from localStorage
   try {
     const saved = localStorage.getItem(`pauta_answers_${id}`);
@@ -8598,6 +9032,7 @@ function startAssignment(id) {
 function exitAssignmentMode() {
   APP.assignmentMode = false;
   APP.currentAssignment = null;
+  _validateModeState();
   _setAssignmentUI(false);
   showToast('Exited assignment mode');
   renderScore();
@@ -8934,6 +9369,7 @@ function startExerciseSession(type, difficulty) {
   APP.exerciseMode = true;
   _setExerciseUI(true);
   _presentExercise(ex);
+  _validateModeState();
 }
 
 function endExerciseSession() {
@@ -8970,6 +9406,7 @@ function endExerciseSession() {
   APP.exerciseMode = false;
   APP.exerciseSession = null;
   _setExerciseUI(false);
+  _validateModeState();
 }
 
 function closeModalExercise() {
@@ -9557,11 +9994,13 @@ function insertMeasure() {
     shiftMeasureRefs(score, mi, 'insert');
     APP.selectedNoteIdx = -1;
   }, { toast: 'Measure inserted' });
+  _auditAnnotationsAfterEdit(APP.score, 'insertMeasure', mi);
 }
 function addMeasure() {
   commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
   }, { toast: 'Measure added' });
+  _auditAnnotationsAfterEdit(APP.score, 'addMeasure', APP.score.parts[0]?.staves[0]?.measures?.length - 1);
 }
 
 function navigateStaff(dir) {
@@ -9608,6 +10047,7 @@ function undo() {
   APP.score = APP.undoStack.pop();
   APP._lastUndoFP = _scoreFingerprint(APP.score);
   APP.selectedNoteIdx = -1;
+  _checkInvariants(APP.score);
   renderScore(); showToast('Undo');
 }
 function redo() {
@@ -9616,6 +10056,7 @@ function redo() {
   APP.score = APP.redoStack.pop();
   APP._lastUndoFP = _scoreFingerprint(APP.score);
   APP.selectedNoteIdx = -1;
+  _checkInvariants(APP.score);
   renderScore(); showToast('Redo');
 }
 
@@ -11766,10 +12207,204 @@ function showViewMenu(btn) {
   showDropdown(btn, items);
 }
 
+// ── Scale / Arpeggio Generator ─────────────────────────────────────
+const SCALE_TYPES = [
+  { id: 'major',            label: 'Major Scale' },
+  { id: 'natural-minor',    label: 'Natural Minor Scale' },
+  { id: 'harmonic-minor',   label: 'Harmonic Minor Scale' },
+  { id: 'melodic-minor',    label: 'Melodic Minor Scale (ascending)' },
+  { id: 'major-arpeggio',   label: 'Major Arpeggio' },
+  { id: 'minor-arpeggio',   label: 'Minor Arpeggio' },
+];
+
+const SCALE_INTERVALS = {
+  major:            [0, 2, 4, 5, 7, 9, 11],
+  'natural-minor':  [0, 2, 3, 5, 7, 8, 10],
+  'harmonic-minor': [0, 2, 3, 5, 7, 8, 11],
+  'melodic-minor':  [0, 2, 3, 5, 7, 9, 11],
+  'major-arpeggio': [0, 4, 7],
+  'minor-arpeggio': [0, 3, 7],
+};
+
+const KS_TONIC_PC = {0:0,1:7,2:2,3:9,4:4,5:11,6:6,7:1,-1:5,-2:10,-3:3,-4:8,-5:1,-6:6,-7:11};
+
+/** Natural pitch class for diatonic index 0=C..6=B */
+const NATURAL_PCS = [0, 2, 4, 5, 7, 9, 11];
+
+/**
+ * Generate scale/arpeggio notes for a given key and type.
+ * @param {number} ks - Key signature (-7..7)
+ * @param {string} type - SCALE_TYPES id
+ * @param {number} octaves - 1 or 2
+ * @param {number} startOctave - Starting octave number (4 = middle C octave)
+ * @returns {{pitch:number, accidental:string|null}[]}
+ */
+function generateScale(ks, type, octaves, startOctave) {
+  const tonicPC = KS_TONIC_PC[ks] ?? 0;
+  const intervals = SCALE_INTERVALS[type] || SCALE_INTERVALS.major;
+  const tonicName = keySigName(ks);
+  const tonicDiaIdx = NOTE_NAMES.indexOf(tonicName.replace(/[#b]/g, '').toLowerCase());
+
+  const notes = [];
+  for (let o = 0; o < octaves; o++) {
+    const octave = startOctave + o;
+    for (let d = 0; d < intervals.length; d++) {
+      const actualPC = (tonicPC + intervals[d]) % 12;
+      const diaIdx = (tonicDiaIdx + d) % 7;
+      const naturalPC = NATURAL_PCS[diaIdx];
+      let accidental = null;
+      if (actualPC === (naturalPC + 1) % 12) accidental = '#';
+      else if (actualPC === (naturalPC + 11) % 12) accidental = 'b';
+      const pitch = (octave + 1) * 12 + actualPC;
+      if (pitch >= 12 && pitch <= 120) {
+        notes.push({ pitch, accidental });
+      }
+    }
+  }
+  // Add the octave at the end for scales (not arpeggios)
+  if (octaves > 0 && intervals.length === 7) {
+    const octavePC = tonicPC;
+    const pitch = (startOctave + octaves) * 12 + octavePC;
+    if (pitch >= 12 && pitch <= 120) {
+      const diaIdx = tonicDiaIdx;
+      const naturalPC = NATURAL_PCS[diaIdx];
+      let accidental = null;
+      if (octavePC === (naturalPC + 1) % 12) accidental = '#';
+      else if (octavePC === (naturalPC + 11) % 12) accidental = 'b';
+      notes.push({ pitch, accidental });
+    }
+  }
+  return notes;
+}
+
+function showScaleGeneratorDialog() {
+  const instrOptions = INSTRUMENTS
+    .filter(i => !i.percussion)
+    .map(i => `<option value="${i.name}">${i.name}</option>`).join('');
+
+  const scaleOptions = SCALE_TYPES.map(st =>
+    `<option value="${st.id}">${st.label}</option>`).join('');
+
+  const ksOptions = [];
+  for (let ks = -7; ks <= 7; ks++) {
+    const name = keySigName(ks) + (ks === 0 ? ' major' : '');
+    const rel = ['A min','E min','B min','F# min','C# min','G# min','D# min','A# min','D min','G min','C min','F min','Bb min','Eb min','Ab min'][ks + 7];
+    ksOptions.push(`<option value="${ks}">${name} / ${rel}</option>`);
+  }
+
+  makeModal(`
+    <h2>Generate Scale / Arpeggio</h2>
+    <div style="font-size:12px;color:#4a5568;margin-bottom:12px">
+      Creates a new score with the selected scale or arpeggio for the chosen instrument.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Instrument</div>
+        <select id="sg-instr" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${instrOptions}</select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Type</div>
+        <select id="sg-type" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${scaleOptions}</select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Key</div>
+        <select id="sg-ks" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${ksOptions.join('')}</select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Octaves</div>
+        <select id="sg-octaves" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">
+          <option value="1">1 octave</option>
+          <option value="2" selected>2 octaves</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Starting octave</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="modal-btn secondary" id="sg-oct-down" style="padding:2px 10px;font-size:14px">−</button>
+        <span id="sg-oct-display" style="font-size:16px;font-weight:600;min-width:30px;text-align:center;color:#c05621">4</span>
+        <button class="modal-btn secondary" id="sg-oct-up" style="padding:2px 10px;font-size:14px">+</button>
+        <span style="font-size:11px;color:#4a5568">(C<span id="sg-oct-sub">4</span> = middle C)</span>
+      </div>
+    </div>
+    <button class="modal-btn primary" data-action="confirmGenerateScale">Generate</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+
+  // Octave +/- controls
+  let oct = 4;
+  const instr = document.getElementById('sg-instr');
+  const display = document.getElementById('sg-oct-display');
+  const sub = document.getElementById('sg-oct-sub');
+  function updateOct(v) { oct = Math.max(1, Math.min(8, v)); display.textContent = oct; sub.textContent = oct; }
+  document.getElementById('sg-oct-down').onclick = () => updateOct(oct - 1);
+  document.getElementById('sg-oct-up').onclick = () => updateOct(oct + 1);
+
+  // Auto-adjust octave on instrument change
+  instr.onchange = () => {
+    const name = instr.value;
+    const i = INSTRUMENTS.find(x => x.name === name);
+    if (!i) return;
+    const autoOct = i.staves[0] === 'bass' ? 2 : 3;
+    updateOct(autoOct);
+  };
+  // Trigger initial auto-octave
+  setTimeout(() => { instr.onchange(); }, 0);
+}
+
+function confirmGenerateScale() {
+  const instrName = document.getElementById('sg-instr')?.value || 'Piano';
+  const type = document.getElementById('sg-type')?.value || 'major';
+  const ks = parseInt(document.getElementById('sg-ks')?.value) || 0;
+  const octaves = parseInt(document.getElementById('sg-octaves')?.value) || 2;
+  const octDisplay = document.getElementById('sg-oct-display');
+  const startOctave = parseInt(octDisplay?.textContent) || 4;
+
+  const notes = generateScale(ks, type, octaves, startOctave);
+  if (!notes.length) { showToast('No notes generated — check range'); return; }
+
+  const instr = instrByName(instrName);
+  const score = createScore({ title: `${keySigName(ks)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instrName], ks, ts: {num: notes.length <= 8 ? 4 : 4, den: 4} });
+  const stave = score.parts[0].staves[0];
+
+  const beatsPerMeasure = 4;
+  stave.measures = [];
+  let measureNotes = [], beats = 0;
+
+  for (const n of notes) {
+    let dur = 'q';
+    // Use smaller durations if many notes for 2 octaves
+    if (notes.length > 14) dur = '8';
+    else if (notes.length > 8) dur = 'q';
+
+    measureNotes.push(mkNote(n.pitch, dur, 0, n.accidental, 1));
+    beats += durBeats(dur, 0, null);
+
+    if (beats >= beatsPerMeasure - 0.001 || measureNotes.length >= notes.length) {
+      stave.measures.push({
+        timeSigNum: stave.measures.length === 0 ? 4 : null,
+        timeSigDen: stave.measures.length === 0 ? 4 : null,
+        keySig: stave.measures.length === 0 ? ks : null,
+        lineBreak: false,
+        notes: measureNotes,
+      });
+      measureNotes = []; beats = 0;
+    }
+  }
+
+  adoptScore(score, { clearHistory: true });
+  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
+  renderScore();
+  showToast(`Generated: ${keySigName(ks)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`);
+}
+
 function showExercisesMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
   const items = [
     {label:'🎹 Start Exercise…', fn:showExerciseDialog},
+    {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},
     {label:practiceLabel, fn:togglePracticeMode},
   ];
@@ -12781,6 +13416,7 @@ window.addEventListener('keydown', e => {
   const noteKeys = {c:'C',d:'D',e:'E',f:'F',g:'G',a:'A',b:'B'};
   if (APP.inputMode && noteKeys[e.key.toLowerCase()]) insertNoteByName(noteKeys[e.key.toLowerCase()]);
   if (e.key === '0') { e.preventDefault(); insertRest(); }
+  if (e.key === '`' || e.key === '~') { e.preventDefault(); toggleDebugOverlay(); }
 }, { capture: true });
 
 // ── Resize ────────────────────────────────────────────────────────
@@ -12804,6 +13440,68 @@ function printScore() {
 
 
 
+
+// ── Debug Overlay ──────────────────────────────────────────────────
+let _debugOverlayOpen = false;
+
+function toggleDebugOverlay() {
+  _debugOverlayOpen = !_debugOverlayOpen;
+  const el = document.getElementById('debug-overlay');
+  if (!el) return;
+  if (!_debugOverlayOpen) { el.classList.remove('open'); el.textContent = ''; return; }
+
+  const score = APP.score;
+  const mCount = score?.parts?.[0]?.staves?.[0]?.measures?.length || 0;
+  const totalStaves = (score?.parts || []).reduce((s, p) => s + (p.staves || []).length, 0);
+  const nStavesTotal = (score?.parts || []).reduce((s, p) => (p.staves || []).reduce((s2, st) => s2 + (st.measures || []).reduce((s3, m) => s3 + (m.notes || []).length, 0), s), 0);
+  const undoSize = APP.undoStack?.length || 0;
+  const redoSize = APP.redoStack?.length || 0;
+
+  const lines = [];
+
+  lines.push('SCORE  parts=' + (score?.parts?.length || 0) + '  staves=' + totalStaves + '  measures=' + mCount + '  notes=' + nStavesTotal);
+  lines.push('');
+
+  lines.push('SELECTION  measure=' + APP.selectedMeasure + '/' + (mCount - 1) + '  staff=' + APP.selectedStaff + '/' + (totalStaves - 1) + '  note=' + APP.selectedNoteIdx + '  selStart=' + APP.selStartIdx);
+  lines.push('');
+
+  lines.push('MODES');
+  const modes = [
+    ['inputMode',     APP.inputMode],
+    ['chordMode',     APP.chordMode],
+    ['markingMode',   APP.markingMode || '—'],
+    ['graceMode',     APP.graceMode],
+    ['exerciseMode',  APP.exerciseMode],
+    ['assignmentMode',APP.assignmentMode],
+    ['practiceMode',  APP.practiceMode],
+  ];
+  for (const [k, v] of modes) lines.push('  ' + k + '=' + (v ? 'true' : 'false'));
+  lines.push('  curVoice=' + APP.curVoice + '  curDur=' + APP.curDur + ' curDot=' + APP.curDot + ' curRest=' + APP.curRest);
+  lines.push('  curTuplet=' + (APP.curTuplet ? JSON.stringify(APP.curTuplet) : '—') + '  tupletPending=' + APP.tupletPending);
+  lines.push('');
+
+  lines.push('ANNOTATIONS');
+  lines.push('  slurs='          + (score?.slurs?.length          || 0));
+  lines.push('  hairpins='       + (score?.hairpins?.length       || 0));
+  lines.push('  voltas='         + (score?.voltas?.length         || 0));
+  lines.push('  ottavas='        + (score?.ottavas?.length        || 0));
+  lines.push('  glissandos='     + (score?.glissandos?.length     || 0));
+  lines.push('  rehearsalMarks=' + (score?.rehearsalMarks?.length || 0));
+  lines.push('  staffTexts='     + (score?.staffTexts?.length     || 0));
+  lines.push('  assignments='    + (score?.assignments?.length    || 0));
+  lines.push('');
+
+  lines.push('STATE  tempo=' + APP.tempo + '  zoom=' + APP.zoom.toFixed(2) + '  continuous=' + APP.continuousView + '  volume=' + APP.masterVolume.toFixed(2));
+  lines.push('  undo=' + undoSize + '  redo=' + redoSize + '  uiProfile=' + APP.uiProfile + '  kit=' + (APP.teachingKit || '—'));
+  lines.push('  playing=' + APP.playing + '  metronome=' + APP.metronome + '  countIn=' + APP.countIn);
+
+  // Collect any recent invariant / audit warnings
+  const warns = [];
+  try { _validateModeState(); } catch(e) { /* mode validation already logs */ }
+
+  el.textContent = lines.join('\n');
+  el.classList.add('open');
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 7: Boot & Event Wiring
@@ -13038,6 +13736,7 @@ _registerAction('clearTie', () => clearTie());
 _registerAction('clearVolta', () => clearVolta());
 _registerAction('closeModal', () => closeModal());
 _registerAction('confirmExportAudio', () => confirmExportAudio());
+_registerAction('confirmGenerateScale', () => confirmGenerateScale());
 _registerAction('confirmExportPDF', () => confirmExportPDF());
 _registerAction('showHelpPanel', () => showHelpPanel());
 _registerAction('closeWelcome', () => closeWelcome());
