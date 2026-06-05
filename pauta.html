@@ -825,8 +825,7 @@ body.assignment-mode #score-title::after {
 }
 body.assignment-mode .panel-btn { opacity: 0.4; pointer-events: none; }
 body.assignment-mode .panel-btn[data-action="startMarking"],
-body.assignment-mode .panel-btn[data-action="startOttava"],
-body.assignment-mode .panel-btn[data-action="startGlissando"] { display: none; }
+ /* assignment mode hides non-classroom interaction modes */
 
 /* Exercise mode UI */
 body.exercise-mode #score-title::after {
@@ -994,18 +993,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
     <button class="pal-btn" id="btn-sharp" data-action="setAcc" data-acc="#"><span class="pal-sym">♯</span><span class="pal-lbl">Sharp</span></button>
     <button class="pal-btn" id="btn-flat"  data-action="setAcc" data-acc="b"><span class="pal-sym">♭</span><span class="pal-lbl">Flat</span></button>
     <button class="pal-btn" id="btn-nat"   data-action="setAcc" data-acc="n"><span class="pal-sym">♮</span><span class="pal-lbl">Natural</span></button>
-    <button class="pal-btn" id="btn-notehead-x" data-action="setNotehead" data-nh="x">
-      <span class="pal-sym pal-sym-0">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
-      </span>
-      <span class="pal-lbl">X</span>
-    </button>
-    <button class="pal-btn" id="btn-notehead-slash" data-action="setNotehead" data-nh="slash">
-      <span class="pal-sym pal-sym-0">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="13" x2="13" y2="3"/></svg>
-      </span>
-      <span class="pal-lbl">Slash</span>
-    </button>
     <button class="pal-btn" id="btn-triplet" data-action="toggleTuplet" data-num="3" data-den="2">
       <span class="pal-sym pal-sym-0">
         <svg width="20" height="16" viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
@@ -1308,45 +1295,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
       <button class="panel-btn" aria-label="Trill" data-action="applyArticulation" data-type="trill"><span class="panel-sym" style="font-size:12px">tr~</span><span class="panel-lbl">Trill</span></button>
       <button class="panel-btn" aria-label="Remove articulation" data-action="applyArticulation"><span class="panel-sym" style="font-size:12px">✕</span><span class="panel-lbl">Remove</span></button>
     </div>
-    <div class="panel-section-label">Grace Notes</div>
-    <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
-      Select a note → tap to convert, or Add then tap a note key (C–B).</p>
-    <div class="panel-grid" style="margin-bottom:4px">
-      <button class="panel-btn" aria-label="Convert to acciaccatura" data-action="convertToGrace" data-slashed="true" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
-        <span class="panel-sym" style="font-size:10px;font-weight:700">→𝄽</span>
-        <span class="panel-lbl">Make Acciaccatura</span>
-      </button>
-      <button class="panel-btn" aria-label="Convert to appoggiatura" data-action="convertToGrace" data-slashed="false" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
-        <span class="panel-sym" style="font-size:0">
-          <svg viewBox="0 0 18 24" width="18" height="24" fill="none" stroke="currentColor" stroke-width="1.3">
-            <ellipse cx="5" cy="20" rx="4" ry="2.8" transform="rotate(-12 5 20)" fill="currentColor"/>
-            <line x1="8.5" y1="19.5" x2="8.5" y2="4" stroke-width="1.5"/>
-            <path d="M8.5 4 C13 4 15 8 12 12" stroke-width="1.5"/>
-          </svg>
-        </span>
-        <span class="panel-lbl">Make Appoggiatura</span>
-      </button>
-    </div>
-    <div class="panel-grid">
-      <button class="panel-btn" id="btn-grace-acc" aria-label="Add acciaccatura mode" data-action="toggleGraceMode" data-slashed="true" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
-        <span class="panel-sym" style="font-size:10px;font-weight:700">→𝄽</span>
-        <span class="panel-lbl">Add Acciaccatura</span>
-      </button>
-      <button class="panel-btn" id="btn-grace-app" aria-label="Add appoggiatura mode" data-action="toggleGraceMode" data-slashed="false" style="background:rgba(55,120,200,0.10);border-color:rgba(55,120,200,0.30);color:#3778c8">
-        <span class="panel-sym" style="font-size:0">
-          <svg viewBox="0 0 18 24" width="18" height="24" fill="none" stroke="currentColor" stroke-width="1.3">
-            <ellipse cx="5" cy="20" rx="4" ry="2.8" transform="rotate(-12 5 20)" fill="currentColor"/>
-            <line x1="8.5" y1="19.5" x2="8.5" y2="4" stroke-width="1.5"/>
-            <path d="M8.5 4 C13 4 15 8 12 12" stroke-width="1.5"/>
-          </svg>
-        </span>
-        <span class="panel-lbl">Add Appoggiatura</span>
-      </button>
-      <button class="panel-btn" aria-label="Remove grace notes" data-action="clearGraceNotes" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
-        <span class="panel-sym pal-sym-f11">✕</span>
-        <span class="panel-lbl">Remove</span>
-      </button>
-    </div>
     <div class="panel-section-label">Fingering</div>
     <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
       Select a note, then tap a number to add or remove fingering.</p>
@@ -1379,30 +1327,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
       <button class="panel-btn" aria-label="Clear tie" data-action="clearTie" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Clear Tie</span></button>
       <button class="panel-btn" aria-label="Clear slur" data-action="clearSlur" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Clear Slur</span></button>
     </div>
-    <div class="panel-section-label">Ottava</div>
-    <div class="panel-grid">
-       <button class="panel-btn ottava-btn" aria-label="Ottava alta" data-type="8va"  data-action="startOttava"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:700">8va</span><span class="panel-lbl">8va</span></button>
-      <button class="panel-btn ottava-btn" aria-label="Ottava bassa" data-type="8vb"  data-action="startOttava"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:700">8vb</span><span class="panel-lbl">8vb</span></button>
-      <button class="panel-btn ottava-btn" aria-label="Quindicesima alta" data-type="15ma" data-action="startOttava"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:700">15ma</span><span class="panel-lbl">15ma</span></button>
-      <button class="panel-btn" aria-label="Remove ottava" data-action="clearOttava" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Remove</span></button>
-    </div>
-    <div class="panel-section-label">Glissando</div>
-    <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
-      Select start note → tap style → tap end note.</p>
-    <div class="panel-grid">
-      <button class="panel-btn" id="btn-gliss-str" aria-label="Straight glissando" data-action="startGlissando" data-style="straight">
-        <span class="panel-sym" style="font-size:11px;letter-spacing:-0.5px">- - -</span>
-        <span class="panel-lbl">Straight</span>
-      </button>
-      <button class="panel-btn" id="btn-gliss-wav" aria-label="Wavy glissando" data-action="startGlissando" data-style="wavy">
-        <span class="panel-sym" style="font-size:14px">〜</span>
-        <span class="panel-lbl">Wavy</span>
-      </button>
-      <button class="panel-btn" aria-label="Remove glissando" data-action="clearGlissando" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
-        <span class="panel-sym pal-sym-f11">✕</span>
-        <span class="panel-lbl">Remove</span>
-      </button>
-    </div>
+
   </div>
 
   <!-- Clef panel -->
@@ -1507,21 +1432,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   <!-- Barlines panel -->
   <div class="panel-page" id="panel-bars" style="display:none">
     <div class="panel-title">Barlines</div>
-    <div class="panel-section-label">Repeat Endings</div>
-    <div class="panel-grid">
-      <button class="panel-btn volta-btn" aria-label="First ending volta" data-label="1." data-action="startVolta" data-label="1.">
-        <span class="panel-sym" style="font-size:12px;font-weight:700">1.</span><span class="panel-lbl">1st End.</span>
-      </button>
-      <button class="panel-btn volta-btn" aria-label="Second ending volta" data-label="2." data-action="startVolta" data-label="2.">
-        <span class="panel-sym" style="font-size:12px;font-weight:700">2.</span><span class="panel-lbl">2nd End.</span>
-      </button>
-      <button class="panel-btn volta-btn" aria-label="Third ending volta" data-label="3." data-action="startVolta" data-label="3.">
-        <span class="panel-sym" style="font-size:12px;font-weight:700">3.</span><span class="panel-lbl">3rd End.</span>
-      </button>
-      <button class="panel-btn" aria-label="Remove volta" data-action="clearVolta" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
-        <span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Remove</span>
-      </button>
-    </div>
     <div class="panel-section-label">Barline Type</div>
     <div class="panel-grid">
       <button class="panel-btn" aria-label="Normal barline" data-action="applyBarline" data-type="single"><span class="panel-sym" style="font-size:18px">|</span><span class="panel-lbl">Normal</span></button>
@@ -1670,25 +1580,20 @@ let VF; // assigned in bootApp() after VexFlow loads dynamically
 /** @type {{
   score: Score|null,
   selectedMeasure: number, selectedStaff: number, selectedNoteIdx: number,
-  selectedGraceIdx: number, selStartIdx: number,
+  selStartIdx: number,
   inputMode: boolean, chordMode: boolean, markingMode: string|null,
   markingStart: ({mi:number, si:number, ni:number}|null),
-  graceMode: boolean, graceSlashed: boolean,
   curDur: string, curDot: boolean, curRest: boolean, curAcc: string|null,
-  curNotehead: string|null, curOctave: number, curVoice: number,
+  curOctave: number, curVoice: number,
   lyricBold: boolean, lyricItalic: boolean, showTempoOnScore: boolean,
-  partView: number|null,
   curTuplet: ({num:number, den:number}|null), tupletPending: number, tupletGroupId: number,
-  voltaPending: ({label:string, startMi:number}|null),
-  ottavaPending: ({type:string, startMi:number, startNi:number, si:number}|null),
-  glissPending: ({startMi:number, startNi:number, si:number, style:string}|null),
   showNoteLabels: boolean, noteLabelMode: string,
   playing: boolean, tempo: number, pauseVolumeRatio: number,
   undoStack: Array<{score:Score, ui:object}>, redoStack: Array<{score:Score, ui:object}>, _lastUndoFP: string,
   audioCtx: (AudioContext|null), staveLayout: Array, noteLayout: Array,
   playTimers: Array, playStartTime: number,
   countIn: boolean, metronome: boolean, metronomeSubdivision: string,
-  practiceMode: boolean, micInput: boolean,
+  practiceMode: boolean,
   assignmentMode: boolean, currentAssignment: object|null,
   exerciseMode: boolean, exerciseSession: object|null, exerciseDifficulty: string,
   uiProfile: string, teachingKit: string|null, teachingKitLevel: string,
@@ -1703,14 +1608,12 @@ const APP = {
   selectedMeasure: 0,
   selectedStaff: 0,
   selectedNoteIdx: -1,
-  selectedGraceIdx: -1,
   selStartIdx: -1,
   inputMode: false,
   curDur: 'q',
   curDot: false,
   curRest: false,
   curAcc: null,
-  curNotehead: null,
   curOctave: 4,
   markingMode: null,
   markingStart: null,
@@ -1719,20 +1622,10 @@ const APP = {
   showTempoOnScore: true,
   chordMode: false,    // when true, next note adds to current note as a chord
   curVoice: 1,         // 1 or 2
-  partView: null,       // null = full score; number = part index (0-based)
   // ── Tuplet state ──────────────────────────────────────────────
   curTuplet: null,     // null | {num:3,den:2} — currently active tuplet ratio
   tupletPending: 0,    // how many more notes remain in the current tuplet group
   tupletGroupId: 0,    // increments each time a tuplet bracket is completed
-  // ── Volta state ───────────────────────────────────────────────
-  voltaPending: null,  // null | {label,startMi} — waiting for end-measure tap
-  // ── Ottava state ──────────────────────────────────────────────
-  ottavaPending: null, // null | {type,startMi,startNi,si} — waiting for end note
-  // ── Grace note state ──────────────────────────────────────────
-  graceMode: false,    // when true, next note entry becomes a grace note on selected note
-  graceSlashed: true,  // acciaccatura (slashed) vs appoggiatura (unslashed)
-  // ── Glissando state ───────────────────────────────────────────
-  glissPending: null,  // null | {startMi,startNi,si,style} — waiting for end note
   // ── Educational labels ────────────────────────────────────────
   showNoteLabels: false,   // toggle solfege labels on all notes
   noteLabelMode: 'solfege',
@@ -1751,7 +1644,6 @@ const APP = {
   metronome: false,
   metronomeSubdivision: 'quarter', // 'quarter' | 'eighth' | 'triplet' | 'sixteenth'
   practiceMode: false,
-  micInput: false,
   assignmentMode: false,
   currentAssignment: null,
   exerciseMode: false,
@@ -1780,8 +1672,6 @@ const MODE_RULES = [
   () => APP.inputMode && APP.markingMode ? { ok: false, msg: 'inputMode + markingMode' } : null,
   // Chord mode without input or selection is a no-op
   () => APP.chordMode && !APP.inputMode && APP.selectedNoteIdx < 0 ? { ok: false, msg: 'chordMode active but no input mode or selection' } : null,
-  // Grace mode requires input mode
-  () => APP.graceMode && !APP.inputMode ? { ok: false, msg: 'graceMode requires inputMode' } : null,
   // Exercise mode should suppress editing modes
   () => APP.exerciseMode && APP.inputMode ? { ok: false, msg: 'exerciseMode + inputMode' } : null,
   () => APP.exerciseMode && APP.chordMode ? { ok: false, msg: 'exerciseMode + chordMode' } : null,
@@ -1790,11 +1680,8 @@ const MODE_RULES = [
   () => APP.assignmentMode && APP.inputMode ? { ok: false, msg: 'assignmentMode + inputMode' } : null,
   () => APP.assignmentMode && APP.chordMode ? { ok: false, msg: 'assignmentMode + chordMode' } : null,
   () => APP.assignmentMode && APP.markingMode ? { ok: false, msg: 'assignmentMode + markingMode' } : null,
-  // Pending states are mutually exclusive
-  () => {
-    const pending = [APP.markingMode, APP.voltaPending, APP.ottavaPending, APP.glissPending].filter(Boolean);
-    return pending.length > 1 ? { ok: false, msg: `multiple pending states: ${pending.length}` } : null;
-  },
+  // Pending states are mutually exclusive (only markingMode can be pending)
+  () => APP.markingMode && APP.inputMode ? { ok: false, msg: 'markingMode + inputMode' } : null,
   // Exercise session should match exercise mode
   () => APP.exerciseMode && !APP.exerciseSession ? { ok: false, msg: 'exerciseMode true but session null' } : null,
   () => !APP.exerciseMode && APP.exerciseSession ? { ok: false, msg: 'exerciseSession set but mode false' } : null,
@@ -1854,11 +1741,8 @@ const SCORE_FORMAT_VERSION = 1;
 /**
  * @typedef {{startMi:number, startNi:number, endMi:number, endNi:number, si:number}} SlurEntry
  * @typedef {{type:string, startMi:number, startNi:number, endMi:number, endNi:number, si:number}} HairpinEntry
- * @typedef {{startMi:number, endMi:number, label:string, closed:boolean}} VoltaEntry
- * @typedef {{startMi:number, endMi:number, type:string}} OttavaEntry
  * @typedef {{mi:number, text:string}} StaffTextEntry
  * @typedef {{mi:number, label:string}} RehearsalMarkEntry
- * @typedef {{pitch:number, accidental:string|null, slashed:boolean}} GraceNote
  * @typedef {{pitch:number, accidental:string|null}} ExtraPitch
 
  * @typedef {Object} Note
@@ -1874,7 +1758,6 @@ const SCORE_FORMAT_VERSION = 1;
  * @property {string|null} [fingering]
  * @property {string|null} [dynamic]
  * @property {string|null} [lyric]
- * @property {Array<{pitch:number, accidental:string|null, slashed:boolean}>} [graceNotes]
  * @property {string|null} [chordSymbol]
  * @property {string|null} [woodwindFingering]
  * @property {number|null} [stringNum]
@@ -1910,9 +1793,6 @@ const SCORE_FORMAT_VERSION = 1;
  * @property {Array<{type:string, si:number, startMi:number, startNi:number, endMi:number, endNi:number}>} hairpins
  * @property {Array<{mi:number, label:string}>} rehearsalMarks
  * @property {Array<{mi:number, text:string}>} staffTexts
- * @property {Array<{startMi:number, endMi:number, label:string, closed:boolean}>} voltas
- * @property {Array<{startMi:number, endMi:number, type:string}>} ottavas
- * @property {Array<{startMi:number, startNi:number, endMi:number, endNi:number, si:number, style:string}>} glissandos
  * @property {Array<{id:string, title:string, range:{startMi:number, endMi:number}, hidden:string[], hints:{showFirstNote:boolean}}>} assignments
  * @property {Object<string, {answers:Array, submitted:boolean}>} studentAnswers
  * @property {boolean} [showMeasureNumbers]
@@ -1923,11 +1803,8 @@ const VALID_DURATIONS = new Set(['w', 'h', 'q', '8', '16', '32', '64']);
 
 // Score-level lists whose items reference measure indices (mi / startMi / endMi).
 const SCORE_MEASURE_REF_RULES = [
-  { key: 'voltas',         range: true,  start: 'startMi', end: 'endMi' },
   { key: 'slurs',          range: true,  start: 'startMi', end: 'endMi' },
   { key: 'hairpins',       range: true,  start: 'startMi', end: 'endMi' },
-  { key: 'ottavas',        range: true,  start: 'startMi', end: 'endMi' },
-  { key: 'glissandos',     range: true,  start: 'startMi', end: 'endMi' },
   { key: 'rehearsalMarks', range: false, field: 'mi' },
   { key: 'staffTexts',     range: false, field: 'mi' },
 ];
@@ -1937,7 +1814,7 @@ const UI_PROFILES = {
   beginner: {
     hideDurations: ['32', '64'],
     hidePanels:    ['artic', 'lines', 'bars', 'tempo', 'clef', 'text'],
-    hideButtons:   ['btn-triplet', 'btn-voice2', 'btn-chord', 'btn-notehead-x'],
+    hideButtons:   ['btn-triplet', 'btn-voice2', 'btn-chord'],
     maxMeasures:   8,
     description:   'Beginner — simplified palette, limited measures',
   },
@@ -2601,7 +2478,7 @@ function createScore(opts={}) {
   });
   return {title: opts.title||'Untitled Score', composer: opts.composer||'',
           scoreVersion: SCORE_FORMAT_VERSION,
-          slurs:[], hairpins:[], rehearsalMarks:[], staffTexts:[], voltas:[], ottavas:[], glissandos:[],
+          slurs:[], hairpins:[], rehearsalMarks:[], staffTexts:[],
           assignments: [], studentAnswers: {}, parts};
 }
 
@@ -3628,7 +3505,6 @@ function parseMusicXML(xmlStr) {
       noteEls.forEach(noteEl => {
         const isChord = nq(noteEl, 'chord') !== null;
         const isRest  = nq(noteEl, 'rest') !== null;
-        const isGrace = nq(noteEl, 'grace') !== null;
 
         // Staff index (for multi-stave parts)
         let si = 0;
@@ -3670,11 +3546,6 @@ function parseMusicXML(xmlStr) {
 
         // Dynamics from <direction> elements (collected per measure, applied to first note after)
         // Simplified: we just look for dynamics in <direction> elements preceding this note
-
-        if (isGrace) {
-          // Skip grace notes for now — they need special handling
-          return;
-        }
 
         if (isChord && lastNote) {
           // Extra pitch on chord
@@ -3980,9 +3851,7 @@ function measureContentWidth(notes) {
 
 function findMultiRestGroups() {
   const groups = [];
-  const parts = APP.partView !== null
-    ? [APP.score.parts[APP.partView]].filter(Boolean)
-    : APP.score.parts;
+  const parts = APP.score.parts;
   const staves = parts.flatMap(p => p.staves);
   for (let si = 0; si < staves.length; si++) {
     const measures = staves[si].measures;
@@ -4464,18 +4333,14 @@ function _setupRender() {
   LAYOUT.SYS_SPACING   = REND.SYS_SPACING;
   LAYOUT.MARGIN_X      = REND.MARGIN_X;
   LAYOUT.MARGIN_TOP    = REND.MARGIN_TOP;
-  APP.selectedGraceIdx = -1;
   APP._lastPlayKey = '';
   APP.staveLayout = [];
   APP.noteLayout  = [];
 
   const score  = APP.score;
   const allParts  = score.parts;
-  const activeParts = APP.partView !== null
-    ? [score.parts[APP.partView]].filter(Boolean)
-    : allParts;
-  const staves = activeParts.flatMap(p => p.staves);
-  const siOffset = APP.partView !== null ? _globalSIForPart(APP.partView, 0) : 0;
+  const staves = allParts.flatMap(p => p.staves);
+  const siOffset = 0;
   const ns     = staves.length;
   const refStave = staves.find(s => s.measures.length) || staves[0];
   const allM   = refStave.measures;
@@ -4486,7 +4351,7 @@ function _setupRender() {
   const totalH = LAYOUT.MARGIN_TOP + systems.length * (LAYOUT.STAVE_H + (ns-1) * LAYOUT.STAVE_SPACING + LAYOUT.SYS_SPACING) + 48;
   const { ctx, multiRestGroups } = initScoreRenderer(container, cW, totalH, score);
 
-  return { container, area, savedScrollTop, viewScale, score, activeParts, staves, siOffset, ns, allM,
+  return { container, area, savedScrollTop, viewScale, score, staves, siOffset, ns, allM,
     systems, mNatW, cW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS, totalH, ctx, multiRestGroups };
 }
 
@@ -4523,8 +4388,8 @@ function _renderSystems(rc) {
       });
     });
 
-    renderInstrumentLabels(container, rc.activeParts, system, sysY, siOffset, ns, isFirstSysOfScore, ctx, vfStaveRef);
-    renderPartBrackets(container, rc.activeParts, system, siOffset, ns, vfStaveRef, ctx);
+    renderInstrumentLabels(container, APP.score.parts, system, sysY, siOffset, ns, isFirstSysOfScore, ctx, vfStaveRef);
+    renderPartBrackets(container, APP.score.parts, system, siOffset, ns, vfStaveRef, ctx);
     renderMeasureNumbers(container, ns, siOffset, sysIdx, system);
 
     sysY = _advanceSystemY(system, sysY, siOffset, ns, 6);
@@ -4772,13 +4637,9 @@ function _renderScoreAnnotations(rc) {
   renderStaffTexts();
   renderChordSymbols();
   renderLyrics();
-  renderVoltas();
-  renderOttavas();
-  renderGlissandos();
   renderNavigationMarkers();
   renderLyricClickHandlers();
   renderBWNoteheads();
-  renderGraceClickOverlays();
   if (APP.showTheoryOverlay) _renderTheoryOverlay();
   if (APP.showRhythmCounting) _renderRhythmCounting();
 }
@@ -5478,13 +5339,6 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           stem_direction: dirs[ni]
         });
 
-        // ── Custom noteheads (X, slash) ─────────────────────────
-        if (note.notehead === 'x') {
-          vfSafe(() => { vfNote.setNoteHead(VF.NoteHead.TYPE.X, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.X, ei + 1)); }, 'noteheadX');
-        } else if (note.notehead === 'slash') {
-          vfSafe(() => { vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, 0); if (note.extraPitches) note.extraPitches.forEach((_, ei) => vfNote.setNoteHead(VF.NoteHead.TYPE.SLASH, ei + 1)); }, 'noteheadSlash');
-        }
-
         // ── Assignment mode placeholders ────────────────────────
         if (APP.assignmentMode && _isInAssignmentRange(mi) && note.type === 'note') {
           const asgn = APP.currentAssignment;
@@ -5522,33 +5376,6 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           });
         }
         if (note.dots) { vfSafe(() => vfNote.addDot(0), 'noteDot'); }
-
-        // ── Grace notes (VF GraceNoteGroup) ──────────────────────
-        if (note.graceNotes && note.graceNotes.length && vfNote) {
-          const gNotes = note.graceNotes.map(gn => {
-            const gpc = gn.pitch % 12;
-            const goct = Math.floor(gn.pitch / 12) - 1;
-            let gDia;
-            if (gn.accidental === 'b')      gDia = NOTE_NAMES[PC_TO_DIA[(gpc + 1) % 12]];
-            else if (gn.accidental === '#') gDia = NOTE_NAMES[PC_TO_DIA[(gpc + 11) % 12]];
-            else                            gDia = NOTE_NAMES[PC_TO_DIA[gpc]];
-            const gKey = `${gDia}${gn.accidental || ''}/${goct}`;
-            try {
-              return new VF.GraceNote({
-                keys: [gKey],
-                duration: '8',
-                slash: gn.slashed || false
-              });
-            } catch(e) { return null; }
-          }).filter(Boolean);
-          if (gNotes.length) {
-            vfSafe(() => {
-              const graceGroup = new VF.GraceNoteGroup(gNotes, true);
-              if (gNotes.length > 1) graceGroup.beamNotes(gNotes);
-              vfNote.addModifier(0, graceGroup);
-            }, 'graceGroup');
-          }
-        }
 
         measureAccState[pc] = showAcc === 'n' ? null : (showAcc || measureAccState[pc] || null);
       }
@@ -5709,221 +5536,6 @@ function buildTuplets(vfNotes, notes) {
     } catch(e) { console.warn('Tuplet err:', e.message); }
   });
   return result;
-}
-
-// ── Volta Brackets ────────────────────────────────────────────────
-// Rendered as pure SVG overlays above the staff, same-system only.
-function renderVoltas() {
-  const svgEl = document.getElementById('score-svg').querySelector('svg');
-  if (!svgEl || !APP.score) return;
-
-  APP.score.voltas.forEach(volta => {
-    // Find the stave layout entries on the TOP staff for start and end measures.
-    // A volta may span across a system break; we draw one segment per system.
-    const startSL = APP.staveLayout.find(sl => sl.mi === volta.startMi && sl.si === 0);
-    if (!startSL) return;
-
-    // Find the end measure SL — use the same system if possible; if not found, use
-    // the last measure on the same system as startSL.
-    let endSL = APP.staveLayout.find(sl => sl.mi === volta.endMi && sl.si === 0);
-    if (!endSL) {
-      // Volta end is on a different (later) system — draw to the end of start system
-      const sysEnd = APP.staveLayout
-        .filter(sl => sl.si === 0 && sl.y === startSL.y) // same system row
-        .reduce((last, sl) => sl.mi > last.mi ? sl : last, startSL);
-      endSL = sysEnd;
-    }
-
-    const VOLT_H  = 12; // height of the vertical side strokes
-    const y       = startSL.topLineY - 10; // baseline of the horizontal beam
-    const x1      = startSL.x;
-    const x2      = endSL.x + endSL.w - 2;
-    const closed  = volta.closed !== false; // default closed
-
-    // Horizontal beam
-    const beam = document.createElementNS('http://www.w3.org/2000/svg','line');
-    beam.setAttribute('x1', x1); beam.setAttribute('y1', y);
-    beam.setAttribute('x2', x2); beam.setAttribute('y2', y);
-    beam.setAttribute('stroke','#111'); beam.setAttribute('stroke-width','1.3');
-    beam.setAttribute('pointer-events','none');
-    svgEl.appendChild(beam);
-
-    // Left vertical drop
-    const lDrop = document.createElementNS('http://www.w3.org/2000/svg','line');
-    lDrop.setAttribute('x1', x1); lDrop.setAttribute('y1', y);
-    lDrop.setAttribute('x2', x1); lDrop.setAttribute('y2', y + VOLT_H);
-    lDrop.setAttribute('stroke','#111'); lDrop.setAttribute('stroke-width','1.3');
-    lDrop.setAttribute('pointer-events','none');
-    svgEl.appendChild(lDrop);
-
-    // Right vertical drop (only for closed endings)
-    if (closed) {
-      const rDrop = document.createElementNS('http://www.w3.org/2000/svg','line');
-      rDrop.setAttribute('x1', x2); rDrop.setAttribute('y1', y);
-      rDrop.setAttribute('x2', x2); rDrop.setAttribute('y2', y + VOLT_H);
-      rDrop.setAttribute('stroke','#111'); rDrop.setAttribute('stroke-width','1.3');
-      rDrop.setAttribute('pointer-events','none');
-      svgEl.appendChild(rDrop);
-    }
-
-    // Label (e.g. "1.", "2.")
-    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-    label.setAttribute('x', x1 + 4);
-    label.setAttribute('y', y - 3);
-    label.setAttribute('text-anchor','start');
-    label.setAttribute('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
-    label.setAttribute('font-size','10');
-    label.setAttribute('font-weight','500');
-    label.setAttribute('fill','#111');
-    label.setAttribute('pointer-events','none');
-    label.textContent = volta.label;
-    svgEl.appendChild(label);
-  });
-}
-
-// ── Ottava Lines (8va / 8vb / 15ma) ──────────────────────────────
-// Rendered as: italic label + dashed horizontal line + vertical hook at end.
-// Placed above staff for 8va/15ma, below for 8vb.
-function renderOttavas() {
-  const svgEl = document.getElementById('score-svg').querySelector('svg');
-  if (!svgEl || !APP.score) return;
-
-  APP.score.ottavas.forEach(ott => {
-    const above = ott.type !== '8vb';
-    // Find note layout entries for start and end notes
-    const startNL = APP.noteLayout.find(nl => nl.mi === ott.startMi && nl.si === ott.si && nl.ni === ott.startNi);
-    const endNL   = APP.noteLayout.find(nl => nl.mi === ott.endMi   && nl.si === ott.si && nl.ni === ott.endNi);
-    const startSL = APP.staveLayout.find(sl => sl.mi === ott.startMi && sl.si === ott.si);
-    const endSL   = APP.staveLayout.find(sl => sl.mi === ott.endMi   && sl.si === ott.si);
-    if (!startNL || !startSL) return;
-
-    // Y position: above top staff line or below bottom staff line
-    const OFFSET = 14;
-    const y = above
-      ? startSL.topLineY - OFFSET
-      : startSL.bottomY  + OFFSET;
-    const yEnd = endSL ? (above ? endSL.topLineY - OFFSET : endSL.bottomY + OFFSET) : y;
-
-    const x1 = startNL.x - 2;
-    const x2 = endNL ? endNL.x + 10 : (startSL.x + startSL.w - 6);
-
-    // Label (italic, bold)
-    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
-    lbl.setAttribute('x', x1);
-    lbl.setAttribute('y', y + (above ? -2 : 12));
-    lbl.setAttribute('text-anchor', 'start');
-    lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-    lbl.setAttribute('font-size', '11');
-    lbl.setAttribute('font-style', 'italic');
-    lbl.setAttribute('font-weight', '700');
-    lbl.setAttribute('fill', '#222');
-    lbl.setAttribute('pointer-events', 'none');
-    lbl.textContent = ott.type;
-    svgEl.appendChild(lbl);
-
-    // Approximate label width to start dashes after it
-    const lblW = ott.type.length * 7 + 4;
-
-    // Dashed horizontal line
-    const lineY = above ? y - 1 : y + 13;
-    const dash = document.createElementNS('http://www.w3.org/2000/svg','line');
-    dash.setAttribute('x1', x1 + lblW);
-    dash.setAttribute('y1', lineY);
-    dash.setAttribute('x2', x2);
-    dash.setAttribute('y2', lineY);
-    dash.setAttribute('stroke', '#222');
-    dash.setAttribute('stroke-width', '1.1');
-    dash.setAttribute('stroke-dasharray', '4,3');
-    dash.setAttribute('pointer-events', 'none');
-    svgEl.appendChild(dash);
-
-    // Vertical hook at end (drops toward the staff)
-    const hookLen = 8;
-    const hook = document.createElementNS('http://www.w3.org/2000/svg','line');
-    hook.setAttribute('x1', x2); hook.setAttribute('y1', lineY);
-    hook.setAttribute('x2', x2); hook.setAttribute('y2', lineY + (above ? hookLen : -hookLen));
-    hook.setAttribute('stroke', '#222');
-    hook.setAttribute('stroke-width', '1.1');
-    hook.setAttribute('pointer-events', 'none');
-    svgEl.appendChild(hook);
-  });
-}
-
-// ── Glissando Rendering ───────────────────────────────────────────
-function renderGlissandos() {
-  const svgEl = document.getElementById('score-svg').querySelector('svg');
-  if (!svgEl || !APP.score) return;
-
-  APP.score.glissandos.forEach(g => {
-    const startNL = APP.noteLayout.find(nl => nl.mi === g.startMi && nl.si === g.si && nl.ni === g.startNi);
-    const endNL   = APP.noteLayout.find(nl => nl.mi === g.endMi   && nl.si === g.si && nl.ni === g.endNi);
-    if (!startNL || !endNL) return;
-
-    // Anchor points: right edge of start notehead → left edge of end notehead
-    // Offset vertically toward the pitch direction so the line starts/ends at notehead centre
-    const x1 = startNL.x + 7;
-    const y1 = startNL.y;
-    const x2 = endNL.x - 7;
-    const y2 = endNL.y;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-
-    if (g.style === 'wavy') {
-      // Wavy glissando: series of small sine-wave arcs along the line angle
-      // We approximate with alternating short cubic beziers perpendicular to the line
-      const len    = Math.sqrt(dx*dx + dy*dy);
-      const steps  = Math.max(3, Math.round(len / 8));
-      const amp    = 3; // wave amplitude px
-      // Unit vectors along and perpendicular to the line
-      const ux = dx / len, uy = dy / len;
-      const px = -uy,      py = ux; // perpendicular
-
-      let d = `M ${x1},${y1}`;
-      for (let i = 0; i < steps; i++) {
-        const t0 = i / steps, t1 = (i + 1) / steps;
-        const ax = x1 + dx * t0, ay = y1 + dy * t0;
-        const bx = x1 + dx * t1, by = y1 + dy * t1;
-        const side = i % 2 === 0 ? amp : -amp;
-        const mx2  = (ax + bx) / 2 + px * side;
-        const my2  = (ay + by) / 2 + py * side;
-        d += ` Q ${mx2},${my2} ${bx},${by}`;
-      }
-      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-      path.setAttribute('d', d);
-      path.setAttribute('stroke', '#222');
-      path.setAttribute('stroke-width', '1.2');
-      path.setAttribute('fill', 'none');
-      path.setAttribute('pointer-events', 'none');
-      svgEl.appendChild(path);
-    } else {
-      // Straight dashed glissando
-      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-      line.setAttribute('stroke', '#222');
-      line.setAttribute('stroke-width', '1.2');
-      line.setAttribute('stroke-dasharray', '4,3');
-      line.setAttribute('pointer-events', 'none');
-      svgEl.appendChild(line);
-    }
-
-    // "gliss." text label at midpoint, rotated along the line
-    const mx = (x1 + x2) / 2;
-    const my = (y1 + y2) / 2;
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
-    lbl.setAttribute('x', mx);
-    lbl.setAttribute('y', my - 4);
-    lbl.setAttribute('text-anchor', 'middle');
-    lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
-    lbl.setAttribute('font-size', '9');
-    lbl.setAttribute('font-style', 'italic');
-    lbl.setAttribute('fill', '#444');
-    lbl.setAttribute('transform', `rotate(${angle.toFixed(1)},${mx},${my})`);
-    lbl.setAttribute('pointer-events', 'none');
-    lbl.textContent = 'gliss.';
-    svgEl.appendChild(lbl);
-  });
 }
 
 // ── Navigation Markers (segno, coda, Fine, D.C., D.S.) ──────────
@@ -6109,60 +5721,6 @@ function renderLyricClickHandlers() {
   });
 }
 
-
-// ── Grace note clickable overlays ────────────────────────────────
-// Creates invisible clickable rectangles over VF-rendered grace notes
-// so the user can select individual grace notes for deletion.
-function renderGraceClickOverlays() {
-  const svgEl = document.getElementById('score-svg')?.querySelector('svg');
-  if (!svgEl || !APP.score) return;
-  const NS = 'http://www.w3.org/2000/svg';
-
-  let gsiStart = 0;
-  APP.score.parts.forEach(part => {
-    part.staves.forEach((stave, si) => {
-      const gsi = gsiStart + si;
-      stave.measures.forEach((measure, mi) => {
-        const sLayout = APP.staveLayout.find(sl => sl.mi === mi && sl.si === gsi);
-        if (!sLayout) return;
-
-        measure.notes.forEach((note, ni) => {
-          if (!note.graceNotes || !note.graceNotes.length) return;
-          if (note.type !== 'note') return;
-
-          const layout = APP.noteLayout.find(l => l.mi === mi && l.si === gsi && l.ni === ni);
-          if (!layout) return;
-
-          const parentX = layout.x;
-          const graceSpacing = 12;
-          const totalW = note.graceNotes.length * graceSpacing;
-
-          note.graceNotes.forEach((gn, gi) => {
-            const gx = parentX - totalW - 4 + gi * graceSpacing;
-            const grp = document.createElementNS(NS, 'g');
-            grp.setAttribute('data-grace', '1');
-            grp.setAttribute('data-mi', mi);
-            grp.setAttribute('data-si', gsi);
-            grp.setAttribute('data-ni', ni);
-            grp.setAttribute('data-gi', gi);
-            grp.setAttribute('style', 'cursor:pointer');
-            // Invisible clickable rectangle over VF's drawn grace note
-            const rect = document.createElementNS(NS, 'rect');
-            rect.setAttribute('x', gx - 8);
-            rect.setAttribute('y', sLayout.y - 10);
-            rect.setAttribute('width', 20);
-            rect.setAttribute('height', sLayout.h + 20);
-            rect.setAttribute('fill', 'transparent');
-            rect.setAttribute('pointer-events', 'all');
-            grp.appendChild(rect);
-            svgEl.appendChild(grp);
-          });
-        });
-      });
-    });
-    gsiStart += part.staves.length;
-  });
-}
 
 // ── Recorder fingering SVG diagram ───────────────────────────────
 // fing is a string encoding which sub-holes are covered.
@@ -7463,28 +7021,6 @@ document.getElementById('score-svg').addEventListener('touchend', function(e) {
 }, {passive:false});
 
 function handleScoreTap(e) {
-  // ── Grace note hit test ────────────────────────────────────
-  if (!APP.inputMode) {
-    const t0 = e.target;
-    if (t0 && t0.closest) {
-      const g = t0.closest('[data-grace="1"]');
-      if (g) {
-        const mi = +g.getAttribute('data-mi');
-        const si = +g.getAttribute('data-si');
-        const ni = +g.getAttribute('data-ni');
-        const gi = +g.getAttribute('data-gi');
-        APP.selectedMeasure = mi;
-        APP.selectedStaff   = si;
-        APP.selectedNoteIdx = ni;
-        APP.selStartIdx = -1;
-        renderSelection();
-        APP.selectedGraceIdx = gi;
-        showToast('Grace note selected (tap Remove to delete)');
-        return;
-      }
-    }
-  }
-
   const pos = getEventXY(e);
   if (!pos) return;
   const {x, y} = pos;
@@ -7505,9 +7041,6 @@ function handleScoreTap(e) {
         return;
       }
       // Check if we're completing an ottava span
-      if (_checkOttavaComplete(bestNote.mi, bestNote.si, bestNote.ni)) return;
-      // Check if we're completing a glissando
-      if (_checkGlissComplete(bestNote.mi, bestNote.si, bestNote.ni)) return;
       APP.selectedMeasure = bestNote.mi;
       APP.selectedStaff   = bestNote.si;
       APP.selectedNoteIdx = bestNote.ni;
@@ -7544,9 +7077,6 @@ function handleScoreTap(e) {
   APP.selectedMeasure = hit.mi;
   APP.selectedStaff   = hit.si;
   APP.selectedNoteIdx = -1;
-
-  // ── Check for pending volta completion ────────────────────────
-  if (_checkVoltaComplete(hit.mi)) return;
 
   if (APP.inputMode) {
     let pitch = yToPitchAccurate(y, hit);
@@ -7749,8 +7279,6 @@ function insertNote(mi, si, pitch) {
       ? mkRest(APP.curDur, APP.curDot ? 1 : 0, APP.curVoice)
       : mkNote(pitch, APP.curDur, APP.curDot ? 1 : 0, displayAcc, APP.curVoice);
 
-    if (APP.curNotehead && entry.type === 'note') entry.notehead = APP.curNotehead;
-
     if (APP.curTuplet && !APP.curRest) {
       if (APP.tupletPending <= 0) APP.tupletPending = APP.curTuplet.num;
       entry.tuplet = {
@@ -7794,9 +7322,6 @@ function insertNote(mi, si, pitch) {
 const NAME_TO_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 
 function insertNoteByName(name) {
-  // ── Grace note mode intercept ──────────────────────────────────
-  if (APP.graceMode) { addGraceNote(name); return; }
-
   const canEnter = APP.inputMode || (APP.chordMode && APP.selectedNoteIdx >= 0);
   // Pitch-edit mode: note selected, not input mode, not chord mode → change existing pitch
   if (!APP.inputMode && !APP.chordMode && APP.selectedNoteIdx >= 0) {
@@ -8349,9 +7874,6 @@ function startMarking(type) {
   if (APP.inputMode) toggleInputMode();
   APP.chordMode = false;
   document.getElementById('btn-chord')?.classList.remove('active');
-  APP.voltaPending = null;
-  APP.ottavaPending = null;
-  APP.glissPending = null;
   APP.markingMode  = type;
   APP.markingStart = {
     mi: APP.selectedMeasure,
@@ -8434,13 +7956,6 @@ function setAcc(a) {
 }
 
 // ── Notehead Controls ────────────────────────────────────────────
-function setNotehead(type) {
-  APP.curNotehead = APP.curNotehead === type ? null : type;
-  document.getElementById('btn-notehead-x')?.classList.toggle('active', APP.curNotehead === 'x');
-  document.getElementById('btn-notehead-slash')?.classList.toggle('active', APP.curNotehead === 'slash');
-  showToast(APP.curNotehead ? (APP.curNotehead === 'x' ? 'X notehead' : 'Slash notehead') : 'Normal notehead');
-}
-
 // ── Tuplet Controls ───────────────────────────────────────────────
 function toggleTuplet(num, den) {
   // If same tuplet is active, toggle off
@@ -8458,250 +7973,7 @@ function toggleTuplet(num, den) {
   showToast(`${label} mode — enter ${num} notes`);
 }
 
-// ── Volta (Repeat Endings) ────────────────────────────────────────
-function startVolta(label) {
-  // Two-tap: first tap stores startMi; second tap on a different measure completes it.
-  if (APP.voltaPending) {
-    // Already waiting — if user taps the same button again, cancel
-    APP.voltaPending = null;
-    document.querySelectorAll('.volta-btn').forEach(b => b.classList.remove('active'));
-    showToast('Volta cancelled');
-    return;
-  }
-  APP.voltaPending = { label, startMi: APP.selectedMeasure };
-  document.querySelectorAll('.volta-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.volta-btn[data-label="${label}"]`)?.classList.add('active');
-  showToast(`${label} ending: now tap the LAST measure of the ending`);
-}
 
-function _checkVoltaComplete(mi) {
-  // Called from measure-tap handlers when a volta is pending
-  if (!APP.voltaPending) return false;
-  const { label, startMi } = APP.voltaPending;
-  if (mi === startMi) return false; // need a different measure
-  const closed = label !== '2.';
-  commitChange(score => {
-    if (!score.voltas) score.voltas = [];
-    score.voltas.push({
-      startMi: Math.min(startMi, mi),
-      endMi:   Math.max(startMi, mi),
-      label,
-      closed,
-    });
-    APP.voltaPending = null;
-    document.querySelectorAll('.volta-btn').forEach(b => b.classList.remove('active'));
-  }, { toast: `${label} ending added` });
-  return true;
-}
-
-function clearVolta() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  const mi = APP.selectedMeasure;
-  commitChange(score => {
-    score.voltas = (score.voltas || []).filter(
-      v => !(mi >= v.startMi && mi <= v.endMi)
-    );
-  }, { toast: 'Ending removed' });
-}
-
-// ── Ottava Controls ───────────────────────────────────────────────
-function startOttava(type) {
-  if (APP.selectedNoteIdx < 0) { showToast('Select the first note, then tap the ottava'); return; }
-  // Toggle off if already pending same type
-  if (APP.ottavaPending && APP.ottavaPending.type === type) {
-    APP.ottavaPending = null;
-    document.querySelectorAll('.ottava-btn').forEach(b => b.classList.remove('active'));
-    showToast('Ottava cancelled');
-    return;
-  }
-  APP.ottavaPending = {
-    type,
-    si:      APP.selectedStaff,
-    startMi: APP.selectedMeasure,
-    startNi: APP.selectedNoteIdx,
-  };
-  document.querySelectorAll('.ottava-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.ottava-btn[data-type="${type}"]`)?.classList.add('active');
-  showToast(`${type}: now select the LAST note of the passage`);
-}
-
-function _checkOttavaComplete(mi, si, ni) {
-  if (!APP.ottavaPending) return false;
-  const p = APP.ottavaPending;
-  if (si !== p.si) { showToast('Ottava must stay on the same staff'); return false; }
-  // End note must be at or after start note
-  if (mi < p.startMi || (mi === p.startMi && ni <= p.startNi)) return false;
-  commitChange(score => {
-    if (!score.ottavas) score.ottavas = [];
-    score.ottavas.push({
-      type:    p.type,
-      si:      p.si,
-      startMi: p.startMi,
-      startNi: p.startNi,
-      endMi:   mi,
-      endNi:   ni,
-    });
-    APP.ottavaPending = null;
-    document.querySelectorAll('.ottava-btn').forEach(b => b.classList.remove('active'));
-  }, { toast: `${p.type} line added` });
-  return true;
-}
-
-function clearOttava() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  const mi = APP.selectedMeasure;
-  const si = APP.selectedStaff;
-  const ni = APP.selectedNoteIdx;
-  commitChange(score => {
-    score.ottavas = (score.ottavas || []).filter(o => {
-      const coversStart = o.si === si && o.startMi === mi && o.startNi === ni;
-      const coversEnd   = o.si === si && o.endMi   === mi && o.endNi   === ni;
-      const coversMid   = o.si === si && (mi > o.startMi || (mi === o.startMi && ni >= o.startNi))
-                                      && (mi < o.endMi   || (mi === o.endMi   && ni <= o.endNi));
-      return !(coversStart || coversEnd || coversMid);
-    });
-  }, { toast: 'Ottava removed' });
-}
-
-// ── Grace Notes ───────────────────────────────────────────────────
-// Grace notes are stored on their parent note: note.graceNotes = [{pitch, accidental, slashed}]
-// toggleGraceMode arms the palette; the next note-name tap calls addGraceNote instead of insert.
-function toggleGraceMode(slashed) {
-  // If already in the same grace mode, turn off
-  if (APP.graceMode && APP.graceSlashed === slashed) {
-    APP.graceMode = false;
-    document.getElementById('btn-grace-acc')?.classList.remove('active');
-    document.getElementById('btn-grace-app')?.classList.remove('active');
-    showToast('Grace note mode off');
-    return;
-  }
-  if (APP.selectedNoteIdx < 0) {
-    showToast('Select a note first, then tap Acciaccatura or Appoggiatura');
-    return;
-  }
-  APP.graceMode    = true;
-  APP.graceSlashed = slashed;
-  document.getElementById('btn-grace-acc')?.classList.toggle('active',  slashed);
-  document.getElementById('btn-grace-app')?.classList.toggle('active', !slashed);
-  const label = slashed ? 'Acciaccatura' : 'Appoggiatura';
-  showToast(`${label}: tap a note name (C–B) to add grace note`);
-  _validateModeState();
-}
-
-function addGraceNote(name) {
-  // Called instead of insertNoteByName when graceMode is active
-  if (APP.selectedNoteIdx < 0) {
-    APP.graceMode = false;
-    showToast('No note selected — grace note cancelled');
-    return;
-  }
-  const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-  if (!n || n.type !== 'note') {
-    APP.graceMode = false;
-    showToast('Grace notes attach to notes only');
-    return;
-  }
-  let pc = NAME_TO_PC[name];
-  if (APP.curAcc === '#') pc = (pc + 1) % 12;
-  if (APP.curAcc === 'b') pc = (pc + 11) % 12;
-  // Place grace note in the same octave as the parent, bias upward for acciaccatura
-  const refOct  = Math.floor(n.pitch / 12) - 1;
-  const midi    = (refOct + 1) * 12 + pc;
-  const ks     = getResolvedKeySig(APP.selectedMeasure, APP.selectedStaff);
-  const acc     = APP.curAcc || (DIATONIC_PCS.has(pc) ? null : (ks < 0 ? 'b' : '#'));
-  commitChange(score => {
-    if (!n.graceNotes) n.graceNotes = [];
-    n.graceNotes.push({ pitch: midi, accidental: acc, slashed: APP.graceSlashed });
-  }, { toast: `Grace note ${NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase()} added` });
-  // Stay in grace mode so user can add more grace notes to same parent
-}
-
-function clearGraceNotes() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
-  const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-  if (!n) return;
-  if (APP.selectedGraceIdx >= 0 && n.graceNotes && n.graceNotes.length > APP.selectedGraceIdx) {
-    commitChange(score => {
-      n.graceNotes.splice(APP.selectedGraceIdx, 1);
-      if (!n.graceNotes.length) delete n.graceNotes;
-      APP.selectedGraceIdx = -1;
-    }, { toast: 'Grace note deleted' });
-  } else {
-    commitChange(score => {
-      delete n.graceNotes;
-    }, { toast: 'All grace notes removed' });
-  }
-}
-
-function convertToGrace(slashed) {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
-  const m = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
-  if (!m) return;
-  const ni = APP.selectedNoteIdx;
-  const n = m.notes[ni];
-  if (!n || n.type !== 'note') { showToast('Select a regular note'); return; }
-  if (ni >= m.notes.length - 1) { showToast('Last note: no following note to attach to'); return; }
-  const next = m.notes[ni + 1];
-  if (next.type !== 'note') { showToast('The following item is not a note'); return; }
-  const label = slashed ? 'Acciaccatura' : 'Appoggiatura';
-  commitChange(score => {
-    if (!next.graceNotes) next.graceNotes = [];
-    const gn = { pitch: n.pitch, accidental: n.accidental, slashed };
-    next.graceNotes.push(gn);
-    m.notes.splice(ni, 1);
-    APP.selectedNoteIdx = m.notes.indexOf(next);
-  }, { toast: `Converted to ${label} of following note` });
-}
-
-// ── Glissando ─────────────────────────────────────────────────────
-// Drawn as a straight dashed line (portamento style) or a wavy line
-// between two noteheads. Stored as {si,startMi,startNi,endMi,endNi,style}
-function startGlissando(style) {
-  if (APP.selectedNoteIdx < 0) { showToast('Select the first note, then tap Gliss'); return; }
-  if (APP.glissPending && APP.glissPending.style === style) {
-    APP.glissPending = null;
-    document.getElementById('btn-gliss-str')?.classList.remove('active');
-    document.getElementById('btn-gliss-wav')?.classList.remove('active');
-    showToast('Glissando cancelled');
-    return;
-  }
-  APP.glissPending = {
-    style,
-    si:      APP.selectedStaff,
-    startMi: APP.selectedMeasure,
-    startNi: APP.selectedNoteIdx,
-  };
-  document.getElementById('btn-gliss-str')?.classList.toggle('active', style === 'straight');
-  document.getElementById('btn-gliss-wav')?.classList.toggle('active', style === 'wavy');
-  showToast('Gliss: now tap the destination note');
-}
-
-function _checkGlissComplete(mi, si, ni) {
-  if (!APP.glissPending) return false;
-  const p = APP.glissPending;
-  if (si !== p.si) return false;
-  if (mi < p.startMi || (mi === p.startMi && ni <= p.startNi)) return false;
-  commitChange(score => {
-    if (!score.glissandos) score.glissandos = [];
-    score.glissandos.push({ style: p.style, si: p.si, startMi: p.startMi, startNi: p.startNi, endMi: mi, endNi: ni });
-    APP.glissPending = null;
-    document.getElementById('btn-gliss-str')?.classList.remove('active');
-    document.getElementById('btn-gliss-wav')?.classList.remove('active');
-  }, { toast: 'Glissando added' });
-  return true;
-}
-
-function clearGlissando() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  const mi = APP.selectedMeasure, si = APP.selectedStaff, ni = APP.selectedNoteIdx;
-  commitChange(score => {
-    score.glissandos = (score.glissandos || []).filter(
-      g => !(g.si === si && ((g.startMi === mi && g.startNi === ni) || (g.endMi === mi && g.endNi === ni)))
-    );
-  }, { toast: 'Glissando removed' });
-}
 function toggleInputMode() {
   APP.inputMode = !APP.inputMode;
   // Clear conflicting modes when entering input mode
@@ -10056,25 +9328,19 @@ function _snapshotUIState() {
     selectedStaff: APP.selectedStaff,
     selectedNoteIdx: APP.selectedNoteIdx,
     selStartIdx: APP.selStartIdx,
-    selectedGraceIdx: APP.selectedGraceIdx,
     inputMode: APP.inputMode,
     chordMode: APP.chordMode,
     markingMode: APP.markingMode,
     markingStart: APP.markingStart,
-    graceMode: APP.graceMode,
     curDur: APP.curDur,
     curDot: APP.curDot,
     curRest: APP.curRest,
     curAcc: APP.curAcc,
-    curNotehead: APP.curNotehead,
     curOctave: APP.curOctave,
     curVoice: APP.curVoice,
     curTuplet: APP.curTuplet,
     tupletPending: APP.tupletPending,
     tupletGroupId: APP.tupletGroupId,
-    voltaPending: APP.voltaPending,
-    ottavaPending: APP.ottavaPending,
-    glissPending: APP.glissPending,
   };
 }
 function _restoreUIState(snapshot) {
@@ -10944,20 +10210,7 @@ function startPlayback() {
           const beats = durBeats(n.duration, n.dots, n.tuplet);
           const dur   = beats * beatDur;
           if (n.type === 'note') {
-            // Check if this note falls within any ottava
-            let pitchShift = 0;
-            for (const ott of (APP.score.ottavas || [])) {
-              if (ott.si !== si) continue;
-              const afterStart = mi > ott.startMi || (mi === ott.startMi && ni >= ott.startNi);
-              const beforeEnd  = mi < ott.endMi   || (mi === ott.endMi   && ni <= ott.endNi);
-              if (afterStart && beforeEnd) {
-                if (ott.type === '8va')  pitchShift = 12;
-                if (ott.type === '8vb')  pitchShift = -12;
-                if (ott.type === '15ma') pitchShift = 24;
-                break;
-              }
-            }
-            const chordPitches = [n.pitch + pitchShift, ...(n.extraPitches || []).map(ep => ep.pitch + pitchShift)];
+            const chordPitches = [n.pitch, ...(n.extraPitches || []).map(ep => ep.pitch)];
             const chordVol = (part.volume || 1) / Math.sqrt(chordPitches.length);
             chordPitches.forEach(p => scheduleNote(ctx, p, t, dur * 0.88, oscType, chordVol));
           }
@@ -11130,15 +10383,7 @@ function clearPlayCursor() {
 
 // ── MIDI Hardware Input (removed — browser permission warning) ──
 
-function _flashMIDIIndicator(pitch) {
-  const el = document.getElementById('midi-indicator');
-  if (!el) return;
-  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  el.textContent = names[pitch % 12] + Math.floor(pitch / 12 - 1);
-  el.style.opacity = '1';
-  clearTimeout(el._flashTimer);
-  el._flashTimer = setTimeout(() => { el.style.opacity = '0'; }, 300);
-}
+
 
 // ── Practice Mode ───────────────────────────────────────────────
 // MIDI-gated playback: the student must play the correct note on
@@ -11156,8 +10401,6 @@ function togglePracticeMode() {
 
 function _startPracticeMode() {
   if (!APP.score) { showToast('Open or create a score first'); return; }
-  // Microphone is the input method for practice mode
-  if (!APP.micInput) _startMicInput();
   APP.practiceMode = true;
   APP.practiceWaiting = true;
   stopPlayback();
@@ -11243,127 +10486,13 @@ function _checkPracticeNote(incomingPitch) {
     const ctx = getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
     scheduleNote(ctx, note.pitch, ctx.currentTime, 0.35, 'sine', 1);
-    _flashMIDIIndicator(incomingPitch);
     _practiceAdvance();
   } else {
     // Wrong note — brief visual feedback via toast
     const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     const targetName = names[targetPC];
     showToast('Try again — play ' + targetName, 1200);
-    _flashMIDIIndicator(incomingPitch);
   }
-}
-
-// ── Microphone Pitch Detection ──────────────────────────────────
-// Enables practice mode without a MIDI device by using the
-// computer microphone and autocorrelation pitch tracking.
-
-async function toggleMicInput() {
-  if (APP.micInput) {
-    _stopMicInput();
-  } else {
-    await _startMicInput();
-  }
-}
-
-async function _startMicInput() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false }
-    });
-    APP._micStream = stream;
-    const ctx = getAudioCtx();
-    const source = ctx.createMediaStreamSource(stream);
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 2048;
-    source.connect(analyser);
-    APP._micAnalyser = analyser;
-    APP.micInput = true;
-    APP._micLastPitch = null;
-    APP._micStableFrames = 0;
-    showToast('Microphone input ON — play a note!');
-    const btn = document.getElementById('btn-mic-input');
-    if (btn) btn.classList.add('active');
-    _micPitchLoop();
-  } catch (err) {
-    showToast('Microphone access denied: ' + err.message);
-  }
-}
-
-function _stopMicInput() {
-  APP.micInput = false;
-  if (APP._micRAF) cancelAnimationFrame(APP._micRAF);
-  if (APP._micStream) {
-    APP._micStream.getTracks().forEach(t => t.stop());
-    APP._micStream = null;
-  }
-  APP._micAnalyser = null;
-  const btn = document.getElementById('btn-mic-input');
-  if (btn) btn.classList.remove('active');
-  showToast('Microphone input OFF');
-}
-
-function _micPitchLoop() {
-  if (!APP.micInput) return;
-  const analyser = APP._micAnalyser;
-  if (!analyser) return;
-  const buf = new Float32Array(analyser.fftSize);
-  analyser.getFloatTimeDomainData(buf);
-  const freq = _autocorrelationPitch(buf, APP.audioCtx.sampleRate);
-  if (freq) {
-    const midi = _freqToMidi(freq);
-    if (midi === APP._micLastPitch) {
-      APP._micStableFrames = (APP._micStableFrames || 0) + 1;
-    } else {
-      APP._micStableFrames = 0;
-      APP._micLastPitch = midi;
-    }
-    if (APP._micStableFrames >= 3) {
-      _checkPracticeNote(midi);
-    }
-  }
-  APP._micRAF = requestAnimationFrame(_micPitchLoop);
-}
-
-function _autocorrelationPitch(audioBuffer, sampleRate) {
-  const SIZE = audioBuffer.length;
-  let rms = 0;
-  for (let i = 0; i < SIZE; i++) rms += audioBuffer[i] * audioBuffer[i];
-  rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return null;
-
-  let r1 = 0, r2 = SIZE - 1;
-  const thres = 0.2;
-  for (let i = 0; i < SIZE; i++) {
-    if (Math.abs(audioBuffer[i]) < thres) { r1 = i; break; }
-  }
-  for (let i = 1; i < SIZE; i++) {
-    if (Math.abs(audioBuffer[SIZE - i]) < thres) { r2 = SIZE - 1 - i; break; }
-  }
-
-  const c = new Float32Array(SIZE);
-  for (let i = 0; i < SIZE; i++) {
-    for (let j = 0; j < SIZE - i; j++) {
-      c[i] += audioBuffer[j] * audioBuffer[j + i];
-    }
-  }
-
-  let d = 0;
-  while (c[d] > c[d + 1]) d++;
-  let maxval = -1, maxpos = -1;
-  for (let i = d; i < SIZE; i++) {
-    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
-  }
-  let T0 = maxpos;
-
-  if (T0 > 0 && T0 < SIZE - 1) {
-    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-    const a = (x1 + x3 - 2 * x2) / 2;
-    const b = (x3 - x1) / 2;
-    if (a !== 0) T0 = T0 - b / (2 * a);
-  }
-
-  return sampleRate / T0;
 }
 
 function _freqToMidi(freq) {
@@ -11992,47 +11121,6 @@ function updateTempo(v) {
 // ── Score Menu ────────────────────────────────────────────────────
 // ── Parts System ─────────────────────────────────────────────────
 
-function showPartsDialog() {
-  const parts = APP.score?.parts || [];
-  if (parts.length === 0) { showToast('No instruments in score'); return; }
-
-  const partBtns = parts.map((p, i) => `
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-      <button data-action="togglePartMute" data-idx="${i}" style="
-        flex-shrink:0;width:28px;height:28px;border-radius:50%;
-        border:1px solid ${p.muted ? 'rgba(224,112,96,0.40)' : 'rgba(192,86,33,0.25)'};
-        background:${p.muted ? 'rgba(224,112,96,0.15)' : 'rgba(192,86,33,0.08)'};
-        color:${p.muted ? '#e07060' : '#c05621'};
-        font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-        -webkit-tap-highlight-color:transparent">${p.muted ? '🔇' : '🔊'}</button>
-      <button class="modal-btn" style="flex:1;${APP.partView === i ? 'background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621;font-weight:600' : ''}"
-        data-action="enterPartView" data-idx="${i}">
-        ${APP.partView === i ? '▶ ' : ''}${p.name}
-      </button>
-      <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
-        data-action="setPartVolume" data-idx="${i}"
-        style="width:50px;height:4px;accent-color:#c05621;cursor:pointer"
-        aria-label="${p.name} volume">
-    </div>`).join('');
-
-  makeModal(`
-    <h2>Parts</h2>
-    <p class="dialog-hint">
-      Tap 🔊/🔇 to mute a part during playback</p>
-    ${partBtns}
-    <div class="modal-sep"></div>
-    ${APP.partView !== null ? `
-      <button class="modal-btn primary" data-action="printPart">
-        🖨️ Print / Export this Part</button>
-      <button class="modal-btn primary" data-action="exportPartMSCX">
-        💾 Save Part as .mscx</button>
-      <button class="modal-btn secondary" data-action="exitPartView">
-        ⬅ Return to Full Score</button>
-    ` : ''}
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
-  `);
-}
-
 function showMixer() {
   const parts = APP.score?.parts || [];
   const masterPct = Math.round((APP.masterVolume || 0.65) * 100);
@@ -12066,10 +11154,6 @@ function showMixer() {
       </div>
     </div>
     <div class="modal-sep"></div>
-    <div style="margin-bottom:8px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Microphone Input</div>
-      <button id="btn-mic-input" class="modal-btn secondary ${APP.micInput ? 'active' : ''}" data-action="toggleMicInput" style="width:100%">${APP.micInput ? '🎤 Mic ON' : '🎤 Mic OFF'}</button>
-    </div>
     ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
     <button class="modal-btn secondary" style="margin-top:8px" data-action="closeModal">Close</button>
   `);
@@ -12088,66 +11172,6 @@ function setPartVolume(partIdx, val) {
   commitChange(score => {
     score.parts[partIdx].volume = Math.max(0, Math.min(1, val / 100));
   });
-}
-
-function enterPartView(partIdx) {
-  APP.partView = partIdx;
-  const partName = APP.score.parts[partIdx]?.name || 'Part';
-  document.getElementById('score-title').textContent =
-    APP.score.title + ' — ' + partName;
-  renderScore();
-  showToast(`Viewing: ${partName}`);
-}
-
-function exitPartView() {
-  APP.partView = null;
-  document.getElementById('score-title').textContent = APP.score.title;
-  APP.selectedStaff = 0;
-  renderScore();
-  showToast('Full score');
-}
-
-function printPart() {
-  if (APP.partView === null) { positionAllDiagrams(0); window.print(); return; }
-  closeLyricEditor();
-  closeModal();
-  positionAllDiagrams(0);
-  setTimeout(() => window.print(), 120);
-}
-
-function exportPartMSCX() {
-  if (APP.partView === null) { saveMSCX(); return; }
-  const part     = APP.score.parts[APP.partView];
-  if (!part) return;
-  const partScore = {
-    title:    APP.score.title + ' — ' + part.name,
-    composer: APP.score.composer || '',
-    parts:    [JSON.parse(JSON.stringify(part))],
-    slurs:    (APP.score.slurs  || []).filter(s => {
-      const gsi = _globalSIForPart(APP.partView, 0);
-      return s.si >= gsi && s.si < gsi + part.staves.length;
-    }).map(s => ({...s, si: s.si - _globalSIForPart(APP.partView, 0)})),
-    hairpins: (APP.score.hairpins || []).filter(h => {
-      const gsi = _globalSIForPart(APP.partView, 0);
-      return h.si >= gsi && h.si < gsi + part.staves.length;
-    }).map(h => ({...h, si: h.si - _globalSIForPart(APP.partView, 0)})),
-    rehearsalMarks: APP.score.rehearsalMarks || [],
-    staffTexts: (APP.score.staffTexts || []).filter(t => {
-      const gsi = _globalSIForPart(APP.partView, 0);
-      return t.si >= gsi && t.si < gsi + part.staves.length;
-    }),
-  };
-  const xml  = exportMSCXFromScore(partScore);
-  const safe = safeName(part.name);
-  dlBlob(new Blob([xml], {type:'text/xml'}), `${safe}.mscx`);
-  showToast(`Saved ${part.name} part`);
-}
-
-// Compute the global stave index for the first stave of a given part
-function _globalSIForPart(partIdx, localSI) {
-  let gsi = 0;
-  for (let i = 0; i < partIdx; i++) gsi += (APP.score.parts[i]?.staves?.length || 0);
-  return gsi + localSI;
 }
 
 // ── Pickup Measure ────────────────────────────────────────────────
@@ -12232,8 +11256,7 @@ function showScoreMenu(btn) {
     {label:'𝄴 Time Signature', fn:showTimeSigDialog},
     {label:'♭♯ Key Signature', fn:showKeySigDialog},
     {label:'↕ Transpose…', fn:showTransposeDialog},
-    {label:'📄 Parts', fn:showPartsDialog},
-    {label:'➕ Add Instrument', fn:showAddInstrumentDialog},
+    {label:'➕ Add Instrument', fn:showMixer},
     {sep:true},
     {label:'𝄻 Pickup Measure', fn:showPickupDialog},
     {sep:true},
@@ -12501,90 +11524,23 @@ function showAssignmentSubmenu() {
   showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
 
-let _aiFamily = 'Classroom';
-
 function showAddInstrumentDialog() {
-  _aiFamily = 'Classroom';
-  _renderAddInstrumentDialog();
-}
-
-function _renderAddInstrumentDialog() {
   const allowedNames = _kitInstrumentList();
-  const allowedInstrs = INSTRUMENTS.filter(i => allowedNames.includes(i.name));
-
-  const famOrder = ['Recorder','Brass','Woodwinds','Voice'];
-  const families  = [...new Set(allowedInstrs.map(i => i.family))].sort((a,b) => {
-    const ia = famOrder.indexOf(a);
-    const ib = famOrder.indexOf(b);
-    if (ia !== -1 && ib !== -1) return ia - ib;
-    if (ia !== -1) return -1;
-    if (ib !== -1) return 1;
-    return a.localeCompare(b);
-  });
-
-  // If the previously selected family has no allowed instruments, pick first available
-  if (!families.includes(_aiFamily)) _aiFamily = families[0] || 'Recorder';
-
-  const instrList = allowedInstrs.filter(i => i.family === _aiFamily);
-  const firstInstr = _aiFamily === 'Recorder'
-    ? allowedInstrs.find(i => i.name === 'Soprano Recorder')?.name || instrList[0]?.name || ''
-    : instrList[0]?.name || '';
-
-  // If a kit is active, show a hint at the top
-  const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
-  const kitHint = kit
-    ? `<div style="font-size:11px;color:rgba(192,86,33,0.8);margin-bottom:6px">${kit.name} — ${APP.teachingKitLevel}</div>`
-    : '';
-
-  const famBtns = families.map(f => `
-    <button data-action="selectAIFamily" data-family="${f}"
-      style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_aiFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
-             background:${f===_aiFamily?'rgba(192,86,33,0.15)':'rgba(192,86,33,0.04)'};
-             color:${f===_aiFamily?'#c05621':'#718096'};font-size:11px;font-weight:${f===_aiFamily?'700':'500'};
-             cursor:pointer;white-space:nowrap;font-family:'Helvetica Neue',Helvetica,sans-serif">
-      ${f}
-    </button>`).join('');
-
-  const instrBtns = instrList.map(i => {
-    const staveLabel = '';
-    return `
-    <button data-action="selectAIInstr" data-name="${i.name}"
-      class="ai-instr-btn"
-      style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
-             background:rgba(192,86,33,0.04);color:#4a5568;font-size:11px;cursor:pointer;
-             text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
-             -webkit-tap-highlight-color:transparent">
-      ${i.name}${staveLabel}
-    </button>`;
-  }).join('');
-
+  const instrs = INSTRUMENTS.filter(i => allowedNames.includes(i.name));
   makeModal(`
     <h2>Add Instrument</h2>
-    <p style="color:rgba(74,85,104,0.60);font-size:11px;margin-top:-6px">
-      Adds a new stave below existing score</p>
-    ${kitHint}
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">${famBtns}</div>
-    <input type="hidden" id="ai-instr" value="${firstInstr}">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;
-                max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch">
-      ${instrBtns}
-    </div>
-    <button class="modal-btn primary" style="margin-top:10px" data-action="confirmAddInstrument">Add</button>
+    <p style="color:rgba(74,85,104,0.60);font-size:11px;margin-top:-6px;margin-bottom:10px">
+      Adds a new stave below the existing score</p>
+    <select id="ai-instr-select" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(192,86,33,0.25);font-size:13px;background:transparent;color:#111;margin-bottom:10px">
+      ${instrs.map(i => `<option value="${i.name}">${i.name}</option>`).join('')}
+    </select>
+    <button class="modal-btn primary" data-action="confirmAddInstrument">Add</button>
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
   `);
-  setTimeout(() => {
-    const first = document.querySelector(`.ai-instr-btn[data-name="${firstInstr}"]`) || document.querySelector('.ai-instr-btn');
-    if (first) first.classList.add('nd-sel');
-  }, 30);
-}
-
-function selectAIFamily(fam) {
-  _aiFamily = fam;
-  _renderAddInstrumentDialog();
 }
 
 function confirmAddInstrument() {
-  const instrName = document.getElementById('ai-instr')?.value || 'Piano';
+  const instrName = document.getElementById('ai-instr-select')?.value || 'Piano';
   commitChange(score => {
     addInstrumentToScore(score, instrName);
   }, { toast: `${instrName} added` });
@@ -12812,10 +11768,7 @@ function loadScoreFromXML(xmlStr, filename) {
     APP.selectedNoteIdx = -1;
     if (APP.score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = APP.score.showMeasureNumbers;
     if (APP.score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = APP.score.showMultiMeasureRests;
-    document.getElementById('score-title').textContent =
-    APP.partView !== null
-      ? (APP.score.title || 'Score') + ' — ' + (APP.score.parts[APP.partView]?.name || 'Part')
-      : (APP.score.title || 'Untitled Score');
+    document.getElementById('score-title').textContent = APP.score.title || 'Untitled Score';
     renderScore();
     showToast('Loaded: ' + APP.score.title);
   } catch(err) {
@@ -13533,7 +12486,6 @@ function toggleDebugOverlay() {
     ['inputMode',     APP.inputMode],
     ['chordMode',     APP.chordMode],
     ['markingMode',   APP.markingMode || '—'],
-    ['graceMode',     APP.graceMode],
     ['exerciseMode',  APP.exerciseMode],
     ['assignmentMode',APP.assignmentMode],
     ['practiceMode',  APP.practiceMode],
@@ -13546,9 +12498,6 @@ function toggleDebugOverlay() {
   lines.push('ANNOTATIONS');
   lines.push('  slurs='          + (score?.slurs?.length          || 0));
   lines.push('  hairpins='       + (score?.hairpins?.length       || 0));
-  lines.push('  voltas='         + (score?.voltas?.length         || 0));
-  lines.push('  ottavas='        + (score?.ottavas?.length        || 0));
-  lines.push('  glissandos='     + (score?.glissandos?.length     || 0));
   lines.push('  rehearsalMarks=' + (score?.rehearsalMarks?.length || 0));
   lines.push('  staffTexts='     + (score?.staffTexts?.length     || 0));
   lines.push('  assignments='    + (score?.assignments?.length    || 0));
@@ -13787,16 +12736,12 @@ _registerAction('applyTempo', (e) => applyTempo(e.target.closest('[data-name]')?
 _registerAction('applyTimeSig', (e) => applyTimeSig(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
 _registerAction('changeOctave', (e) => changeOctave(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
 _registerAction('clearChordSymbol', () => clearChordSymbol());
-_registerAction('clearGlissando', () => clearGlissando());
-_registerAction('clearGraceNotes', () => clearGraceNotes());
 _registerAction('clearLyric', () => clearLyric());
 _registerAction('clearMarker', () => clearMarker());
-_registerAction('clearOttava', () => clearOttava());
 _registerAction('clearRehearsalMark', () => clearRehearsalMark());
 _registerAction('clearSlur', () => clearSlur());
 _registerAction('clearStaffText', () => clearStaffText());
 _registerAction('clearTie', () => clearTie());
-_registerAction('clearVolta', () => clearVolta());
 _registerAction('closeModal', () => closeModal());
 _registerAction('confirmExportAudio', () => confirmExportAudio());
 _registerAction('confirmGenerateScale', () => confirmGenerateScale());
@@ -13809,15 +12754,11 @@ _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.clo
 _registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
 _registerAction('confirmAddInstrument', () => confirmAddInstrument());
-_registerAction('convertToGrace', (e) => convertToGrace(e.target.closest('[data-slashed]')?.dataset.slashed === 'true'));
 _registerAction('createNewScore', () => createNewScore());
 _registerAction('deleteMeasure', () => deleteMeasure());
 _registerAction('editChordSymbol', () => editChordSymbol());
 _registerAction('editLyric', () => editLyric());
 _registerAction('editRehearsalMark', () => editRehearsalMark());
-_registerAction('enterPartView', (e) => enterPartView(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
-_registerAction('exitPartView', () => { exitPartView(); closeModal(); });
-_registerAction('exportPartMSCX', () => { closeModal(); exportPartMSCX(); });
 _registerAction('addMeasure', () => addMeasure());
 _registerAction('insertMeasure', () => insertMeasure());
 _registerAction('insertNoteByName', (e) => insertNoteByName(e.target.closest('[data-name]')?.dataset.name));
@@ -13827,7 +12768,6 @@ _registerAction('ndTSDenAdj', (e) => ndTSDenAdj(parseInt(e.target.closest('[data
 _registerAction('ndTSNumAdj', (e) => ndTSNumAdj(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
 _registerAction('ndPickupToggle', () => ndPickupToggle());
 _registerAction('ndPickupSync', () => ndPickupSync());
-_registerAction('printPart', () => { closeModal(); printPart(); });
 _registerAction('printScore', () => printScore());
 _registerAction('removePickupMeasure', () => removePickupMeasure());
 _registerAction('rewindPlayback', () => rewindPlayback());
@@ -13835,11 +12775,9 @@ _registerAction('saveChordSymbol', () => saveChordSymbol());
 _registerAction('saveRehearsalMark', () => saveRehearsalMark());
 _registerAction('saveStaffText', () => saveStaffText());
 _registerAction('ndSelectLevel', (e) => ndSelectLevel(e.target.closest('[data-level]')?.dataset.level));
-_registerAction('selectAIFamily', (e) => selectAIFamily(e.target.closest('[data-family]')?.dataset.family));
 _registerAction('selectDur', (e) => selectDur(e.target.closest('[data-dur]')?.dataset.dur));
 _registerAction('selectNDFamily', (e) => selectNDFamily(e.target.closest('[data-family]')?.dataset.family));
 _registerAction('setAcc', (e) => setAcc(e.target.closest('[data-acc]')?.dataset.acc));
-_registerAction('setNotehead', (e) => setNotehead(e.target.closest('[data-nh]')?.dataset.nh));
 _registerAction('setPickupMeasure', () => setPickupMeasure());
 _registerAction('setVoice', (e) => setVoice(parseInt(e.target.closest('[data-voice]')?.dataset.voice)));
 _registerAction('showEditMenu', (e) => showEditMenu(e.target));
@@ -13854,17 +12792,13 @@ _registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.da
 _registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
-_registerAction('startGlissando', (e) => startGlissando(e.target.closest('[data-style]')?.dataset.style));
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
-_registerAction('startOttava', (e) => startOttava(e.target.closest('[data-type]')?.dataset.type));
-_registerAction('startVolta', (e) => startVolta(e.target.closest('[data-label]')?.dataset.label));
 _registerAction('startAssignment', (e) => startAssignment(e.target.closest('[data-id]')?.dataset.id));
 _registerAction('stopPlayback', () => stopPlayback());
 _registerAction('toggleChordMode', () => toggleChordMode());
 _registerAction('toggleContinuousView', () => toggleContinuousView());
 _registerAction('toggleCountIn', () => toggleCountIn());
 _registerAction('toggleDot', () => toggleDot());
-_registerAction('toggleGraceMode', (e) => toggleGraceMode(e.target.closest('[data-slashed]')?.dataset.slashed === 'true'));
 _registerAction('toggleInputMode', () => toggleInputMode());
 _registerAction('toggleLineBreak', () => toggleLineBreak());
 _registerAction('toggleLyricStyle', (e) => toggleLyricStyle(e.target.closest('[data-style]')?.dataset.style));
@@ -13895,7 +12829,6 @@ _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]
 _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
 _registerAction('togglePlayback', () => togglePlayback());
 _registerAction('togglePracticeMode', () => togglePracticeMode());
-_registerAction('toggleMicInput', () => toggleMicInput());
 _registerAction('toggleTempoDisplay', () => toggleTempoDisplay());
 _registerAction('toggleTuplet', (e) => toggleTuplet(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
 _registerAction('transposeScore', (e) => { transposeScore(parseInt(e.target.closest('[data-semitones]')?.dataset.semitones)); closeModal(); });
@@ -13910,12 +12843,6 @@ _registerAction('setMetronomeVolume', (e) => { APP.metronomeVolume = e.target.va
 _registerAction('reload', () => location.reload());
 _registerAction('restoreAutosave', () => restoreAutosave());
 _registerAction('applyTitleDialog', () => applyTitleDialog());
-_registerAction('selectAIInstr', (e) => {
-  const name = e.target.closest('[data-name]')?.dataset.name;
-  document.getElementById('ai-instr').value = name;
-  document.querySelectorAll('.ai-instr-btn').forEach(b => b.classList.remove('nd-sel'));
-  e.target.closest('.ai-instr-btn')?.classList.add('nd-sel');
-});
 _registerAction('selectNDInstr', (e) => {
   const btn = e.target.closest('.nd-instr-btn');
   if (!btn) return;
