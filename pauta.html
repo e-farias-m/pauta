@@ -9935,7 +9935,9 @@ function _hideDiagBar() {
  _genNoteId, _genIntervalId, _genRhythmRead, _genMelodyDict, _genKeySigId, _genRhythmWorksheet,
  showRhythmWorksheetDialog, _startRhythmWorksheet, checkRhythmWorksheet,
  _saveExerciseResult, _loadResults, showStudentProgress, exportProgress, importProgress,
- clearProgress, showTeacherDashboard, clearAllImported
+ clearProgress, showTeacherDashboard, clearAllImported,
+ showDiagnosticDialog, _startDiagnostic, _presentDiagQuestion, _answerDiag, _finishDiagnostic,
+ _showDiagBar, _diagSubmit, _updateDiagBar, _hideDiagBar
 ].forEach(fn => { EXERCISE[fn.name] = fn; });
 
 function showTransposeDialog() {
@@ -12239,6 +12241,7 @@ function showExercisesMenu(btn) {
   const items = [
     {label:'🎹 Start Exercise…', fn:showExerciseDialog},
     {label:'📝 Rhythm Worksheet', fn:showRhythmWorksheetDialog},
+    {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
     {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},
     {label:'📊 My Progress', fn:showStudentProgress},
@@ -13575,6 +13578,8 @@ _registerAction('importProgress', () => importProgress());
 _registerAction('clearProgress', () => clearProgress());
 _registerAction('showTeacherDashboard', () => showTeacherDashboard());
 _registerAction('clearAllImported', () => clearAllImported());
+_registerAction('showDiagnosticDialog', () => showDiagnosticDialog());
+_registerAction('diagSubmit', () => _diagSubmit());
 _registerAction('startExerciseSession', (e) => {
   closeModal();
   const type = e.target.closest('[data-type]')?.dataset.type;
