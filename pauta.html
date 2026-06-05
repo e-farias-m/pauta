@@ -8795,6 +8795,9 @@ function endExerciseSession() {
     <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
   `);
 
+  // Save results for progress tracking
+  _saveExerciseResult(s);
+
   // Clean up floating bars
   ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid'].forEach(id => {
     const el = document.getElementById(id);
@@ -9458,6 +9461,201 @@ function selectExerciseDifficulty(diff) {
   showExerciseDialog();
 }
 
+// ── Student Progress Analytics ─────────────────────────────────
+const RESULTS_KEY = 'pauta_exercise_results';
+const IMPORTED_KEY = 'pauta_imported_reports';
+const TYPE_LABELS = {
+  note_id: 'Note ID', interval_id: 'Interval ID', rhythm_read: 'Rhythm Read',
+  melody_dictation: 'Melody Dict', key_sig_id: 'Key Sig ID', rhythm_worksheet: 'Rhythm WS',
+};
+
+function _saveExerciseResult(session) {
+  if (!session || session.totalCount === 0) return;
+  const results = _loadResults();
+  results.push({
+    type: session.type,
+    difficulty: session.difficulty,
+    date: Date.now(),
+    correct: session.correctCount,
+    total: session.totalCount,
+    pct: Math.round((session.correctCount / session.totalCount) * 100),
+    streak: session.streak,
+    maxStreak: session.maxStreak,
+    time: Math.floor((Date.now() - session.startedAt) / 1000),
+  });
+  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+}
+
+function _loadResults() {
+  try { return JSON.parse(localStorage.getItem(RESULTS_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function showStudentProgress() {
+  const results = _loadResults();
+  if (!results.length) { showToast('No exercise results yet. Complete an exercise first!'); return; }
+
+  // Group by type
+  const byType = {};
+  results.forEach(r => {
+    if (!byType[r.type]) byType[r.type] = [];
+    byType[r.type].push(r);
+  });
+
+  let totalSessions = results.length;
+  let totalCorrect = results.reduce((s, r) => s + r.correct, 0);
+  let totalAll = results.reduce((s, r) => s + r.total, 0);
+  let overallPct = totalAll > 0 ? Math.round((totalCorrect / totalAll) * 100) : 0;
+  let bestStreak = results.reduce((s, r) => Math.max(s, r.maxStreak || 0), 0);
+  let latestPct = results[results.length - 1].pct;
+
+  let typeHtml = Object.keys(byType).sort().map(type => {
+    const r = byType[type];
+    const n = r.length;
+    const avg = Math.round(r.reduce((s, x) => s + x.pct, 0) / n);
+    const best = Math.max(...r.map(x => x.pct));
+    const label = TYPE_LABELS[type] || type;
+    return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.04)">
+      <span style="color:#2d3748;font-weight:600">${label}</span>
+      <span style="color:#4a5568">${n} sessions · avg ${avg}% · best ${best}%</span>
+    </div>`;
+  }).join('');
+
+  makeModal(`
+    <h2>📊 My Progress</h2>
+    <div style="text-align:center;margin-bottom:12px;font-size:14px;color:#4a5568">
+      <div style="font-size:36px;font-weight:700;color:#c05621">${overallPct}%</div>
+      <div>${totalCorrect}/${totalAll} across ${totalSessions} sessions</div>
+      <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-top:2px">Best streak: ${bestStreak} · Latest: ${latestPct}%</div>
+    </div>
+    <div style="margin-bottom:12px;max-height:200px;overflow-y:auto">
+      ${typeHtml}
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="modal-btn primary" data-action="exportProgress">📤 Export Report</button>
+      <button class="modal-btn secondary" data-action="importProgress">📥 Import Report</button>
+      <button class="modal-btn secondary" data-action="clearProgress" style="color:#e06850">🗑 Clear All</button>
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+  `);
+}
+
+function exportProgress() {
+  const results = _loadResults();
+  if (!results.length) { showToast('Nothing to export'); closeModal(); return; }
+  const data = { version: 1, exportedAt: new Date().toISOString(), results };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `pauta-progress-${Date.now()}.json`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Report exported');
+}
+
+function importProgress() {
+  closeModal();
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data.results)) { showToast('Invalid report format'); return; }
+        const imported = _loadImported();
+        const name = prompt('Student name for this report:', 'Student');
+        if (!name) { showToast('Import cancelled'); return; }
+        imported[name] = (imported[name] || []).concat(data.results);
+        localStorage.setItem(IMPORTED_KEY, JSON.stringify(imported));
+        showToast(`Imported ${data.results.length} results for ${name}`);
+        showTeacherDashboard();
+      } catch(e) { showToast('Could not read file: ' + e.message); }
+    };
+    reader.readAsText(file);
+  });
+  input.click();
+}
+
+function _loadImported() {
+  try { return JSON.parse(localStorage.getItem(IMPORTED_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+
+function clearProgress() {
+  if (!confirm('Delete all your exercise results?')) return;
+  localStorage.removeItem(RESULTS_KEY);
+  closeModal();
+  showToast('Results cleared');
+}
+
+function showTeacherDashboard() {
+  const imported = _loadImported();
+  const studentNames = Object.keys(imported);
+  if (!studentNames.length) {
+    makeModal(`
+      <h2>👩‍🏫 Teacher Dashboard</h2>
+      <p style="color:#4a5568;font-size:13px;text-align:center;margin:12px 0">
+        No imported reports yet.<br>
+        Ask students to export their progress from <b>Exercises → My Progress → Export Report</b>,<br>
+        then use <b>Import Report</b> here.
+      </p>
+      <button class="modal-btn primary" data-action="importProgress">📥 Import Report</button>
+      <button class="modal-btn secondary" data-action="closeModal">Close</button>
+    `);
+    return;
+  }
+
+  let rows = studentNames.map(name => {
+    const r = imported[name];
+    const n = r.length;
+    const avg = Math.round(r.reduce((s, x) => s + x.pct, 0) / n);
+    const best = Math.max(...r.map(x => x.pct));
+    const total = r.reduce((s, x) => s + x.correct, 0);
+    const all = r.reduce((s, x) => s + x.total, 0);
+
+    // Per-type breakdown
+    const byType = {};
+    r.forEach(x => { if (!byType[x.type]) byType[x.type] = []; byType[x.type].push(x); });
+    const typeSummary = Object.keys(byType).sort().map(t => {
+      const arr = byType[t];
+      return `${TYPE_LABELS[t] || t}: ${Math.round(arr.reduce((s,x) => s+x.pct,0)/arr.length)}%`;
+    }).join(' · ');
+
+    return `<div style="border:1px solid rgba(192,86,33,0.15);border-radius:6px;padding:8px 10px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;color:#2d3748;font-size:13px">${escHtml(name)}</span>
+        <span style="font-size:13px;color:#c05621;font-weight:700">${avg}%</span>
+      </div>
+      <div style="font-size:11px;color:rgba(74,85,104,0.6)">
+        ${n} sessions · best ${best}% · ${total}/${all} correct
+      </div>
+      <div style="font-size:10px;color:rgba(74,85,104,0.5);margin-top:2px">${typeSummary}</div>
+    </div>`;
+  }).join('');
+
+  makeModal(`
+    <h2>👩‍🏫 Teacher Dashboard</h2>
+    <div style="font-size:12px;color:#4a5568;margin-bottom:8px">
+      ${studentNames.length} student(s) · ${imported[studentNames[0]]?.length || 0} total submissions
+    </div>
+    <div style="max-height:300px;overflow-y:auto;margin-bottom:8px">${rows}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="modal-btn primary" data-action="importProgress">📥 Import Report</button>
+      <button class="modal-btn secondary" data-action="clearAllImported" style="color:#e06850">🗑 Clear All</button>
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+  `);
+}
+
+function clearAllImported() {
+  if (!confirm('Delete all imported student reports?')) return;
+  localStorage.removeItem(IMPORTED_KEY);
+  closeModal();
+  showToast('Imported data cleared');
+}
+
 // ── Assign exercise functions to EXERCISE namespace ────────────
 [generateExercise, startExerciseSession, endExerciseSession, nextExercise, retryExercise,
  checkExerciseAnswer, showExerciseDialog, selectExerciseDifficulty,
@@ -9466,7 +9664,9 @@ function selectExerciseDifficulty(diff) {
  _showDictationListenBar, _startDictationNotate, _checkDictationAnswer, retryDictation,
  _intervalMatches, _setExerciseUI, _updateScoreDisplay,
  _genNoteId, _genIntervalId, _genRhythmRead, _genMelodyDict, _genKeySigId, _genRhythmWorksheet,
- showRhythmWorksheetDialog, _startRhythmWorksheet, checkRhythmWorksheet
+ showRhythmWorksheetDialog, _startRhythmWorksheet, checkRhythmWorksheet,
+ _saveExerciseResult, _loadResults, showStudentProgress, exportProgress, importProgress,
+ clearProgress, showTeacherDashboard, clearAllImported
 ].forEach(fn => { EXERCISE[fn.name] = fn; });
 
 function showTransposeDialog() {
@@ -11772,6 +11972,9 @@ function showExercisesMenu(btn) {
     {label:'📝 Rhythm Worksheet', fn:showRhythmWorksheetDialog},
     {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},
+    {label:'📊 My Progress', fn:showStudentProgress},
+    {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
+    {sep:true},
     {label:practiceLabel, fn:togglePracticeMode},
   ];
   showDropdown(btn, items);
@@ -13097,6 +13300,12 @@ _registerAction('exitAssignmentMode', () => exitAssignmentMode());
 _registerAction('showExerciseDialog', () => showExerciseDialog());
 _registerAction('showRhythmWorksheetDialog', () => showRhythmWorksheetDialog());
 _registerAction('checkRhythmWorksheet', () => checkRhythmWorksheet());
+_registerAction('showStudentProgress', () => showStudentProgress());
+_registerAction('exportProgress', () => exportProgress());
+_registerAction('importProgress', () => importProgress());
+_registerAction('clearProgress', () => clearProgress());
+_registerAction('showTeacherDashboard', () => showTeacherDashboard());
+_registerAction('clearAllImported', () => clearAllImported());
 _registerAction('startExerciseSession', (e) => {
   closeModal();
   const type = e.target.closest('[data-type]')?.dataset.type;
