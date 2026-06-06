@@ -2360,17 +2360,17 @@ const RECORDER_ALTO_FINGERINGS = {
 };
 // ── Woodwind Fingering Tables ────────────────────────────────────
 // Each pitch maps to a string of key states: '1' = pressed/covered, '0' = open.
-// Flute: 13 positions [B, Bb, L1, L2, L3, G#, R1, R2, R3, Eb, B_low, C, C#]
+// Flute: 14 positions [B, Bb, L1, L2, L3, G#, R1, R2, R3, Eb, B_low, C, C#, Gizmo]
 const FLUTE_FINGERINGS = {
-  64:'1011111100000', 65:'1011111110000', 66:'1011111100000', 67:'1011111000000',
-  68:'1011111100000', 69:'1011110100000', 70:'1011110000000', 71:'1011010000000',
-  72:'1011111100000', 73:'1011111110000', 74:'1011111100000', 75:'1011111000000',
-  76:'1011111100000', 77:'1011111110000', 78:'1011111100000', 79:'1011111000000',
-  80:'1011111100000', 81:'1011111110000', 82:'1011111100000', 83:'1011111000000',
-  84:'1011111100000', 85:'1011111110000', 86:'1011111100000', 87:'1011111000000',
-  88:'1011111100000', 89:'1011111110000', 90:'1011111100000', 91:'1011111000000',
-  92:'1011111100000', 93:'1011111110000', 94:'1011111100000', 95:'1011111000000',
-  96:'1011111100000',
+  64:'10111111000000', 65:'10111111100000', 66:'10111111000000', 67:'10111110000000',
+  68:'10111111000000', 69:'10111101000000', 70:'10111100000000', 71:'10110100000000',
+  72:'10111111000000', 73:'10111111100000', 74:'10111111000000', 75:'10111110000000',
+  76:'10111111000000', 77:'10111111100000', 78:'10111111000000', 79:'10111110000000',
+  80:'10111111000000', 81:'10111111100000', 82:'10111111000000', 83:'10111110000000',
+  84:'10111111000000', 85:'10111111100000', 86:'10111111000000', 87:'10111110000000',
+  88:'10111111000000', 89:'10111111100000', 90:'10111111000000', 91:'10111110000000',
+  92:'10111111000000', 93:'10111111100000', 94:'10111111000000', 95:'10111110000000',
+  96:'10111111000000',
 };
 // Clarinet: 8 positions [thumb, L1, L2, L3, R1, R2, R3, R4]
 const CLARINET_FINGERINGS = {
@@ -6252,12 +6252,13 @@ const WOODWIND_SPEC = {
     body: 'M 8,30 L 30,30 Q 30,26 20,25 L 12,25 Q 8,25 8,30 Q 8,35 12,35 L 20,34 Q 30,33 30,30 Z M 30,30 L 268,30 Q 268,26 272,23 L 276,21 Q 278,23 278,27 L 278,33 Q 278,37 276,39 L 272,36 Q 268,33 268,30 Z',
     fill:'url(#ww-flute-grad)', stroke:'#b8a080',
     keys:[
-      [30,30,'B','T'],[30,44,'B♭','T'],
-      [60,30,'L1','L'],[90,30,'L2','L'],[130,30,'L3','L'],
-      [90,18,'G♯','L'],
-      [160,30,'R1','R'],[190,30,'R2','R'],[220,30,'R3','R'],
-      [245,20,'E♭','R'],
-      [260,26,'B','R'],[260,36,'C','R'],[260,46,'C♯','R'],
+      [30,30,'B','T','cup'],[30,44,'B♭','T','lever'],
+      [60,30,'L1','L','cup'],[90,30,'L2','L','cup'],[130,30,'L3','L','cup'],
+      [90,18,'G♯','L','cup-arm-up'],
+      [160,30,'R1','R','cup'],[190,30,'R2','R','cup'],[220,30,'R3','R','cup'],
+      [245,20,'E♭','R','cup-arm-up'],
+      [260,26,'B','R','roller'],[260,36,'C','R','roller'],[260,46,'C♯','R','roller'],
+      [278,30,'Giz','R','cup'],
     ], r:4.5, hR:5,
   },
   clarinet: {
@@ -6295,8 +6296,112 @@ const WOODWIND_SPEC = {
       [52,52,'L1','L'],[52,76,'L2','L'],[52,100,'L3','L'],[44,122,'L4','L'],
       [60,148,'R1','R'],[60,172,'R2','R'],[60,196,'R3','R'],[72,218,'R4','R'],
     ], r:5, hR:5.5,
-  },
 };
+}
+
+function renderFluteKey(svg, ns, kx, ky, label, hand, keyType, isP, isH, baseR, hR, fill, bodyStroke, playing) {
+  const keyStyle = {
+    fill: 'none', stroke: '#998a70', strokeWidth: '1.1',
+    padFill: playing ? '#ff5a4a' : '#3a3028',
+    padStroke: playing ? '#e04030' : '#222',
+    holeFill: fill, holeStroke: bodyStroke
+  };
+
+  switch (keyType) {
+    case 'cup': {
+      const ring = document.createElementNS(ns, 'circle');
+      ring.setAttribute('cx', kx); ring.setAttribute('cy', ky);
+      ring.setAttribute('r', isP ? baseR : hR);
+      ring.setAttribute('fill', keyStyle.fill); ring.setAttribute('stroke', keyStyle.stroke);
+      ring.setAttribute('stroke-width', keyStyle.strokeWidth);
+      svg.appendChild(ring);
+      if (isP) {
+        const pad = document.createElementNS(ns, 'circle');
+        pad.setAttribute('cx', kx); pad.setAttribute('cy', ky);
+        pad.setAttribute('r', baseR * 0.78);
+        pad.setAttribute('fill', keyStyle.padFill);
+        pad.setAttribute('stroke', keyStyle.padStroke);
+        pad.setAttribute('stroke-width', '0.6');
+        svg.appendChild(pad);
+        diagHighlight(svg, kx, ky, baseR, playing);
+      } else if (isH) {
+        const hole = document.createElementNS(ns, 'circle');
+        hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
+        hole.setAttribute('r', baseR * 0.65);
+        hole.setAttribute('fill', keyStyle.holeFill);
+        hole.setAttribute('stroke', keyStyle.holeStroke);
+        hole.setAttribute('stroke-width', '0.5');
+        svg.appendChild(hole);
+        const innerHole = document.createElementNS(ns, 'circle');
+        innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
+        innerHole.setAttribute('r', baseR * 0.38);
+        innerHole.setAttribute('fill', '#8a7a60');
+        svg.appendChild(innerHole);
+        diagHalfPad(svg, kx, ky, baseR * 0.65, playing);
+      } else {
+        const hole = document.createElementNS(ns, 'circle');
+        hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
+        hole.setAttribute('r', baseR * 0.65);
+        hole.setAttribute('fill', keyStyle.holeFill);
+        hole.setAttribute('stroke', keyStyle.holeStroke);
+        hole.setAttribute('stroke-width', '0.5');
+        svg.appendChild(hole);
+        const innerHole = document.createElementNS(ns, 'circle');
+        innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
+        innerHole.setAttribute('r', baseR * 0.38);
+        innerHole.setAttribute('fill', '#8a7a60');
+        svg.appendChild(innerHole);
+      }
+      break;
+    }
+    case 'lever': {
+      const lever = document.createElementNS(ns, 'path');
+      lever.setAttribute('d', `M ${kx-8} ${ky} L ${kx+8} ${ky} Q ${kx+10} ${ky-2} ${kx+8} ${ky-4} L ${kx-8} ${ky-4} Q ${kx-10} ${ky-2} ${kx-8} ${ky} Z`);
+      lever.setAttribute('fill', isP ? keyStyle.padFill : fill);
+      lever.setAttribute('stroke', isP ? keyStyle.padStroke : keyStyle.stroke);
+      lever.setAttribute('stroke-width', isP ? '0.6' : keyStyle.strokeWidth);
+      svg.appendChild(lever);
+      if (isP) diagHighlight(svg, kx, ky, baseR, playing);
+      break;
+    }
+    case 'cup-arm-up': {
+      const cup = document.createElementNS(ns, 'circle');
+      cup.setAttribute('cx', kx); cup.setAttribute('cy', ky);
+      cup.setAttribute('r', baseR);
+      cup.setAttribute('fill', isP ? keyStyle.padFill : fill);
+      cup.setAttribute('stroke', isP ? keyStyle.padStroke : keyStyle.stroke);
+      cup.setAttribute('stroke-width', isP ? '0.6' : keyStyle.strokeWidth);
+      svg.appendChild(cup);
+      if (isP) diagHighlight(svg, kx, ky, baseR, playing);
+      const arm = document.createElementNS(ns, 'line');
+      arm.setAttribute('x1', kx); arm.setAttribute('y1', ky);
+      arm.setAttribute('x2', kx); arm.setAttribute('y2', ky - baseR * 2);
+      arm.setAttribute('stroke', keyStyle.stroke);
+      arm.setAttribute('stroke-width', '0.8');
+      svg.appendChild(arm);
+      break;
+    }
+    case 'roller': {
+      const roller = document.createElementNS(ns, 'rect');
+      roller.setAttribute('x', kx - baseR); roller.setAttribute('y', ky - baseR * 0.6);
+      roller.setAttribute('width', baseR * 2); roller.setAttribute('height', baseR * 1.2);
+      roller.setAttribute('rx', baseR * 0.6); roller.setAttribute('ry', baseR * 0.6);
+      roller.setAttribute('fill', isP ? keyStyle.padFill : fill);
+      roller.setAttribute('stroke', isP ? keyStyle.padStroke : keyStyle.stroke);
+      roller.setAttribute('stroke-width', isP ? '0.6' : keyStyle.strokeWidth);
+      svg.appendChild(roller);
+      if (isP) diagHighlight(svg, kx, ky, baseR, playing);
+      break;
+    }
+  }
+
+  const lbl = document.createElementNS(ns, 'text');
+  lbl.setAttribute('x', kx);
+  lbl.setAttribute('y', ky + baseR + 8);
+  lbl.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4.2px;font-weight:600;fill:#998a70;text-anchor:middle;pointer-events:none');
+  lbl.textContent = label;
+  svg.appendChild(lbl);
+}
 
 function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regActive = false) {
   const ns = 'http://www.w3.org/2000/svg';
@@ -6403,7 +6508,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   const regionBounds = {};
   const keyLabelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4.2px;font-weight:600;fill:#998a70;text-anchor:middle;pointer-events:none';
 
-  keys.forEach(([kx, ky, label, hand], i) => {
+  keys.forEach(([kx, ky, label, hand, keyType], i) => {
     const isP = pressed.has(i);
     const isH = halfHole.has(i);
     const baseR = r;
@@ -6414,75 +6519,74 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       if (ky > regionBounds[hand].maxY) regionBounds[hand].maxY = ky;
     }
 
-    // Key metal ring
-    const ring = document.createElementNS(ns, 'circle');
-    ring.setAttribute('cx', kx); ring.setAttribute('cy', ky);
-    ring.setAttribute('r', isP ? baseR : hR);
-    ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', '#998a70');
-    ring.setAttribute('stroke-width', '1.1');
-    svg.appendChild(ring);
-
-    if (isP) {
-      // Pressed: dark pad + highlight
-      const pad = document.createElementNS(ns, 'circle');
-      pad.setAttribute('cx', kx); pad.setAttribute('cy', ky);
-      pad.setAttribute('r', baseR * 0.78);
-      pad.setAttribute('fill', APP.playing ? '#ff5a4a' : '#3a3028');
-      pad.setAttribute('stroke', APP.playing ? '#e04030' : '#222');
-      pad.setAttribute('stroke-width', '0.6');
-      svg.appendChild(pad);
-      diagHighlight(svg, kx, ky, baseR, APP.playing);
-    } else if (isH) {
-      // Half-hole: tone hole visible, pad covers top half
-      const hole = document.createElementNS(ns, 'circle');
-      hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
-      hole.setAttribute('r', baseR * 0.65);
-      hole.setAttribute('fill', fill);
-      hole.setAttribute('stroke', bodyStroke);
-      hole.setAttribute('stroke-width', '0.5');
-      svg.appendChild(hole);
-      const innerHole = document.createElementNS(ns, 'circle');
-      innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
-      innerHole.setAttribute('r', baseR * 0.38);
-      innerHole.setAttribute('fill', '#8a7a60');
-      svg.appendChild(innerHole);
-      diagHalfPad(svg, kx, ky, baseR * 0.65, APP.playing);
+    if (isFlute && keyType) {
+      renderFluteKey(svg, ns, kx, ky, label, hand, keyType, isP, isH, baseR, hR, fill, bodyStroke, APP.playing);
     } else {
-      // Open: tone hole
-      const hole = document.createElementNS(ns, 'circle');
-      hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
-      hole.setAttribute('r', baseR * 0.65);
-      hole.setAttribute('fill', fill);
-      hole.setAttribute('stroke', bodyStroke);
-      hole.setAttribute('stroke-width', '0.5');
-      svg.appendChild(hole);
-      const innerHole = document.createElementNS(ns, 'circle');
-      innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
-      innerHole.setAttribute('r', baseR * 0.38);
-      innerHole.setAttribute('fill', '#8a7a60');
-      svg.appendChild(innerHole);
-    }
+      // Key metal ring (default for other woodwinds)
+      const ring = document.createElementNS(ns, 'circle');
+      ring.setAttribute('cx', kx); ring.setAttribute('cy', ky);
+      ring.setAttribute('r', isP ? baseR : hR);
+      ring.setAttribute('fill', 'none');
+      ring.setAttribute('stroke', '#998a70');
+      ring.setAttribute('stroke-width', '1.1');
+      svg.appendChild(ring);
 
-    // Key arm
-    if (!isFlute && hand !== 'T') {
-      const cxLine = hand === 'L' ? (type==='bassoon'? 57 : 60) : (type==='bassoon'? 65 : 63);
-      const arm = document.createElementNS(ns, 'line');
-      arm.setAttribute('x1', kx); arm.setAttribute('y1', ky);
-      arm.setAttribute('x2', cxLine); arm.setAttribute('y2', ky);
-      arm.setAttribute('stroke', bodyStroke);
-      arm.setAttribute('stroke-width', '0.5');
-      arm.setAttribute('stroke-dasharray', '1.2,1.2');
-      svg.appendChild(arm);
-    }
+      if (isP) {
+        const pad = document.createElementNS(ns, 'circle');
+        pad.setAttribute('cx', kx); pad.setAttribute('cy', ky);
+        pad.setAttribute('r', baseR * 0.78);
+        pad.setAttribute('fill', APP.playing ? '#ff5a4a' : '#3a3028');
+        pad.setAttribute('stroke', APP.playing ? '#e04030' : '#222');
+        pad.setAttribute('stroke-width', '0.6');
+        svg.appendChild(pad);
+        diagHighlight(svg, kx, ky, baseR, APP.playing);
+      } else if (isH) {
+        const hole = document.createElementNS(ns, 'circle');
+        hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
+        hole.setAttribute('r', baseR * 0.65);
+        hole.setAttribute('fill', fill);
+        hole.setAttribute('stroke', bodyStroke);
+        hole.setAttribute('stroke-width', '0.5');
+        svg.appendChild(hole);
+        const innerHole = document.createElementNS(ns, 'circle');
+        innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
+        innerHole.setAttribute('r', baseR * 0.38);
+        innerHole.setAttribute('fill', '#8a7a60');
+        svg.appendChild(innerHole);
+        diagHalfPad(svg, kx, ky, baseR * 0.65, APP.playing);
+      } else {
+        const hole = document.createElementNS(ns, 'circle');
+        hole.setAttribute('cx', kx); hole.setAttribute('cy', ky);
+        hole.setAttribute('r', baseR * 0.65);
+        hole.setAttribute('fill', fill);
+        hole.setAttribute('stroke', bodyStroke);
+        hole.setAttribute('stroke-width', '0.5');
+        svg.appendChild(hole);
+        const innerHole = document.createElementNS(ns, 'circle');
+        innerHole.setAttribute('cx', kx); innerHole.setAttribute('cy', ky);
+        innerHole.setAttribute('r', baseR * 0.38);
+        innerHole.setAttribute('fill', '#8a7a60');
+        svg.appendChild(innerHole);
+      }
 
-    // ── Key label ─────────────────────────────────────────────
-    const lbl = document.createElementNS(ns, 'text');
-    lbl.setAttribute('x', kx);
-    lbl.setAttribute('y', isFlute ? ky + baseR + 8 : ky + baseR + 7);
-    lbl.setAttribute('style', keyLabelStyle);
-    lbl.textContent = label;
-    svg.appendChild(lbl);
+      if (!isFlute && hand !== 'T') {
+        const cxLine = hand === 'L' ? (type==='bassoon'? 57 : 60) : (type==='bassoon'? 65 : 63);
+        const arm = document.createElementNS(ns, 'line');
+        arm.setAttribute('x1', kx); arm.setAttribute('y1', ky);
+        arm.setAttribute('x2', cxLine); arm.setAttribute('y2', ky);
+        arm.setAttribute('stroke', bodyStroke);
+        arm.setAttribute('stroke-width', '0.5');
+        arm.setAttribute('stroke-dasharray', '1.2,1.2');
+        svg.appendChild(arm);
+      }
+
+      const lbl = document.createElementNS(ns, 'text');
+      lbl.setAttribute('x', kx);
+      lbl.setAttribute('y', isFlute ? ky + baseR + 8 : ky + baseR + 7);
+      lbl.setAttribute('style', keyLabelStyle);
+      lbl.textContent = label;
+      svg.appendChild(lbl);
+    }
   });
 
   // ── Hand labels ───────────────────────────────────────────────
