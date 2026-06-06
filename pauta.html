@@ -115,7 +115,7 @@ body{
 }
 .btn-top:active{opacity:0.7;transform:scale(0.95)}
 #score-area{
-  flex:1;overflow-y:auto;overflow-x:hidden;
+  flex:1;overflow:auto;
   -webkit-overflow-scrolling:touch;position:relative;
 }
 #score-canvas-container{padding:12px;min-height:100%;}
@@ -838,6 +838,16 @@ body.exercise-mode #score-title::after {
 body.exercise-mode .btn-top:not([data-action="togglePlayback"]):not([data-action="stopPlayback"]) { opacity: 0.5; pointer-events: none; }
 body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
+/* Student mode: hide editing tools, keep exercises and help */
+body.student-mode .btn-top[data-action="showNewScoreDialog"],
+body.student-mode .btn-top[data-action="showFileMenu"],
+body.student-mode .btn-top[data-action="showEditMenu"],
+body.student-mode .btn-top[data-action="showScoreMenu"],
+body.student-mode .btn-top[data-action="showViewMenu"],
+body.student-mode .btn-top[data-action="toggleInputMode"],
+body.student-mode #transport-bar { display: none; }
+body.student-mode #topbar { justify-content: flex-start !important; }
+
 /* ── Rhythm Worksheet Beat Grid ──────────────────────────────── */
 #rhythm-beat-grid {
   position: fixed;
@@ -918,6 +928,11 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   font-weight: 700;
   color: #c05621;
   margin-bottom: 4px;
+}
+#rhythm-beat-grid .rg-play-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 /* ── Debug Overlay ───────────────────────────────────────────── */
@@ -1735,6 +1750,7 @@ const APP = {
   uiProfile: 'advanced',
   teachingKit: null,        // null | 'recorder'
   teachingKitLevel: 'advanced', // 'beginner' | 'intermediate' | 'advanced'
+  role: null,                   // null | 'teacher' | 'student'
   clipboard: null,
   showMeasureNumbers: false,
   showMultiMeasureRests: false,
@@ -1753,8 +1769,6 @@ const APP = {
 const MODE_RULES = [
   // Input mode and marking mode are mutually exclusive
   () => APP.inputMode && APP.markingMode ? { ok: false, msg: 'inputMode + markingMode' } : null,
-  // Chord mode without input or selection is a no-op
-  () => APP.chordMode && !APP.inputMode && APP.selectedNoteIdx < 0 ? { ok: false, msg: 'chordMode active but no input mode or selection' } : null,
   // Exercise mode should suppress editing modes
   () => APP.exerciseMode && APP.inputMode ? { ok: false, msg: 'exerciseMode + inputMode' } : null,
   () => APP.exerciseMode && APP.chordMode ? { ok: false, msg: 'exerciseMode + chordMode' } : null,
@@ -2346,14 +2360,14 @@ const RECORDER_ALTO_FINGERINGS = {
 };
 // ── Woodwind Fingering Tables ────────────────────────────────────
 // Each pitch maps to a string of key states: '1' = pressed/covered, '0' = open.
-// Flute: 8 positions [thumb, L1, L2, L3, R1, R2, R3, G#]
+// Flute: 9 positions [thumb, L1, L2, L3, G♯, R1, R2, R3, C♯]
 const FLUTE_FINGERINGS = {
-  64:'11110110', 65:'11110010', 66:'11110000', 67:'11100000',
-  68:'11000010', 69:'10000010', 70:'10000000', 71:'10110010',
-  72:'00110010', 73:'00100010', 74:'00000010', 75:'11011110',
-  76:'11110111', 77:'11110011', 78:'11100011', 79:'11000011',
-  80:'10000011', 81:'10000001', 82:'10110001', 83:'00110001',
-  84:'00100001',
+  64:'111100110', 65:'111100010', 66:'111100000', 67:'111000000',
+  68:'110000010', 69:'100000010', 70:'100000000', 71:'101100010',
+  72:'001100010', 73:'001000010', 74:'000000010', 75:'110101110',
+  76:'111110110', 77:'111110010', 78:'111010010', 79:'110010010',
+  80:'100010010', 81:'100010000', 82:'101110000', 83:'001110000',
+  84:'001010000',
 };
 // Clarinet: 8 positions [thumb, L1, L2, L3, R1, R2, R3, R4]
 const CLARINET_FINGERINGS = {
@@ -4145,7 +4159,7 @@ function initScoreRenderer(container, cW, totalH, score) {
   APP.staveLayout = [];
   if (APP.continuousView) {
     container.style.overflowX = 'auto';
-    container.style.overflowY = 'hidden';
+    container.style.overflowY = 'auto';
     container.style.whiteSpace = 'nowrap';
     const svgEl = container.querySelector('svg');
     if (svgEl) {
@@ -4154,8 +4168,7 @@ function initScoreRenderer(container, cW, totalH, score) {
       svgEl.style.maxWidth = 'none';
     }
   } else {
-    container.style.overflowX = 'hidden';
-    container.style.overflowY = 'auto';
+    container.style.overflow = 'visible';
     container.style.whiteSpace = '';
   }
   const multiRestGroups = APP.showMultiMeasureRests ? findMultiRestGroups() : [];
@@ -4385,6 +4398,7 @@ function _runBootSelfCheck() {
 function renderScore() {
   try {
     _renderScoreBody();
+    applyZoom();
   } catch (err) {
     console.error('[Pauta] renderScore failed:', err);
     _showRenderFailure(err);
@@ -5958,11 +5972,12 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   // Scale wrapper: OpenClipArt SVG uses a 50×500 coordinate space
   const inner = document.createElementNS(ns, 'g');
-  inner.setAttribute('transform', 'scale(0.35)');
+  // Counter-flip to undo bodyGrp's Y flip, making mouthpiece face up
+  inner.setAttribute('transform', 'scale(0.35) scale(1, -1)');
 
   // Body paths from the SVG use raw coordinates offset by (-286.62, -243.23)
   // to map into the 50×500 viewBox space.
-  // Flip vertically so mouthpiece points down, bell points up.
+  // Flip vertically so the counter-flip above restores upright orientation.
   const bodyGrp = document.createElementNS(ns, 'g');
   bodyGrp.setAttribute('transform', 'translate(-286.62, -243.23) translate(0, 432) scale(1, -1)');
 
@@ -6007,9 +6022,9 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   inner.appendChild(bodyGrp);
 
-  // SVG hole positions for the flipped recorder (inner-space coordinates)
+  // SVG hole positions (inner-space coordinates)
   // Holes are in `inner` (not bodyGrp) so they don't go through the flip transform.
-  // Y values calculated for the flipped body position.
+  // inner's counter-flip makes these appear at positive Y.
   const SVG_HOLES = [
     [ '1', 24.8, -278.0, 6.3, false ],
     [ '2', 24.8, -312.5, 6.3, false ],
@@ -6094,7 +6109,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
     if (!isEllipse) {
       const lbl = document.createElementNS(ns, 'text');
       lbl.setAttribute('x', hx);
-      lbl.setAttribute('y', hy - drawRx - 1.5);
+      lbl.setAttribute('y', hy + drawRx + 1.5);
       lbl.setAttribute('style', holeLabelStyle);
       lbl.textContent = holeLabel;
       inner.appendChild(lbl);
@@ -6103,7 +6118,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   // Thumb indicator (thumb is on the back, not visible in front view)
   const thumbCovered = covered.has('0');
-  const tx = 24.8, ty = -245.3;
+  const tx = 8, ty = 245.3;
   if (thumbCovered) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
@@ -6123,14 +6138,14 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   // Pinched thumb: top-half filled semi-ellipse (flipped y)
   if (thumbPinched) {
     const semi = document.createElementNS(ns, 'path');
-    semi.setAttribute('d', 'M 20.8,-245.3 A 4,2.5 0 0,0 28.8,-245.3 Z');
+    semi.setAttribute('d', 'M 4,245.3 A 4,2.5 0 0,0 12,245.3 Z');
     semi.setAttribute('fill', diagActiveFill(APP.playing));
     semi.setAttribute('stroke', 'none');
     inner.appendChild(semi);
   }
   // "T" label (flipped y, 6 inner-units above thumb)
   const lbl = document.createElementNS(ns, 'text');
-  lbl.setAttribute('x', tx); lbl.setAttribute('y', ty - 6);
+  lbl.setAttribute('x', tx); lbl.setAttribute('y', ty + 6);
   lbl.setAttribute('text-anchor', 'middle');
   lbl.setAttribute('font-size', '3.5');
   lbl.setAttribute('fill', '#7a5a30');
@@ -6139,10 +6154,10 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   inner.appendChild(lbl);
 
   // ── Note name ─────────────────────────────────────────────────
-  diagNoteName(inner, noteName, 25, -230, { size: '8' });
+  diagNoteName(inner, noteName, 25, 230, { size: '8' });
 
   // ── Alternate-fingering click overlay ─────────────────────────
-  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 285, updateRecorderDiagram, { x: '12', y: '-520', tx: '38', ty: '-233', fontSize: '4' });
+  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 285, updateRecorderDiagram, { x: '12', y: '240', tx: '38', ty: '510', fontSize: '4' });
 
   g.appendChild(inner);
 
@@ -6230,12 +6245,13 @@ function updateBrassDiagram() {
 // pos: [x, y, label, hand]  hand: 'L' / 'R' / 'T'(thumb)
 const WOODWIND_SPEC = {
   flute: {
-    w:260, h:50,
-    body: 'M 8,25 L 30,25 Q 30,21 20,20 L 12,20 Q 8,20 8,25 Q 8,30 12,30 L 20,29 Q 30,28 30,25 Z M 30,25 L 248,25 Q 248,21 252,18 L 256,16 Q 258,18 258,22 L 258,28 Q 258,32 256,34 L 252,31 Q 248,28 248,25 Z',
+    w:260, h:54,
+    body: 'M 8,27 L 30,27 Q 30,23 20,22 L 12,22 Q 8,22 8,27 Q 8,32 12,32 L 20,31 Q 30,30 30,27 Z M 30,27 L 248,27 Q 248,23 252,20 L 256,18 Q 258,20 258,24 L 258,30 Q 258,34 256,36 L 252,33 Q 248,30 248,27 Z',
     fill:'url(#ww-flute-grad)', stroke:'#b8a080',
     keys:[
-      [55,26,'L1','L'],[75,26,'L2','L'],[95,26,'L3','L'],[115,24,'G♯','L'],
-      [135,26,'R1','R'],[155,26,'R2','R'],[175,26,'R3','R'],[198,28,'C♯','R'],
+      [30,36,'Th','L'],[55,28,'L1','L'],[75,28,'L2','L'],[95,28,'L3','L'],
+      [115,20,'G♯','L'],
+      [135,28,'R1','R'],[155,28,'R2','R'],[175,28,'R3','R'],[198,36,'C♯','R'],
     ], r:4.2, hR:4.8,
   },
   clarinet: {
@@ -6336,8 +6352,8 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     });
   } else {
     const fl = document.createElementNS(ns, 'line');
-    fl.setAttribute('x1', 163); fl.setAttribute('x2', 163);
-    fl.setAttribute('y1', 24);  fl.setAttribute('y2', 34);
+    fl.setAttribute('x1', 125); fl.setAttribute('x2', 125);
+    fl.setAttribute('y1', 24);  fl.setAttribute('y2', 36);
     fl.setAttribute('stroke', bodyStroke);
     fl.setAttribute('stroke-width', '0.6');
     fl.setAttribute('stroke-dasharray', '1.5,1.5');
@@ -6472,7 +6488,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     let lx = hand === 'T' ? 36 :
              hand === 'L' ? (type==='bassoon'? 42 : 48) : (type==='bassoon'? 70 : 74);
     if (isFlute) {
-      lx = hand === 'L' ? 42 : 113;
+      lx = hand === 'L' ? 42 : 166;
       const fl = document.createElementNS(ns, 'text');
       fl.setAttribute('x', lx); fl.setAttribute('y', hand === 'L' ? 18 : 18);
       fl.setAttribute('style', labelStyle);
@@ -7405,6 +7421,7 @@ function insertNote(mi, si, pitch) {
 const NAME_TO_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 
 function insertNoteByName(name) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const canEnter = APP.inputMode || (APP.chordMode && APP.selectedNoteIdx >= 0);
   // Pitch-edit mode: note selected, not input mode, not chord mode → change existing pitch
   if (!APP.inputMode && !APP.chordMode && APP.selectedNoteIdx >= 0) {
@@ -8240,9 +8257,16 @@ function toggleRhythmCounting() {
 // ── Zoom ──────────────────────────────────────────────────────────
 function applyZoom() {
   const z = Math.round(APP.zoom * 100);
-  document.getElementById('score-svg').style.transform = `scale(${APP.zoom})`;
-  document.getElementById('score-svg').style.transformOrigin = 'top center';
-  document.getElementById('score-svg').style.width = `${100 / APP.zoom}%`;
+  const svgEl = document.getElementById('score-svg')?.querySelector('svg');
+  if (svgEl) {
+    const aw = parseFloat(svgEl.getAttribute('width'));
+    const ah = parseFloat(svgEl.getAttribute('height'));
+    if (aw && ah) {
+      svgEl.style.width  = (aw * APP.zoom) + 'px';
+      svgEl.style.height = (ah * APP.zoom) + 'px';
+      svgEl.style.maxWidth = 'none';
+    }
+  }
   document.getElementById('zoom-pct').textContent = z + '%';
 }
 function zoomIn()  { APP.zoom = Math.min(2,   APP.zoom + 0.1); applyZoom(); }
@@ -8789,7 +8813,7 @@ function endExerciseSession() {
     <div style="margin-bottom:12px;max-height:200px;overflow-y:auto;font-size:12px;color:#4a5568">
       ${s.completed.map((c,i) => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
         <span style="width:16px;text-align:center;font-size:14px">${c.ok?'🟢':'🔴'}</span>
-        <span>#${i+1}: ${c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer : c.type === EXERCISE_TYPES.MELODY_DICT ? 'Melody' : c.type === EXERCISE_TYPES.RHYTHM_WS ? 'Worksheet' : 'Rhythm'}</span>
+        <span>#${i+1}: ${c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer : c.type === EXERCISE_TYPES.MELODY_DICT ? 'Melody' : c.type === EXERCISE_TYPES.RHYTHM_WS ? 'Rhythm Dict' : 'Rhythm'}</span>
       </div>`).join('')}
     </div>
     <button class="modal-btn primary" data-action="closeModalExercise">Close</button>
@@ -8885,16 +8909,14 @@ function _presentRhythmRead(ex) {
 
 function _presentRhythmWorksheet(ex) {
   const mx = ex.target.measures;
-  const score = createScore({title: 'Rhythm Worksheet', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
+  const score = createScore({title: 'Rhythm Dictation', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
   for (let m = 0; m < mx; m++) {
-    const start = m * 4;
-    const beatSlice = ex.target.beats.slice(start, start + 4);
-    const notes = beatSlice.map(b => b === 'q' ? mkNote(60, 'q') : mkRest('q'));
     stave.measures.push({
       timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-      keySig: m === 0 ? 0 : null, lineBreak: (m > 0 && m % 4 === 0), notes,
+      keySig: m === 0 ? 0 : null, lineBreak: (m > 0 && m % 4 === 0),
+      notes: [mkRest('w')],
     });
   }
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
@@ -9286,14 +9308,19 @@ function _renderRhythmBeatGrid(ex) {
   const container = document.createElement('div');
   container.id = 'rhythm-beat-grid';
 
-  let html = '';
+  const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
+  const playsLeft = APP.exerciseSession?.playsLeft ?? maxPlays;
+
+  let html = '<div class="rg-play-row">';
+  html += `<button class="modal-btn primary" id="rg-play-btn">${playsLeft === Infinity ? '▶ Play Rhythm' : '▶ Play (' + playsLeft + ' left)'}</button>`;
+  html += '</div>';
+
   for (let m = 0; m < measures; m++) {
     html += '<div class="rg-row">';
     html += `<span class="rg-measure-label">${m + 1}</span>`;
     for (let b = 0; b < 4; b++) {
       const idx = m * 4 + b;
-      const isNote = beats[idx] === 'q';
-      html += `<button class="rg-beat" data-beat="${idx}" data-answer="${isNote ? '♩' : '𝄽'}">·</button>`;
+      html += `<button class="rg-beat" data-beat="${idx}" data-answer="${beats[idx] === 'q' ? '♩' : '𝄽'}">·</button>`;
     }
     html += '</div>';
   }
@@ -9305,6 +9332,10 @@ function _renderRhythmBeatGrid(ex) {
   container.innerHTML = html;
 
   container.addEventListener('click', e => {
+    if (e.target.id === 'rg-play-btn') {
+      _playRhythmDictation(ex);
+      return;
+    }
     const beatBtn = e.target.closest('.rg-beat');
     if (beatBtn && !beatBtn.dataset.locked) {
       const cur = beatBtn.textContent;
@@ -9317,6 +9348,35 @@ function _renderRhythmBeatGrid(ex) {
   });
 
   document.body.appendChild(container);
+}
+
+function _playRhythmDictation(ex) {
+  const s = APP.exerciseSession;
+  if (!s) return;
+  const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
+  if (s.playsLeft !== undefined && s.playsLeft <= 0) { showToast('No plays remaining'); return; }
+
+  const ctx = getAudioCtx();
+  const bpm = 100;
+  const beatDur = 60 / bpm;
+  const t0 = ctx.currentTime + 0.15;
+  const beats = ex.target.beats;
+
+  for (let i = 0; i < beats.length; i++) {
+    const t = t0 + i * beatDur;
+    if (beats[i] === 'q') {
+      scheduleNote(ctx, 42, t, beatDur * 0.8, 'noise', 0.6);
+    }
+  }
+
+  if (s.playsLeft !== undefined && s.playsLeft !== Infinity) {
+    s.playsLeft--;
+    const playBtn = document.getElementById('rg-play-btn');
+    if (playBtn) {
+      if (s.playsLeft <= 0) { playBtn.disabled = true; playBtn.textContent = '▶ No plays left'; }
+      else playBtn.textContent = '▶ Play (' + s.playsLeft + ' left)';
+    }
+  }
 }
 
 function checkRhythmWorksheet() {
@@ -9379,9 +9439,9 @@ function showRhythmWorksheetDialog() {
   const currentDiff = APP.exerciseDifficulty || 'beginner';
 
   makeModal(`
-    <h2>Rhythm Worksheet</h2>
+    <h2>Rhythm Dictation</h2>
     <p class="dialog-hint">8 measures of 4/4 — quarter notes and rests only.
-    Mark each beat in the grid below the score.</p>
+    Press Play to hear the rhythm, then mark each beat in the grid.</p>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Difficulty</div>
       <div style="display:flex;gap:6px">
@@ -9411,10 +9471,11 @@ function showRhythmWorksheetDialog() {
 
 function _startRhythmWorksheet(difficulty) {
   const ex = _genRhythmWorksheet(difficulty);
+  const maxPlays = difficulty === 0 ? Infinity : difficulty === 1 ? 3 : 1;
   APP.exerciseSession = {
     type: EXERCISE_TYPES.RHYTHM_WS, difficulty,
     current: ex, completed: [], correctCount: 0, totalCount: 0,
-    streak: 0, maxStreak: 0, startedAt: Date.now(),
+    streak: 0, maxStreak: 0, startedAt: Date.now(), playsLeft: maxPlays,
   };
   APP.exerciseMode = true;
   _setExerciseUI(true);
@@ -9430,7 +9491,7 @@ function showExerciseDialog() {
     {key: EXERCISE_TYPES.RHYTHM_READ,  label:'𝅘𝅥𝅮 Rhythm Reading',          desc:'Read and clap rhythm patterns'},
     {key: EXERCISE_TYPES.MELODY_DICT,  label:'🎼 Melody Dictation',       desc:'Hear a melody, then notate it'},
     {key: EXERCISE_TYPES.KEY_SIG_ID,   label:'♭♯ What\'s the Key Signature?', desc:'Name the key from the signature'},
-    {key: EXERCISE_TYPES.RHYTHM_WS,   label:'📝 Rhythm Worksheet',           desc:'8 measures of 4/4 — mark each beat'},
+    {key: EXERCISE_TYPES.RHYTHM_WS,   label:'🔊 Rhythm Dictation',           desc:'Hear a rhythm, then mark each beat'},
   ];
   const diffs = ['beginner', 'intermediate', 'advanced'];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
@@ -9467,7 +9528,7 @@ const RESULTS_KEY = 'pauta_exercise_results';
 const IMPORTED_KEY = 'pauta_imported_reports';
 const TYPE_LABELS = {
   note_id: 'Note ID', interval_id: 'Interval ID', rhythm_read: 'Rhythm Read',
-  melody_dictation: 'Melody Dict', key_sig_id: 'Key Sig ID', rhythm_worksheet: 'Rhythm WS',
+  melody_dictation: 'Melody Dict', key_sig_id: 'Key Sig ID', rhythm_worksheet: 'Rhythm Dict',
 };
 
 function _saveExerciseResult(session) {
@@ -9665,9 +9726,9 @@ const STARTER_TEMPLATES = [
   { id: 'scale-minor-mel',  label: 'Melodic Minor Scale',       desc: 'A, E, B, F#, C#, G#, D#', fn: () => _genScaleAssignment('melodic-minor', 1) },
   { id: 'arpeggio-major',   label: 'Major Arpeggio',            desc: 'All 15 keys',             fn: () => _genScaleAssignment('major-arpeggio', 1) },
   { id: 'arpeggio-minor',   label: 'Minor Arpeggio',            desc: 'All 15 keys',             fn: () => _genScaleAssignment('minor-arpeggio', 1) },
-  { id: 'rhythm-beginner',  label: 'Rhythm Worksheet (Beginner)', desc: '8 measures, 75% notes',  fn: () => _genRhythmAssignment('beginner') },
-  { id: 'rhythm-inter',     label: 'Rhythm Worksheet (Intermed.)', desc: '8 measures, 50% notes',  fn: () => _genRhythmAssignment('intermediate') },
-  { id: 'rhythm-adv',       label: 'Rhythm Worksheet (Advanced)', desc: '8 measures, 35% notes',   fn: () => _genRhythmAssignment('advanced') },
+  { id: 'rhythm-beginner',  label: 'Rhythm Dictation (Beginner)', desc: '8 measures, 75% notes',  fn: () => _genRhythmAssignment('beginner') },
+  { id: 'rhythm-inter',     label: 'Rhythm Dictation (Intermed.)', desc: '8 measures, 50% notes',  fn: () => _genRhythmAssignment('intermediate') },
+  { id: 'rhythm-adv',       label: 'Rhythm Dictation (Advanced)', desc: '8 measures, 35% notes',   fn: () => _genRhythmAssignment('advanced') },
   { id: 'melody-dict',      label: 'Melody Dictation Template', desc: '4-8 note melodies',       fn: () => _genMelodyDictAssignment() },
 ];
 
@@ -9693,13 +9754,19 @@ function showStarterAssignmentsDialog() {
 
 function _genScaleAssignment(type, octaves) {
   const keys = ['C','G','D','A','E','B','F#','C#','F','Bb','Eb','Ab','Db','Gb','Cb'];
-  const allKeys = keys.map(k => ({ key: k, ks: k === 'C' ? 0 : keys.indexOf(k) <= 6 ? keys.indexOf(k) : keys.indexOf(k) - 14 }));
+  const allKeys = keys.map(k => {
+    const idx = keys.indexOf(k);
+    const ks = idx <= 7 ? idx : 7 - idx;
+    return { key: k, ks };
+  });
   const exercises = [];
   allKeys.forEach(({key, ks}) => {
-    const scale = generateScale(ks, type, octaves, type.startsWith('minor') ? 5 : 4);
+    const isMinorType = type === 'natural-minor' || type === 'harmonic-minor' || type === 'melodic-minor' || type === 'minor-arpeggio';
+    const scale = generateScale(ks, type, octaves, isMinorType ? 5 : 3);
     if (!scale.length) return;
     const instr = _kitDefaultInstrument() || 'Piano';
-    const score = createScore({ title: `${key} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instr], ts: {num:4,den:4}, ks });
+    const tonic = scaleTonicName(ks, type);
+    const score = createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instr], ts: {num:4,den:4}, ks });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const notes = scale.map((n, i) => mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
@@ -9711,7 +9778,7 @@ function _genScaleAssignment(type, octaves) {
         keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0, notes: slice
       });
     }
-    exercises.push({ title: `${key} ${type}`, score });
+    exercises.push({ title: `${tonic} ${type}`, score });
   });
   return exercises;
 }
@@ -9720,7 +9787,7 @@ function _genRhythmAssignment(difficulty) {
   const exercises = [];
   for (let i = 0; i < 5; i++) {
     const ws = _genRhythmWorksheet({ beginner:0, intermediate:1, advanced:2 }[difficulty]);
-    const score = createScore({ title: `Rhythm Worksheet ${i+1}`, instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0 });
+    const score = createScore({ title: `Rhythm Dictation ${i+1}`, instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0 });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     for (let m = 0; m < 8; m++) {
@@ -10244,6 +10311,12 @@ function _snapshotUIState() {
     chordMode: APP.chordMode,
     markingMode: APP.markingMode,
     markingStart: APP.markingStart,
+    exerciseMode: APP.exerciseMode,
+    exerciseSession: APP.exerciseSession,
+    exerciseDifficulty: APP.exerciseDifficulty,
+    assignmentMode: APP.assignmentMode,
+    currentAssignment: APP.currentAssignment,
+    practiceMode: APP.practiceMode,
     curDur: APP.curDur,
     curDot: APP.curDot,
     curRest: APP.curRest,
@@ -10259,17 +10332,20 @@ function _restoreUIState(snapshot) {
   if (!snapshot) return;
   Object.assign(APP, snapshot);
 }
+function _uiFingerprint() {
+  return JSON.stringify(_snapshotUIState());
+}
 function pushUndo() {
-  const fp = _scoreFingerprint(APP.score);
+  const fp = _scoreFingerprint(APP.score) + '|' + _uiFingerprint();
   if (APP._lastUndoFP === fp) return;
   APP._lastUndoFP = fp;
-  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   APP.redoStack = [];
   if (APP.undoStack.length > 60) APP.undoStack.shift();
 }
 function undo() {
   if (!APP.undoStack.length) { showToast('Nothing to undo'); return; }
-  APP.redoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  APP.redoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   const entry = APP.undoStack.pop();
   APP.score = entry.score;
   _restoreUIState(entry.ui);
@@ -10279,7 +10355,7 @@ function undo() {
 }
 function redo() {
   if (!APP.redoStack.length) { showToast('Nothing to redo'); return; }
-  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   const entry = APP.redoStack.pop();
   APP.score = entry.score;
   _restoreUIState(entry.ui);
@@ -10634,32 +10710,65 @@ async function _exportPDF(pageSize) {
 }
 
 // ── Help & Onboarding ─────────────────────────────────────────────
-function showWelcomeModal() {
-  const seen = localStorage.getItem('pauta_welcome_seen');
-  if (seen) return;
+function showRoleDialog() {
+  if (APP.role) return;
   makeModal(`
-    <h2>Welcome to Pauta</h2>
-    <div style="font-size:13px;color:#4a5568;line-height:1.5;margin-bottom:14px">
-      <p>What would you like to do?</p>
+    <h2 style="text-align:center;margin-bottom:4px">Welcome to Pauta</h2>
+    <div style="font-size:13px;color:#4a5568;line-height:1.6;margin-bottom:10px;text-align:center">
+      <p style="color:rgba(74,85,104,0.65);font-size:12px">To get started, tell us who you are:</p>
     </div>
-    <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:8px;width:100%">🎓 I'm a student — start exercises</button>
-    <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%">🎼 I'm composing — open the editor</button>
-    <div style="margin-top:8px;font-size:12px;color:rgba(74,85,104,0.7)">
-      You can change your mind anytime via the View menu.
+    <button class="modal-btn primary" data-action="setRoleTeacher" style="margin-bottom:8px;width:100%">👩‍🏫 I'm a Teacher</button>
+    <button class="modal-btn secondary" data-action="setRoleStudent" style="margin-bottom:2px;width:100%">🎓 I'm a Student</button>
+    <div style="margin-top:8px;font-size:11px;color:rgba(74,85,104,0.55);text-align:center">
+      You can switch roles anytime via View → Switch Role.
     </div>
   `);
 }
 
-function startLearnerOnboarding() {
-  applyKit('recorder', 'beginner');
-  localStorage.setItem('pauta_welcome_seen', '1');
+function showSwitchRoleDialog() {
   closeModal();
-  setTimeout(() => showExerciseDialog(), 300);
+  makeModal(`
+    <h2 style="text-align:center;margin-bottom:10px">Switch Role</h2>
+    <div style="font-size:13px;color:#4a5568;line-height:1.6;margin-bottom:10px;text-align:center">
+      ${APP.role === 'student'
+        ? '<p style="color:rgba(74,85,104,0.65)">You are currently a <strong>Student</strong>.</p>'
+        : '<p style="color:rgba(74,85,104,0.65)">You are currently a <strong>Teacher</strong>.</p>'}
+    </div>
+    <button class="modal-btn primary" data-action="setRoleTeacher" style="margin-bottom:8px;width:100%">👩‍🏫 Switch to Teacher</button>
+    <button class="modal-btn secondary" data-action="setRoleStudent" style="margin-bottom:8px;width:100%">🎓 Switch to Student</button>
+    <button class="modal-btn secondary" data-action="closeModal" style="width:100%">Cancel</button>
+  `);
 }
 
-function startComposerOnboarding() {
-  localStorage.setItem('pauta_welcome_seen', '1');
+function setRoleTeacher() {
+  APP.role = 'teacher';
+  try { localStorage.setItem('pauta_role', 'teacher'); } catch(e) {}
   closeModal();
+  _applyRoleUI();
+}
+
+function setRoleStudent() {
+  APP.role = 'student';
+  try { localStorage.setItem('pauta_role', 'student'); } catch(e) {}
+  closeModal();
+  _applyRoleUI();
+  setTimeout(() => showExerciseDialog(), 400);
+}
+
+function _applyRoleUI() {
+  const body = document.body;
+  if (APP.role === 'student') {
+    body.classList.add('student-mode');
+  } else {
+    body.classList.remove('student-mode');
+  }
+}
+
+function showWelcomeModal() {
+  const seen = localStorage.getItem('pauta_welcome_seen');
+  if (seen) return;
+  // Replaced by role dialog; kept for backward compat
+  showRoleDialog();
 }
 
 function closeWelcome() {
@@ -11423,6 +11532,7 @@ function toggleLyricStyle(style) {
 }
 
 function editLyric() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first, then tap Lyric'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Lyrics go on notes, not rests'); return; }
@@ -11624,6 +11734,7 @@ function saveLyric() {
 
 // ── Chord Symbols ─────────────────────────────────────────────────
 function editChordSymbol() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') { showToast('Chord symbols go on notes, not rests'); return; }
@@ -11781,6 +11892,7 @@ function _nextRehearsalLabel(type) {
 }
 
 function addRehearsalMark(type) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const label = _nextRehearsalLabel(type);
   commitChange(score => {
     if (!score.rehearsalMarks) score.rehearsalMarks = [];
@@ -11842,6 +11954,7 @@ function renderRehearsalMarks() {
 
 // ── Staff Text (free annotations) ────────────────────────────────
 function addStaffText() {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   if (APP.selectedNoteIdx < 0 && APP.selectedMeasure < 0) {
     showToast('Select a note or measure first');
     return;
@@ -12198,6 +12311,8 @@ function showViewMenu(btn) {
     {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
     {sep:true},
     {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
+    {sep:true},
+    {label:`🔄 Switch Role (${APP.role === 'student' ? 'Student' : APP.role === 'teacher' ? 'Teacher' : 'Not set'})`, fn:showSwitchRoleDialog},
   ];
   showDropdown(btn, items);
 }
@@ -12207,7 +12322,7 @@ const SCALE_TYPES = [
   { id: 'major',            label: 'Major Scale' },
   { id: 'natural-minor',    label: 'Natural Minor Scale' },
   { id: 'harmonic-minor',   label: 'Harmonic Minor Scale' },
-  { id: 'melodic-minor',    label: 'Melodic Minor Scale (ascending)' },
+  { id: 'melodic-minor',    label: 'Melodic Minor Scale' },
   { id: 'major-arpeggio',   label: 'Major Arpeggio' },
   { id: 'minor-arpeggio',   label: 'Minor Arpeggio' },
 ];
@@ -12221,10 +12336,27 @@ const SCALE_INTERVALS = {
   'minor-arpeggio': [0, 3, 7],
 };
 
-const KS_TONIC_PC = {0:0,1:7,2:2,3:9,4:4,5:11,6:6,7:1,-1:5,-2:10,-3:3,-4:8,-5:1,-6:6,-7:11};
+const KS_TONIC_PC = {0:0,1:7,2:2,3:9,4:4,5:11,6:6,7:1,"-1":5,"-2":10,"-3":3,"-4":8,"-5":1,"-6":6,"-7":11};
 
 /** Natural pitch class for diatonic index 0=C..6=B */
 const NATURAL_PCS = [0, 2, 4, 5, 7, 9, 11];
+
+const PC_SHARP_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const PC_FLAT_NAMES  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+
+/**
+ * Tonic name for a scale/arpeggio of a given key signature and type.
+ * For major scales/arpeggios this is the key signature name (C for ks=0, G for ks=1, etc.).
+ * For minor scales/arpeggios this is the relative minor (A for ks=0, E for ks=1, etc.).
+ */
+function scaleTonicName(ks, type) {
+  if (type === 'major' || type === 'major-arpeggio') {
+    return keySigName(ks);
+  }
+  const majorTonicPC = KS_TONIC_PC[ks] ?? 0;
+  const minorTonicPC = (majorTonicPC + 9) % 12;
+  return (ks < 0 ? PC_FLAT_NAMES : PC_SHARP_NAMES)[minorTonicPC];
+}
 
 /**
  * Generate scale/arpeggio notes for a given key and type.
@@ -12235,38 +12367,73 @@ const NATURAL_PCS = [0, 2, 4, 5, 7, 9, 11];
  * @returns {{pitch:number, accidental:string|null}[]}
  */
 function generateScale(ks, type, octaves, startOctave) {
-  const tonicPC = KS_TONIC_PC[ks] ?? 0;
+  const majorPC = KS_TONIC_PC[ks] ?? 0;
+  const isMinor = type === 'natural-minor' || type === 'harmonic-minor' || type === 'melodic-minor' || type === 'minor-arpeggio';
+  const tonicPC = isMinor ? (majorPC + 9) % 12 : majorPC;
   const intervals = SCALE_INTERVALS[type] || SCALE_INTERVALS.major;
-  const tonicName = keySigName(ks);
+  const tonicName = scaleTonicName(ks, type);
   const tonicDiaIdx = NOTE_NAMES.indexOf(tonicName.replace(/[#b]/g, '').toLowerCase());
 
+  /** Resolve a diatonic degree into {pitch, accidental} given the tonic and key. */
+  function resolveNote(tonicMidi, diaIdx, pc) {
+    const naturalPC = NATURAL_PCS[diaIdx];
+    let accidental = null;
+    if (pc === (naturalPC + 1) % 12) accidental = '#';
+    else if (pc === (naturalPC + 11) % 12) accidental = 'b';
+    return { pitch: tonicMidi, accidental };
+  }
+
   const notes = [];
-  for (let o = 0; o < octaves; o++) {
-    const octave = startOctave + o;
-    for (let d = 0; d < intervals.length; d++) {
-      const actualPC = (tonicPC + intervals[d]) % 12;
-      const diaIdx = (tonicDiaIdx + d) % 7;
-      const naturalPC = NATURAL_PCS[diaIdx];
-      let accidental = null;
-      if (actualPC === (naturalPC + 1) % 12) accidental = '#';
-      else if (actualPC === (naturalPC + 11) % 12) accidental = 'b';
-      const pitch = (octave + 1) * 12 + actualPC;
-      if (pitch >= 12 && pitch <= 120) {
-        notes.push({ pitch, accidental });
+
+  if (type === 'melodic-minor') {
+    // Melodic minor: ascending (raised 6th/7th) then descending (natural minor)
+    const ascIntervals  = [0, 2, 3, 5, 7, 9, 11];
+    const descIntervals = [10, 8, 7, 5, 3, 2, 0];
+    for (let o = 0; o < octaves; o++) {
+      const octave = startOctave + o;
+      const tonicMidi = (octave + 1) * 12 + tonicPC;
+      // Ascending
+      for (let d = 0; d < ascIntervals.length; d++) {
+        const pc = (tonicPC + ascIntervals[d]) % 12;
+        const diaIdx = (tonicDiaIdx + d) % 7;
+        const note = resolveNote(tonicMidi + ascIntervals[d], diaIdx, pc);
+        if (note.pitch >= 12 && note.pitch <= 120) notes.push(note);
       }
     }
-  }
-  // Add the octave at the end for scales (not arpeggios)
-  if (octaves > 0 && intervals.length === 7) {
-    const octavePC = tonicPC;
-    const pitch = (startOctave + octaves) * 12 + octavePC;
-    if (pitch >= 12 && pitch <= 120) {
-      const diaIdx = tonicDiaIdx;
-      const naturalPC = NATURAL_PCS[diaIdx];
-      let accidental = null;
-      if (octavePC === (naturalPC + 1) % 12) accidental = '#';
-      else if (octavePC === (naturalPC + 11) % 12) accidental = 'b';
-      notes.push({ pitch, accidental });
+    // Top octave
+    const topMidi = (startOctave + octaves + 1) * 12 + tonicPC;
+    if (topMidi >= 12 && topMidi <= 120) {
+      notes.push(resolveNote(topMidi, tonicDiaIdx, tonicPC));
+    }
+    // Descending
+    for (let o = octaves - 1; o >= 0; o--) {
+      const octave = startOctave + o;
+      const tonicMidi = (octave + 1) * 12 + tonicPC;
+      for (let d = 0; d < descIntervals.length; d++) {
+        const pc = (tonicPC + descIntervals[d]) % 12;
+        const diaIdx = (tonicDiaIdx + 6 - d) % 7;
+        const note = resolveNote(tonicMidi + descIntervals[d], diaIdx, pc);
+        if (note.pitch >= 12 && note.pitch <= 120) notes.push(note);
+      }
+    }
+  } else {
+    // Standard scales and arpeggios
+    for (let o = 0; o < octaves; o++) {
+      const octave = startOctave + o;
+      const tonicMidi = (octave + 1) * 12 + tonicPC;
+      for (let d = 0; d < intervals.length; d++) {
+        const pc = (tonicPC + intervals[d]) % 12;
+        const diaIdx = (tonicDiaIdx + d) % 7;
+        const note = resolveNote(tonicMidi + intervals[d], diaIdx, pc);
+        if (note.pitch >= 12 && note.pitch <= 120) notes.push(note);
+      }
+    }
+    // Add the octave at the end for scales (not arpeggios)
+    if (octaves > 0 && intervals.length === 7) {
+      const topMidi = (startOctave + 1) * 12 + tonicPC + 12 * octaves;
+      if (topMidi >= 12 && topMidi <= 120) {
+        notes.push(resolveNote(topMidi, tonicDiaIdx, tonicPC));
+      }
     }
   }
   return notes;
@@ -12280,12 +12447,14 @@ function showScaleGeneratorDialog() {
   const scaleOptions = SCALE_TYPES.map(st =>
     `<option value="${st.id}">${st.label}</option>`).join('');
 
-  const ksOptions = [];
-  for (let ks = -7; ks <= 7; ks++) {
-    const name = keySigName(ks) + (ks === 0 ? ' major' : '');
-    const rel = ['A min','E min','B min','F# min','C# min','G# min','D# min','A# min','D min','G min','C min','F min','Bb min','Eb min','Ab min'][ks + 7];
-    ksOptions.push(`<option value="${ks}">${name} / ${rel}</option>`);
-  }
+  // Circle-of-fifths order: start from C, alternate outward by flats and sharps
+  const KS_ORDER = [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7];
+  const ksOptions = KS_ORDER.map(ks => {
+    const data = KEY_SIG_DATA.find(d => d.ks === ks);
+    const name = data ? data.major + ' major' : keySigName(ks) + ' major';
+    const rel  = data ? data.minor.replace('m', ' min') : '?';
+    return `<option value="${ks}">${name} / ${rel}</option>`;
+  });
 
   makeModal(`
     <h2>Generate Scale / Arpeggio</h2>
@@ -12361,7 +12530,7 @@ function confirmGenerateScale() {
   if (!notes.length) { showToast('No notes generated — check range'); return; }
 
   const instr = instrByName(instrName);
-  const score = createScore({ title: `${keySigName(ks)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instrName], ks, ts: {num: notes.length <= 8 ? 4 : 4, den: 4} });
+  const score = createScore({ title: `${scaleTonicName(ks, type)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instrName], ks, ts: {num: notes.length <= 8 ? 4 : 4, den: 4} });
   const stave = score.parts[0].staves[0];
 
   const beatsPerMeasure = 4;
@@ -12392,24 +12561,27 @@ function confirmGenerateScale() {
   adoptScore(score, { clearHistory: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   renderScore();
-  showToast(`Generated: ${keySigName(ks)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`);
+  showToast(`Generated: ${scaleTonicName(ks, type)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`);
 }
 
 function showExercisesMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
   const items = [
     {label:'🎹 Start Exercise…', fn:showExerciseDialog},
-    {label:'📝 Rhythm Worksheet', fn:showRhythmWorksheetDialog},
+    {label:'🔊 Rhythm Dictation', fn:showRhythmWorksheetDialog},
     {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
     {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},
-    {label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog},
-    {sep:true},
     {label:'📊 My Progress', fn:showStudentProgress},
-    {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
-    {sep:true},
-    {label:practiceLabel, fn:togglePracticeMode},
   ];
+  // Teacher-only items
+  if (APP.role !== 'student') {
+    items.push({label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog});
+    items.push({sep:true});
+    items.push({label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard});
+  }
+  items.push({sep:true});
+  items.push({label:practiceLabel, fn:togglePracticeMode});
   showDropdown(btn, items);
 }
 
@@ -12444,8 +12616,7 @@ function showAssignmentSubmenu() {
 }
 
 function showAddInstrumentDialog() {
-  const allowedNames = _kitInstrumentList();
-  const instrs = INSTRUMENTS.filter(i => allowedNames.includes(i.name));
+  const instrs = INSTRUMENTS;
   makeModal(`
     <h2>Add Instrument</h2>
     <p style="color:rgba(74,85,104,0.60);font-size:11px;margin-top:-6px;margin-bottom:10px">
@@ -12572,20 +12743,20 @@ function applyTimeSig(num, den) {
 // ── Key Signature Dialog ──────────────────────────────────────────
 // All 15 major keys: flat keys, C, sharp keys
 const ALL_KEY_SIGS = [
-  {ks:-7, label:'C♭',  sub:'A♭m'},
-  {ks:-6, label:'G♭',  sub:'E♭m'},
-  {ks:-5, label:'D♭',  sub:'B♭m'},
-  {ks:-4, label:'A♭',  sub:'Fm'},
-  {ks:-3, label:'E♭',  sub:'Cm'},
-  {ks:-2, label:'B♭',  sub:'Gm'},
-  {ks:-1, label:'F',   sub:'Dm'},
   {ks: 0, label:'C',   sub:'Am'},
+  {ks:-1, label:'F',   sub:'Dm'},
   {ks: 1, label:'G',   sub:'Em'},
+  {ks:-2, label:'B♭',  sub:'Gm'},
   {ks: 2, label:'D',   sub:'Bm'},
+  {ks:-3, label:'E♭',  sub:'Cm'},
   {ks: 3, label:'A',   sub:'F♯m'},
+  {ks:-4, label:'A♭',  sub:'Fm'},
   {ks: 4, label:'E',   sub:'C♯m'},
+  {ks:-5, label:'D♭',  sub:'B♭m'},
   {ks: 5, label:'B',   sub:'G♯m'},
+  {ks:-6, label:'G♭',  sub:'E♭m'},
   {ks: 6, label:'F♯',  sub:'D♯m'},
+  {ks:-7, label:'C♭',  sub:'A♭m'},
   {ks: 7, label:'C♯',  sub:'A♯m'},
 ];
 
@@ -12792,7 +12963,8 @@ function _renderNewScoreDialog() {
   const _savedKit = APP.teachingKit;
   const _savedLevel = APP.teachingKitLevel;
   const _familyKit = FAMILY_KIT_MAP[_ndFamily];
-  if (_familyKit && !APP.teachingKit) { APP.teachingKit = _familyKit; APP.teachingKitLevel = _ndLevel; }
+  if (_familyKit) { APP.teachingKit = _familyKit; APP.teachingKitLevel = _ndLevel; }
+  else { APP.teachingKit = null; APP.teachingKitLevel = 'advanced'; }
   const levelInstrs = _kitInstrumentList(_ndLevel);
   APP.teachingKit = _savedKit;
   APP.teachingKitLevel = _savedLevel;
@@ -13298,9 +13470,9 @@ function restoreAutosave() {
 
 function _checkAndOfferRestore(onDecline) {
   const raw = localStorage.getItem(AUTOSAVE_KEY);
-  if (!raw) { onDecline(); return; }
+  if (!raw) { if (onDecline) onDecline(); return; }
   let saved;
-  try { saved = JSON.parse(raw); } catch(e) { onDecline(); return; }
+  try { saved = JSON.parse(raw); } catch(e) { if (onDecline) onDecline(); return; }
   const scoreTitle = saved?.title || 'Untitled Score';
   window._autosaveDecline = onDecline;
   makeModal(`
@@ -13481,6 +13653,14 @@ function bootApp() {
     }
   } catch(e) { console.warn('[Pauta]', e.message); }
 
+  // Restore role from previous session
+  try {
+    const savedRole = localStorage.getItem('pauta_role');
+    if (savedRole === 'teacher' || savedRole === 'student') {
+      APP.role = savedRole;
+    }
+  } catch(e) { console.warn('[Pauta]', e.message); }
+
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
   setTimeout(() => loading.remove(), 500);
@@ -13490,10 +13670,14 @@ function bootApp() {
   _runBootSelfCheck();
 
   // Offer to restore any autosaved score; opens New Score dialog if none found
-  _checkAndOfferRestore(showNewScoreDialog);
+  // For students, skip the new score dialog — they'll go to exercises instead
+  _checkAndOfferRestore(APP.role === 'student' ? null : showNewScoreDialog);
 
-  // Show welcome modal on first launch
-  setTimeout(() => showWelcomeModal(), 600);
+  // Show role dialog on first launch (no role set yet)
+  setTimeout(() => showRoleDialog(), 600);
+
+  // Apply student role UI restrictions
+  _applyRoleUI();
 
   // Double-tap on title for touch devices (set up once)
   let _titleTapT = 0;
@@ -13667,8 +13851,8 @@ _registerAction('confirmGenerateScale', () => confirmGenerateScale());
 _registerAction('confirmExportPDF', () => confirmExportPDF());
 _registerAction('showHelpPanel', () => showHelpPanel());
 _registerAction('closeWelcome', () => closeWelcome());
-_registerAction('startLearnerOnboarding', () => startLearnerOnboarding());
-_registerAction('startComposerOnboarding', () => startComposerOnboarding());
+_registerAction('setRoleTeacher', () => { closeModal(); setRoleTeacher(); });
+_registerAction('setRoleStudent', () => { closeModal(); setRoleStudent(); });
 _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
 _registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });

@@ -25,10 +25,12 @@ const APP = {
   chordMode: false,
   markingMode: false,
   exerciseMode: false,
+  exerciseDifficulty: 'beginner',
   assignmentMode: false,
   markingStart: null,
   exerciseSession: null,
   currentAssignment: null,
+  practiceMode: false,
   curDur: 'q',
   curDot: false,
   curRest: false,
@@ -64,7 +66,6 @@ function durBeats(dur, dots, tuplet) {
 // ── Mode Guards ─────────────────────────────────────────────────
 const MODE_RULES = [
   () => APP.inputMode && APP.markingMode ? { ok: false, msg: 'inputMode + markingMode' } : null,
-  () => APP.chordMode && !APP.inputMode && APP.selectedNoteIdx < 0 ? { ok: false, msg: 'chordMode active but no input mode or selection' } : null,
   () => APP.exerciseMode && APP.inputMode ? { ok: false, msg: 'exerciseMode + inputMode' } : null,
   () => APP.exerciseMode && APP.chordMode ? { ok: false, msg: 'exerciseMode + chordMode' } : null,
   () => APP.exerciseMode && APP.markingMode ? { ok: false, msg: 'exerciseMode + markingMode' } : null,
@@ -135,6 +136,12 @@ function _snapshotUIState() {
     chordMode: APP.chordMode,
     markingMode: APP.markingMode,
     markingStart: APP.markingStart,
+    exerciseMode: APP.exerciseMode,
+    exerciseSession: APP.exerciseSession,
+    exerciseDifficulty: APP.exerciseDifficulty,
+    assignmentMode: APP.assignmentMode,
+    currentAssignment: APP.currentAssignment,
+    practiceMode: APP.practiceMode,
     curDur: APP.curDur,
     curDot: APP.curDot,
     curRest: APP.curRest,
@@ -152,18 +159,22 @@ function _restoreUIState(snapshot) {
   Object.assign(APP, snapshot);
 }
 
+function _uiFingerprint() {
+  return JSON.stringify(_snapshotUIState());
+}
+
 function pushUndo() {
-  const fp = _scoreFingerprint(APP.score);
+  const fp = _scoreFingerprint(APP.score) + '|' + _uiFingerprint();
   if (APP._lastUndoFP === fp) return;
   APP._lastUndoFP = fp;
-  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   APP.redoStack = [];
   if (APP.undoStack.length > 60) APP.undoStack.shift();
 }
 
 function undo() {
   if (!APP.undoStack.length) return false;
-  APP.redoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  APP.redoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   const entry = APP.undoStack.pop();
   APP.score = entry.score;
   _restoreUIState(entry.ui);
@@ -173,7 +184,7 @@ function undo() {
 
 function redo() {
   if (!APP.redoStack.length) return false;
-  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _snapshotUIState() });
+  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   const entry = APP.redoStack.pop();
   APP.score = entry.score;
   _restoreUIState(entry.ui);
@@ -879,15 +890,257 @@ catch(e) { assert(false, '_require should not throw for unknown key'); }
 assert(Array.isArray(APP.undoStack), 'undoStack is array');
 assert(Array.isArray(APP.redoStack), 'redoStack is array');
 
-// 6d. MODE_RULES — chordMode requires input or selection
+// 6d. MODE_RULES — chordMode is a sticky modifier, no rule fires when alone
 resetApp(); APP.chordMode = true; APP.inputMode = false; APP.selectedNoteIdx = -1;
 violations = _validateModeState();
-assert(violations.some(v => v.includes('chordMode active but no input mode or selection')), 'chordMode without input flagged');
+assertEq(violations.length, 0, 'chordMode without input/selection is OK (sticky modifier)');
 
 // 6e. MODE_RULES — marking+input flagged (duplicate check, different rule path)
 resetApp(); APP.markingMode = true; APP.inputMode = true;
 violations = _validateModeState();
 assert(violations.some(v => v.includes('markingMode + inputMode')), 'marking+input flagged');
+
+// ── 7. Full Undo/Redo with Mode Restoration ─────────────────────
+
+// 7a. undo restores exerciseMode, exerciseSession, exerciseDifficulty, assignmentMode, currentAssignment, practiceMode
+resetApp();
+APP.exerciseMode = true;
+APP.exerciseSession = { type: 'note_id', difficulty: 'beginner', current: {}, completed: [], correctCount: 0, totalCount: 0, streak: 0, maxStreak: 0, startedAt: Date.now() };
+APP.exerciseDifficulty = 'intermediate';
+APP.assignmentMode = true;
+APP.currentAssignment = { id: 'a1', title: 'Test' };
+APP.practiceMode = true;
+APP.selectedMeasure = 2;
+APP.inputMode = true;
+pushUndo();
+APP.exerciseMode = false;
+APP.exerciseSession = null;
+APP.exerciseDifficulty = 'beginner';
+APP.assignmentMode = false;
+APP.currentAssignment = null;
+APP.practiceMode = false;
+APP.selectedMeasure = 5;
+APP.inputMode = false;
+undo();
+assertEq(APP.exerciseMode, true, 'undo restores exerciseMode');
+assert(APP.exerciseSession !== null, 'undo restores exerciseSession');
+assertEq(APP.exerciseDifficulty, 'intermediate', 'undo restores exerciseDifficulty');
+assertEq(APP.assignmentMode, true, 'undo restores assignmentMode');
+assert(APP.currentAssignment !== null, 'undo restores currentAssignment');
+assertEq(APP.practiceMode, true, 'undo restores practiceMode');
+assertEq(APP.selectedMeasure, 2, 'undo restores selectedMeasure');
+assertEq(APP.inputMode, true, 'undo restores inputMode');
+
+// 7b. undo restores chordMode, markingMode
+resetApp();
+APP.inputMode = true;
+APP.chordMode = true;
+APP.markingMode = true;
+pushUndo();
+APP.inputMode = false;
+APP.chordMode = false;
+APP.markingMode = false;
+undo();
+assertEq(APP.inputMode, true, 'undo restores inputMode');
+assertEq(APP.chordMode, true, 'undo restores chordMode');
+assertEq(APP.markingMode, true, 'undo restores markingMode');
+
+// 7c. redo restores state from redoStack
+resetApp();
+APP.inputMode = true;
+pushUndo();
+APP.inputMode = false;
+undo(); // back to inputMode=true, state B pushed to redoStack
+assertEq(APP.inputMode, true, 'undo restores inputMode=true before redo');
+redo(); // restore state B (inputMode=false) from redoStack
+assertEq(APP.inputMode, false, 'redo restores inputMode');
+
+// 7d. undo after multiple mode changes restores correct state
+resetApp();
+APP.inputMode = true;
+pushUndo();
+APP.inputMode = false;
+APP.chordMode = true;
+pushUndo();
+APP.chordMode = false;
+undo(); // back to chordMode=true
+assertEq(APP.chordMode, true, 'undo restores chordMode from second push');
+undo(); // back to inputMode=true
+assertEq(APP.inputMode, true, 'undo restores inputMode from first push');
+
+// ── 8. Mode Transition Tests ─────────────────────────────────────
+
+// 8a. inputMode + chordMode valid together
+resetApp();
+APP.inputMode = true;
+APP.chordMode = true;
+violations = _validateModeState();
+assertEq(violations.length, 0, 'inputMode + chordMode allowed');
+
+// 8b. inputMode + markingMode invalid
+resetApp();
+APP.inputMode = true;
+APP.markingMode = true;
+violations = _validateModeState();
+assert(violations.some(v => v.includes('inputMode + markingMode')), 'input+marking flagged');
+
+// 8c. exerciseMode blocks inputMode
+resetApp();
+APP.exerciseMode = true;
+APP.exerciseSession = {};
+APP.inputMode = true;
+violations = _validateModeState();
+assert(violations.some(v => v.includes('exerciseMode + inputMode')), 'exercise+input flagged');
+
+// 8d. assignmentMode blocks chordMode
+resetApp();
+APP.assignmentMode = true;
+APP.currentAssignment = {};
+APP.chordMode = true;
+violations = _validateModeState();
+assert(violations.some(v => v.includes('assignmentMode + chordMode')), 'assignment+chord flagged');
+
+// 8e. chordMode persists after inputMode off
+resetApp();
+APP.inputMode = true;
+APP.chordMode = true;
+APP.inputMode = false;
+violations = _validateModeState();
+assertEq(violations.length, 0, 'chordMode persists after inputMode off');
+
+// 8f. markingMode + inputMode invalid (separate rule)
+resetApp();
+APP.markingMode = true;
+APP.inputMode = true;
+violations = _validateModeState();
+assert(violations.some(v => v.includes('markingMode + inputMode')), 'marking+input flagged');
+
+// ── 9. Guarded Handler Pattern Tests (using _require directly) ───
+
+// 9a. _require blocks in exerciseMode
+resetApp();
+APP.exerciseMode = true; APP.exerciseSession = {};
+try { _require({forbid: ['exercise']}); assert(false, '_require should throw in exerciseMode'); }
+catch(e) { assert(e.message === 'Exit exercise mode first', '_require blocks in exerciseMode'); }
+resetApp();
+
+// 9b. _require blocks in assignmentMode
+resetApp();
+APP.assignmentMode = true; APP.currentAssignment = {};
+try { _require({forbid: ['assignment']}); assert(false, '_require should throw in assignmentMode'); }
+catch(e) { assert(e.message === 'Exit assignment mode first', '_require blocks in assignmentMode'); }
+resetApp();
+
+// 9c. _require blocks in markingMode
+resetApp();
+APP.markingMode = true;
+try { _require({forbid: ['marking']}); assert(false, '_require should throw in markingMode'); }
+catch(e) { assert(e.message === 'Complete or cancel current marking first', '_require blocks in markingMode'); }
+resetApp();
+
+// 9d. _require requires selectedNote
+resetApp();
+try { _require({require: ['selectedNote']}); assert(false, '_require should throw without selectedNote'); }
+catch(e) { assert(true, '_require requires selectedNote'); }
+APP.selectedNoteIdx = 0;
+try { _require({require: ['selectedNote']}); assert(true, '_require passes with selectedNote'); }
+catch(e) { assert(false, '_require should pass with selectedNote: ' + e.message); }
+resetApp();
+
+// 9e. _require requires score
+resetApp();
+try { _require({require: ['score']}); assert(false, '_require should throw without score'); }
+catch(e) { assert(true, '_require requires score'); }
+APP.score = {};
+try { _require({require: ['score']}); assert(true, '_require passes with score'); }
+catch(e) { assert(false, '_require should pass with score: ' + e.message); }
+resetApp();
+
+// ── 10. Modal State Tests (DOM) ──────────────────────────────────
+// Note: makeModal, closeModal, showDropdown, closeDropdown are not in test file
+// These are tested via the beat grid DOM tests in section 5
+
+// ── 11. Complex Interaction Sequence Tests ───────────────────────
+
+// 11a. full edit → undo → redo cycle with mode tracking
+resetApp();
+APP.score = { parts: [{ staves: [{ measures: [{ notes: [{ type:'note', pitch:60, duration:'q' }] }] }] }] };
+APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
+APP.inputMode = true; APP.curDur = 'h'; APP.curAcc = '#';
+APP.chordMode = true;
+APP.exerciseMode = false; APP.exerciseSession = null; APP.exerciseDifficulty = 'beginner';
+APP.assignmentMode = false; APP.currentAssignment = null;
+APP.practiceMode = false;
+pushUndo(); // state: inputMode=true, curDur='h', curAcc='#', pitch=60
+APP.score.parts[0].staves[0].measures[0].notes[0].pitch = 64;
+APP.inputMode = false; APP.curDur = 'q'; APP.curAcc = null;
+APP.chordMode = false;
+pushUndo(); // state: inputMode=false, curDur='q', curAcc=null, pitch=64
+undo(); // restore pitch=64, inputMode=false, curDur='q', curAcc=null, chordMode=false
+assertEq(APP.score.parts[0].staves[0].measures[0].notes[0].pitch, 64, 'undo restores pitch 64');
+assertEq(APP.inputMode, false, 'undo restores inputMode=false');
+assertEq(APP.curDur, 'q', 'undo restores curDur=q');
+assertEq(APP.chordMode, false, 'undo restores chordMode=false');
+undo(); // restore pitch=60, inputMode=true, curDur='h', curAcc='#', chordMode=true
+assertEq(APP.score.parts[0].staves[0].measures[0].notes[0].pitch, 60, 'undo restores pitch 60');
+assertEq(APP.inputMode, true, 'undo restores inputMode=true');
+assertEq(APP.curDur, 'h', 'undo restores curDur=h');
+assertEq(APP.curAcc, '#', 'undo restores curAcc=#');
+assertEq(APP.chordMode, true, 'undo restores chordMode=true');
+redo(); // back to pitch=64, inputMode=false, curDur='q', curAcc=null, chordMode=false
+assertEq(APP.score.parts[0].staves[0].measures[0].notes[0].pitch, 64, 'redo restores pitch 64');
+assertEq(APP.inputMode, false, 'redo restores inputMode=false');
+assertEq(APP.curDur, 'q', 'redo restores curDur=q');
+assertEq(APP.chordMode, false, 'redo restores chordMode=false');
+
+// 11b. exercise flow: start → answer → undo restores pre-answer state
+resetApp();
+const exNote = _genNoteId(0);
+APP.exerciseMode = true; APP.exerciseSession = { type: 'note_id', current: exNote, completed: [], correctCount: 0, totalCount: 0 };
+pushUndo();
+// Simulate correct answer
+const answer = exNote.answer;
+const norm = s => s.trim().toLowerCase().replace(/\s+/g, '');
+const isCorrect = norm(answer) === norm(exNote.answer);
+assert(isCorrect, 'correct answer matches');
+APP.exerciseSession.correctCount++;
+APP.exerciseSession.totalCount++;
+APP.exerciseSession.completed.push({ type: 'note_id', answer, ok: true });
+undo();
+assertEq(APP.exerciseSession.correctCount, 0, 'undo restores correctCount=0');
+assertEq(APP.exerciseSession.totalCount, 0, 'undo restores totalCount=0');
+
+// ── 12. MODE_RULES Edge Cases ────────────────────────────────────
+
+// 12a. exerciseMode without session flagged
+resetApp();
+APP.exerciseMode = true; APP.exerciseSession = null;
+violations = _validateModeState();
+assert(violations.some(v => v.includes('exerciseMode true but session null')), 'exerciseMode without session flagged');
+
+// 12b. session without exerciseMode flagged
+resetApp();
+APP.exerciseMode = false; APP.exerciseSession = {};
+violations = _validateModeState();
+assert(violations.some(v => v.includes('exerciseSession set but mode false')), 'session without mode flagged');
+
+// 12c. assignmentMode without currentAssignment flagged
+resetApp();
+APP.assignmentMode = true; APP.currentAssignment = null;
+violations = _validateModeState();
+assert(violations.some(v => v.includes('assignmentMode true but currentAssignment null')), 'assignmentMode without assignment flagged');
+
+// 12d. currentAssignment without assignmentMode flagged
+resetApp();
+APP.assignmentMode = false; APP.currentAssignment = {};
+violations = _validateModeState();
+assert(violations.some(v => v.includes('currentAssignment set but mode false')), 'assignment without mode flagged');
+
+// 12e. tupletPending without curTuplet flagged
+resetApp();
+APP.tupletPending = 3; APP.curTuplet = null;
+violations = _validateModeState();
+assert(violations.some(v => v.includes('tupletPending > 0 but no curTuplet')), 'tupletPending without curTuplet flagged');
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);
