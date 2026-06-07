@@ -776,7 +776,7 @@ body{
     border-radius:0 !important;
     page-break-inside:avoid;
   }
-  [data-instr-type="recorder"], [data-instr-type="brass"], [data-instr-type="woodwind"] { display:none !important; }
+  [data-instr-type="recorder"], [data-instr-type="brass"], [data-instr-type="woodwind"], [data-instr-type="orff"] { display:none !important; }
 }
 
 /* ── High Contrast Mode ─────────────────────────────────────────── */
@@ -869,71 +869,52 @@ body.student-mode #topbar { justify-content: flex-start !important; }
   max-width: 92vw;
   overflow-x: auto;
 }
-#rhythm-beat-grid .rg-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/* ── Rhythm Multiple Choice ───────────────────────────────────── */
+.rg-mcq-prompt{
+  font-size:14px;font-weight:600;color:#4a5568;
+  text-align:center;margin:8px 0 12px;
 }
-#rhythm-beat-grid .rg-measure-label {
-  width: 24px;
-  text-align: center;
-  font-size: 10px;
-  color: rgba(74,85,104,0.5);
-  font-weight: 600;
-  flex-shrink: 0;
+.rg-options{
+  display:flex;flex-direction:column;gap:8px;
+  max-width:100%;overflow-x:auto;
 }
-#rhythm-beat-grid .rg-beat {
-  width: 36px;
-  height: 36px;
-  border: 1.5px solid rgba(192,86,33,0.25);
-  border-radius: 6px;
-  background: rgba(247,243,237,0.6);
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-  user-select: none;
-  -webkit-user-select: none;
-  font-family: 'Bravura', 'Times New Roman', serif;
+.rg-option{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  border:2px solid rgba(192,86,33,0.2);border-radius:8px;
+  background:rgba(247,243,237,0.6);
+  cursor:pointer;user-select:none;-webkit-user-select:none;
+  transition:background 0.15s,border-color 0.15s,box-shadow 0.15s;
 }
-#rhythm-beat-grid .rg-beat:hover {
-  background: rgba(192,86,33,0.08);
-  border-color: rgba(192,86,33,0.4);
+.rg-option:hover{background:rgba(192,86,33,0.06);border-color:rgba(192,86,33,0.35);}
+.rg-option.rg-locked{cursor:default;opacity:.85;}
+.rg-option.rg-correct{border-color:#22c55e;background:#e6ffed;box-shadow:0 0 0 2px rgba(34,197,94,0.2);}
+.rg-option.rg-incorrect{border-color:#e06850;background:#fff5f0;box-shadow:0 0 0 2px rgba(224,104,80,0.2);}
+.rg-opt-label{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:rgba(192,86,33,0.12);
+  color:#c05621;font-size:13px;font-weight:700;flex-shrink:0;
 }
-#rhythm-beat-grid .rg-beat.rg-note {
-  background: #e6ffed;
-  border-color: #22c55e;
+.rg-correct .rg-opt-label{background:#22c55e;color:#fff;}
+.rg-incorrect .rg-opt-label{background:#e06850;color:#fff;}
+.rg-notation{
+  display:flex;align-items:center;
+  font-family:'Bravura','Times New Roman',serif;overflow-x:auto;flex:1;
 }
-#rhythm-beat-grid .rg-beat.rg-rest {
-  background: #fff5f0;
-  border-color: #e06850;
+.rg-measure{display:flex;align-items:center;}
+.rg-beat{
+  width:36px;text-align:center;font-size:24px;line-height:1;flex-shrink:0;
 }
-#rhythm-beat-grid .rg-beat.rg-correct {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+.r-bar{
+  margin:0 2px;font-size:28px;color:#777;font-weight:200;flex-shrink:0;
 }
-#rhythm-beat-grid .rg-beat.rg-incorrect {
-  border-color: #e06850;
-  box-shadow: 0 0 0 2px rgba(224,104,80,0.25);
-}
-#rhythm-beat-grid .rg-controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-#rhythm-beat-grid .rg-score {
-  font-size: 14px;
-  font-weight: 700;
-  color: #c05621;
-  margin-bottom: 4px;
-}
-#rhythm-beat-grid .rg-play-row {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 8px;
-}
+.r-note{color:#1a1a1a;}
+.r-rest{color:#c05621;}
+#rhythm-beat-grid .rg-play-row{display:flex;justify-content:center;margin-bottom:8px;}
+#rhythm-beat-grid .rg-controls{display:flex;gap:8px;margin-top:8px;}
+.rg-feedback{display:none;text-align:center;padding:8px;margin:8px 0;border-radius:6px;font-size:14px;font-weight:600;}
+.rg-correct-msg{color:#22c55e;}
+.rg-incorrect-msg{color:#e06850;}
 
 /* ── Debug Overlay ───────────────────────────────────────────── */
 #debug-overlay {
@@ -2309,15 +2290,15 @@ const INSTRUMENTS = [
   {name:'Guitar',        family:'Strings',   staves:['treble'],        osc:'triangle'},
   {name:'Harp',          family:'Strings',   staves:['treble','bass'], osc:'triangle'},
   // Orff
-  {name:'Orff Soprano Glockenspiel', family:'Orff', staves:['treble'],  osc:'sine'    },
-  {name:'Orff Alto Glockenspiel',    family:'Orff', staves:['treble'],  osc:'sine'    },
-  {name:'Orff Soprano Metallophone', family:'Orff', staves:['treble'],  osc:'triangle'},
-  {name:'Orff Alto Metallophone',    family:'Orff', staves:['treble'],  osc:'triangle'},
-  {name:'Orff Bass Metallophone',    family:'Orff', staves:['bass'],    osc:'triangle'},
-  {name:'Orff Soprano Xylophone',    family:'Orff', staves:['treble'],  osc:'triangle'},
-  {name:'Orff Alto Xylophone',       family:'Orff', staves:['treble'],  osc:'triangle'},
-  {name:'Orff Bass Xylophone',       family:'Orff', staves:['bass'],    osc:'triangle'},
-  {name:'Orff Timpani',              family:'Orff', staves:['bass'],    osc:'sine'    },
+  {name:'Orff Soprano Glockenspiel', family:'Orff', staves:['treble'],  osc:'sine',    orff:true},
+  {name:'Orff Alto Glockenspiel',    family:'Orff', staves:['treble'],  osc:'sine',    orff:true},
+  {name:'Orff Soprano Metallophone', family:'Orff', staves:['treble'],  osc:'triangle',orff:true},
+  {name:'Orff Alto Metallophone',    family:'Orff', staves:['treble'],  osc:'triangle',orff:true},
+  {name:'Orff Bass Metallophone',    family:'Orff', staves:['bass'],    osc:'triangle',orff:true},
+  {name:'Orff Soprano Xylophone',    family:'Orff', staves:['treble'],  osc:'triangle',orff:true},
+  {name:'Orff Alto Xylophone',       family:'Orff', staves:['treble'],  osc:'triangle',orff:true},
+  {name:'Orff Bass Xylophone',       family:'Orff', staves:['bass'],    osc:'triangle',orff:true},
+  {name:'Orff Timpani',              family:'Orff', staves:['bass'],    osc:'sine',    orff:true},
   // Percussion
   {name:'Drum Kit',            family:'Percussion', staves:['percussion'], osc:'noise', percussion:true},
   {name:'Snare Drum',          family:'Percussion', staves:['percussion'], osc:'noise', percussion:true},
@@ -2361,70 +2342,131 @@ const RECORDER_ALTO_FINGERINGS = {
 // ── Woodwind Fingering Tables ────────────────────────────────────
 // Each pitch maps to a string of key states: '1' = pressed/covered, '0' = open.
 // Flute: 14 positions [B, Bb, L1, L2, L3, G#, R1, R2, R3, Eb, B_foot, C_foot, C#_foot, Gizmo]
-// First octave (C4-B4) fingerings repeat for second and third octaves;
-// C7 adds the Gizmo key for reliable response.
+// Verified against Woodwind Fingering Guide (wfg.woodwind.org)
+// Key order: [B, Bb, L1, L2, L3, G#, R1, R2, R3, Eb, B_foot, C_foot, C#_foot, Gizmo]
 const FLUTE_FINGERINGS = {
-  60:'01111011100000',  61:'01111011100010',  62:'01111010000000',
-  63:'01111111110000',  64:'01111011100000',  65:'10111011110000',
-  66:'01111011000000',  67:'10111000000000',  68:'01111111100000',
-  69:'10110000000000',  70:'01100001000000',  71:'10100000000000',
-  72:'01111011100000',  73:'01111011100010',  74:'01111010000000',
-  75:'01111111110000',  76:'01111011100000',  77:'10111011110000',
-  78:'01111011000000',  79:'10111000000000',  80:'01111111100000',
-  81:'10110000000000',  82:'01100001000000',  83:'10100000000000',
-  84:'01111011100000',  85:'01111011100010',  86:'01111010000000',
-  87:'01111111110000',  88:'01111011100000',  89:'10111011110000',
-  90:'01111011000000',  91:'10111000000000',  92:'01111111100000',
-  93:'10110000000000',  94:'01100001000000',  95:'10100000000000',
-  96:'01111011100001',
+  60:'10111011010000',  // C4:  T 123|123 + C foot
+  61:'10111011001000',  // C#4: T 123|123 + C# foot
+  62:'10111011000000',  // D4:  T 123|123, no foot keys
+  63:'10111011100000',  // Eb4: T 123|123 + Eb key
+  64:'10111011010000',  // E4:  T 123|12- + Eb
+  65:'10111010010000',  // F4:  T 123|1-- + Eb
+  66:'10111000110000',  // F#4: T 123|--3 + Eb
+  67:'10111000010000',  // G4:  T 123|--- + Eb
+  68:'10111100010000',  // G#4: T 123+G#|--- + Eb
+  69:'10110000010000',  // A4:  T 12-|--- + Eb
+  70:'01100000010000',  // Bb4: Bb 1--|--- + Eb (Bb lever)
+  71:'10100000010000',  // B4:  B 1--|--- + Eb
+  72:'00000000010000',  // C5:  ---|--- + Eb (all open)
+  73:'10111011001000',  // C#5: same as C#4
+  74:'10011011100000',  // D5:  T -23|123
+  75:'10011011110000',  // Eb5: T -23|123 + Eb
+  76:'10111011010000',  // E5:  same as E4
+  77:'10111010010000',  // F5:  same as F4
+  78:'10111000110000',  // F#5: same as F#4
+  79:'10111000010000',  // G5:  same as G4
+  80:'10111100010000',  // G#5: same as G#4
+  81:'10110000010000',  // A5:  same as A4
+  82:'01100000010000',  // Bb5: same as Bb4
+  83:'10100000010000',  // B5:  same as B4
+  84:'00000000010000',  // C6:  same as C5
+  85:'10111011001000',  // C#6: same as C#5
+  86:'10011011100000',  // D6:  same as D5
+  87:'10011011110000',  // Eb6: same as Eb5
+  88:'10111011010000',  // E6:  same as E5
+  89:'10111010010000',  // F6:  same as F5
+  90:'10111000110000',  // F#6: same as F#5
+  91:'10111000010000',  // G6:  same as G5
+  92:'10111100010000',  // G#6: same as G#5
+  93:'10110000010000',  // A6:  same as A5
+  94:'10100000010000',  // B6:  same as B5
+  95:'10000000010000',  // C7:  thumb open, Eb, Giz
+  96:'10000000010001',  // C#7: thumb open, Eb, Giz, C# foot
 };
 // Clarinet: 8 positions [thumb, L1, L2, L3, R1, R2, R3, R4]
 // register key (separate) activates for MIDI >= 71 (written B4+)
+// Verified against Woodwind Fingering Guide (wfg.woodwind.org)
+// Note: G♯/A keys in upper clarion have no slot in this 8-position system.
 const CLARINET_FINGERINGS = {
-  62:'11100000', 63:'11000010', 64:'11111111', 65:'11111110',
-  66:'11111111', 67:'11111100', 68:'11111101', 69:'11111000',
-  70:'11110000', 71:'11111111', 72:'11111110', 73:'11111111',
-  74:'11111100', 75:'11111101', 76:'11111000', 77:'11110000',
-  78:'11100000', 79:'11000000', 80:'10000000', 81:'01000000',
-  82:'00000000', 83:'11000000', 84:'10000000', 85:'01111101',
-  86:'01111001', 87:'01110001', 88:'01110001', 89:'11110111',
-  90:'01010001', 91:'01011101', 92:'01011101', 93:'11011101',
-  94:'10000001', 95:'10000001', 96:'00001110',
+  // ── Chalumeau (no register key) ──
+  62:'11100000',  // D4:  T 12-|---
+  63:'11100001',  // Eb4: T 12-|4---
+  64:'11000000',  // E4:  T 1--|---
+  65:'10000000',  // F4:  T ---|---
+  66:'01000000',  // F#4: 1--|---
+  67:'00000000',  // G4:  ---|---
+  68:'00000000',  // G#4: G#---|--- (no G# slot)
+  69:'00000000',  // A4:  A---|--- (no A slot)
+  70:'11111000',  // Bb4: T 123|1--
+  // ── Clarion (register key on) ──
+  71:'11111110',  // B4:  RT 123|123
+  72:'11111110',  // C5:  RT 123|123
+  73:'11111110',  // C#5: RT 123|123 (C# key not in array)
+  74:'11111110',  // D5:  RT 123|123
+  75:'11111111',  // Eb5: RT 123|123G# (R4=G#)
+  76:'11111100',  // E5:  RT 123|12-
+  77:'11111000',  // F5:  RT 123|1--
+  78:'11110010',  // F#5: RT 123|-2-
+  79:'11110000',  // G5:  RT 123|---
+  80:'11110000',  // G#5: RT 123C#|--- (C# not in array)
+  81:'11100000',  // A5:  RT 12-|---
+  82:'11100001',  // Bb5: RT 12-|4---
+  83:'11000000',  // B5:  RT 1--|---
+  84:'10000000',  // C6:  RT ---|---
+  // ── Altissimo (approximate) ──
+  85:'10000001', 86:'11000000', 87:'10000001',
+  88:'11000000', 89:'01000000', 90:'01000000',
+  91:'00000000', 92:'00000001', 93:'00000000',
+  94:'11111000', 95:'11111110', 96:'10000000',
 };
 // Saxophone: 8 positions [L1, L2, L3, L4(G#), R1, R2, R3, R4(C)]
 // Octave key (separate) activates for MIDI >= 72 (written C5+)
 const SAX_FINGERINGS = {
   58:'11101111', 59:'11101111', 60:'11101111', 61:'11101111',
   62:'11101110', 63:'11101110', 64:'11101100', 65:'11101000',
-  66:'11100100', 67:'11100000', 68:'11110000', 69:'11000000',
+  66:'11100010', 67:'11100000', 68:'11110000', 69:'11000000',
   70:'11000000', 71:'10000000', 72:'01000000', 73:'00000000',
   74:'11101110', 75:'11101110', 76:'11101100', 77:'11101000',
-  78:'11100100', 79:'11100000', 80:'11110000', 81:'11000000',
+  78:'11100010', 79:'11100000', 80:'11110000', 81:'11000000',
   82:'11000000', 83:'10000000', 84:'01000000', 85:'00000000',
   86:'00000000', 87:'00000000', 88:'00000000', 89:'00000000',
   90:'11000000',
 };
 // Oboe: 8 positions [L1, L2, L3, L4, R1, R2, R3, R4]
 const OBOE_FINGERINGS = {
-  58:'11111110', 59:'11111110', 60:'11101110', 61:'11101110',
-  62:'11101110', 63:'11101111', 64:'11101100', 65:'11101100',
+  58:'11101111', 59:'11101111', 60:'11101111', 61:'11101111',
+  62:'11101110', 63:'11101110', 64:'11101100', 65:'11101100',
   66:'11101000', 67:'11100000', 68:'11110000', 69:'11000000',
   70:'11001000', 71:'10000000', 72:'10001000', 73:'11101110',
-  74:'11101110', 75:'11101111', 76:'11101100', 77:'11101100',
+  74:'11101110', 75:'11101110', 76:'11101100', 77:'11101100',
   78:'11101000', 79:'11100000', 80:'11110000', 81:'11000000',
   82:'11001000', 83:'10000000', 84:'10001000', 85:'01101000',
   86:'11100000', 87:'11110110', 88:'11110110', 89:'11010110',
   90:'11001100', 91:'10101000', 92:'10110110', 93:'10100100',
 };
-// Bassoon: 8 positions [L1, L2, L3, L4, R1, R2, R3, R4]
+// Bassoon: 13 positions [L1, L2, L3, L4, R1, R2, R3, R4, W, C#, Bb, D, a]
+// Verified against Woodwind Fingering Guide (wfg.woodwind.org)
+// W=whisper key, C#=thumb key, Bb=RH sliver, D=low D thumb, a=A flick
 const BASSOON_FINGERINGS = {
-  58:'11110110', 59:'11110010', 60:'11110000', 61:'11100000',
-  62:'11000010', 63:'10000010', 64:'10000000', 65:'10110010',
-  66:'00110010', 67:'00100010', 68:'00000010', 69:'00010010',
-  70:'11110111', 71:'11110011', 72:'11100011', 73:'11000011',
-  74:'10000011', 75:'10000001', 76:'10110001', 77:'00110001',
-  78:'00100001', 79:'00000001', 80:'00010001', 81:'00000001',
-  82:'11110110',
+  // ── Second/Third Octave from WFG ──
+  58:'1110110001000',  // Bb3: 123|Bb 12-
+  59:'1110100000000',  // B3:  123|1--
+  60:'1110000001010',  // C4:  D C# 123|---
+  61:'1110000000100',  // C#4: C# 123|---
+  62:'1100000000000',  // D4:  12-|---
+  63:'1010111000000',  // Eb4: 1-3Eb|123
+  64:'1010111000000',  // E4:  1-3Eb|123
+  65:'1010111000000',  // F4:  1-3Eb|123
+  66:'0110110001000',  // F#4: -23Eb|Bb 12-
+  67:'1111100110000',  // G4:  W �23Eb|1--F
+  68:'1111001010000',  // G#4: W �23Eb|--3
+  69:'1111001000101',  // A4:  a C# 123Eb|--3
+  70:'1111110100101',  // Bb4: a C# 123Eb|12-F
+  // ── Altissimo (approximate, beyond WFG basic range) ──
+  71:'1111001100000', 72:'1110001100000', 73:'1100001100000',
+  74:'1000001100000', 75:'1000000100000', 76:'1011000100000',
+  77:'0011000100000', 78:'0010000100000', 79:'0000000100000',
+  80:'0001000100000', 81:'0000000100000', 82:'1111011000000',
 };
 
 function woodwindFingeringForPitch(pitch, type) {
@@ -4258,6 +4300,17 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         brG.setAttribute('data-instr-name', shorthand);
         brG.setAttribute('data-diagram-cy', diagramCY);
         svgEl2.appendChild(brG);
+      } else if (ns === 1 && instr && instr.family === 'Orff') {
+        const type = instr.name.toLowerCase();
+        const shorthand = type.includes('glock')?'glockenspiel':type.includes('xylo')?'xylophone':'metallophone';
+        const orffG = renderOrffDiagram([''], shorthand);
+        const scale = 1.44;
+        orffG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 210},${diagramCY - 24}) scale(${scale})`);
+        orffG.setAttribute('id', diagramId);
+        orffG.setAttribute('data-instr-type', 'orff');
+        orffG.setAttribute('data-instr-name', shorthand);
+        orffG.setAttribute('data-diagram-cy', diagramCY);
+        svgEl2.appendChild(orffG);
       }
       const labelG = _svgCreate('g', {
         'data-label-x': LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7),
@@ -4920,6 +4973,11 @@ function positionAllDiagrams(scrollOverride) {
     const name = el.getAttribute('data-instr-name') || '';
     const brX = name === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176;
     el.setAttribute('transform', `translate(${brX + scrollLeft},${cy - 101}) scale(1.44)`);
+  });
+  // Orff diagrams
+  document.querySelectorAll('[data-instr-type="orff"]').forEach(el => {
+    const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
+    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 210 + scrollLeft},${cy - 24}) scale(1.44)`);
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
@@ -6092,7 +6150,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
     const idx = SVG_HOLES.indexOf(SVG_HOLES.find(h => h[0] === id));
-    const isCovered = covered.has(id);
+    const isCovered = covered.has(+id);
     const isHalf = halfHole.has(idx);
     const drawRx = (isCovered || isHalf) ? rx * 1.2 : rx;
 
@@ -6253,6 +6311,87 @@ function updateBrassDiagram() {
     { nameAttr: 'data-instr-name' });
 }
 
+// ── Orff Keyboard Diagram ───────────────────────────────────────
+// Shows a keyboard-style bar layout highlighting the struck bar.
+function orffFingeringForPitch(pitch, name) {
+  return [String(pitch)];
+}
+
+function renderOrffDiagram(fingArr, type, altIndex, noteName, isAltActive) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const g = document.createElementNS(ns, 'g');
+  g.setAttribute('pointer-events', 'none');
+  const pitch = parseInt(fingArr[altIndex] || '60', 10);
+  const isPlaying = !!(APP && APP.playing);
+  const W_NAT = 28, W_ACC = 18, H_NAT = 42, H_ACC = 26, STRIDE = 30;
+  const NAT_X = [0, 30, 60, 90, 120, 150, 180];
+  const ACC_X = [6, 36, 96, 126, 156];
+  const ACC_IN = [1, 3, 6, 8, 10];
+  const NAT_IN = [0, 2, 4, 5, 7, 9, 11];
+  const NAT_LABEL = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const octStart = Math.floor(pitch / 12) * 12;
+  for (let i = 0; i < 7; i++) {
+    const midi = octStart + NAT_IN[i];
+    const hl = pitch === midi;
+    const r = document.createElementNS(ns, 'rect');
+    r.setAttribute('x', NAT_X[i]); r.setAttribute('y', H_ACC);
+    r.setAttribute('width', W_NAT); r.setAttribute('height', H_NAT - H_ACC);
+    r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
+    r.setAttribute('stroke-width', '1');
+    if (hl) {
+      r.setAttribute('fill', isPlaying ? '#ff5a4a' : '#e08a3a');
+      r.setAttribute('stroke', isPlaying ? '#e04030' : '#c07830');
+    } else {
+      r.setAttribute('fill', '#fff');
+      r.setAttribute('stroke', '#999');
+    }
+    g.appendChild(r);
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', NAT_X[i] + W_NAT / 2);
+    t.setAttribute('y', H_NAT - 4);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '9');
+    t.setAttribute('font-weight', '600');
+    t.setAttribute('fill', hl ? '#fff' : '#444');
+    t.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    t.textContent = NAT_LABEL[i];
+    g.appendChild(t);
+  }
+  for (let i = 0; i < 5; i++) {
+    const midi = octStart + ACC_IN[i];
+    const hl = pitch === midi;
+    const r = document.createElementNS(ns, 'rect');
+    r.setAttribute('x', ACC_X[i]); r.setAttribute('y', 0);
+    r.setAttribute('width', W_ACC); r.setAttribute('height', H_ACC);
+    r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
+    r.setAttribute('stroke-width', '1');
+    if (hl) {
+      r.setAttribute('fill', isPlaying ? '#ff5a4a' : '#e08a3a');
+      r.setAttribute('stroke', isPlaying ? '#e04030' : '#c07830');
+    } else {
+      r.setAttribute('fill', '#333');
+      r.setAttribute('stroke', '#222');
+    }
+    g.appendChild(r);
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', ACC_X[i] + W_ACC / 2);
+    t.setAttribute('y', H_ACC - 4);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '8');
+    t.setAttribute('font-weight', '600');
+    t.setAttribute('fill', hl ? '#fff' : '#ccc');
+    t.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+    t.textContent = '#';
+    g.appendChild(t);
+  }
+  return g;
+}
+
+function updateOrffDiagram() {
+  updateDiagram('orff', renderOrffDiagram, orffFingeringForPitch, 'glockenspiel',
+    { nameAttr: 'data-instr-name' });
+}
+
 // ── Woodwind Diagram (Bret Pimentel style) ──────────────────────
 // Clean 2D body outlines, key rings with mechanism arms,
 // and standard woodwind keywork visuals.
@@ -6283,9 +6422,19 @@ const WOODWIND_SPEC = {
       [63,145,'R1','R'],[63,168,'R2','R'],[63,191,'R3','R'],[74,210,'R4','R']],
   },
   bassoon:{
-    w:110, h:260,
-    keys:[[52,52,'L1','L'],[52,76,'L2','L'],[52,100,'L3','L'],[44,122,'L4','L'],
-      [60,148,'R1','R'],[60,172,'R2','R'],[60,196,'R3','R'],[72,218,'R4','R']],
+    w:130, h:260,
+    keys:[
+      // Left hand main (L)
+      [56,52,'L1','L'],[56,76,'L2','L'],[56,100,'L3','L'],[48,122,'L4','L'],
+      // Right hand main (R)
+      [70,148,'R1','R'],[70,172,'R2','R'],[70,196,'R3','R'],[82,218,'R4','R'],
+      // Left thumb (T)
+      [24,28,'W','T'],[24,44,'C♯','T'],
+      // Right hand sliver (R)
+      [82,184,'B♭','R'],
+      // Left thumb (T)
+      [24,60,'D','T'],[24,76,'a','T'],
+    ],
   },
 };
 
@@ -6354,7 +6503,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     fr.setAttribute('style', hStyle); fr.textContent = 'RH';
     svg.appendChild(fr);
   } else {
-    const lx = type === 'bassoon' ? 36 : 42;
+    const lx = type === 'bassoon' ? 22 : 42;
     for (const h of ['T', 'L', 'R']) {
       if (!gBounds[h]) continue;
       const my = h === 'T' ? gBounds[h].minY : (gBounds[h].minY + gBounds[h].maxY) / 2;
@@ -8407,29 +8556,73 @@ function _genRhythmRead(difficulty) {
   };
 }
 
-function _genRhythmWorksheet(difficulty) {
-  const measures = 8;
+function _genRhythmDistractors(beats, difficulty, count = 3) {
+  const dist = [];
+  const numChanges = difficulty === 0 ? 1 : difficulty === 1 ? 2 : 3;
+  const totalBeats = beats.length;
+  for (let d = 0; d < count; d++) {
+    let candidate, attempts = 0;
+    do {
+      candidate = [...beats];
+      const numCh = numChanges + (Math.random() < 0.5 ? 1 : 0);
+      const indices = [];
+      for (let c = 0; c < Math.min(numCh, totalBeats); c++) {
+        let idx;
+        do { idx = Math.floor(Math.random() * totalBeats); } while (indices.includes(idx));
+        indices.push(idx);
+        candidate[idx] = candidate[idx] === 'q' ? 'r' : 'q';
+      }
+      for (let m = 0; m < totalBeats / 4; m++) {
+        const start = m * 4;
+        const slice = candidate.slice(start, start + 4);
+        if (slice.every(b => b === 'r')) candidate[start + Math.floor(Math.random() * 4)] = 'q';
+      }
+      attempts++;
+    } while (attempts < 50 && (
+      candidate.join(',') === beats.join(',') ||
+      dist.some(d => d.join(',') === candidate.join(','))
+    ));
+    dist.push(candidate);
+  }
+  return dist;
+}
+
+function _genRhythmWorksheet(difficulty, measuresCount = 8) {
+  const d = typeof difficulty === 'number' ? difficulty : ({beginner:0,intermediate:1,advanced:2})[difficulty] || 0;
+  const measures = measuresCount;
   const beatsPerMeasure = 4;
   const totalBeats = measures * beatsPerMeasure;
-  const noteWeight = difficulty === 0 ? 0.75 : difficulty === 1 ? 0.5 : 0.35;
+  const noteWeight = d === 0 ? 0.75 : d === 1 ? 0.5 : 0.35;
   const beats = [];
   for (let i = 0; i < totalBeats; i++) {
     beats.push(Math.random() < noteWeight ? 'q' : 'r');
   }
-  // Ensure no measure is all rests (boring) and no measure is all notes (too easy for advanced)
   for (let m = 0; m < measures; m++) {
     const start = m * 4;
     const slice = beats.slice(start, start + 4);
     if (slice.every(b => b === 'r')) beats[start + Math.floor(Math.random() * 4)] = 'q';
-    if (difficulty >= 1 && slice.every(b => b === 'q')) beats[start + Math.floor(Math.random() * 4)] = 'r';
+    if (d >= 1 && slice.every(b => b === 'q')) beats[start + Math.floor(Math.random() * 4)] = 'r';
   }
-  const grid = beats.map(b => b === 'q' ? '♩' : '𝄽');
+  const distractors = _genRhythmDistractors(beats, d, 3);
+  const opts = [
+    { beats: [...beats], id: 0 },
+    { beats: distractors[0], id: 1 },
+    { beats: distractors[1], id: 2 },
+    { beats: distractors[2], id: 3 },
+  ];
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  const correctIdx = opts.findIndex(o => o.beats.join(',') === beats.join(','));
   return {
     type: EXERCISE_TYPES.RHYTHM_WS,
-    difficulty,
-    target: { beats, measures, timeSigNum: 4, timeSigDen: 4, grid },
+    difficulty: d,
+    target: { beats, measures, timeSigNum: 4, timeSigDen: 4 },
+    options: opts,
+    correctIdx,
     answer: beats.join(','),
-    hint: `Read the rhythm and mark each beat in the grid below.`,
+    hint: 'Listen carefully and choose the rhythm you heard.',
   };
 }
 
@@ -8616,7 +8809,7 @@ function _presentRhythmRead(ex) {
 
 function _presentRhythmWorksheet(ex) {
   const mx = ex.target.measures;
-  const score = createScore({title: 'Rhythm Dictation', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
+  const score = createScore({title: 'Rhythm Dictation', instruments: ['Piano'], ts: {num:4,den:4}, ks: 0});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
   for (let m = 0; m < mx; m++) {
@@ -8628,7 +8821,8 @@ function _presentRhythmWorksheet(ex) {
   }
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  _renderRhythmBeatGrid(ex);
+  _renderRhythmMCQ(ex);
+  APP._mcqAnswered = false;
 }
 
 function _presentMelodyDict(ex) {
@@ -9006,55 +9200,25 @@ function _submitTextExercise() {
 }
 
 // ── Rhythm Worksheet ──────────────────────────────────────────
-function _renderRhythmBeatGrid(ex) {
-  const existing = document.getElementById('rhythm-beat-grid');
-  if (existing) existing.remove();
-
-  const beats = ex.target.beats;
-  const measures = ex.target.measures;
-  const container = document.createElement('div');
-  container.id = 'rhythm-beat-grid';
-
-  const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
-  const playsLeft = APP.exerciseSession?.playsLeft ?? maxPlays;
-
-  let html = '<div class="rg-play-row">';
-  html += `<button class="modal-btn primary" id="rg-play-btn">${playsLeft === Infinity ? '▶ Play Rhythm' : '▶ Play (' + playsLeft + ' left)'}</button>`;
-  html += '</div>';
-
+function _renderRhythmNotation(beats, measures, beatsPerMeasure = 4) {
+  let html = '<div class="rg-notation">';
   for (let m = 0; m < measures; m++) {
-    html += '<div class="rg-row">';
-    html += `<span class="rg-measure-label">${m + 1}</span>`;
-    for (let b = 0; b < 4; b++) {
-      const idx = m * 4 + b;
-      html += `<button class="rg-beat" data-beat="${idx}" data-answer="${beats[idx] === 'q' ? '♩' : '𝄽'}">·</button>`;
+    html += '<div class="rg-measure">';
+    html += '<span class="r-bar">|</span>';
+    for (let b = 0; b < beatsPerMeasure; b++) {
+      const idx = m * beatsPerMeasure + b;
+      const isNote = beats[idx] === 'q';
+      html += `<span class="r-beat ${isNote ? 'r-note' : 'r-rest'}">${isNote ? '♩' : '𝄽'}</span>`;
     }
     html += '</div>';
   }
-  html += '<div class="rg-controls">';
-  html += '<button class="modal-btn primary" id="rg-check-btn">✔ Check Answers</button>';
-  html += '<button class="modal-btn secondary" id="rg-end-btn">End Session</button>';
+  html += '<span class="r-bar">|</span>';
   html += '</div>';
+  return html;
+}
 
-  container.innerHTML = html;
-
-  container.addEventListener('click', e => {
-    if (e.target.id === 'rg-play-btn') {
-      _playRhythmDictation(ex);
-      return;
-    }
-    const beatBtn = e.target.closest('.rg-beat');
-    if (beatBtn && !beatBtn.dataset.locked) {
-      const cur = beatBtn.textContent;
-      beatBtn.textContent = cur === '·' ? '♩' : cur === '♩' ? '𝄽' : '·';
-      beatBtn.className = 'rg-beat' + (beatBtn.textContent === '♩' ? ' rg-note' : beatBtn.textContent === '𝄽' ? ' rg-rest' : '');
-      beatBtn.dataset.userAnswer = beatBtn.textContent;
-    }
-    if (e.target.id === 'rg-check-btn') checkRhythmWorksheet();
-    if (e.target.id === 'rg-end-btn') endExerciseSession();
-  });
-
-  document.body.appendChild(container);
+function _lockMCQOptions(locked) {
+  document.querySelectorAll('#rhythm-beat-grid .rg-option').forEach(o => o.classList.toggle('rg-locked', locked));
 }
 
 function _playRhythmDictation(ex) {
@@ -9062,125 +9226,179 @@ function _playRhythmDictation(ex) {
   if (!s) return;
   const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
   if (s.playsLeft !== undefined && s.playsLeft <= 0) { showToast('No plays remaining'); return; }
-
   const ctx = getAudioCtx();
-  const bpm = 100;
-  const beatDur = 60 / bpm;
-  const t0 = ctx.currentTime + 0.15;
-  const beats = ex.target.beats;
-
-  for (let i = 0; i < beats.length; i++) {
-    const t = t0 + i * beatDur;
-    if (beats[i] === 'q') {
-      scheduleNote(ctx, 42, t, beatDur * 0.8, 'noise', 0.6);
-    }
+  if (ctx.state === 'suspended') ctx.resume();
+  const bpm = 100, beatDur = 60 / bpm, beats = ex.target.beats, countIn = 4;
+  const baseTime = ctx.currentTime + 0.2;
+  for (let i = 0; i < countIn; i++) {
+    scheduleMetronomeClick(ctx, baseTime + i * beatDur, i === 0, 0.5);
   }
-
+  const rhythmStart = baseTime + countIn * beatDur;
+  for (let i = 0; i < beats.length; i++) {
+    const t = rhythmStart + i * beatDur;
+    scheduleMetronomeClick(ctx, t, i % 4 === 0, 0.2);
+    if (beats[i] === 'q') scheduleNote(ctx, 60, t, beatDur * 0.7, 'piano', 0.45);
+  }
   if (s.playsLeft !== undefined && s.playsLeft !== Infinity) {
     s.playsLeft--;
     const playBtn = document.getElementById('rg-play-btn');
     if (playBtn) {
-      if (s.playsLeft <= 0) { playBtn.disabled = true; playBtn.textContent = '▶ No plays left'; }
+      if (s.playsLeft <= 0) { playBtn.disabled = true; playBtn.textContent = '▶ Played'; }
       else playBtn.textContent = '▶ Play (' + s.playsLeft + ' left)';
     }
   }
 }
 
-function checkRhythmWorksheet() {
+function _selectRhythmAnswer(ex, selectedIdx) {
   const s = APP.exerciseSession;
-  if (!s || !s.current || s.current.type !== EXERCISE_TYPES.RHYTHM_WS) return;
-
-  const beatBtns = document.querySelectorAll('#rhythm-beat-grid .rg-beat');
-  let correct = 0;
-  const total = beatBtns.length;
-  const results = [];
-
-  beatBtns.forEach(btn => {
-    const userAns = btn.dataset.userAnswer || '·';
-    const correctAns = btn.dataset.answer;
-    const isCorrect = userAns === correctAns;
-    if (isCorrect) correct++;
-    results.push({ idx: parseInt(btn.dataset.beat), userAns, correctAns, isCorrect });
-    btn.className = 'rg-beat' + (userAns === '♩' ? ' rg-note' : userAns === '𝄽' ? ' rg-rest' : '') + (isCorrect ? ' rg-correct' : ' rg-incorrect');
-    btn.dataset.locked = '1';
+  if (!s || APP._mcqAnswered) return;
+  APP._mcqAnswered = true;
+  const opts = document.querySelectorAll('#rhythm-beat-grid .rg-option');
+  const isCorrect = selectedIdx === ex.correctIdx;
+  opts.forEach((o, i) => {
+    o.classList.add('rg-locked');
+    if (i === ex.correctIdx) o.classList.add('rg-correct');
+    if (i === selectedIdx && !isCorrect) o.classList.add('rg-incorrect');
   });
-
-  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-
   s.totalCount++;
-  if (pct === 100) { s.correctCount++; s.streak++; if (s.streak > s.maxStreak) s.maxStreak = s.streak; }
+  if (isCorrect) { s.correctCount++; s.streak++; if (s.streak > s.maxStreak) s.maxStreak = s.streak; }
   else { s.streak = 0; }
-  s.completed.push({ type: 'rhythm_worksheet', answer: correct + '/' + total, ok: pct === 100, hint: 'Compare each beat carefully.' });
+  const label = String.fromCharCode(65 + selectedIdx);
+  const correctLabel = String.fromCharCode(65 + ex.correctIdx);
+  s.completed.push({ type: 'rhythm_mcq', answer: label, ok: isCorrect, hint: isCorrect ? '' : 'Correct was ' + correctLabel });
   _updateScoreDisplay();
-
-  const checkBtn = document.getElementById('rg-check-btn');
-  if (checkBtn) {
-    checkBtn.textContent = `${pct}% — ${correct}/${total}`;
-    checkBtn.style.background = pct === 100 ? '#22c55e' : pct >= 80 ? '#e6a817' : '#e06850';
-    checkBtn.style.color = '#fff';
-    checkBtn.style.borderColor = 'transparent';
-    checkBtn.disabled = true;
+  const fb = document.getElementById('rg-feedback');
+  if (fb) {
+    fb.innerHTML = isCorrect
+      ? '<span class="rg-correct-msg">✓ Correct!</span>'
+      : `<span class="rg-incorrect-msg">✗ The correct answer was <strong>${correctLabel}</strong></span>`;
+    fb.style.display = 'block';
   }
-
-  const resultHtml = results.map(r =>
-    `<span style="color:${r.isCorrect ? '#22c55e' : '#e06850'};font-size:12px">
-      ${r.isCorrect ? '✓' : '✗'} Beat ${r.idx + 1}: ${r.userAns} ${r.isCorrect ? '' : '(expected ' + r.correctAns + ')'}
-    </span>`
-  ).join('<br>');
-
-  const gridEl = document.getElementById('rhythm-beat-grid');
-  let scoreEl = gridEl?.querySelector('.rg-score');
-  if (!scoreEl && gridEl) {
-    scoreEl = document.createElement('div');
-    scoreEl.className = 'rg-score';
-    gridEl.insertBefore(scoreEl, gridEl.querySelector('.rg-controls'));
+  const playBtn = document.getElementById('rg-play-btn');
+  if (playBtn) playBtn.disabled = true;
+  const controls = document.querySelector('#rhythm-beat-grid .rg-controls');
+  if (controls) {
+    if (!document.getElementById('rg-next-btn')) {
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'modal-btn primary'; nextBtn.id = 'rg-next-btn';
+      nextBtn.textContent = 'Next Rhythm →';
+      controls.insertBefore(nextBtn, controls.firstChild);
+    }
   }
-  if (scoreEl) {
-    scoreEl.textContent = pct === 100 ? '✓ Perfect!' : `${pct}% correct`;
+  // Diagnostic auto-advance
+  const d = APP.diagnostic;
+  if (d) {
+    const q = d.questions[d.idx];
+    if (q && q.type === 'rhythm') {
+      d.results.push({ type: 'rhythm', correct: isCorrect, pct: isCorrect ? 100 : 0 });
+      if (isCorrect) d.correct.rhythm++;
+      d.idx++;
+      setTimeout(() => _presentDiagQuestion(), 1000);
+    }
   }
+}
+
+function _nextRhythmExercise() {
+  const s = APP.exerciseSession;
+  if (!s) return;
+  APP._mcqAnswered = false;
+  const ex = _genRhythmWorksheet(s.difficulty, s.current.target.measures);
+  s.current = ex;
+  s.playsLeft = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
+  _presentRhythmWorksheet(ex);
+}
+
+function _renderRhythmMCQ(ex) {
+  const existing = document.getElementById('rhythm-beat-grid');
+  if (existing) existing.remove();
+  const s = APP.exerciseSession;
+  const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
+  const playsLeft = s?.playsLeft ?? maxPlays;
+  const container = document.createElement('div');
+  container.id = 'rhythm-beat-grid';
+  let html = '<div class="rg-play-row">';
+  html += `<button class="modal-btn primary" id="rg-play-btn">${playsLeft === Infinity ? '▶ Play Rhythm' : '▶ Play (' + playsLeft + ' left)'}</button>`;
+  html += '</div><div class="rg-mcq-prompt">Which rhythm did you hear?</div><div class="rg-options">';
+  const labels = ['A','B','C','D'];
+  ex.options.forEach((opt, idx) => {
+    html += `<div class="rg-option" data-opt-idx="${idx}"><span class="rg-opt-label">${labels[idx]}</span>`;
+    html += _renderRhythmNotation(opt.beats, opt.measures);
+    html += '</div>';
+  });
+  html += '</div><div class="rg-feedback" id="rg-feedback"></div>';
+  html += '<div class="rg-controls"><button class="modal-btn secondary" id="rg-end-btn">End Session</button></div>';
+  container.innerHTML = html;
+  container.addEventListener('click', e => {
+    const opt = e.target.closest('.rg-option');
+    if (opt && !opt.classList.contains('rg-locked') && !APP._mcqAnswered) { _selectRhythmAnswer(ex, parseInt(opt.dataset.optIdx)); return; }
+    if (e.target.id === 'rg-play-btn') { _playRhythmDictation(ex); return; }
+    if (e.target.id === 'rg-next-btn') { _nextRhythmExercise(); return; }
+    if (e.target.id === 'rg-end-btn') { endExerciseSession(); return; }
+  });
+  document.body.appendChild(container);
+  const bpm = 100, beatDur = 60 / bpm;
+  const playbackDur = (4 + ex.target.beats.length) * beatDur;
+  _lockMCQOptions(true);
+  setTimeout(() => {
+    _playRhythmDictation(ex);
+    if (APP._unlockTimer) clearTimeout(APP._unlockTimer);
+    APP._unlockTimer = setTimeout(() => { _lockMCQOptions(false); }, (playbackDur + 0.3) * 1000);
+  }, 600);
+}
+
+function checkRhythmWorksheet() {
+  // MCQ version: no-op (answer is checked on selection via _selectRhythmAnswer)
 }
 
 function showRhythmWorksheetDialog() {
   if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
-  const diffs = ['beginner', 'intermediate', 'advanced'];
+  const diffs = [{k:'beginner',l:'Beginner'},{k:'intermediate',l:'Intermediate'},{k:'advanced',l:'Advanced'}];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
-
+  const measCount = APP.exerciseMeasures || 8;
   makeModal(`
     <h2>Rhythm Dictation</h2>
-    <p class="dialog-hint">8 measures of 4/4 — quarter notes and rests only.
-    Press Play to hear the rhythm, then mark each beat in the grid.</p>
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Difficulty</div>
-      <div style="display:flex;gap:6px">
-        ${diffs.map(d => `<button class="modal-btn ${d===currentDiff?'primary':'secondary'}" id="rg-diff-${d}" data-diff="${d}" style="flex:1;padding:8px 4px;font-size:12px">${d}</button>`).join('')}
+    <p class="dialog-hint">Hear a rhythm on piano, then choose the notation you heard.</p>
+    <div style="margin-bottom:10px;display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:100px">
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Measures</div>
+        <div style="display:flex;gap:4px">
+          ${[4,8,12].map(n => `<button class="modal-btn ${n===measCount?'primary':'secondary'}" id="rg-meas-${n}" data-meas="${n}" style="flex:1;padding:6px 4px;font-size:12px">${n}</button>`).join('')}
+          <input type="number" id="rg-meas-custom" value="${measCount}" min="1" max="24" step="any" style="width:48px;text-align:center;padding:6px 2px;font-size:12px;border:1px solid #bbb;border-radius:4px">
+        </div>
+      </div>
+      <div style="flex:1;min-width:100px">
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Difficulty</div>
+        <div style="display:flex;gap:4px">
+          ${diffs.map(d => `<button class="modal-btn ${d.k===currentDiff?'primary':'secondary'}" id="rg-diff-${d.k}" data-diff="${d.k}" style="flex:1;padding:6px 4px;font-size:12px">${d.l}</button>`).join('')}
+        </div>
       </div>
     </div>
-    <button class="modal-btn primary" id="rg-generate-btn">Generate Worksheet</button>
+    <button class="modal-btn primary" id="rg-generate-btn">Start Dictation</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
-
   setTimeout(() => {
-    diffs.forEach(d => {
-      const btn = document.getElementById('rg-diff-' + d);
-      if (btn) btn.addEventListener('click', () => {
-        APP.exerciseDifficulty = d;
-        showRhythmWorksheetDialog();
-      });
+    const customInput = document.getElementById('rg-meas-custom');
+    [4,8,12].forEach(n => {
+      const btn = document.getElementById('rg-meas-' + n);
+      if (btn) btn.addEventListener('click', () => { APP.exerciseMeasures = n; customInput.value = n; showRhythmWorksheetDialog(); });
     });
-    const genBtn = document.getElementById('rg-generate-btn');
-    if (genBtn) genBtn.addEventListener('click', () => {
-      const diff = APP.exerciseDifficulty || 'beginner';
+    if (customInput) customInput.addEventListener('change', () => { APP.exerciseMeasures = parseInt(customInput.value) || 8; showRhythmWorksheetDialog(); });
+    diffs.forEach(d => {
+      const btn = document.getElementById('rg-diff-' + d.k);
+      if (btn) btn.addEventListener('click', () => { APP.exerciseDifficulty = d.k; showRhythmWorksheetDialog(); });
+    });
+    document.getElementById('rg-generate-btn')?.addEventListener('click', () => {
       closeModal();
-      _startRhythmWorksheet(diff);
+      _startRhythmWorksheet(APP.exerciseDifficulty || 'beginner', APP.exerciseMeasures || 8);
     });
   }, 50);
 }
 
-function _startRhythmWorksheet(difficulty) {
-  const ex = _genRhythmWorksheet(difficulty);
-  const maxPlays = difficulty === 0 ? Infinity : difficulty === 1 ? 3 : 1;
+function _startRhythmWorksheet(difficulty, measuresCount = 8) {
+  const ex = _genRhythmWorksheet(difficulty, measuresCount);
+  const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
   APP.exerciseSession = {
-    type: EXERCISE_TYPES.RHYTHM_WS, difficulty,
+    type: EXERCISE_TYPES.RHYTHM_WS, difficulty: ex.difficulty,
     current: ex, completed: [], correctCount: 0, totalCount: 0,
     streak: 0, maxStreak: 0, startedAt: Date.now(), playsLeft: maxPlays,
   };
@@ -9492,12 +9710,13 @@ function _genScaleAssignment(type, octaves) {
 
 function _genRhythmAssignment(difficulty) {
   const exercises = [];
+  const d = typeof difficulty === 'string' ? ({beginner:0,intermediate:1,advanced:2})[difficulty] || 0 : difficulty;
   for (let i = 0; i < 5; i++) {
-    const ws = _genRhythmWorksheet({ beginner:0, intermediate:1, advanced:2 }[difficulty]);
-    const score = createScore({ title: `Rhythm Dictation ${i+1}`, instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0 });
+    const ws = _genRhythmWorksheet(d);
+    const score = createScore({ title: `Rhythm Dictation ${i+1}`, instruments: ['Piano'], ts: {num:4,den:4}, ks: 0 });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
-    for (let m = 0; m < 8; m++) {
+    for (let m = 0; m < ws.target.measures; m++) {
       const slice = ws.target.beats.slice(m*4, m*4+4);
       const notes = slice.map((b, bi) => b === 'q' ? mkNote(60, 'q', bi === 0 ? 0 : null) : mkRest('q'));
       stave.measures.push({
@@ -9657,29 +9876,7 @@ function _presentDiagQuestion() {
   else if (q.type === 'keysig')   _presentKeySigId(q.ex);
   else if (q.type === 'rhythm')   _presentRhythmWorksheet(q.ex);
   _updateDiagBar();
-  // For rhythm, wire the check button to auto-advance
-  if (q.type === 'rhythm') {
-    const checkBtn = document.getElementById('rg-check-btn');
-    if (checkBtn) {
-      const origClick = checkBtn.onclick;
-      checkBtn.onclick = null;
-      checkBtn.addEventListener('click', () => {
-        const s = APP.exerciseSession;
-        if (s && s.current.type === EXERCISE_TYPES.RHYTHM_WS) {
-          const beforeTotal = s.totalCount;
-          checkRhythmWorksheet();
-          // After check, record the result for diagnostic
-          if (s.totalCount > beforeTotal) {
-            const last = s.completed[s.completed.length - 1];
-            d.results.push({ type: 'rhythm', correct: last.ok, pct: s.correctCount / s.totalCount * 100 });
-            if (last.ok) d.correct.rhythm++;
-            d.idx++;
-            setTimeout(() => _presentDiagQuestion(), 1000);
-          }
-        }
-      });
-    }
-  }
+  // For rhythm MCQ, answer is auto-checked on selection via _selectRhythmAnswer
 }
 
 function _answerDiag(userAnswer) {
@@ -9860,11 +10057,11 @@ function _hideDiagBar() {
 [generateExercise, startExerciseSession, endExerciseSession, nextExercise, retryExercise,
  checkExerciseAnswer, showExerciseDialog, selectExerciseDifficulty,
  _presentNoteId, _presentIntervalId, _presentRhythmRead, _presentMelodyDict, _presentKeySigId,
- _presentRhythmWorksheet, _renderRhythmBeatGrid,
+ _presentRhythmWorksheet, _renderRhythmMCQ,
  _showDictationListenBar, _startDictationNotate, _checkDictationAnswer, retryDictation,
  _intervalMatches, _setExerciseUI, _updateScoreDisplay,
  _genNoteId, _genIntervalId, _genRhythmRead, _genMelodyDict, _genKeySigId, _genRhythmWorksheet,
- showRhythmWorksheetDialog, _startRhythmWorksheet, checkRhythmWorksheet,
+  showRhythmWorksheetDialog, _startRhythmWorksheet, checkRhythmWorksheet, _selectRhythmAnswer,
  _saveExerciseResult, _loadResults, showStudentProgress, exportProgress, importProgress,
  clearProgress, showTeacherDashboard, clearAllImported,
   showDiagnosticDialog, _startDiagnostic, _presentDiagQuestion, _answerDiag, _finishDiagnostic,
@@ -11050,7 +11247,7 @@ function _updatePlaybackDiagrams(elapsedMs) {
     for (let s = 0; s < part.staves.length; s++) {
       const si = gsi + s;
       const instr = getInstrForSI(si);
-      if (!instr || (!instr.recorder && !instr.woodwind && !instr.brass)) {
+      if (!instr || (!instr.recorder && !instr.woodwind && !instr.brass && !instr.orff)) {
         continue;
       }
       const active = _findNoteAtPlaybackTime(elapsedMs, part.staves[s], APP._playOrder);
@@ -11061,6 +11258,7 @@ function _updatePlaybackDiagrams(elapsedMs) {
         if (instr.recorder) updateRecorderDiagram();
         else if (instr.woodwind) updateWoodwindDiagram();
         else if (instr.brass) updateBrassDiagram();
+        else if (instr.orff) updateOrffDiagram();
       }
     }
     gsi += part.staves.length;

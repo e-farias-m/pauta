@@ -389,11 +389,43 @@ function _genRhythmRead(difficulty) {
   };
 }
 
-function _genRhythmWorksheet(difficulty) {
-  const measures = 8;
+function _genRhythmDistractors(beats, difficulty, count = 3) {
+  const dist = [];
+  const numChanges = difficulty === 0 ? 1 : difficulty === 1 ? 2 : 3;
+  const totalBeats = beats.length;
+  for (let d = 0; d < count; d++) {
+    let candidate, attempts = 0;
+    do {
+      candidate = [...beats];
+      const numCh = numChanges + (Math.random() < 0.5 ? 1 : 0);
+      const indices = [];
+      for (let c = 0; c < Math.min(numCh, totalBeats); c++) {
+        let idx;
+        do { idx = Math.floor(Math.random() * totalBeats); } while (indices.includes(idx));
+        indices.push(idx);
+        candidate[idx] = candidate[idx] === 'q' ? 'r' : 'q';
+      }
+      for (let m = 0; m < totalBeats / 4; m++) {
+        const start = m * 4;
+        const slice = candidate.slice(start, start + 4);
+        if (slice.every(b => b === 'r')) candidate[start + Math.floor(Math.random() * 4)] = 'q';
+      }
+      attempts++;
+    } while (attempts < 50 && (
+      candidate.join(',') === beats.join(',') ||
+      dist.some(d => d.join(',') === candidate.join(','))
+    ));
+    dist.push(candidate);
+  }
+  return dist;
+}
+
+function _genRhythmWorksheet(difficulty, measuresCount = 8) {
+  const d = typeof difficulty === 'number' ? difficulty : ({beginner:0,intermediate:1,advanced:2})[difficulty] || 0;
+  const measures = measuresCount;
   const beatsPerMeasure = 4;
   const totalBeats = measures * beatsPerMeasure;
-  const noteWeight = difficulty === 0 ? 0.75 : difficulty === 1 ? 0.5 : 0.35;
+  const noteWeight = d === 0 ? 0.75 : d === 1 ? 0.5 : 0.35;
   const beats = [];
   for (let i = 0; i < totalBeats; i++) {
     beats.push(Math.random() < noteWeight ? 'q' : 'r');
@@ -402,14 +434,28 @@ function _genRhythmWorksheet(difficulty) {
     const start = m * 4;
     const slice = beats.slice(start, start + 4);
     if (slice.every(b => b === 'r')) beats[start + Math.floor(Math.random() * 4)] = 'q';
-    if (difficulty >= 1 && slice.every(b => b === 'q')) beats[start + Math.floor(Math.random() * 4)] = 'r';
+    if (d >= 1 && slice.every(b => b === 'q')) beats[start + Math.floor(Math.random() * 4)] = 'r';
   }
+  const distractors = _genRhythmDistractors(beats, d, 3);
+  const opts = [
+    { beats: [...beats], id: 0 },
+    { beats: distractors[0], id: 1 },
+    { beats: distractors[1], id: 2 },
+    { beats: distractors[2], id: 3 },
+  ];
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  const correctIdx = opts.findIndex(o => o.beats.join(',') === beats.join(','));
   return {
     type: EXERCISE_TYPES.RHYTHM_WS,
-    difficulty,
+    difficulty: d,
     target: { beats, measures, timeSigNum: 4, timeSigDen: 4 },
+    options: opts,
+    correctIdx,
     answer: beats.join(','),
-    hint: 'Read the rhythm and mark each beat in the grid below.',
+    hint: 'Listen carefully and choose the rhythm you heard.',
   };
 }
 
@@ -477,51 +523,58 @@ function generateExercise(type, difficulty = 'beginner') {
   }
 }
 
-// ── DOM Helpers (beat grid) ─────────────────────────────────────
-function _renderRhythmBeatGrid(ex) {
+// ── DOM Helpers (rhythm MCQ) ────────────────────────────────────
+function _renderRhythmNotation(beats, measures, beatsPerMeasure = 4) {
+  let html = '<div class="rg-notation">';
+  for (let m = 0; m < measures; m++) {
+    html += '<div class="rg-measure">';
+    html += '<span class="r-bar">|</span>';
+    for (let b = 0; b < beatsPerMeasure; b++) {
+      const idx = m * beatsPerMeasure + b;
+      const isNote = beats[idx] === 'q';
+      html += `<span class="r-beat ${isNote ? 'r-note' : 'r-rest'}">${isNote ? '♩' : '𝄽'}</span>`;
+    }
+    html += '</div>';
+  }
+  html += '<span class="r-bar">|</span></div>';
+  return html;
+}
+
+function _lockMCQOptions(locked) {
+  document.querySelectorAll('#rhythm-beat-grid .rg-option').forEach(o => o.classList.toggle('rg-locked', locked));
+}
+
+function _selectRhythmAnswer(ex, selectedIdx) {
+  const opts = document.querySelectorAll('#rhythm-beat-grid .rg-option');
+  const isCorrect = selectedIdx === ex.correctIdx;
+  opts.forEach((o, i) => {
+    o.classList.add('rg-locked');
+    if (i === ex.correctIdx) o.classList.add('rg-correct');
+    if (i === selectedIdx && !isCorrect) o.classList.add('rg-incorrect');
+  });
+}
+
+function _renderRhythmMCQ(ex) {
   const existing = document.getElementById('rhythm-beat-grid');
   if (existing) existing.remove();
-
-  const beats = ex.target.beats;
-  const measures = ex.target.measures;
   const container = document.createElement('div');
   container.id = 'rhythm-beat-grid';
-
-  for (let m = 0; m < measures; m++) {
-    const row = document.createElement('div');
-    row.className = 'rg-row';
-    for (let b = 0; b < 4; b++) {
-      const idx = m * 4 + b;
-      const isNote = beats[idx] === 'q';
-      const btn = document.createElement('button');
-      btn.className = 'rg-beat';
-      btn.dataset.beat = idx;
-      btn.dataset.answer = isNote ? '♩' : '𝄽';
-      btn.textContent = '·';
-      row.appendChild(btn);
-    }
-    container.appendChild(row);
-  }
-
-  const controls = document.createElement('div');
-  controls.className = 'rg-controls';
-  const checkBtn = document.createElement('button');
-  checkBtn.className = 'modal-btn primary';
-  checkBtn.id = 'rg-check-btn';
-  checkBtn.textContent = '✔ Check Answers';
-  controls.appendChild(checkBtn);
-  container.appendChild(controls);
-
+  let html = '<div class="rg-mcq-prompt">Which rhythm did you hear?</div><div class="rg-options">';
+  const labels = ['A','B','C','D'];
+  ex.options.forEach((opt, idx) => {
+    html += `<div class="rg-option" data-opt-idx="${idx}"><span class="rg-opt-label">${labels[idx]}</span>`;
+    html += _renderRhythmNotation(opt.beats, opt.measures);
+    html += '</div>';
+  });
+  html += '</div><div class="rg-feedback" id="rg-feedback"></div>';
+  html += '<div class="rg-controls"><button class="modal-btn primary" id="rg-check-btn">✔ Check Answers</button></div>';
+  container.innerHTML = html;
   container.addEventListener('click', e => {
-    const beatBtn = e.target.closest('.rg-beat');
-    if (beatBtn && !beatBtn.dataset.locked) {
-      const cur = beatBtn.textContent;
-      beatBtn.textContent = cur === '·' ? '♩' : cur === '♩' ? '𝄽' : '·';
-      beatBtn.className = 'rg-beat' + (beatBtn.textContent === '♩' ? ' rg-note' : beatBtn.textContent === '𝄽' ? ' rg-rest' : '');
-      beatBtn.dataset.userAnswer = beatBtn.textContent;
+    const opt = e.target.closest('.rg-option');
+    if (opt && !opt.classList.contains('rg-locked')) {
+      _selectRhythmAnswer(ex, parseInt(opt.dataset.optIdx));
     }
   });
-
   document.body.appendChild(container);
 }
 
@@ -737,13 +790,29 @@ assertEq(rhyEx.answer, rhyEx.target.durations.join(','), 'rhythm_read answer mat
 // 3e. _genRhythmWorksheet returns correct shape
 const wsEx = _genRhythmWorksheet(0);
 assertEq(wsEx.type, EXERCISE_TYPES.RHYTHM_WS, 'rhythm_worksheet type');
-assertEq(wsEx.target.measures, 8, 'rhythm_worksheet has 8 measures');
-assertEq(wsEx.target.beats.length, 32, 'rhythm_worksheet has 32 beats');
+assertEq(wsEx.target.measures, 8, 'rhythm_worksheet defaults to 8 measures');
+assertEq(wsEx.target.beats.length, 32, 'rhythm_worksheet has 32 beats (8x4)');
 wsEx.target.beats.forEach((b, i) => {
   assert(b === 'q' || b === 'r', `rhythm_worksheet beat ${i} is 'q' or 'r', got '${b}'`);
 });
 assertEq(wsEx.target.timeSigNum, 4, 'rhythm_worksheet timeSigNum 4');
 assertEq(wsEx.target.timeSigDen, 4, 'rhythm_worksheet timeSigDen 4');
+// custom measure count
+const wsEx4 = _genRhythmWorksheet(0, 4);
+assertEq(wsEx4.target.measures, 4, 'rhythm_worksheet accepts custom 4 measures');
+assertEq(wsEx4.target.beats.length, 16, 'rhythm_worksheet has 16 beats (4x4)');
+// MCQ options
+assert(Array.isArray(wsEx.options) && wsEx.options.length === 4, 'rhythm_worksheet has 4 options');
+assert(wsEx.correctIdx >= 0 && wsEx.correctIdx <= 3, 'correctIdx is valid (0-3)');
+wsEx.options.forEach((o, i) => {
+  assert(Array.isArray(o.beats) && o.beats.length === 32, `option ${i} has 32 beats`);
+  assert(o.id !== undefined, `option ${i} has id`);
+});
+assert(wsEx.options[wsEx.correctIdx].beats.join(',') === wsEx.answer, 'correct option matches answer');
+// difficulty conversion
+const strDiffEx = _genRhythmWorksheet('beginner', 4);
+assertEq(strDiffEx.target.beats.length, 16, 'string "beginner" works');
+assertEq(strDiffEx.difficulty, 0, 'difficulty normalized to 0');
 
 // 3f. _genMelodyDict returns correct shape
 const melEx = _genMelodyDict(2);
@@ -842,28 +911,21 @@ function _validAnnotations(score) {
 
 // ── 5. DOM Interaction Tests ────────────────────────────────────
 
-// 5a. _renderRhythmBeatGrid creates beat buttons
+// 5a. _renderRhythmMCQ creates option cards
 const domEx = _genRhythmWorksheet(0);
-_renderRhythmBeatGrid(domEx);
+_renderRhythmMCQ(domEx);
 const grid = document.getElementById('rhythm-beat-grid');
 assert(grid !== null, 'beat grid container created');
-const beatBtns = grid.querySelectorAll('.rg-beat');
-assertEq(beatBtns.length, 32, '32 beat buttons created');
-assertEq(beatBtns[0].textContent, '·', 'first beat starts unanswered');
-assertEq(beatBtns[0].dataset.beat, '0', 'first beat has index 0');
+const opts = grid.querySelectorAll('.rg-option');
+assertEq(opts.length, 4, '4 rhythm options created');
+assert(opts[0].dataset.optIdx !== undefined, 'each option has data-opt-idx');
 
-// 5b. Beat buttons toggle correctly via dispatchEvent
-const btn = beatBtns[0];
-const click = () => btn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-click();
-assertEq(btn.textContent, '♩', 'first click toggles to ♩');
-assert(btn.className.includes('rg-note'), '♩ state has rg-note class');
-click();
-assertEq(btn.textContent, '𝄽', 'second click toggles to 𝄽');
-assert(btn.className.includes('rg-rest'), '𝄽 state has rg-rest class');
-click();
-assertEq(btn.textContent, '·', 'third click toggles back to ·');
-assertEq(btn.className, 'rg-beat', '· state has no extra class');
+// 5b. Clicking an option selects it and locks
+opts[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+assert(opts[0].classList.contains('rg-locked'), 'clicked option is locked');
+assert(opts[0].classList.contains('rg-correct') || opts[0].classList.contains('rg-incorrect'), 'clicked option has correct/incorrect class');
+const allLocked = Array.from(opts).every(o => o.classList.contains('rg-locked'));
+assert(allLocked, 'all options locked after selection');
 
 // 5c. Check button exists
 const checkBtn = document.getElementById('rg-check-btn');
