@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pauta">
-<title>Pauta — Score Editor</title>
+<title>Pauta</title>
 
 <style>
 /* ── Fixed evening colour palette ── */
@@ -4305,7 +4305,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         const shorthand = type.includes('glock')?'glockenspiel':type.includes('xylo')?'xylophone':'metallophone';
         const orffG = renderOrffDiagram([''], shorthand);
         const scale = 1.44;
-        orffG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 210},${diagramCY - 24}) scale(${scale})`);
+        orffG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 150},${diagramCY - 150}) scale(${scale})`);
         orffG.setAttribute('id', diagramId);
         orffG.setAttribute('data-instr-type', 'orff');
         orffG.setAttribute('data-instr-name', shorthand);
@@ -4845,6 +4845,7 @@ function _renderScoreCompletions(rc) {
   updateRecorderDiagram();
   updateWoodwindDiagram();
   updateBrassDiagram();
+  updateOrffDiagram();
   renderNoteLabels();
 
   if (APP.continuousView) {
@@ -4942,6 +4943,7 @@ function _renderSelectionBody() {
   updateRecorderDiagram();
   updateWoodwindDiagram();
   updateBrassDiagram();
+  updateOrffDiagram();
   updateStatusBar();
   positionAllDiagrams();
 }
@@ -4977,7 +4979,7 @@ function positionAllDiagrams(scrollOverride) {
   // Orff diagrams
   document.querySelectorAll('[data-instr-type="orff"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
-    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 210 + scrollLeft},${cy - 24}) scale(1.44)`);
+    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 150 + scrollLeft},${cy - 150}) scale(1.44)`);
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
@@ -6323,66 +6325,73 @@ function renderOrffDiagram(fingArr, type, altIndex, noteName, isAltActive) {
   g.setAttribute('pointer-events', 'none');
   const pitch = parseInt(fingArr[altIndex] || '60', 10);
   const isPlaying = !!(APP && APP.playing);
-  const W_NAT = 28, W_ACC = 18, H_NAT = 42, H_ACC = 26, STRIDE = 30;
-  const NAT_X = [0, 30, 60, 90, 120, 150, 180];
-  const ACC_X = [6, 36, 96, 126, 156];
-  const ACC_IN = [1, 3, 6, 8, 10];
+  const STRIDE = 20, W_NAT = 18, W_ACC = 12, H_NAT = 36, H_ACC = 22;
   const NAT_IN = [0, 2, 4, 5, 7, 9, 11];
-  const NAT_LABEL = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-  const octStart = Math.floor(pitch / 12) * 12;
-  for (let i = 0; i < 7; i++) {
-    const midi = octStart + NAT_IN[i];
-    const hl = pitch === midi;
-    const r = document.createElementNS(ns, 'rect');
-    r.setAttribute('x', NAT_X[i]); r.setAttribute('y', H_ACC);
-    r.setAttribute('width', W_NAT); r.setAttribute('height', H_NAT - H_ACC);
-    r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
-    r.setAttribute('stroke-width', '1');
-    if (hl) {
-      r.setAttribute('fill', isPlaying ? '#ff5a4a' : '#e08a3a');
-      r.setAttribute('stroke', isPlaying ? '#e04030' : '#c07830');
-    } else {
-      r.setAttribute('fill', '#fff');
-      r.setAttribute('stroke', '#999');
+  const NAT_X0 = [0, 20, 40, 60, 80, 100, 120];
+  const ACC_IN = [1, 3, 6, 8, 10];
+  const ACC_X0 = [4, 24, 64, 84, 104];
+  const NAT_LBL = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const OCT_W = 140;
+  const startPitch = Math.max(0, Math.floor(pitch / 12) * 12);
+  for (let oct = 0; oct < 2; oct++) {
+    const octOff = oct * OCT_W;
+    const base = startPitch + oct * 12;
+    for (let i = 0; i < 7; i++) {
+      const midi = base + NAT_IN[i];
+      const hl = pitch === midi;
+      const x = NAT_X0[i] + octOff;
+      const r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', x); r.setAttribute('y', H_ACC);
+      r.setAttribute('width', W_NAT); r.setAttribute('height', H_NAT - H_ACC);
+      r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
+      r.setAttribute('stroke-width', '1');
+      if (hl) {
+        r.setAttribute('fill', isPlaying ? '#ff5a4a' : '#e08a3a');
+        r.setAttribute('stroke', isPlaying ? '#e04030' : '#c07830');
+      } else {
+        r.setAttribute('fill', '#fff');
+        r.setAttribute('stroke', '#999');
+      }
+      g.appendChild(r);
+      const t = document.createElementNS(ns, 'text');
+      t.setAttribute('x', x + W_NAT / 2);
+      t.setAttribute('y', H_NAT - 4);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '8');
+      t.setAttribute('font-weight', '600');
+      t.setAttribute('fill', hl ? '#fff' : '#444');
+      t.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+      t.textContent = NAT_LBL[i];
+      g.appendChild(t);
     }
-    g.appendChild(r);
-    const t = document.createElementNS(ns, 'text');
-    t.setAttribute('x', NAT_X[i] + W_NAT / 2);
-    t.setAttribute('y', H_NAT - 4);
-    t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '9');
-    t.setAttribute('font-weight', '600');
-    t.setAttribute('fill', hl ? '#fff' : '#444');
-    t.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    t.textContent = NAT_LABEL[i];
-    g.appendChild(t);
-  }
-  for (let i = 0; i < 5; i++) {
-    const midi = octStart + ACC_IN[i];
-    const hl = pitch === midi;
-    const r = document.createElementNS(ns, 'rect');
-    r.setAttribute('x', ACC_X[i]); r.setAttribute('y', 0);
-    r.setAttribute('width', W_ACC); r.setAttribute('height', H_ACC);
-    r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
-    r.setAttribute('stroke-width', '1');
-    if (hl) {
-      r.setAttribute('fill', isPlaying ? '#ff5a4a' : '#e08a3a');
-      r.setAttribute('stroke', isPlaying ? '#e04030' : '#c07830');
-    } else {
-      r.setAttribute('fill', '#333');
-      r.setAttribute('stroke', '#222');
+    for (let i = 0; i < 5; i++) {
+      const midi = base + ACC_IN[i];
+      const hl = pitch === midi;
+      const x = ACC_X0[i] + octOff;
+      const r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', x); r.setAttribute('y', 0);
+      r.setAttribute('width', W_ACC); r.setAttribute('height', H_ACC);
+      r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
+      r.setAttribute('stroke-width', '1');
+      if (hl) {
+        r.setAttribute('fill', isPlaying ? '#ff5a4a' : '#e08a3a');
+        r.setAttribute('stroke', isPlaying ? '#e04030' : '#c07830');
+      } else {
+        r.setAttribute('fill', '#333');
+        r.setAttribute('stroke', '#222');
+      }
+      g.appendChild(r);
+      const t = document.createElementNS(ns, 'text');
+      t.setAttribute('x', x + W_ACC / 2);
+      t.setAttribute('y', H_ACC - 4);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '7');
+      t.setAttribute('font-weight', '600');
+      t.setAttribute('fill', hl ? '#fff' : '#ccc');
+      t.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+      t.textContent = '#';
+      g.appendChild(t);
     }
-    g.appendChild(r);
-    const t = document.createElementNS(ns, 'text');
-    t.setAttribute('x', ACC_X[i] + W_ACC / 2);
-    t.setAttribute('y', H_ACC - 4);
-    t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '8');
-    t.setAttribute('font-weight', '600');
-    t.setAttribute('fill', hl ? '#fff' : '#ccc');
-    t.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
-    t.textContent = '#';
-    g.appendChild(t);
   }
   return g;
 }
@@ -9410,36 +9419,101 @@ function _startRhythmWorksheet(difficulty, measuresCount = 8) {
 
 function showExerciseDialog() {
   if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
-  const types = [
-    {key: EXERCISE_TYPES.NOTE_ID,      label:'🎵 Note Identification',    desc:'Name the note on the staff'},
-    {key: EXERCISE_TYPES.INTERVAL_ID,  label:'↔ Interval Identification', desc:'Name the interval between two notes'},
-    {key: EXERCISE_TYPES.RHYTHM_READ,  label:'𝅘𝅥𝅮 Rhythm Reading',          desc:'Read and clap rhythm patterns'},
-    {key: EXERCISE_TYPES.MELODY_DICT,  label:'🎼 Melody Dictation',       desc:'Hear a melody, then notate it'},
-    {key: EXERCISE_TYPES.KEY_SIG_ID,   label:'♭♯ What\'s the Key Signature?', desc:'Name the key from the signature'},
-    {key: EXERCISE_TYPES.RHYTHM_WS,   label:'🔊 Rhythm Dictation',           desc:'Hear a rhythm, then mark each beat'},
+  const GROUPS = [
+    { name:'Ear Training',
+      items:[
+        { key:EXERCISE_TYPES.NOTE_ID,     icon:'🎵', label:'Note Identification',     desc:'Name the note on the staff' },
+        { key:EXERCISE_TYPES.INTERVAL_ID, icon:'↔',  label:'Interval Identification', desc:'Name the interval between two notes' },
+      ] },
+    { name:'Rhythm',
+      items:[
+        { key:EXERCISE_TYPES.RHYTHM_READ, icon:'𝅘𝅥𝅮',  label:'Rhythm Reading',     desc:'Read and clap rhythm patterns' },
+        { key:EXERCISE_TYPES.RHYTHM_WS,   icon:'🔊', label:'Rhythm Dictation',   desc:'Hear a rhythm, then choose the notation', hasSettings:true },
+      ] },
+    { name:'Theory',
+      items:[
+        { key:EXERCISE_TYPES.KEY_SIG_ID,  icon:'♭♯', label:'Key Signatures',     desc:'Name the key from the signature' },
+        { key:EXERCISE_TYPES.MELODY_DICT, icon:'🎼', label:'Melody Dictation',   desc:'Hear a melody, then notate it' },
+      ] },
   ];
-  const diffs = ['beginner', 'intermediate', 'advanced'];
-  const currentDiff = APP.exerciseDifficulty || 'beginner';
+  const diffs = ['beginner','intermediate','advanced'];
+  const curDiff = APP.exerciseDifficulty || 'beginner';
+  const selType = APP._selExerciseType || EXERCISE_TYPES.NOTE_ID;
+  const meas = APP.exerciseMeasures || 8;
+  const results = _loadResults();
+  const bestPct = t => { const r = results.filter(x => x.type === t); return r.length ? Math.max(...r.map(x => x.pct)) : null; };
+  const stars = p => p === null
+    ? '<span style="color:#cbd5e0">☆☆☆</span>'
+    : '<span style="color:#eab308">' + '★'.repeat(p>=90?3:p>=70?2:1) + '☆'.repeat(3-(p>=90?3:p>=70?2:1)) + '</span> <span style="color:#718096;font-size:11px">' + p + '%</span>';
 
   makeModal(`
-    <h2>Exercise Browser</h2>
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Difficulty</div>
-      <div style="display:flex;gap:6px">
-        ${diffs.map(d => `<button class="modal-btn ${d===currentDiff?'primary':'secondary'}" data-action="selectExerciseDifficulty" data-diff="${d}" style="flex:1;padding:8px 4px;font-size:12px">${d}</button>`).join('')}
+    <div style="padding:2px 0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <span style="font-size:20px">🎯</span>
+        <span style="font-size:16px;font-weight:700;color:#2d3748">Exercises</span>
+      </div>
+      <div style="font-size:12px;color:#718096;margin-bottom:12px">Select an exercise type and difficulty to begin</div>
+      <div style="display:flex;gap:4px;margin-bottom:14px;background:#f7fafc;border-radius:8px;padding:4px">
+        ${diffs.map(d => `<button class="modal-btn ${d===curDiff?'primary':'secondary'}" data-diff="${d}" style="flex:1;padding:7px 4px;font-size:12px;font-weight:600">${d.charAt(0).toUpperCase()+d.slice(1)}</button>`).join('')}
+      </div>
+      ${GROUPS.map(g => `
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;padding-left:2px">${g.name}</div>
+          ${g.items.map(t => {
+            const sel = selType === t.key;
+            const p = bestPct(t.key);
+            return `<div class="ex-card" data-type="${t.key}" style="cursor:pointer;border-radius:8px;padding:8px 10px;margin-bottom:4px;border:${sel?'2px solid #c05621':'1.5px solid transparent'};background:${sel?'#fff5ed':'#f7fafc'};transition:all .12s">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:16px">${t.icon}</span>
+                  <div><div style="font-size:13px;font-weight:600;color:#2d3748">${t.label}</div><div style="font-size:11px;color:#718096">${t.desc}</div></div>
+                </div>
+                <div style="font-size:13px;white-space:nowrap">${stars(p)}</div>
+              </div>
+              ${t.hasSettings ? `<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(0,0,0,.05);display:flex;align-items:center;gap:8px">
+                <span style="font-size:11px;color:#4a5568;font-weight:600">Measures</span>
+                ${[4,8,12].map(n => `<button class="modal-btn ${n===meas?'primary':'secondary'}" data-meas="${n}" style="padding:4px 8px;font-size:11px;min-width:32px">${n}</button>`).join('')}
+                <input type="number" id="ex-meas" value="${meas}" min="1" max="24" style="width:40px;text-align:center;padding:4px 2px;font-size:11px;border:1px solid #cbd5e0;border-radius:4px">
+              </div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      `).join('')}
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="modal-btn primary" id="ex-start-btn" style="flex:2;padding:10px;font-size:14px;font-weight:700">Start</button>
+        <button class="modal-btn secondary" data-action="closeModal" style="flex:1">Cancel</button>
       </div>
     </div>
-    <div style="max-height:260px;overflow-y:auto">
-      ${types.map(t => `
-        <button class="panel-btn-wide" style="margin-bottom:6px;text-align:left"
-          data-action="startExerciseSession" data-type="${t.key}" data-diff="${currentDiff}">
-          <div style="font-weight:600;font-size:13px;color:#2d3748">${t.label}</div>
-          <div style="font-size:11px;color:rgba(74,85,104,0.7)">${t.desc}</div>
-        </button>
-      `).join('')}
-    </div>
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
+
+  setTimeout(() => {
+    document.querySelectorAll('.ex-card').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('[data-meas]') || e.target.closest('#ex-meas')) return;
+        APP._selExerciseType = el.dataset.type;
+        showExerciseDialog();
+      });
+    });
+    document.querySelectorAll('[data-diff]').forEach(el => {
+      el.addEventListener('click', () => { APP.exerciseDifficulty = el.dataset.diff; showExerciseDialog(); });
+    });
+    document.querySelectorAll('[data-meas]').forEach(el => {
+      el.addEventListener('click', () => { APP.exerciseMeasures = parseInt(el.dataset.meas); showExerciseDialog(); });
+    });
+    document.getElementById('ex-meas')?.addEventListener('change', function() {
+      APP.exerciseMeasures = parseInt(this.value) || 8;
+    });
+    document.getElementById('ex-start-btn')?.addEventListener('click', () => {
+      const type = APP._selExerciseType || EXERCISE_TYPES.NOTE_ID;
+      const diff = APP.exerciseDifficulty || 'beginner';
+      closeModal();
+      if (type === EXERCISE_TYPES.RHYTHM_WS) {
+        _startRhythmWorksheet(diff, APP.exerciseMeasures || 8);
+      } else {
+        startExerciseSession(type, diff);
+      }
+    });
+  }, 50);
 }
 
 function selectExerciseDifficulty(diff) {
@@ -10659,8 +10733,12 @@ function setRoleStudent() {
   setTimeout(() => showExerciseDialog(), 400);
 }
 
+function _updateTitle() {
+  document.title = APP.role === 'student' ? 'Pauta \u2014 Student Mode' : 'Pauta \u2014 Teacher Mode';
+}
 function _applyRoleUI() {
   const body = document.body;
+  _updateTitle();
   if (APP.role === 'student') {
     body.classList.add('student-mode');
   } else {
@@ -13565,6 +13643,7 @@ function bootApp() {
       APP.role = savedRole;
     }
   } catch(e) { console.warn('[Pauta]', e.message); }
+  _updateTitle();
 
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
