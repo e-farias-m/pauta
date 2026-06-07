@@ -8675,6 +8675,218 @@ function _intervalMatches(userInput, targetName) {
   return n === norm(targetName) || aliases.some(a => norm(a) === n);
 }
 
+// ── Structured Curriculum Paths ────────────────────────────────
+const CURRICULUM = [
+  {
+    id: 'grade-1-rhythm',
+    title: 'Grade 1: Rhythm Basics',
+    description: 'Quarter notes, half notes, and whole notes in 4/4 time',
+    icon: '🥁',
+    exercises: [
+      { type: 'rhythm_read', difficulty: 'beginner', label: 'Quarter & Half Notes', count: 5 },
+      { type: 'rhythm_read', difficulty: 'beginner', label: 'Whole Notes & Rests', count: 5 },
+      { type: 'rhythm_worksheet', difficulty: 'beginner', label: 'Dictation: Simple Beats', count: 3 },
+    ],
+    unlockCondition: null, // always available
+  },
+  {
+    id: 'grade-2-notes',
+    title: 'Grade 2: Note Reading',
+    description: 'Identify notes on treble clef (C4–C5 naturals)',
+    icon: '🎵',
+    exercises: [
+      { type: 'note_id', difficulty: 'beginner', label: 'Treble Clef: C–C', count: 10 },
+      { type: 'note_id', difficulty: 'beginner', label: 'Treble Clef: Extend Range', count: 10 },
+    ],
+    unlockCondition: { type: 'sessions', count: 5, exerciseType: 'rhythm_read' },
+  },
+  {
+    id: 'grade-3-intervals',
+    title: 'Grade 3: Intervals',
+    description: 'Major and minor 2nds, 3rds, and perfect 4ths',
+    icon: '↔',
+    exercises: [
+      { type: 'interval_id', difficulty: 'beginner', label: '2nds & 3rds', count: 8 },
+      { type: 'interval_id', difficulty: 'beginner', label: '4ths & 5ths', count: 8 },
+      { type: 'interval_id', difficulty: 'intermediate', label: 'All Intervals', count: 8 },
+    ],
+    unlockCondition: { type: 'sessions', count: 5, exerciseType: 'note_id' },
+  },
+  {
+    id: 'grade-4-keysigs',
+    title: 'Grade 4: Key Signatures',
+    description: 'Major and minor keys with up to 2 sharps/flats',
+    icon: '🔑',
+    exercises: [
+      { type: 'key_sig_id', difficulty: 'beginner', label: 'Major Keys: 0–2 sharps', count: 8 },
+      { type: 'key_sig_id', difficulty: 'beginner', label: 'Minor Keys: 0–2 flats', count: 8 },
+      { type: 'key_sig_id', difficulty: 'intermediate', label: 'All Keys', count: 8 },
+    ],
+    unlockCondition: { type: 'sessions', count: 5, exerciseType: 'interval_id' },
+  },
+  {
+    id: 'grade-5-rhythm-2',
+    title: 'Grade 5: Rhythm Reading',
+    description: 'Eighth notes, dotted rhythms, and syncopation',
+    icon: '🎶',
+    exercises: [
+      { type: 'rhythm_read', difficulty: 'intermediate', label: 'Eighth Notes', count: 5 },
+      { type: 'rhythm_read', difficulty: 'intermediate', label: 'Dotted Rhythms', count: 5 },
+      { type: 'rhythm_worksheet', difficulty: 'intermediate', label: 'Dictation: Mixed', count: 3 },
+    ],
+    unlockCondition: { type: 'sessions', count: 8, exerciseType: 'key_sig_id' },
+  },
+  {
+    id: 'grade-6-melody',
+    title: 'Grade 6: Melody Dictation',
+    description: 'Hear and notate short melodies',
+    icon: '🎼',
+    exercises: [
+      { type: 'melody_dictation', difficulty: 'beginner', label: '4-note Melodies', count: 5 },
+      { type: 'melody_dictation', difficulty: 'intermediate', label: '6-note Melodies', count: 5 },
+      { type: 'melody_dictation', difficulty: 'advanced', label: '8-note Melodies', count: 5 },
+    ],
+    unlockCondition: { type: 'sessions', count: 8, exerciseType: 'rhythm_read' },
+  },
+  {
+    id: 'advanced-comprehensive',
+    title: 'Advanced: Comprehensive',
+    description: 'All exercise types at advanced difficulty',
+    icon: '🏆',
+    exercises: [
+      { type: 'note_id', difficulty: 'advanced', label: 'Chromatic Note ID', count: 8 },
+      { type: 'interval_id', difficulty: 'advanced', label: 'All Intervals', count: 8 },
+      { type: 'rhythm_read', difficulty: 'advanced', label: 'Complex Rhythms', count: 5 },
+      { type: 'key_sig_id', difficulty: 'advanced', label: 'All Key Signatures', count: 8 },
+      { type: 'melody_dictation', difficulty: 'advanced', label: 'Long Melodies', count: 5 },
+    ],
+    unlockCondition: { type: 'sessions', count: 15, exerciseType: null }, // any 15 sessions
+  },
+];
+
+const CURRICULUM_KEY = 'pauta_curriculum_progress';
+
+function _loadCurriculumProgress() {
+  try { return JSON.parse(localStorage.getItem(CURRICULUM_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+
+function _saveCurriculumProgress(progress) {
+  localStorage.setItem(CURRICULUM_KEY, JSON.stringify(progress));
+}
+
+function _getCurriculumProgress(gradeId) {
+  const progress = _loadCurriculumProgress();
+  return progress[gradeId] || { completed: 0, bestScore: 0 };
+}
+
+function _isCurriculumUnlocked(grade) {
+  if (!grade.unlockCondition) return true;
+  const results = _loadResults();
+  const { type, count, exerciseType } = grade.unlockCondition;
+  if (type === 'sessions') {
+    if (exerciseType) {
+      return results.filter(r => r.type === exerciseType).length >= count;
+    }
+    return results.length >= count;
+  }
+  return true;
+}
+
+function _recordCurriculumExercise(gradeId, exerciseIdx, pct) {
+  const progress = _loadCurriculumProgress();
+  if (!progress[gradeId]) progress[gradeId] = { completed: 0, bestScore: 0, exercises: {} };
+  const g = progress[gradeId];
+  g.exercises[exerciseIdx] = { lastScore: pct, bestScore: Math.max(g.exercises[exerciseIdx]?.bestScore || 0, pct) };
+  g.completed = Object.keys(g.exercises).length;
+  g.bestScore = Math.round(Object.values(g.exercises).reduce((s, e) => s + e.bestScore, 0) / Object.values(g.exercises).length);
+  _saveCurriculumProgress(progress);
+}
+
+function showCurriculumDialog() {
+  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+
+  const progress = _loadCurriculumProgress();
+  const results = _loadResults();
+  const totalSessions = results.length;
+
+  const gradeHtml = CURRICULUM.map((grade, idx) => {
+    const unlocked = _isCurriculumUnlocked(grade);
+    const p = _getCurriculumProgress(grade.id);
+    const totalExercises = grade.exercises.reduce((s, e) => s + e.count, 0);
+    const completedExercises = p.completed || 0;
+    const pct = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
+
+    return `<div style="margin-bottom:10px;padding:10px;background:${unlocked ? 'rgba(192,86,33,0.04)' : 'rgba(0,0,0,0.03)'};border-radius:8px;border:1px solid ${unlocked ? 'rgba(192,86,33,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:24px">${grade.icon}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px;color:#2d3748">${grade.title}</div>
+          <div style="font-size:11px;color:rgba(74,85,104,0.7)">${grade.description}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:700;color:${pct >= 80 ? '#22c55e' : pct >= 50 ? '#e6a817' : '#c05621'}">${pct}%</div>
+          <div style="font-size:10px;color:rgba(74,85,104,0.5)">${completedExercises}/${totalExercises}</div>
+        </div>
+      </div>
+      ${unlocked ? `<div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${grade.exercises.map((ex, exIdx) => {
+          const ep = p.exercises?.[exIdx];
+          const done = ep?.lastScore !== undefined;
+          const score = ep?.bestScore || 0;
+          return `<button class="modal-btn ${done ? 'secondary' : 'primary'}" 
+            data-action="startCurriculumGrade" data-grade="${grade.id}" data-exercise="${exIdx}"
+            style="flex:1;min-width:120px;padding:6px 8px;font-size:11px;text-align:left">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span>${done ? '✓' : '▶'} ${ex.label}</span>
+              ${done ? `<span style="font-size:10px;color:${score >= 80 ? '#22c55e' : '#e6a817'}">${score}%</span>` : ''}
+            </div>
+          </button>`;
+        }).join('')}
+      </div>` : `<div style="font-size:11px;color:rgba(74,85,104,0.5);text-align:center;margin-top:4px">
+        🔒 Complete ${grade.unlockCondition.count} ${grade.unlockCondition.exerciseType ? TYPE_LABELS[grade.unlockCondition.exerciseType] : 'total'} sessions to unlock
+      </div>`}
+    </div>`;
+  }).join('');
+
+  makeModal(`
+    <h2>📚 Curriculum</h2>
+    <div style="font-size:12px;color:#4a5568;margin-bottom:12px;text-align:center">
+      Structured learning path · ${totalSessions} total sessions completed
+    </div>
+    <div style="max-height:340px;overflow-y:auto">
+      ${gradeHtml}
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+  `);
+}
+
+function startCurriculumGrade(gradeId, exerciseIdx) {
+  const grade = CURRICULUM.find(g => g.id === gradeId);
+  if (!grade || !_isCurriculumUnlocked(grade)) { showToast('Grade not yet unlocked'); return; }
+  const exercise = grade.exercises[exerciseIdx];
+  if (!exercise) return;
+
+  // Map curriculum exercise type/difficulty to session
+  const typeMap = {
+    'note_id': EXERCISE_TYPES.NOTE_ID,
+    'interval_id': EXERCISE_TYPES.INTERVAL_ID,
+    'rhythm_read': EXERCISE_TYPES.RHYTHM_READ,
+    'melody_dictation': EXERCISE_TYPES.MELODY_DICT,
+    'key_sig_id': EXERCISE_TYPES.KEY_SIG_ID,
+    'rhythm_worksheet': EXERCISE_TYPES.RHYTHM_WS,
+  };
+  const diffMap = { 'beginner': 0, 'intermediate': 1, 'advanced': 2 };
+  const sessionType = typeMap[exercise.type] || EXERCISE_TYPES.NOTE_ID;
+  const difficulty = exercise.difficulty || 'beginner';
+
+  // Store curriculum context for recording results
+  APP._curriculumGrade = gradeId;
+  APP._curriculumExerciseIdx = exerciseIdx;
+
+  startExerciseSession(sessionType, difficulty);
+}
+
 const KEY_SIG_NAMES = {
   '-7':'Cb', '-6':'Gb', '-5':'Db', '-4':'Ab', '-3':'Eb', '-2':'Bb', '-1':'F',
   '0':'C', '1':'G', '2':'D', '3':'A', '4':'E', '5':'B', '6':'F#', '7':'C#'
@@ -8684,7 +8896,49 @@ const KEY_SIG_MINOR_NAMES = {
   '0':'Am', '1':'Em', '2':'Bm', '3':'F#m', '4':'C#m', '5':'G#m', '6':'D#m', '7':'A#m'
 };
 
-// ── Exercise Generators ──────────────────────────────────────────
+// ── Adaptive Difficulty ────────────────────────────────────────
+// Analyzes recent performance to recommend the best difficulty level.
+const DIFF_NAMES = ['beginner', 'intermediate', 'advanced'];
+
+function recommendDifficulty(exerciseType) {
+  const results = _loadResults();
+  if (!results.length) return APP.exerciseDifficulty || 'beginner';
+
+  // Get recent 10 sessions of this type (or all types if none specific)
+  const relevant = exerciseType
+    ? results.filter(r => r.type === exerciseType).slice(-10)
+    : results.slice(-10);
+
+  if (!relevant.length) return APP.exerciseDifficulty || 'beginner';
+
+  const avgPct = relevant.reduce((s, r) => s + r.pct, 0) / relevant.length;
+  const recentPct = relevant[relevant.length - 1].pct;
+  const lastThree = relevant.slice(-3);
+  const lastThreeAvg = lastThree.reduce((s, r) => s + r.pct, 0) / lastThree.length;
+
+  const currentDiff = DIFF_NAMES.indexOf(APP.exerciseDifficulty || 'beginner');
+
+  // Upgrade: 3 consecutive sessions > 85%
+  if (lastThreeAvg >= 85 && currentDiff < 2) {
+    const newDiff = DIFF_NAMES[currentDiff + 1];
+    showToast(`📈 Great performance! Moving to ${newDiff}`);
+    APP.exerciseDifficulty = newDiff;
+    return newDiff;
+  }
+
+  // Downgrade: 3 consecutive sessions < 50%
+  if (lastThreeAvg < 50 && currentDiff > 0) {
+    const newDiff = DIFF_NAMES[currentDiff - 1];
+    showToast(`📉 Let's try ${newDiff} for now`);
+    APP.exerciseDifficulty = newDiff;
+    return newDiff;
+  }
+
+  return DIFF_NAMES[currentDiff];
+}
+
+function _saveExerciseResult(session) {
+  if (!session || session.totalCount === 0) return;
 function generateExercise(type, difficulty = 'beginner') {
   const diffs = { beginner: 0, intermediate: 1, advanced: 2 };
   const d = diffs[difficulty] ?? 0;
@@ -8861,6 +9115,10 @@ function _genKeySigId(difficulty) {
 
 // ── Exercise Session Manager ────────────────────────────────────
 function startExerciseSession(type, difficulty) {
+  // Adaptive difficulty: if no explicit difficulty, recommend based on performance
+  if (!difficulty || difficulty === 'auto') {
+    difficulty = recommendDifficulty(type);
+  }
   const ex = generateExercise(type, difficulty);
   APP.exerciseSession = {
     type, difficulty,
@@ -8899,8 +9157,11 @@ function endExerciseSession() {
         <span>#${i+1}: ${c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer : c.type === EXERCISE_TYPES.MELODY_DICT ? 'Melody' : c.type === EXERCISE_TYPES.RHYTHM_WS ? 'Rhythm Dict' : 'Rhythm'}</span>
       </div>`).join('')}
     </div>
-    <button class="modal-btn primary" data-action="closeModalExercise">Close</button>
-    <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="modal-btn primary" data-action="reviewExerciseSession">📝 Review Answers</button>
+      <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
+      <button class="modal-btn secondary" data-action="closeModalExercise">Close</button>
+    </div>
   `);
 
   // Save results for progress tracking
@@ -8930,6 +9191,99 @@ function restartExerciseSession() {
   const savedDiff = s?.difficulty;
   // s is nulled by endExerciseSession if the modal triggered it, so save first
   if (savedType) startExerciseSession(savedType, savedDiff);
+}
+
+function reviewExerciseSession() {
+  closeModal();
+  const s = APP.exerciseSession;
+  if (!s || !s.completed.length) { showToast('No exercises to review'); return; }
+
+  let reviewIndex = 0;
+  const completed = s.completed;
+
+  function showReview(idx) {
+    const c = completed[idx];
+    if (!c) return;
+
+    const typeLabel = TYPE_LABELS[c.type] || c.type;
+    let questionHtml = '';
+
+    if (c.type === EXERCISE_TYPES.NOTE_ID) {
+      const pitch = c.target?.pitch;
+      const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      const pc = pitch % 12;
+      const oct = Math.floor(pitch / 12) - 1;
+      const noteName = noteNames[pc] + oct;
+      questionHtml = `<div style="font-size:20px;text-align:center;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>
+        <div style="text-align:center;color:#4a5568">MIDI ${pitch} · ${noteName}</div>`;
+    } else if (c.type === EXERCISE_TYPES.INTERVAL_ID) {
+      const bottom = c.target?.bottom;
+      const top = c.target?.top;
+      const semitones = c.target?.semitones;
+      const dir = c.target?.direction;
+      const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      const bName = noteNames[bottom % 12] + (Math.floor(bottom / 12) - 1);
+      const tName = noteNames[top % 12] + (Math.floor(top / 12) - 1);
+      questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">${bName} → ${tName}</div>
+        <div style="text-align:center;color:#4a5568">${semitones} semitones ${dir > 0 ? '↑' : '↓'}</div>`;
+    } else if (c.type === EXERCISE_TYPES.RHYTHM_READ || c.type === EXERCISE_TYPES.RHYTHM_WS) {
+      const beats = c.target?.beats || c.target?.durations;
+      if (beats) {
+        const symbols = beats.map(d => d === 'q' ? '♩' : d === 'h' ? '𝅗𝅥' : d === '8' ? '♪' : d === '16' ? '𝅘𝅥𝅮' : d === 'r' ? '𝄽' : '·');
+        questionHtml = `<div style="font-size:20px;text-align:center;letter-spacing:8px;margin:12px 0;font-family:'Bravura',serif">${symbols.join(' ')}</div>`;
+      }
+    } else if (c.type === EXERCISE_TYPES.MELODY_DICT) {
+      const notes = c.target?.notes;
+      if (notes) {
+        const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const names = notes.map(n => noteNames[n.pitch % 12] + (Math.floor(n.pitch / 12) - 1));
+        questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0;letter-spacing:4px">${names.join(' ')}</div>`;
+      }
+    } else if (c.type === EXERCISE_TYPES.KEY_SIG_ID) {
+      const ks = c.target?.keySig;
+      const names = { '-7':'Cb','-6':'Gb','-5':'Db','-4':'Ab','-3':'Eb','-2':'Bb','-1':'F','0':'C','1':'G','2':'D','3':'A','4':'E','5':'B','6':'F#','7':'C#' };
+      const minorNames = { '-7':'Abm','-6':'Ebm','-5':'Bbm','-4':'Fm','-3':'Cm','-2':'Gm','-1':'Dm','0':'Am','1':'Em','2':'Bm','3':'F#m','4':'C#m','5':'G#m','6':'D#m','7':'A#m' };
+      questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">Key Signature: ${ks > 0 ? '♯'.repeat(ks) : ks < 0 ? '♭'.repeat(-ks) : '(none)'}</div>
+        <div style="text-align:center;color:#4a5568">Major: ${names[String(ks)]} · Minor: ${minorNames[String(ks)]}</div>`;
+    }
+
+    const isCorrect = c.ok;
+    const userAns = c.answer;
+    const correctAns = c.correctAnswer || c.questionLabel;
+    const hint = c.hint;
+
+    makeModal(`
+      <h2>Review: ${typeLabel} (${idx + 1}/${completed.length})</h2>
+      <div style="margin-bottom:12px;padding:12px;background:rgba(192,86,33,0.05);border-radius:8px">
+        <div style="font-weight:600;margin-bottom:6px">Question</div>
+        ${questionHtml}
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;flex-wrap:wrap">
+        <div style="padding:8px 16px;background:${isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(255,96,96,0.1)'};border-radius:8px;border:1px solid ${isCorrect ? '#22c55e' : '#ff6060'}">
+          <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</div>
+          <div style="font-size:16px;font-weight:700;color:${isCorrect ? '#22c55e' : '#c05421'}">${escHtml(userAns)}</div>
+        </div>
+        ${!isCorrect ? `
+        <div style="padding:8px 16px;background:rgba(34,197,94,0.1);border-radius:8px;border:1px solid #22c55e">
+          <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">Correct Answer</div>
+          <div style="font-size:16px;font-weight:700;color:#22c55e">${escHtml(correctAns)}</div>
+        </div>` : ''}
+      </div>
+      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">💡 ${escHtml(hint)}</div>` : ''}
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        ${idx > 0 ? `<button class="modal-btn secondary" data-action="reviewPrev">← Previous</button>` : ''}
+        ${idx < completed.length - 1 ? `<button class="modal-btn primary" data-action="reviewNext">Next →</button>` : `<button class="modal-btn primary" data-action="closeModal">Done</button>`}
+        ${completed.length > 1 ? `<button class="modal-btn secondary" data-action="closeModal" style="margin-left:auto">Close Review</button>` : ''}
+      </div>
+    `);
+  }
+
+  // Register one-time handlers for review navigation
+  const origRegister = window._registerAction;
+  window._registerAction('reviewPrev', () => { closeModal(); showReview(reviewIndex - 1); });
+  window._registerAction('reviewNext', () => { closeModal(); showReview(reviewIndex + 1); });
+
+  showReview(0);
 }
 
 function _presentExercise(ex) {
@@ -9038,10 +9392,16 @@ function _showDictationListenBar() {
   if (existing) existing.remove();
   const bar = document.createElement('div');
   bar.id = 'dictation-bar';
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;flex-wrap:wrap';
+  const currentTempo = APP.tempo || 120;
   bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">🎧 Listen</span>
     <button class="modal-btn primary" id="dictation-play" style="padding:4px 12px;font-size:12px">▶ Play Melody</button>
-    <button class="modal-btn secondary" id="dictation-ready" style="padding:4px 12px;font-size:12px">📝 I'm Ready</button>`;
+    <button class="modal-btn secondary" id="dictation-ready" style="padding:4px 12px;font-size:12px">📝 I'm Ready</button>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <label style="font-size:11px;color:#4a5568;font-weight:600">♩</label>
+      <input type="range" id="dictation-tempo" min="40" max="200" value="${currentTempo}" style="width:100px" aria-label="Tempo">
+      <span id="dictation-tempo-val" style="font-size:12px;font-weight:700;color:#c05621;min-width:36px;text-align:right">${currentTempo}</span> BPM
+    </div>`;
   document.body.appendChild(bar);
   // Use event delegation on the bar to avoid DOM race
   bar.addEventListener('click', e => {
@@ -9049,6 +9409,20 @@ function _showDictationListenBar() {
     if (id === 'dictation-play') _playDictationMelody();
     if (id === 'dictation-ready') _startDictationNotate();
   });
+  // Tempo slider handler
+  const tempoSlider = bar.querySelector('#dictation-tempo');
+  const tempoVal = bar.querySelector('#dictation-tempo-val');
+  if (tempoSlider && tempoVal) {
+    tempoSlider.addEventListener('input', e => {
+      const val = parseInt(e.target.value);
+      tempoVal.textContent = val;
+      APP.tempo = val;
+    });
+    tempoSlider.addEventListener('change', e => {
+      const val = parseInt(e.target.value);
+      APP.tempo = val;
+    });
+  }
 }
 
 function _playDictationMelody() {
@@ -9088,10 +9462,16 @@ function _showDictationCheckBar() {
   if (existing) existing.remove();
   const bar = document.createElement('div');
   bar.id = 'dictation-check-bar';
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;flex-wrap:wrap';
+  const currentTempo = APP.tempo || 120;
   bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">✍️ Done notating?</span>
     <button class="modal-btn primary" id="dictation-check" style="padding:4px 12px;font-size:12px">✔ Check Melody</button>
-    <button class="modal-btn secondary" id="dictation-play-again" style="padding:4px 12px;font-size:12px">▶ Play Again</button>`;
+    <button class="modal-btn secondary" id="dictation-play-again" style="padding:4px 12px;font-size:12px">▶ Play Again</button>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <label style="font-size:11px;color:#4a5568;font-weight:600">♩</label>
+      <input type="range" id="dictation-tempo" min="40" max="200" value="${currentTempo}" style="width:100px" aria-label="Tempo">
+      <span id="dictation-tempo-val" style="font-size:12px;font-weight:700;color:#c05621;min-width:36px;text-align:right">${currentTempo}</span> BPM
+    </div>`;
   document.body.appendChild(bar);
   bar.addEventListener('click', e => {
     const id = e.target?.id;
@@ -9221,7 +9601,18 @@ function checkExerciseAnswer(userAnswer) {
     s.streak = 0;
   }
 
-  s.completed.push({ type: ex.type, answer: userAnswer, ok: isCorrect, hint: ex.hint });
+  s.completed.push({
+    type: ex.type,
+    answer: userAnswer,
+    ok: isCorrect,
+    hint: ex.hint,
+    correctAnswer: ex.answer,
+    target: ex.target,
+    questionLabel: ex.answerLabel || ex.answer,
+    askMinor: ex.askMinor,
+    answerMajor: ex.answerMajor,
+    answerMinor: ex.answerMinor,
+  });
   _updateScoreDisplay();
 
   if (isCorrect) {
@@ -9349,15 +9740,25 @@ function _updateExerciseInputBar() {
   if (!APP.exerciseMode || !s) return;
   const ex = s.current;
   if (!ex) return;
-  // Only show text input bar for interval and key-sig exercises
-  if (ex.type !== EXERCISE_TYPES.INTERVAL_ID && ex.type !== EXERCISE_TYPES.KEY_SIG_ID) return;
+  // Show text input bar for note ID, interval ID, and key-sig exercises
+  const supportsTextInput = [
+    EXERCISE_TYPES.NOTE_ID,
+    EXERCISE_TYPES.INTERVAL_ID,
+    EXERCISE_TYPES.KEY_SIG_ID,
+  ].includes(ex.type);
+  if (!supportsTextInput) return;
 
   const bar = document.createElement('div');
   bar.id = 'exercise-input-bar';
   bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:8px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
-  const label = ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval name:' : ex.askMinor ? 'Minor key:' : 'Major key:';
+  const label = ex.type === EXERCISE_TYPES.NOTE_ID ? 'Note name:'
+    : ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval name:'
+    : ex.askMinor ? 'Minor key:' : 'Major key:';
+  const placeholder = ex.type === EXERCISE_TYPES.NOTE_ID ? 'e.g. C4, F#5'
+    : ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'e.g. Major 3rd, P5'
+    : 'e.g. C, Gm';
   bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">${label}</span>
-    <input id="exercise-answer-input" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <input id="exercise-answer-input" type="text" placeholder="${placeholder}" style="width:180px;padding:4px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
     <button class="modal-btn primary" id="exercise-submit-btn" style="padding:4px 12px;font-size:12px">Submit</button>`;
   document.body.appendChild(bar);
 
@@ -9393,9 +9794,15 @@ function _renderRhythmBeatGrid(ex) {
 
   const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
   const playsLeft = APP.exerciseSession?.playsLeft ?? maxPlays;
+  const currentTempo = APP.tempo || 100;
 
-  let html = '<div class="rg-play-row">';
-  html += `<button class="modal-btn primary" id="rg-play-btn">${playsLeft === Infinity ? '▶ Play Rhythm' : '▶ Play (' + playsLeft + ' left)'}</button>`;
+  let html = '<div class="rg-play-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">';
+  html += `<button class="modal-btn primary" id="rg-play-btn" style="flex:1;min-width:140px">${playsLeft === Infinity ? '▶ Play Rhythm' : '▶ Play (' + playsLeft + ' left)'}</button>`;
+  html += `<div style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+    <label style="font-size:12px;color:#4a5568;font-weight:600">♩ Tempo:</label>
+    <input type="range" id="rg-tempo" min="40" max="200" value="${currentTempo}" style="width:120px" aria-label="Tempo">
+    <span id="rg-tempo-val" style="font-size:13px;font-weight:700;color:#c05621;min-width:40px;text-align:right">${currentTempo}</span> BPM
+  </div>`;
   html += '</div>';
 
   for (let m = 0; m < measures; m++) {
@@ -9430,6 +9837,21 @@ function _renderRhythmBeatGrid(ex) {
     if (e.target.id === 'rg-end-btn') endExerciseSession();
   });
 
+  // Tempo slider handler
+  const tempoSlider = container.querySelector('#rg-tempo');
+  const tempoVal = container.querySelector('#rg-tempo-val');
+  if (tempoSlider && tempoVal) {
+    tempoSlider.addEventListener('input', e => {
+      const val = parseInt(e.target.value);
+      tempoVal.textContent = val;
+      APP.tempo = val;
+    });
+    tempoSlider.addEventListener('change', e => {
+      const val = parseInt(e.target.value);
+      APP.tempo = val;
+    });
+  }
+
   document.body.appendChild(container);
 }
 
@@ -9440,7 +9862,7 @@ function _playRhythmDictation(ex) {
   if (s.playsLeft !== undefined && s.playsLeft <= 0) { showToast('No plays remaining'); return; }
 
   const ctx = getAudioCtx();
-  const bpm = 100;
+  const bpm = APP.tempo || 100;
   const beatDur = 60 / bpm;
   const t0 = ctx.currentTime + 0.15;
   const beats = ex.target.beats;
@@ -9582,7 +10004,10 @@ function showExerciseDialog() {
   makeModal(`
     <h2>Exercise Browser</h2>
     <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Difficulty</div>
+      <button class="modal-btn primary" data-action="showCurriculumDialog" style="width:100%;margin-bottom:8px">
+        📚 Structured Curriculum
+      </button>
+      <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Or choose an exercise:</div>
       <div style="display:flex;gap:6px">
         ${diffs.map(d => `<button class="modal-btn ${d===currentDiff?'primary':'secondary'}" data-action="selectExerciseDifficulty" data-diff="${d}" style="flex:1;padding:8px 4px;font-size:12px">${d}</button>`).join('')}
       </div>
@@ -9652,28 +10077,106 @@ function showStudentProgress() {
   let totalAll = results.reduce((s, r) => s + r.total, 0);
   let overallPct = totalAll > 0 ? Math.round((totalCorrect / totalAll) * 100) : 0;
   let bestStreak = results.reduce((s, r) => Math.max(s, r.maxStreak || 0), 0);
-  let latestPct = results[results.length - 1].pct;
+  let totalTime = results.reduce((s, r) => s + (r.time || 0), 0);
 
+  // Recent 10 sessions for sparkline
+  const recent = results.slice(-10);
+  const recentPcts = recent.map(r => r.pct);
+
+  // Sparkline SVG
+  function sparkline(data, w, h, color) {
+    if (data.length < 2) return '';
+    const pts = data.map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - (v / 100) * h;
+      return `${x},${y}`;
+    });
+    return `<svg width="${w}" height="${h}" style="display:block;margin:0 auto">
+      <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${data.map((v, i) => {
+        const x = (i / (data.length - 1)) * w;
+        const y = h - (v / 100) * h;
+        return `<circle cx="${x}" cy="${y}" r="3" fill="${v >= 80 ? '#22c55e' : v >= 60 ? '#e6a817' : '#e06850'}" stroke="#fff" stroke-width="1.5"/>`;
+      }).join('')}
+    </svg>`;
+  }
+
+  // Per-type breakdown with mini bar chart
+  const maxSessions = Math.max(...Object.values(byType).map(r => r.length));
   let typeHtml = Object.keys(byType).sort().map(type => {
     const r = byType[type];
     const n = r.length;
     const avg = Math.round(r.reduce((s, x) => s + x.pct, 0) / n);
     const best = Math.max(...r.map(x => x.pct));
+    const worst = Math.min(...r.map(x => x.pct));
+    const latest = r[r.length - 1].pct;
     const label = TYPE_LABELS[type] || type;
-    return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.04)">
-      <span style="color:#2d3748;font-weight:600">${label}</span>
-      <span style="color:#4a5568">${n} sessions · avg ${avg}% · best ${best}%</span>
+    const barW = Math.round((n / maxSessions) * 100);
+    const avgColor = avg >= 80 ? '#22c55e' : avg >= 60 ? '#e6a817' : '#e06850';
+    return `<div style="margin-bottom:10px;padding:8px;background:rgba(192,86,33,0.03);border-radius:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:600;font-size:13px;color:#2d3748">${label}</span>
+        <span style="font-size:11px;color:${avgColor};font-weight:700">${avg}% avg</span>
+      </div>
+      <div style="height:6px;background:rgba(0,0,0,0.06);border-radius:3px;overflow:hidden;margin-bottom:4px">
+        <div style="width:${barW}%;height:100%;background:${avgColor};border-radius:3px;transition:width 0.3s"></div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:10px;color:rgba(74,85,104,0.7)">
+        <span>${n} session${n>1?'s':''}</span>
+        <span>best ${best}%</span>
+        <span>worst ${worst}%</span>
+        <span>latest ${latest}%</span>
+      </div>
     </div>`;
   }).join('');
 
+  // Mastery badges
+  const badges = [];
+  if (overallPct >= 90) badges.push({ emoji: '🏆', label: '90%+ Overall', color: '#c05621' });
+  if (bestStreak >= 10) badges.push({ emoji: '🔥', label: '10+ Streak', color: '#e06850' });
+  if (totalSessions >= 50) badges.push({ emoji: '⭐', label: '50+ Sessions', color: '#e6a817' });
+  if (totalSessions >= 100) badges.push({ emoji: '🌟', label: '100+ Sessions', color: '#22c55e' });
+  Object.keys(byType).forEach(type => {
+    const avg = Math.round(byType[type].reduce((s, x) => s + x.pct, 0) / byType[type].length);
+    if (avg >= 85 && byType[type].length >= 5) {
+      badges.push({ emoji: '🎯', label: `${TYPE_LABELS[type]} Master`, color: '#22c55e' });
+    }
+  });
+
+  const timeStr = totalTime >= 60 ? `${Math.floor(totalTime/60)}m ${totalTime%60}s` : `${totalTime}s`;
+
   makeModal(`
     <h2>📊 My Progress</h2>
-    <div style="text-align:center;margin-bottom:12px;font-size:14px;color:#4a5568">
-      <div style="font-size:36px;font-weight:700;color:#c05621">${overallPct}%</div>
-      <div>${totalCorrect}/${totalAll} across ${totalSessions} sessions</div>
-      <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-top:2px">Best streak: ${bestStreak} · Latest: ${latestPct}%</div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px">
+        <div style="text-align:center">
+          <div style="font-size:42px;font-weight:700;color:#c05621;line-height:1">${overallPct}%</div>
+          <div style="font-size:11px;color:rgba(74,85,104,0.6)">Overall</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:42px;font-weight:700;color:#22c55e;line-height:1">${totalCorrect}</div>
+          <div style="font-size:11px;color:rgba(74,85,104,0.6)">Correct</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:42px;font-weight:700;color:#4a5568;line-height:1">${totalSessions}</div>
+          <div style="font-size:11px;color:rgba(74,85,104,0.6)">Sessions</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;justify-content:center;font-size:12px;color:#4a5568;margin-bottom:8px">
+        <span>🔥 Best streak: ${bestStreak}</span>
+        <span>⏱ Total time: ${timeStr}</span>
+      </div>
+      ${recentPcts.length >= 2 ? `<div style="margin-top:8px;padding:8px;background:rgba(192,86,33,0.03);border-radius:8px">
+        <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px">Recent ${recent.length} sessions</div>
+        ${sparkline(recentPcts, 200, 40, '#c05621')}
+      </div>` : ''}
     </div>
-    <div style="margin-bottom:12px;max-height:200px;overflow-y:auto">
+    ${badges.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
+      ${badges.map(b => `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:${b.color}15;border:1px solid ${b.color}30;border-radius:20px;font-size:11px;font-weight:600;color:${b.color}">
+        <span style="font-size:14px">${b.emoji}</span>${b.label}
+      </span>`).join('')}
+    </div>` : ''}
+    <div style="max-height:220px;overflow-y:auto;margin-bottom:12px">
       ${typeHtml}
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -13971,7 +14474,15 @@ _registerAction('retryDictation', () => retryDictation());
 _registerAction('endExerciseSession', () => endExerciseSession());
 _registerAction('closeModalExercise', () => closeModalExercise());
 _registerAction('restartExerciseSession', () => restartExerciseSession());
-_registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
+  _registerAction('reviewExerciseSession', () => reviewExerciseSession());
+  _registerAction('showCurriculumDialog', () => showCurriculumDialog());
+  _registerAction('startCurriculumGrade', (e) => {
+    closeModal();
+    const grade = e.target.closest('[data-grade]')?.dataset.grade;
+    const exercise = e.target.closest('[data-exercise]')?.dataset.exercise;
+    if (grade && exercise !== undefined) startCurriculumGrade(grade, parseInt(exercise));
+  });
+  _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
 _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
 _registerAction('togglePlayback', () => togglePlayback());
 _registerAction('togglePracticeMode', () => togglePracticeMode());
