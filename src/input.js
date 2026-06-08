@@ -578,6 +578,22 @@ function insertNote(mi, si, pitch) {
   }
 }
 
+// ── Percussion palette relabeling ─────────────────────────────────
+// When a percussion clef stave is active, relabel note buttons to drum names
+const DRUM_LABELS = { C:'BD', D:'SN', E:'HH', F:'CC', G:'MT', A:'CB', B:'CL' };
+const NOTE_LABELS = { C:'C', D:'D', E:'E', F:'F', G:'G', A:'A', B:'B' };
+
+function updatePaletteForPercussion() {
+  const stave = getStaveBySI(APP.selectedStaff);
+  const isPerc = stave?.clef === 'percussion';
+  const map = isPerc ? DRUM_LABELS : NOTE_LABELS;
+  document.querySelectorAll('.note-key').forEach(btn => {
+    const name = btn.dataset.name;
+    const sym = btn.querySelector('.pal-sym');
+    if (sym && map[name]) sym.textContent = map[name];
+  });
+}
+
 // ── Controls ─────────────────────────────────────────────────────
 const NAME_TO_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 

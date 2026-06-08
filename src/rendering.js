@@ -467,6 +467,7 @@ function _runBootSelfCheck() {
 function renderScore() {
   try {
     _renderScoreBody();
+    updatePaletteForPercussion();
   } catch (err) {
     console.error('[Pauta] renderScore failed:', err);
     _showRenderFailure(err);
