@@ -1259,7 +1259,7 @@ function drawHairpin(ctx, x1, x2, y, isCresc) {
 
 // Draw dynamic text marking — aligned to note x, below staff, clear of hairpins
 // Middle line MIDI pitch per clef (above → stem down, below → stem up)
-const MIDDLE_LINE = { treble: 71, bass: 50, alto: 60 }; // B4, D3, C4
+const MIDDLE_LINE = { treble: 71, bass: 50, alto: 60, percussion: 60 }; // B4, D3, C4, C4
 
 function stemDir(pitch, clef) {
   // Above middle line → stem down (-1), below → stem up (1), on → down by convention

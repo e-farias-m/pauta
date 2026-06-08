@@ -29,6 +29,19 @@ function yToPitchAccurate(y, sl) {
   //   Bass:   D3 (MIDI 50), diatonic index 1 (D), octave 3
   const lineSpacing = (sl.bottomY - sl.topLineY) / 4;
 
+  // ── Percussion: map Y position directly to drum MIDI pitches ──
+  if (sl.clef === 'percussion') {
+    const n = (y - sl.topLineY) / lineSpacing; // 0=top, 4=bottom
+    if (n < 0.5) return 42;      // above staff → closed hi-hat
+    if (n < 1.0) return 49;      // top space → crash cymbal
+    if (n < 1.5) return 50;      // top line → high tom
+    if (n < 2.0) return 48;      // 2nd space → high tom 2
+    if (n < 2.5) return 45;      // middle line → mid tom
+    if (n < 3.0) return 38;      // 3rd space → snare
+    if (n < 3.5) return 43;      // 4th line → low-mid tom
+    return 36;                    // bottom → bass drum
+  }
+
   const REF = {
     treble: { dia: 6, oct: 4 },
     alto:   { dia: 0, oct: 4 },
@@ -282,8 +295,13 @@ function handleScoreTap(e) {
       const _stave = getStaveBySI(bestNote.si);
       const n = _stave?.measures[bestNote.mi]?.notes[bestNote.ni];
       if (n) {
+        const isPercLabel = _stave?.clef === 'percussion';
+        const DRUM_LABELS = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
+          41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
+          47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
         const label = n.type === 'rest'
           ? `Rest (${VEX_TO_MSCX[n.duration]||n.duration})`
+          : isPercLabel ? (DRUM_LABELS[n.pitch] || `Drum ${n.pitch}`)
           : `${NOTE_NAMES[PC_TO_DIA[n.pitch%12]].toUpperCase()}${Math.floor(n.pitch/12)-1}`;
         showToast(label + ' selected');
       }
@@ -396,8 +414,10 @@ function insertNote(mi, si, pitch) {
   const remaining    = Math.max(0, capacity - currentBeats);
 
   // Pre-compute displayed accidental (needed for overflow splitting)
+  // Skip all accidental/key-sig logic for percussion — pitches are direct drum mappings
   let displayAcc = null;
-  if (!APP.curRest) {
+  const isPercussion = getStaveBySI(si)?.clef === 'percussion';
+  if (!APP.curRest && !isPercussion) {
     const pc      = pitch % 12;
     const ks      = getResolvedKeySig(mi, si);
     const kMap    = getKeyAccidentals(ks);
@@ -543,11 +563,19 @@ function insertNote(mi, si, pitch) {
 
   scrollToSelectedMeasure();
 
-  const pc2     = pitch % 12;
-  const name    = NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase();
-  const oct     = Math.floor(pitch / 12) - 1;
-  const accLbl  = displayAcc==='#'?'♯':displayAcc==='b'?'♭':displayAcc==='n'?'♮':'';
-  showToast(APP.curRest ? 'Rest inserted' : `${name}${accLbl}${oct} (V${APP.curVoice})`);
+  const isPerc = getStaveBySI(si)?.clef === 'percussion';
+  if (isPerc) {
+    const DRUM_LABELS = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
+      41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
+      47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
+    showToast(APP.curRest ? 'Rest inserted' : `${DRUM_LABELS[pitch] || 'Drum ' + pitch} (V${APP.curVoice})`);
+  } else {
+    const pc2     = pitch % 12;
+    const name    = NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase();
+    const oct     = Math.floor(pitch / 12) - 1;
+    const accLbl  = displayAcc==='#'?'♯':displayAcc==='b'?'♭':displayAcc==='n'?'♮':'';
+    showToast(APP.curRest ? 'Rest inserted' : `${name}${accLbl}${oct} (V${APP.curVoice})`);
+  }
 }
 
 // ── Controls ─────────────────────────────────────────────────────
@@ -603,6 +631,21 @@ function insertNoteByName(name) {
     showToast('Tap ✏️ Input, or select a note to change its pitch');
     return;
   }
+
+  // ── Percussion: map letter keys to specific drums ──
+  const stave = getStaveBySI(APP.selectedStaff);
+  const clef  = stave?.clef || 'treble';
+  if (clef === 'percussion') {
+    const DRUM_MAP = { C:36, D:38, E:42, F:49, G:45, A:56, B:39 };
+    const midi = DRUM_MAP[name] || 38;
+    APP.curRest = false;
+    document.getElementById('btn-rest')?.classList.remove('active');
+    const _sDur = APP.curDur, _sDot = APP.curDot;
+    insertNote(APP.selectedMeasure, APP.selectedStaff, midi);
+    APP.curDur = _sDur; APP.curDot = _sDot;
+    return;
+  }
+
   let pc = NAME_TO_PC[name];
   // ── Apply key signature: if the key has a sharp or flat on this letter,
   //    use that accidental unless the user has explicitly overridden it ──
@@ -620,8 +663,6 @@ function insertNoteByName(name) {
 
   // ── Default octave by clef when there is no previous note ──────
   // Treble: octave 4 (middle range), Alto: octave 3 (C3–B3 centre), Bass: octave 3
-  const stave = getStaveBySI(APP.selectedStaff);
-  const clef  = stave?.clef || 'treble';
   const defaultOct = clef === 'bass' ? 3 : 4;
 
   // Find the last real note in this measure to use as reference pitch
@@ -797,7 +838,18 @@ const SOLFEGE = [
   { nat:'Ti', sh:'Ti', fl:'Te' },  // B   / B#  / Cb
 ];
 
-function noteLabelForPitch(pitch, ks, acc, mode) {
+function noteLabelForPitch(pitch, ks, acc, mode, clef) {
+  // ── Percussion: return drum abbreviations ──
+  if (clef === 'percussion') {
+    const DRUM_NAMES = {
+      35:'BD', 36:'BD', 37:'SS', 38:'SN', 39:'SS', 40:'SN',
+      41:'LT', 42:'HH', 43:'LT', 44:'CH', 45:'MT',
+      46:'OH', 47:'MT', 48:'HT', 49:'CC', 50:'HT', 51:'RC',
+      52:'CH', 53:'RB', 56:'CB'
+    };
+    const name = DRUM_NAMES[pitch];
+    if (name) return name;
+  }
   const pc = pitch % 12;
   const dia = PC_TO_DIA[pc];
   // Determine the effective key-sig context for spelling
@@ -855,7 +907,8 @@ function renderNoteLabels() {
     const n = m?.notes[nl.ni];
     if (!n || n.type !== 'note') continue;
     const ks = getResolvedKeySig(nl.mi, nl.si);
-    const label = noteLabelForPitch(n.pitch, ks, n.accidental, mode);
+    const clef = sl?.clef || 'treble';
+    const label = noteLabelForPitch(n.pitch, ks, n.accidental, mode, clef);
     const sl = APP.staveLayout.find(l => l.mi === nl.mi && l.si === nl.si);
     const staffBot = sl ? sl.bottomY : nl.y;
     const fontSize = Math.round(LAYOUT.STAVE_H * 0.22);
