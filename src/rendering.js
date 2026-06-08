@@ -1374,10 +1374,9 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
             stem_direction: dirs[ni] || VF.Stem.UP
           });
           // Apply appropriate notehead for drum voice
-          const nhType = pos.notehead === 'x' ? VF.NoteHead.TYPE.X :
-                         pos.notehead === 'diamond' ? VF.NoteHead.TYPE.DIAMOND :
-                         pos.notehead === 'triangle' ? VF.NoteHead.TYPE.TRIANGLE :
-                         VF.NoteHead.TYPE.QUARTER;
+          const nhType = pos.notehead === 'x' ? 'x' :
+                         pos.notehead === 'diamond' ? 'D' :
+                         pos.notehead === 'triangle' ? 'T' : 'N';
           vfSafe(() => vfNote.setNoteHead(nhType, 0), 'percNotehead');
           if (note.dots) { vfSafe(() => vfNote.addDot(0), 'percDot'); }
           arr.push(vfNote);
@@ -1513,7 +1512,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           const isFirstNote = asgn?.hints?.showFirstNote && ni === 0;
           if (hiddenSet.has('pitch') && !isFirstNote && (!ans || ans.pitch == null)) {
             // Unanswered: grey diamond placeholder
-            vfSafe(() => vfNote.setNoteHead(VF.NoteHead.TYPE.DIAMOND, 0), 'asgnPlaceholder');
+            vfSafe(() => vfNote.setNoteHead('D', 0), 'asgnPlaceholder');
             vfNote.setStyle({ fillStyle: '#bbb', strokeStyle: '#999' });
           }
           if (ans && ans.pitch != null) {
