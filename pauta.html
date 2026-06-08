@@ -838,6 +838,72 @@ body.exercise-mode #score-title::after {
 body.exercise-mode .btn-top:not([data-action="togglePlayback"]):not([data-action="stopPlayback"]) { opacity: 0.5; pointer-events: none; }
 body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
+/* Exercise score pill */
+#exercise-score {
+  background: rgba(247,243,237,0.96);
+  border: 1px solid rgba(192,86,33,0.15);
+  border-radius: 16px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #4a5568;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  min-width: 80px;
+  transition: transform 0.15s ease;
+}
+#exercise-score:hover { transform: scale(1.04); }
+
+#exercise-score .score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#exercise-score .score-progress-bar {
+  width: 60px;
+  height: 4px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#exercise-score .score-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg,#c05621,#e8833a);
+  transition: width 0.4s ease;
+}
+#exercise-score .score-accuracy { font-weight: 700; }
+#exercise-score .score-streak {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Score pulse animation */
+@keyframes scorePulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.exercise-score-pulse {
+  animation: scorePulse 0.35s ease-out;
+}
+
+/* Exercise card hover/active */
+.exercise-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+.exercise-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.10);
+}
+.exercise-card:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
 /* ── Rhythm Worksheet Beat Grid ──────────────────────────────── */
 #rhythm-beat-grid {
   position: fixed;
@@ -908,6 +974,71 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   border-color: #e06850;
   box-shadow: 0 0 0 2px rgba(224,104,80,0.25);
 }
+
+/* ── Practice Mode Note Feedback ──────────────────────────────── */
+.practice-feedback {
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.practice-feedback.practice-correct .vf-stem,
+.practice-feedback.practice-correct .vf-notehead {
+  fill: #22c55e;
+  stroke: #22c55e;
+}
+.practice-feedback.practice-wrong .vf-stem,
+.practice-feedback.practice-wrong .vf-notehead {
+  fill: #e06850;
+  stroke: #e06850;
+}
+.practice-feedback.practice-octave .vf-stem,
+.practice-feedback.practice-octave .vf-notehead {
+  fill: #e6a817;
+  stroke: #e6a817;
+}
+.practice-feedback.practice-near .vf-stem,
+.practice-feedback.practice-near .vf-notehead {
+  fill: #f59e0b;
+  stroke: #f59e0b;
+}
+
+/* Feedback overlay badge */
+.practice-badge {
+  position: absolute;
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 10;
+  animation: practice-badge-fade 1.2s ease-out forwards;
+}
+.practice-badge.correct {
+  background: rgba(34,197,94,0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34,197,94,0.3);
+}
+.practice-badge.wrong {
+  background: rgba(224,104,80,0.15);
+  color: #e06850;
+  border: 1px solid rgba(224,104,80,0.3);
+}
+.practice-badge.octave {
+  background: rgba(230,168,23,0.15);
+  color: #e6a817;
+  border: 1px solid rgba(230,168,23,0.3);
+}
+.practice-badge.near {
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+@keyframes practice-badge-fade {
+  0% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 1; transform: translateY(-8px); }
+  100% { opacity: 0; transform: translateY(-14px); }
+}
+
 #rhythm-beat-grid .rg-controls {
   display: flex;
   gap: 8px;
@@ -4239,7 +4370,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
       if (ns === 1 && instr && instr.recorder) {
         const recG = renderLargeRecorder([''], 0, '');
         const recScale = nStaves > 1 ? 1.8 : 1.35;
-        recG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136},${diagramCY + 107 * recScale}) scale(${recScale})`);
+        recG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136},${diagramCY - 95 * recScale}) scale(${recScale}, -${recScale})`);
         recG.setAttribute('id', diagramId);
         recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
         recG.setAttribute('data-instr-type', 'recorder');
@@ -4918,7 +5049,7 @@ function positionAllDiagrams(scrollOverride) {
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.6;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136 + scrollLeft},${recCY + 107 * recScale}) scale(${recScale})`);
+    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136 + scrollLeft},${recCY - 95 * recScale}) scale(${recScale}, -${recScale})`);
   });
   // Woodwind diagrams
   document.querySelectorAll('[data-instr-type="woodwind"]').forEach(el => {
@@ -5937,6 +6068,7 @@ function diagNoteName(parent, text, x, y, opts) {
   el.setAttribute('font-weight', '700');
   el.setAttribute('fill', opts?.fill || '#555');
   el.setAttribute('font-family', opts?.family || "'Helvetica Neue',Helvetica,sans-serif");
+  if (opts?.flipY) el.setAttribute('transform', `translate(${x},${y}) scale(1,-1) translate(${-x},${-y})`);
   el.textContent = text;
   parent.appendChild(el);
 }
@@ -5961,11 +6093,13 @@ function diagAltOverlay(parent, containerType, fingArr, altIndex, w, h, updateFn
   });
   parent.appendChild(overlay);
   const altText = document.createElementNS(NS_SVG, 'text');
-  altText.setAttribute('x', opts?.tx || w - 4); altText.setAttribute('y', opts?.ty || h - 4);
+  const tx = opts?.tx || w - 4; const ty = opts?.ty || h - 4;
+  altText.setAttribute('x', tx); altText.setAttribute('y', ty);
   altText.setAttribute('text-anchor', 'end');
   altText.setAttribute('font-size', opts?.fontSize || '5');
   altText.setAttribute('fill', '#998a70');
   altText.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+  if (opts?.flipY) altText.setAttribute('transform', `translate(${tx},${ty}) scale(1,-1) translate(${-tx},${-ty})`);
   altText.textContent = `\u21BB ${altIndex + 1}/${fingArr.length}`;
   parent.appendChild(altText);
 }
@@ -6006,7 +6140,6 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   // Body paths from the SVG use raw coordinates offset by (-286.62, -243.23)
   // to map into the 50×500 viewBox space.
-  // Flip vertically so mouthpiece points down, bell points up.
   const bodyGrp = document.createElementNS(ns, 'g');
   bodyGrp.setAttribute('transform', 'translate(-286.62, -243.23) translate(0, 432) scale(1, -1)');
 
@@ -6051,24 +6184,23 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   inner.appendChild(bodyGrp);
 
-  // SVG hole positions for the flipped recorder (inner-space coordinates)
-  // Holes are in `inner` (not bodyGrp) so they don't go through the flip transform.
-  // Y values calculated for the flipped body position.
+  // SVG hole positions (inner-space coordinates, natural orientation)
+  // Mouthpiece at top (low Y), bell/double holes at bottom (high Y)
   const SVG_HOLES = [
-    [ '1', 24.8, -278.0, 6.3, false ],
-    [ '2', 24.8, -312.5, 6.3, false ],
-    [ '3', 24.8, -350.0, 6.3, false ],
-    [ '4', 24.8, -380.6, 4.1, false ],
-    [ '5', 24.8, -414.7, 6.3, false ],
-    [ '6', 20.8, -440.5, 3.6, false ],  // 6a
-    [ '7', 29.7, -441.8, 2.6, false ],  // 6b
-    [ '8', 17.1, -473.7, 3.6, false ],  // 7a
-    [ '9', 25.2, -475.0, 2.6, false ],  // 7b
+    [ '0', 2, -278.0, 6.3, false ],      // thumb (left of body)
+    [ '2', 24.8, -312.5, 6.3, false ],   // hole 1
+    [ '3', 24.8, -350.0, 6.3, false ],   // hole 2
+    [ '4', 24.8, -380.6, 4.1, false ],   // hole 3
+    [ '5', 24.8, -414.7, 6.3, false ],   // hole 4
+    [ '6', 20.8, -440.5, 3.6, false ],   // 6a
+    [ '7', 29.7, -441.8, 2.6, false ],   // 6b
+    [ '8', 17.1, -473.7, 3.6, false ],   // 7a
+    [ '9', 25.2, -475.0, 2.6, false ],   // 7b (nearest bell)
   ];
 
   // Built-in hole base shapes (inner-space coordinates)
   const holeDefs = [
-    [24.8,-278.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
+    [2,-278.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
     [24.8,-380.6,4.1],[24.8,-414.7,6.3]
   ];
   for (const [hx, hy, hr] of holeDefs) {
@@ -6096,13 +6228,12 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   // Hole overlays — fingering indicators
   const covered = pf.covered;
   const halfHole = pf.halfHole;
-  const thumbPinched = fing.includes('X');
 
   const holeLabelStyle = 'font-family:"Helvetica Neue",Helvetica,sans-serif;font-size:3.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
 
   for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
     const idx = SVG_HOLES.indexOf(SVG_HOLES.find(h => h[0] === id));
-    const isCovered = covered.has(id);
+    const isCovered = covered.has(+id);
     const isHalf = halfHole.has(idx);
     const drawRx = (isCovered || isHalf) ? rx * 1.2 : rx;
 
@@ -6136,57 +6267,22 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
     const holeLabel = id.length === 1 ? id : id;  // '1','2','3','4','5','6a','7a'
     // Only label main holes (1-5 and thumb)
     if (!isEllipse) {
+      const lblY = hy - drawRx - 1.5;
       const lbl = document.createElementNS(ns, 'text');
       lbl.setAttribute('x', hx);
-      lbl.setAttribute('y', hy - drawRx - 1.5);
+      lbl.setAttribute('y', lblY);
       lbl.setAttribute('style', holeLabelStyle);
+      lbl.setAttribute('transform', `translate(${hx},${lblY}) scale(1,-1) translate(${-hx},${-lblY})`);
       lbl.textContent = holeLabel;
       inner.appendChild(lbl);
     }
   }
 
-  // Thumb indicator (thumb is on the back, not visible in front view)
-  const thumbCovered = covered.has('0');
-  const tx = 24.8, ty = -245.3;
-  if (thumbCovered) {
-    const el = document.createElementNS(ns, 'circle');
-    el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
-    el.setAttribute('fill', diagActiveFill(APP.playing));
-    el.setAttribute('stroke', diagActiveStroke(APP.playing));
-    el.setAttribute('stroke-width', '1');
-    inner.appendChild(el);
-    diagHighlight(inner, tx, ty, 4, APP.playing);
-  } else {
-    const el = document.createElementNS(ns, 'circle');
-    el.setAttribute('cx', tx); el.setAttribute('cy', ty); el.setAttribute('r', 4);
-    el.setAttribute('fill', '#7a5a30');
-    el.setAttribute('stroke', '#7a5a30');
-    el.setAttribute('stroke-width', '0.6');
-    inner.appendChild(el);
-  }
-  // Pinched thumb: top-half filled semi-ellipse (flipped y)
-  if (thumbPinched) {
-    const semi = document.createElementNS(ns, 'path');
-    semi.setAttribute('d', 'M 20.8,-245.3 A 4,2.5 0 0,0 28.8,-245.3 Z');
-    semi.setAttribute('fill', diagActiveFill(APP.playing));
-    semi.setAttribute('stroke', 'none');
-    inner.appendChild(semi);
-  }
-  // "T" label (flipped y, 6 inner-units above thumb)
-  const lbl = document.createElementNS(ns, 'text');
-  lbl.setAttribute('x', tx); lbl.setAttribute('y', ty - 6);
-  lbl.setAttribute('text-anchor', 'middle');
-  lbl.setAttribute('font-size', '3.5');
-  lbl.setAttribute('fill', '#7a5a30');
-  lbl.setAttribute('font-family', 'Georgia,sans-serif');
-  lbl.textContent = 'T';
-  inner.appendChild(lbl);
-
   // ── Note name ─────────────────────────────────────────────────
-  diagNoteName(inner, noteName, 25, -230, { size: '8' });
+  diagNoteName(inner, noteName, 25, -230, { size: '8', flipY: true });
 
   // ── Alternate-fingering click overlay ─────────────────────────
-  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 285, updateRecorderDiagram, { x: '12', y: '-520', tx: '38', ty: '-233', fontSize: '4' });
+  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 285, updateRecorderDiagram, { x: '12', y: '-520', tx: '38', ty: '-233', fontSize: '4', flipY: true });
 
   g.appendChild(inner);
 
@@ -6373,47 +6469,6 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   mkGrad('ww-bassoon-grad',[['0%','#c0b090'],['25%','#d0c4a8'],['50%','#c0b090'],['75%','#b0a080'],['100%','#a09070']]);
   svg.appendChild(defs);
 
-  // ── Body ──────────────────────────────────────────────────────
-  const body = document.createElementNS(ns, 'path');
-  body.setAttribute('d', bodyD);
-  body.setAttribute('fill', fill);
-  body.setAttribute('stroke', bodyStroke);
-  body.setAttribute('stroke-width', '0.8');
-  svg.appendChild(body);
-
-  // Joint lines (subtle separators between upper/lower sections)
-  if (!isFlute) {
-    const jointY = type === 'bassoon' ? 105 : [105, 175];
-    const jYs = Array.isArray(jointY) ? jointY : [jointY];
-    jYs.forEach(jy => {
-      const jl = document.createElementNS(ns, 'line');
-      jl.setAttribute('x1', type==='bassoon'? 52 : 54);
-      jl.setAttribute('x2', type==='bassoon'? 78 : 65);
-      jl.setAttribute('y1', jy); jl.setAttribute('y2', jy);
-      jl.setAttribute('stroke', bodyStroke);
-      jl.setAttribute('stroke-width', '0.6');
-      jl.setAttribute('stroke-dasharray', '1.5,1.5');
-      svg.appendChild(jl);
-    });
-  } else {
-    // Flute: dashed line at body/foot-joint boundary + embouchure hole visual
-    const div = document.createElementNS(ns, 'line');
-    div.setAttribute('x1', 177); div.setAttribute('x2', 177);
-    div.setAttribute('y1', 27);  div.setAttribute('y2', 47);
-    div.setAttribute('stroke', bodyStroke);
-    div.setAttribute('stroke-width', '0.7');
-    div.setAttribute('stroke-dasharray', '2,2');
-    svg.appendChild(div);
-    // Embouchure hole on head-joint (blow hole — visual landmark only)
-    const emb = document.createElementNS(ns, 'ellipse');
-    emb.setAttribute('cx', '14'); emb.setAttribute('cy', '37');
-    emb.setAttribute('rx', '4'); emb.setAttribute('ry', '3');
-    emb.setAttribute('fill', '#5a4a38');
-    emb.setAttribute('stroke', '#998a70');
-    emb.setAttribute('stroke-width', '0.5');
-    svg.appendChild(emb);
-  }
-
   // ── Register / Octave key ─────────────────────────────────────
   if (type === 'clarinet' || type === 'sax') {
     const [rx, ry] = type === 'clarinet' ? [46, 28] : [55, 34];
@@ -6421,8 +6476,8 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     const regRing = document.createElementNS(ns, 'circle');
     regRing.setAttribute('cx', rx); regRing.setAttribute('cy', ry);
     regRing.setAttribute('r', rR);
-    regRing.setAttribute('fill', regActive ? (APP.playing ? '#ff5a4a' : '#3a3028') : fill);
-    regRing.setAttribute('stroke', bodyStroke);
+    regRing.setAttribute('fill', regActive ? (APP.playing ? '#ff5a4a' : '#3a3028') : '#e8e0d4');
+    regRing.setAttribute('stroke', '#998a70');
     regRing.setAttribute('stroke-width', '0.7');
     svg.appendChild(regRing);
     if (regActive) {
@@ -6430,18 +6485,9 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     }
     const regLbl = document.createElementNS(ns, 'text');
     regLbl.setAttribute('x', rx); regLbl.setAttribute('y', ry + rR + 7);
-    regLbl.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4.2px;font-weight:700;fill:#b8a080;text-anchor:middle;pointer-events:none');
+    regLbl.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:7px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none');
     regLbl.textContent = type === 'clarinet' ? 'Reg' : 'Oct';
     svg.appendChild(regLbl);
-    // Small arm
-    if (type === 'clarinet') {
-      const arm = document.createElementNS(ns, 'line');
-      arm.setAttribute('x1', rx); arm.setAttribute('y1', ry);
-      arm.setAttribute('x2', 54); arm.setAttribute('y2', ry);
-      arm.setAttribute('stroke', bodyStroke);
-      arm.setAttribute('stroke-width', '0.4');
-      svg.appendChild(arm);
-    }
   }
 
   // ── Keywork ───────────────────────────────────────────────────
@@ -6449,7 +6495,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   const halfHole = pf.halfHole;
 
   const regionBounds = {};
-  const keyLabelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4.2px;font-weight:600;fill:#998a70;text-anchor:middle;pointer-events:none';
+  const keyLabelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:7px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none';
 
   keys.forEach(([kx, ky, label, hand, isAux], i) => {
     const isP = pressed.has(i);
@@ -6567,34 +6613,6 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     svg.appendChild(lbl);
   });
 
-  // ── Hand labels ───────────────────────────────────────────────
-  const labelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:6px;font-weight:700;fill:#b8a080;pointer-events:none';
-  for (const hand of ['T','L','R']) {
-    if (!regionBounds[hand]) continue;
-    const midY = hand === 'T' ? regionBounds[hand].minY :
-                 (regionBounds[hand].minY + regionBounds[hand].maxY) / 2;
-    let lx = hand === 'T' ? 36 :
-             hand === 'L' ? (type==='bassoon'? 42 : 48) : (type==='bassoon'? 70 : 74);
-    if (isFlute) {
-      if (hand === 'T') continue;
-      // Subtle L / R markers positioned inside the tube body
-      const lx = hand === 'L' ? 53 : 122;
-      const fl = document.createElementNS(ns, 'text');
-      fl.setAttribute('x', lx); fl.setAttribute('y', 39);
-      fl.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:4px;font-weight:700;fill:#b8a080;pointer-events:none');
-      fl.setAttribute('text-anchor', 'middle');
-      fl.textContent = hand;   // 'L' or 'R'
-      svg.appendChild(fl);
-      continue;
-    }
-    const lb = document.createElementNS(ns, 'text');
-    lb.setAttribute('x', lx); lb.setAttribute('y', midY + 2);
-    lb.setAttribute('style', labelStyle);
-    lb.setAttribute('text-anchor', 'middle');
-    lb.textContent = hand === 'T' ? 'Th' : hand;
-    svg.appendChild(lb);
-  }
-
   // ── Note name ────────────────────────────────────────────────
   diagNoteName(svg, noteName, w / 2, isFlute ? 8 : 12);
 
@@ -6658,36 +6676,6 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
     const spacing = (endX - startX) / 6;
     const cy = 40;
 
-    // Body silhouette — tapered brass tube
-    const tbPath = document.createElementNS(ns, 'path');
-    tbPath.setAttribute('d',
-      'M 4,' + (cy - 3) + ' L ' + (endX - 4) + ',' + (cy - 2.5)
-      + ' Q ' + (endX + 2) + ',' + (cy - 5) + ' ' + (endX + 10) + ',' + (cy - 7)
-      + ' L ' + (endX + 10) + ',' + (cy + 7)
-      + ' Q ' + (endX + 2) + ',' + (cy + 5) + ' ' + (endX - 4) + ',' + (cy + 2.5)
-      + ' L 4,' + (cy + 3) + ' Z');
-    tbPath.setAttribute('fill', 'url(#brass-tube-grad)');
-    tbPath.setAttribute('stroke', '#a89878');
-    tbPath.setAttribute('stroke-width', '0.6');
-    svg.appendChild(tbPath);
-
-    // Bell flare with gradient
-    const bell = document.createElementNS(ns, 'ellipse');
-    bell.setAttribute('cx', endX + 9); bell.setAttribute('cy', cy);
-    bell.setAttribute('rx', 11); bell.setAttribute('ry', 7);
-    bell.setAttribute('fill', 'url(#brass-bell-grad)');
-    bell.setAttribute('stroke', '#a89878');
-    bell.setAttribute('stroke-width', '0.8');
-    svg.appendChild(bell);
-
-    // Slide rail
-    const rail = document.createElementNS(ns, 'line');
-    rail.setAttribute('x1', startX); rail.setAttribute('y1', cy);
-    rail.setAttribute('x2', endX); rail.setAttribute('y2', cy);
-    rail.setAttribute('stroke', '#d0c8b8'); rail.setAttribute('stroke-width', '2');
-    rail.setAttribute('stroke-linecap', 'round');
-    svg.appendChild(rail);
-
     // Position markers
     for (let i = 1; i <= 7; i++) {
       const x = startX + (i - 1) * spacing;
@@ -6739,41 +6727,6 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
     const spacing = 40;
     const startX = w / 2;
     const startY = 35;
-
-    // Body silhouette — tapered brass tube with gradient
-    const tx = startX, tTop = 8, tBot = h - 14;
-    const bellW = isHorn ? 32 : 18;
-    const tubeW = 7;
-    const tubePath = document.createElementNS(ns, 'path');
-    tubePath.setAttribute('d',
-      'M ' + (tx - tubeW) + ',' + tBot + ' Q ' + (tx - tubeW - 2) + ',' + (tBot - 10) + ' ' + (tx - bellW) + ',' + (tTop + 8)
-      + ' Q ' + (tx - bellW) + ',' + tTop + ' ' + (tx - bellW + 4) + ',' + (tTop - 2)
-      + ' L ' + (tx + bellW - 4) + ',' + (tTop - 2) + ' Q ' + (tx + bellW) + ',' + tTop + ' ' + (tx + bellW) + ',' + (tTop + 8)
-      + ' Q ' + (tx + tubeW + 2) + ',' + (tBot - 10) + ' ' + (tx + tubeW) + ',' + tBot + ' Z');
-    tubePath.setAttribute('fill', 'url(#brass-tube-grad)');
-    tubePath.setAttribute('stroke', '#a89878');
-    tubePath.setAttribute('stroke-width', '0.8');
-    svg.appendChild(tubePath);
-
-    // Bell flare with gradient
-    const bell = document.createElementNS(ns, 'ellipse');
-    bell.setAttribute('cx', tx); bell.setAttribute('cy', tTop - 1);
-    bell.setAttribute('rx', bellW - 2); bell.setAttribute('ry', 5);
-    bell.setAttribute('fill', 'url(#brass-bell-grad)');
-    bell.setAttribute('stroke', '#a89878');
-    bell.setAttribute('stroke-width', '0.7');
-    svg.appendChild(bell);
-
-    // Valve stems (connecting tubes behind valves)
-    for (let vi = 0; vi < nValves; vi++) {
-      const vsy = startY + vi * spacing;
-      const stem = document.createElementNS(ns, 'rect');
-      stem.setAttribute('x', tx - 2); stem.setAttribute('y', tTop + 4);
-      stem.setAttribute('width', 4); stem.setAttribute('height', vsy - tTop - 4);
-      stem.setAttribute('fill', '#c8b898');
-      stem.setAttribute('stroke', 'none');
-      svg.appendChild(stem);
-    }
 
     for (let vi = 0; vi < nValves; vi++) {
       const cy = startY + vi * spacing;
@@ -7512,6 +7465,19 @@ const NAME_TO_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 
 function insertNoteByName(name) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  // Practice mode: palette input validates against target note
+  if (APP.practiceMode && APP.practiceWaiting) {
+    let pc = NAME_TO_PC[name];
+    if (APP.curAcc === '#') pc = (pc + 1) % 12;
+    if (APP.curAcc === 'b') pc = (pc + 11) % 12;
+    // Use target octave from current note
+    const measure = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
+    const note = measure?.notes[APP.selectedNoteIdx];
+    const targetOct = note ? Math.floor(note.pitch / 12) - 1 : 4;
+    const midi = targetOct * 12 + pc + 12;
+    _checkPracticeNote(midi);
+    return;
+  }
   const canEnter = APP.inputMode || (APP.chordMode && APP.selectedNoteIdx >= 0);
   // Pitch-edit mode: note selected, not input mode, not chord mode → change existing pitch
   if (!APP.inputMode && !APP.chordMode && APP.selectedNoteIdx >= 0) {
@@ -8638,12 +8604,14 @@ const EXERCISE = {};
 // real-time feedback, hints, and progress tracking.
 
 const EXERCISE_TYPES = {
-  NOTE_ID:      'note_id',
-  INTERVAL_ID:  'interval_id',
-  RHYTHM_READ:  'rhythm_read',
-  MELODY_DICT:  'melody_dictation',
-  KEY_SIG_ID:   'key_sig_id',
-  RHYTHM_WS:    'rhythm_worksheet',
+  NOTE_ID:       'note_id',
+  INTERVAL_ID:   'interval_id',
+  RHYTHM_READ:   'rhythm_read',
+  MELODY_DICT:   'melody_dictation',
+  KEY_SIG_ID:    'key_sig_id',
+  RHYTHM_WS:     'rhythm_worksheet',
+  SCALE_ID:      'scale_id',
+  NOTE_CONSTRUCT:'note_construct',
 };
 
 const INTERVAL_NAMES = {
@@ -8711,6 +8679,18 @@ const CURRICULUM = [
       { type: 'interval_id', difficulty: 'intermediate', label: 'All Intervals', count: 8 },
     ],
     unlockCondition: { type: 'sessions', count: 5, exerciseType: 'note_id' },
+  },
+  {
+    id: 'grade-3b-scales',
+    title: 'Grade 3b: Scale Identification',
+    description: 'Identify major, minor, and pentatonic scales by ear',
+    icon: '🎹',
+    exercises: [
+      { type: 'scale_id', difficulty: 'beginner', label: 'Major & Minor', count: 8 },
+      { type: 'scale_id', difficulty: 'intermediate', label: 'Modes & Pentatonic', count: 8 },
+      { type: 'scale_id', difficulty: 'advanced', label: 'All Scales', count: 8 },
+    ],
+    unlockCondition: { type: 'sessions', count: 3, exerciseType: 'note_id' },
   },
   {
     id: 'grade-4-keysigs',
@@ -8937,8 +8917,6 @@ function recommendDifficulty(exerciseType) {
   return DIFF_NAMES[currentDiff];
 }
 
-function _saveExerciseResult(session) {
-  if (!session || session.totalCount === 0) return;
 function generateExercise(type, difficulty = 'beginner') {
   const diffs = { beginner: 0, intermediate: 1, advanced: 2 };
   const d = diffs[difficulty] ?? 0;
@@ -8956,6 +8934,10 @@ function generateExercise(type, difficulty = 'beginner') {
       return _genKeySigId(d);
     case EXERCISE_TYPES.RHYTHM_WS:
       return _genRhythmWorksheet(d);
+    case EXERCISE_TYPES.SCALE_ID:
+      return _genScaleId(d);
+    case EXERCISE_TYPES.NOTE_CONSTRUCT:
+      return _genNoteConstruct(d);
     default:
       return _genNoteId(d);
   }
@@ -8994,6 +8976,35 @@ function _genNoteId(difficulty) {
     target: { pitch, name: names[pc], octave: oct },
     answer,
     hint: `Count lines and spaces from the bottom of the staff.`,
+  };
+}
+
+function _genNoteConstruct(difficulty) {
+  const levelNames = ['beginner','intermediate','advanced'];
+  const kitRange = _kitExerciseRange();
+  let pitch;
+  if (kitRange) {
+    const pool = NATURAL_PITCHES[levelNames[difficulty]];
+    const validPool = pool ? pool.filter(p => p >= kitRange.min && p <= kitRange.max) : null;
+    pitch = validPool?.length
+      ? validPool[Math.floor(Math.random() * validPool.length)]
+      : Math.floor(Math.random() * (kitRange.max - kitRange.min + 1)) + kitRange.min;
+  } else {
+    const pool = NATURAL_PITCHES[levelNames[difficulty]];
+    pitch = pool
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : Math.floor(Math.random() * 37) + 48;
+  }
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const pc = pitch % 12;
+  const oct = Math.floor(pitch / 12) - 1;
+  const answer = names[pc] + oct;
+  return {
+    type: EXERCISE_TYPES.NOTE_CONSTRUCT,
+    difficulty,
+    target: { pitch, name: names[pc], octave: oct },
+    answer,
+    hint: `Click on the correct line or space on the staff.`,
   };
 }
 
@@ -9113,11 +9124,75 @@ function _genKeySigId(difficulty) {
   };
 }
 
+// ── Scale Identification Exercise ──────────────────────────────
+const SCALE_PATTERNS = {
+  major:            [0,2,4,5,7,9,11],
+  natural_minor:    [0,2,3,5,7,8,10],
+  harmonic_minor:   [0,2,3,5,7,8,11],
+  melodic_minor_up: [0,2,3,5,7,9,11],
+  dorian:           [0,2,3,5,7,9,10],
+  mixolydian:       [0,2,4,5,7,9,10],
+  lydian:           [0,2,4,6,7,9,11],
+  phrygian:         [0,1,3,5,7,8,10],
+  pentatonic_major: [0,2,4,7,9],
+  pentatonic_minor: [0,3,5,7,10],
+  blues:            [0,3,5,6,7,10],
+  whole_tone:       [0,2,4,6,8,10],
+};
+
+const SCALE_LABELS = {
+  major: 'Major', natural_minor: 'Natural Minor', harmonic_minor: 'Harmonic Minor',
+  melodic_minor_up: 'Melodic Minor (asc)', dorian: 'Dorian', mixolydian: 'Mixolydian',
+  lydian: 'Lydian', phrygian: 'Phrygian',
+  pentatonic_major: 'Major Pentatonic', pentatonic_minor: 'Minor Pentatonic',
+  blues: 'Blues', whole_tone: 'Whole Tone',
+};
+
+const SCALE_KEYS = Object.keys(SCALE_PATTERNS);
+const CHROMATIC_NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FLAT_NAMES = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+
+function _scaleNoteName(midi) {
+  const pc = midi % 12;
+  const oct = Math.floor(midi / 12) - 1;
+  const useFlat = [1,3,6,8,10].includes(pc);
+  return (useFlat ? FLAT_NAMES : CHROMATIC_NOTE_NAMES)[pc] + oct;
+}
+
+function _genScaleId(difficulty) {
+  const kitRange = _kitExerciseRange();
+  const minTonic = kitRange ? Math.max(kitRange.min, 60) : 60;  // C4
+  const maxTonic = kitRange ? Math.min(kitRange.max, 72) : 72;  // C5
+
+  let pool;
+  if (difficulty === 0) {
+    pool = ['major', 'natural_minor', 'pentatonic_major', 'pentatonic_minor'];
+  } else if (difficulty === 1) {
+    pool = ['major', 'natural_minor', 'harmonic_minor', 'melodic_minor_up', 'dorian', 'mixolydian', 'pentatonic_major', 'pentatonic_minor'];
+  } else {
+    pool = SCALE_KEYS;
+  }
+
+  const scaleType = pool[Math.floor(Math.random() * pool.length)];
+  const tonic = minTonic + Math.floor(Math.random() * (maxTonic - minTonic + 1));
+  const intervals = SCALE_PATTERNS[scaleType];
+  const notes = intervals.map(i => tonic + i);
+
+  return {
+    type: EXERCISE_TYPES.SCALE_ID,
+    difficulty: DIFF_NAMES[difficulty] || 'beginner',
+    target: { scaleType, tonic, notes },
+    answer: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType],
+    answerMajor: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType],
+    hint: `Starts on ${_scaleNoteName(tonic)}. Pattern: ${SCALE_LABELS[scaleType]}`,
+  };
+}
+
 // ── Exercise Session Manager ────────────────────────────────────
 function startExerciseSession(type, difficulty) {
-  // Adaptive difficulty: if no explicit difficulty, recommend based on performance
+  // Adaptive difficulty: if 'auto', start at beginner and let the adaptive engine handle it
   if (!difficulty || difficulty === 'auto') {
-    difficulty = recommendDifficulty(type);
+    difficulty = 'beginner';
   }
   const ex = generateExercise(type, difficulty);
   APP.exerciseSession = {
@@ -9144,6 +9219,26 @@ function endExerciseSession() {
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
   const time = Math.floor((Date.now() - s.startedAt) / 1000);
 
+  // Record session and get recommendation
+  const recommendation = SESSION_MANAGER.recordSession(s.type, s.difficulty, correct, total, Date.now() - s.startedAt);
+
+  // Record completion for level progress tracking
+  SESSION_MANAGER.recordCompletion(s.type, correct, total);
+
+  // Determine next action based on recommendation
+  let nextActionHtml = '';
+  if (recommendation.action === 'advance') {
+    nextActionHtml = `<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
+      <div style="font-weight:600;color:#22c55e;font-size:13px">📈 Ready to advance!</div>
+      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
+    </div>`;
+  } else if (recommendation.action === 'review') {
+    nextActionHtml = `<div style="background:rgba(230,168,23,0.1);border:1px solid rgba(230,168,23,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
+      <div style="font-weight:600;color:#e6a817;font-size:13px">🔄 Review recommended</div>
+      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
+    </div>`;
+  }
+
   makeModal(`
     <h2>Session Complete</h2>
     <div style="font-size:14px;color:#4a5568;margin-bottom:12px;text-align:center">
@@ -9151,11 +9246,29 @@ function endExerciseSession() {
       <div>${correct} / ${total} correct</div>
       <div style="font-size:12px;color:rgba(74,85,104,0.6);margin-top:4px">Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
     </div>
+    ${nextActionHtml}
     <div style="margin-bottom:12px;max-height:200px;overflow-y:auto;font-size:12px;color:#4a5568">
-      ${s.completed.map((c,i) => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
-        <span style="width:16px;text-align:center;font-size:14px">${c.ok?'🟢':'🔴'}</span>
-        <span>#${i+1}: ${c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer : c.type === EXERCISE_TYPES.MELODY_DICT ? 'Melody' : c.type === EXERCISE_TYPES.RHYTHM_WS ? 'Rhythm Dict' : 'Rhythm'}</span>
-      </div>`).join('')}
+      ${s.completed.map((c,i) => {
+        if (c.type === 'difficulty_change') {
+          return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+            <span style="width:16px;text-align:center;font-size:14px">🔄</span>
+            <span>#${i+1}: Difficulty ${c.difficultyChange === 'up' ? '↑' : '↓'} to ${c.answer}</span>
+          </div>`;
+        }
+        const icon = c.ok ? '🟢' : (c.nearMiss ? '🟡' : '🔴');
+        const label = c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer
+          : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer
+          : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer
+          : c.type === EXERCISE_TYPES.MELODY_DICT ? 'Melody'
+          : c.type === EXERCISE_TYPES.RHYTHM_WS ? 'Rhythm Dict'
+          : c.type === EXERCISE_TYPES.SCALE_ID ? 'Scale ' + c.answer
+          : c.type === EXERCISE_TYPES.NOTE_CONSTRUCT ? 'Construct ' + c.answer
+          : 'Rhythm';
+        return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+          <span style="width:16px;text-align:center;font-size:14px">${icon}</span>
+          <span>#${i+1}: ${label}${c.nearMiss && !c.ok ? ' (off by 1)' : ''}</span>
+        </div>`;
+      }).join('')}
     </div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
       <button class="modal-btn primary" data-action="reviewExerciseSession">📝 Review Answers</button>
@@ -9172,6 +9285,12 @@ function endExerciseSession() {
     const el = document.getElementById(id);
     if (el) el.remove();
   });
+  // Clean up note construct click handler
+  if (APP._noteConstructClickHandler) {
+    const svgEl = document.getElementById('score-svg');
+    if (svgEl) svgEl.removeEventListener('click', APP._noteConstructClickHandler);
+    APP._noteConstructClickHandler = null;
+  }
   _hideSuccessBanner();
   APP.exerciseMode = false;
   APP.exerciseSession = null;
@@ -9306,6 +9425,12 @@ function _presentExercise(ex) {
     case EXERCISE_TYPES.RHYTHM_WS:
       _presentRhythmWorksheet(ex);
       break;
+    case EXERCISE_TYPES.SCALE_ID:
+      _presentScaleId(ex);
+      break;
+    case EXERCISE_TYPES.NOTE_CONSTRUCT:
+      _presentNoteConstruct(ex);
+      break;
   }
   _updateExerciseInputBar();
 }
@@ -9321,6 +9446,186 @@ function _presentNoteId(ex) {
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
   renderScore();
   showToast('Name this note! (tap palette or type letter)');
+}
+
+function _presentNoteConstruct(ex) {
+  const instr = _kitDefaultInstrument();
+  const score = createScore({title: 'Note Construction', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+  showToast('Click on the staff to place the note!');
+  setTimeout(() => _attachNoteConstructClickHandler(), 100);
+}
+
+function _attachNoteConstructClickHandler() {
+  const svgEl = document.getElementById('score-svg');
+  if (!svgEl) return;
+  const existing = svgEl.querySelector('.note-construct-overlay');
+  if (existing) existing.remove();
+  const handler = function(e) {
+    if (!APP.exerciseSession || APP.exerciseSession.current?.type !== EXERCISE_TYPES.NOTE_CONSTRUCT) {
+      svgEl.removeEventListener('click', handler);
+      return;
+    }
+    const pos = getEventXY(e);
+    if (!pos) return;
+    const sl = APP.staveLayout[0];
+    if (!sl) return;
+    const margin = 40;
+    const xOk = pos.x >= sl.x && pos.x <= sl.x + sl.w;
+    const yOk = pos.y >= sl.topLineY - margin && pos.y <= sl.bottomY + margin;
+    if (!xOk || !yOk) return;
+    const pitch = yToPitchAccurate(pos.y, sl);
+    _checkNoteConstructAnswer(pitch);
+  };
+  svgEl.addEventListener('click', handler);
+  APP._noteConstructClickHandler = handler;
+}
+
+function _checkNoteConstructAnswer(pitch) {
+  const s = APP.exerciseSession;
+  if (!s || !s.current) return;
+  const ex = s.current;
+  const targetPitch = ex.target.pitch;
+  const semitoneDiff = Math.abs(pitch - targetPitch);
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const pc = pitch % 12;
+  const oct = Math.floor(pitch / 12) - 1;
+  const userAnswer = names[pc] + oct;
+  const isCorrect = pitch === targetPitch;
+  const isClose = semitoneDiff === 1;
+
+  const svgEl = document.getElementById('score-svg');
+  if (svgEl && APP._noteConstructClickHandler) {
+    svgEl.removeEventListener('click', APP._noteConstructClickHandler);
+    APP._noteConstructClickHandler = null;
+  }
+
+  const sl = APP.staveLayout[0];
+  if (sl && svgEl) {
+    const svg = svgEl.querySelector('svg');
+    if (svg) {
+      const noteG = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const cx = sl.x + sl.w / 2;
+      const flashColor = isCorrect ? '#22c55e' : isClose ? '#e6a817' : '#ef4444';
+      const bgRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bgRect.setAttribute('x', cx - 40);
+      bgRect.setAttribute('y', sl.topLineY - 6);
+      bgRect.setAttribute('width', 80);
+      bgRect.setAttribute('height', sl.bottomY - sl.topLineY + 12);
+      bgRect.setAttribute('rx', 6);
+      bgRect.setAttribute('fill', flashColor);
+      bgRect.setAttribute('opacity', '0.3');
+      bgRect.setAttribute('class', 'note-construct-flash');
+      noteG.appendChild(bgRect);
+      const acc = midiAutoAcc(pitch);
+      const clef = 'treble';
+      const keyStr = names[pc] + (acc === '#' ? '#' : acc === 'b' ? 'b' : '') + '/' + oct;
+      const vfNote = new VF.StaveNote({keys:[keyStr], duration:'q', clef, stem_direction: VF.Stem.UP});
+      if (acc) vfNote.addAccidental(0, new VF.Accidental(acc === '#' ? '#' : acc === 'b' ? 'b' : 'n'));
+      const voice = new VF.Voice({num_beats:4, beat_value:4});
+      voice.setStrict(false);
+      voice.addTickable(vfNote);
+      new VF.Formatter().joinVoices([voice]).format([voice], sl.w - 40);
+      const tempRenderer = new VF.Renderer(document.createElement('div'), VF.Renderer.Backends.SVG);
+      tempRenderer.resize(sl.w, sl.bottomY - sl.topLineY + 40);
+      const tempCtx = tempRenderer.getContext();
+      const tempStave = new VF.Stave(20, 15, sl.w - 40, {space_above_staff_ln:4, num_lines:5});
+      tempStave.setContext(tempCtx).draw();
+      voice.draw(tempCtx, tempStave);
+      const tempSvgEl = tempRenderer.getContext().svg;
+      if (tempSvgEl) {
+        const noteEls = tempSvgEl.querySelectorAll('g.vf-stavenote');
+        noteEls.forEach(el => {
+          const translated = el.cloneNode(true);
+          translated.setAttribute('transform', `translate(${cx - (sl.w - 40)/2 - 20},${sl.topLineY - 15 - 15})`);
+          translated.setAttribute('class', 'note-construct-placed');
+          noteG.appendChild(translated);
+        });
+      }
+      svg.appendChild(noteG);
+      setTimeout(() => {
+        const flash = svg.querySelector('.note-construct-flash');
+        if (flash) flash.remove();
+        const placed = svg.querySelector('.note-construct-placed');
+        if (placed) placed.remove();
+      }, 1200);
+    }
+  }
+
+  s.totalCount++;
+  if (isCorrect) {
+    s.correctCount++;
+    s.streak++;
+    if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+  } else {
+    s.streak = 0;
+  }
+
+  // ── Within-session adaptive difficulty ──────────────────────────
+  const diffIdx = DIFF_NAMES.indexOf(s.difficulty);
+  if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
+    const newDiff = DIFF_NAMES[diffIdx + 1];
+    s.difficulty = newDiff;
+    showToast(`📈 Leveling up to ${newDiff}!`);
+    s.completed.push({
+      type: 'difficulty_change',
+      answer: newDiff,
+      ok: true,
+      hint: `Difficulty bumped from ${DIFF_NAMES[diffIdx]} to ${newDiff} after 3 correct streak`,
+      correctAnswer: newDiff,
+      difficultyChange: 'up',
+      fromDifficulty: DIFF_NAMES[diffIdx],
+    });
+  } else if (s.streak === 0 && !isCorrect && diffIdx > 0) {
+    const last2 = s.completed.slice(-2);
+    if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
+      const newDiff = DIFF_NAMES[diffIdx - 1];
+      s.difficulty = newDiff;
+      showToast(`📉 Easing to ${newDiff}`);
+      s.completed.push({
+        type: 'difficulty_change',
+        answer: newDiff,
+        ok: true,
+        hint: `Difficulty dropped from ${DIFF_NAMES[diffIdx]} to ${newDiff} after 2 wrong`,
+        correctAnswer: newDiff,
+        difficultyChange: 'down',
+        fromDifficulty: DIFF_NAMES[diffIdx],
+      });
+    }
+  }
+
+  s.completed.push({
+    type: ex.type,
+    answer: userAnswer,
+    ok: isCorrect,
+    hint: ex.hint,
+    correctAnswer: ex.answer,
+    target: ex.target,
+    questionLabel: ex.answerLabel || ex.answer,
+    nearMiss: isClose,
+  });
+  _updateScoreDisplay();
+
+  if (isCorrect) {
+    _showSuccessBanner(`✓ ${userAnswer} — correct!`, { correctAnswer: ex.answer, streak: s.streak });
+  } else if (isClose) {
+    _showSuccessBanner(`~ ${userAnswer} — off by 1 semitone!`, { correctAnswer: ex.answer, streak: s.streak });
+  } else {
+    _showExerciseFeedback(ex, userAnswer);
+    return;
+  }
+  const session = s;
+  const exType = ex.type;
+  setTimeout(() => {
+    if (!APP.exerciseSession || APP.exerciseSession !== session) return;
+    _hideSuccessBanner();
+    let fb = document.getElementById('exercise-feedback-bar');
+    if (fb) fb.remove();
+    session.current = generateExercise(exType, session.difficulty);
+    _presentExercise(session.current);
+  }, 1500);
 }
 
 function _presentIntervalId(ex) {
@@ -9567,6 +9872,30 @@ function _presentKeySigId(ex) {
   showToast(ex.askMinor ? 'Name the minor key! (e.g. Am, Dm, F#m)' : 'Name the major key! (e.g. C, G, F#, Bb)');
 }
 
+function _presentScaleId(ex) {
+  const { tonic, notes } = ex.target;
+  const instr = _kitDefaultInstrument();
+  const score = createScore({title: 'Scale Identification', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  const stave = score.parts[0].staves[0];
+  stave.measures = [];
+  const notesPerMeasure = 4;
+  for (let m = 0; m < Math.ceil(notes.length / notesPerMeasure); m++) {
+    const slice = notes.slice(m * notesPerMeasure, m * notesPerMeasure + notesPerMeasure);
+    stave.measures.push({
+      timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
+      keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0,
+      notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p))),
+    });
+  }
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  renderScore();
+  // Auto-play the scale
+  setTimeout(() => {
+    showToast('🎧 Listen to the scale, then name it!');
+    _playBackScore();
+  }, 300);
+}
+
 // ── Answer Checking ──────────────────────────────────────────────
 function checkExerciseAnswer(userAnswer) {
   const s = APP.exerciseSession;
@@ -9586,6 +9915,17 @@ function checkExerciseAnswer(userAnswer) {
       return v;
     };
     isCorrect = normKey(userAnswer) === normKey(ex.answer);
+  } else if (ex.type === EXERCISE_TYPES.SCALE_ID) {
+    // Scale ID: accept scale name with various formats
+    const normScale = s => {
+      let v = String(s).trim().toLowerCase().replace(/[\s\-_]/g, '');
+      // Normalize common abbreviations
+      v = v.replace(/natmin$/, 'natural_minor').replace(/harmin$/, 'harmonic_minor').replace(/melmin$/, 'melodic_minor_up');
+      v = v.replace(/majpent$/, 'pentatonic_major').replace(/minpent$/, 'pentatonic_minor');
+      return v;
+    };
+    const normalizedAnswer = normScale(ex.answer.split(' ').slice(0, -1).join(' ') + ' ' + ex.answer.split(' ').slice(-1));
+    isCorrect = normScale(userAnswer) === normalizedAnswer;
   } else {
     const normalizedUser = String(userAnswer).trim().toLowerCase().replace(/\s+/g, '');
     const normalizedTarget = String(ex.answer).trim().toLowerCase().replace(/\s+/g, '');
@@ -9599,6 +9939,39 @@ function checkExerciseAnswer(userAnswer) {
     if (s.streak > s.maxStreak) s.maxStreak = s.streak;
   } else {
     s.streak = 0;
+  }
+
+  // ── Within-session adaptive difficulty ──────────────────────────
+  const diffIdx = DIFF_NAMES.indexOf(s.difficulty);
+  if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
+    const newDiff = DIFF_NAMES[diffIdx + 1];
+    s.difficulty = newDiff;
+    showToast(`📈 Leveling up to ${newDiff}!`);
+    s.completed.push({
+      type: 'difficulty_change',
+      answer: newDiff,
+      ok: true,
+      hint: `Difficulty bumped from ${DIFF_NAMES[diffIdx]} to ${newDiff} after 3 correct streak`,
+      correctAnswer: newDiff,
+      difficultyChange: 'up',
+      fromDifficulty: DIFF_NAMES[diffIdx],
+    });
+  } else if (s.streak === 0 && !isCorrect && diffIdx > 0) {
+    const last2 = s.completed.slice(-2);
+    if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
+      const newDiff = DIFF_NAMES[diffIdx - 1];
+      s.difficulty = newDiff;
+      showToast(`📉 Easing to ${newDiff}`);
+      s.completed.push({
+        type: 'difficulty_change',
+        answer: newDiff,
+        ok: true,
+        hint: `Difficulty dropped from ${DIFF_NAMES[diffIdx]} to ${newDiff} after 2 wrong`,
+        correctAnswer: newDiff,
+        difficultyChange: 'down',
+        fromDifficulty: DIFF_NAMES[diffIdx],
+      });
+    }
   }
 
   s.completed.push({
@@ -9616,31 +9989,45 @@ function checkExerciseAnswer(userAnswer) {
   _updateScoreDisplay();
 
   if (isCorrect) {
-    _showSuccessBanner(`✓ ${userAnswer} — correct! · Streak: ${s.streak}`);
+    _showSuccessBanner(`✓ ${userAnswer} — correct!`, { correctAnswer: ex.answerLabel || ex.answer, streak: s.streak });
     const session = s;
-    const exType = ex.type, exDiff = ex.difficulty;
+    const exType = ex.type;
     setTimeout(() => {
       if (!APP.exerciseSession || APP.exerciseSession !== session) return;
       _hideSuccessBanner();
       let fb = document.getElementById('exercise-feedback-bar');
       if (fb) fb.remove();
-      session.current = generateExercise(exType, exDiff);
+      session.current = generateExercise(exType, session.difficulty);
       _presentExercise(session.current);
-    }, 1500);
+    }, 1200);
   } else {
     _showExerciseFeedback(ex, userAnswer);
   }
 }
 
-function _showSuccessBanner(msg) {
+function _showSuccessBanner(msg, opts = {}) {
   const existing = document.getElementById('exercise-success-banner');
   if (existing) existing.remove();
+
+  const streak = opts.streak || 0;
+  const correctAnswer = opts.correctAnswer || '';
+  let milestone = '';
+  if (streak === 3) milestone = 'Nice streak!';
+  else if (streak === 5) milestone = 'On fire!';
+  else if (streak >= 10) milestone = 'Unstoppable!';
+
   const el = document.createElement('div');
   el.id = 'exercise-success-banner';
-  el.textContent = msg;
-  el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:2000;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:14px 32px;border-radius:10px;font-size:17px;font-weight:700;box-shadow:0 4px 20px rgba(34,197,94,0.35);opacity:0;transition:opacity 0.25s ease;pointer-events:none;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+  el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:2000;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(34,197,94,0.35);opacity:0;transition:opacity 0.25s ease, transform 0.25s ease;pointer-events:none;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center';
+  el.innerHTML = `<div>${escHtml(msg)}</div>${correctAnswer ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">Answer: ${escHtml(correctAnswer)}</div>` : ''}${milestone ? `<div style="font-size:13px;margin-top:3px;color:#bbf7d0">${milestone}</div>` : ''}`;
   document.body.appendChild(el);
-  requestAnimationFrame(() => el.style.opacity = '1');
+  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)'; });
+
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(-12px)';
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 250);
+  }, 1000);
 }
 
 function _hideSuccessBanner() {
@@ -9656,32 +10043,55 @@ function _showExerciseFeedback(ex, userAnswer) {
   const hintText = escHtml(ex.hint || '');
 
   const extraNote = (ex.type === EXERCISE_TYPES.KEY_SIG_ID)
-    ? (ex.askMinor ? `<span style="font-size:11px;color:rgba(74,85,104,0.6)"> (also ${ex.answerMajor})</span>`
-                  : `<span style="font-size:11px;color:rgba(74,85,104,0.6)"> (also ${ex.answerMinor})</span>`)
+    ? (ex.askMinor ? ` (also ${escHtml(ex.answerMajor)})`
+                  : ` (also ${escHtml(ex.answerMinor)})`)
     : '';
 
   const bar = document.createElement('div');
   bar.id = 'exercise-feedback-bar';
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(255,245,235,0.98);border:1px solid rgba(192,86,33,0.25);border-radius:8px;padding:10px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;flex-wrap:wrap';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%) translateY(20px);z-index:200;display:flex;align-items:flex-start;gap:10px;background:rgba(255,251,235,0.98);border:1px solid rgba(217,160,60,0.3);border-radius:10px;padding:12px 16px;box-shadow:0 3px 16px rgba(0,0,0,0.09);font-size:13px;color:#4a5568;flex-wrap:wrap;max-width:92vw;opacity:0;transition:opacity 0.3s ease, transform 0.3s ease;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
   bar.innerHTML = `
-    <span style="font-weight:600;color:#c05421">Not quite</span>
-    <span><b>You:</b> ${escHtml(userAnswer)}</span>
-    <span><b>Correct:</b> ${correctLabel}${extraNote}</span>
-    ${hintText ? `<span style="background:rgba(192,86,33,0.06);border-radius:4px;padding:3px 8px;font-size:11px;color:rgba(74,85,104,0.7)">💡 ${hintText}</span>` : ''}
-    <button class="modal-btn primary" data-action="retryExercise" style="padding:4px 10px;font-size:12px">Try Again</button>
-    <button class="modal-btn secondary" data-action="endExerciseSession" style="padding:4px 10px;font-size:12px">End Session</button>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-weight:700;color:#b45309;font-size:14px">Not quite</span>
+        <div style="display:flex;gap:6px;align-items:center;font-size:12px">
+          <span style="background:rgba(239,68,68,0.1);padding:2px 8px;border-radius:4px;color:#dc2626">You: <b>${escHtml(userAnswer)}</b></span>
+          <span style="color:rgba(74,85,104,0.4)">→</span>
+          <span style="background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:4px;color:#16a34a">Correct: <b>${escHtml(correctLabel)}</b>${extraNote}</span>
+        </div>
+      </div>
+      ${hintText ? `
+        <details open style="margin-top:2px">
+          <summary style="cursor:pointer;font-size:11px;color:rgba(74,85,104,0.6);font-weight:600;user-select:none">Why? ▸</summary>
+          <div style="margin-top:4px;font-size:11px;color:rgba(74,85,104,0.7);line-height:1.5">💡 ${hintText}</div>
+        </details>` : ''}
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;align-self:center">
+      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(192,86,33,0.2);color:#4a5568;border-radius:5px">Skip</button>
+      <button class="modal-btn primary" data-action="retryExercise" style="padding:4px 12px;font-size:12px">Try Again</button>
+      <button class="modal-btn secondary" data-action="endExerciseSession" style="padding:4px 10px;font-size:12px">End Session</button>
+    </div>
   `;
   document.body.appendChild(bar);
 
-  // Auto-dismiss after 12s to avoid clutter
+  requestAnimationFrame(() => { bar.style.opacity = '1'; bar.style.transform = 'translateX(-50%) translateY(0)'; });
+
   setTimeout(() => {
     const fb = document.getElementById('exercise-feedback-bar');
     if (fb && fb.parentNode) fb.remove();
-  }, 12000);
+  }, 15000);
 }
 
 function nextExercise() {
   closeModal();
+  _hideExerciseFeedback();
+  const s = APP.exerciseSession;
+  if (!s) return;
+  s.current = generateExercise(s.type, s.difficulty);
+  _presentExercise(s.current);
+}
+
+function skipExercise() {
   _hideExerciseFeedback();
   const s = APP.exerciseSession;
   if (!s) return;
@@ -9709,8 +10119,33 @@ function _updateScoreDisplay() {
   const s = APP.exerciseSession;
   if (!s) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
+
   const pct = s.totalCount > 0 ? Math.round((s.correctCount / s.totalCount) * 100) : 100;
-  el.innerHTML = `<span style="font-weight:600">${s.correctCount}/${s.totalCount}</span> (${pct}%) · Streak: ${s.streak}`;
+  const accColor = pct >= 80 ? '#16a34a' : pct >= 60 ? '#ca8a04' : '#dc2626';
+  const prevCount = parseInt(el.dataset.prevCount || '0', 10);
+  const countChanged = s.totalCount !== prevCount;
+  el.dataset.prevCount = s.totalCount;
+
+  const streakHtml = s.streak >= 2
+    ? `<span class="score-streak">🔥 ${s.streak}</span>`
+    : '';
+
+  const diffLabel = s.difficulty ? `<span style="font-size:10px;opacity:0.7;margin-left:4px">${s.difficulty}</span>` : '';
+
+  el.innerHTML = `
+    <div class="score-row">
+      <span style="font-weight:700;font-size:13px">${s.correctCount}/${s.totalCount}</span>
+      <span class="score-accuracy" style="color:${accColor}">${pct}%</span>
+      ${streakHtml}${diffLabel}
+    </div>
+    <div class="score-progress-bar"><div class="score-progress-fill" style="width:${s.totalCount > 0 ? pct : 0}%"></div></div>
+  `;
+
+  if (countChanged) {
+    el.classList.remove('exercise-score-pulse');
+    void el.offsetWidth;
+    el.classList.add('exercise-score-pulse');
+  }
 }
 
 function _setExerciseUI(enabled) {
@@ -9725,7 +10160,7 @@ function _setExerciseUI(enabled) {
   if (enabled && !scoreEl) {
     scoreEl = document.createElement('div');
     scoreEl.id = 'exercise-score';
-    scoreEl.style.cssText = 'position:fixed;top:48px;right:12px;z-index:200;background:rgba(247,243,237,0.96);border:1px solid rgba(192,86,33,0.15);border-radius:6px;padding:4px 10px;font-size:11px;color:#4a5568;display:flex;align-items:center;gap:4px;box-shadow:0 1px 4px rgba(0,0,0,0.06);';
+    scoreEl.style.cssText = 'position:fixed;top:48px;right:12px;z-index:200;';
     document.body.appendChild(scoreEl);
   }
   if (!enabled && scoreEl) scoreEl.remove();
@@ -9740,11 +10175,12 @@ function _updateExerciseInputBar() {
   if (!APP.exerciseMode || !s) return;
   const ex = s.current;
   if (!ex) return;
-  // Show text input bar for note ID, interval ID, and key-sig exercises
+  // Show text input bar for note ID, interval ID, key-sig, and scale ID exercises
   const supportsTextInput = [
     EXERCISE_TYPES.NOTE_ID,
     EXERCISE_TYPES.INTERVAL_ID,
     EXERCISE_TYPES.KEY_SIG_ID,
+    EXERCISE_TYPES.SCALE_ID,
   ].includes(ex.type);
   if (!supportsTextInput) return;
 
@@ -9753,9 +10189,11 @@ function _updateExerciseInputBar() {
   bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:8px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;';
   const label = ex.type === EXERCISE_TYPES.NOTE_ID ? 'Note name:'
     : ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval name:'
+    : ex.type === EXERCISE_TYPES.SCALE_ID ? 'Scale name:'
     : ex.askMinor ? 'Minor key:' : 'Major key:';
   const placeholder = ex.type === EXERCISE_TYPES.NOTE_ID ? 'e.g. C4, F#5'
     : ex.type === EXERCISE_TYPES.INTERVAL_ID ? 'e.g. Major 3rd, P5'
+    : ex.type === EXERCISE_TYPES.SCALE_ID ? 'e.g. C Major, A Natural Minor'
     : 'e.g. C, Gm';
   bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">${label}</span>
     <input id="exercise-answer-input" type="text" placeholder="${placeholder}" style="width:180px;padding:4px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
@@ -9991,37 +10429,81 @@ function _startRhythmWorksheet(difficulty) {
 function showExerciseDialog() {
   if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
   const types = [
-    {key: EXERCISE_TYPES.NOTE_ID,      label:'🎵 Note Identification',    desc:'Name the note on the staff'},
-    {key: EXERCISE_TYPES.INTERVAL_ID,  label:'↔ Interval Identification', desc:'Name the interval between two notes'},
-    {key: EXERCISE_TYPES.RHYTHM_READ,  label:'𝅘𝅥𝅮 Rhythm Reading',          desc:'Read and clap rhythm patterns'},
-    {key: EXERCISE_TYPES.MELODY_DICT,  label:'🎼 Melody Dictation',       desc:'Hear a melody, then notate it'},
-    {key: EXERCISE_TYPES.KEY_SIG_ID,   label:'♭♯ What\'s the Key Signature?', desc:'Name the key from the signature'},
-    {key: EXERCISE_TYPES.RHYTHM_WS,   label:'🔊 Rhythm Dictation',           desc:'Hear a rhythm, then mark each beat'},
+    {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Identification', desc:'Name the note on the staff'},
+    {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Identification', desc:'Name the interval between two notes'},
+    {key: EXERCISE_TYPES.RHYTHM_READ,  icon:'𝅘𝅥𝅮', label:'Rhythm Reading', desc:'Read and clap rhythm patterns'},
+    {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Melody Dictation', desc:'Hear a melody, then notate it'},
+    {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Signature', desc:'Name the key from the signature'},
+    {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear a rhythm, then mark each beat'},
+    {key: EXERCISE_TYPES.SCALE_ID,     icon:'🎹', label:'Scale Identification', desc:'Hear a scale, then name it'},
   ];
-  const diffs = ['beginner', 'intermediate', 'advanced'];
+  const diffs = ['beginner', 'intermediate', 'advanced', 'auto'];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
+  const results = _loadResults();
+
+  const byType = {};
+  results.forEach(r => { if (!byType[r.type]) byType[r.type] = []; byType[r.type].push(r); });
+
+  let weakestType = null, weakestAvg = 101;
+  let mostPracticed = null, mostCount = 0;
+  Object.keys(byType).forEach(t => {
+    const avg = Math.round(byType[t].reduce((s, x) => s + x.pct, 0) / byType[t].length);
+    const cnt = byType[t].length;
+    if (cnt >= 2 && avg < weakestAvg) { weakestAvg = avg; weakestType = t; }
+    if (cnt > mostCount) { mostCount = cnt; mostPracticed = t; }
+  });
+  const quickStartType = weakestType || mostPracticed || EXERCISE_TYPES.NOTE_ID;
+  const quickStartLabel = weakestType ? `Weakest: ${types.find(t=>t.key===weakestType)?.label||weakestType}` : mostPracticed ? `Most practiced: ${types.find(t=>t.key===mostPracticed)?.label||mostPracticed}` : 'Start with Note Identification';
 
   makeModal(`
+    <style>
+      .exercise-card{background:var(--bg-score-area,#f0ebe3);border:1.5px solid rgba(192,86,33,0.15);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s ease;position:relative;display:flex;flex-direction:column;gap:4px}
+      .exercise-card:hover{border-color:#c05621;box-shadow:0 2px 8px rgba(192,86,33,0.15);transform:translateY(-1px)}
+      .exercise-card:active{transform:scale(0.97);box-shadow:none}
+      .exercise-card .ec-title{font-weight:700;font-size:13px;color:#2d3748;display:flex;align-items:center;gap:6px}
+      .exercise-card .ec-desc{font-size:11px;color:rgba(74,85,104,0.6);line-height:1.3}
+      .exercise-card .ec-meta{font-size:10px;color:rgba(74,85,104,0.5);margin-top:2px}
+      .exercise-card .ec-score{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px}
+      .diff-pill{border:1.5px solid rgba(192,86,33,0.15);background:transparent;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:#4a5568;cursor:pointer;transition:all .15s}
+      .diff-pill.active{background:#c05621;color:#fff;border-color:#c05621}
+      .diff-pill:hover:not(.active){border-color:#c05621;color:#c05621}
+    </style>
     <h2>Exercise Browser</h2>
-    <div style="margin-bottom:12px">
-      <button class="modal-btn primary" data-action="showCurriculumDialog" style="width:100%;margin-bottom:8px">
-        📚 Structured Curriculum
-      </button>
-      <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Or choose an exercise:</div>
-      <div style="display:flex;gap:6px">
-        ${diffs.map(d => `<button class="modal-btn ${d===currentDiff?'primary':'secondary'}" data-action="selectExerciseDifficulty" data-diff="${d}" style="flex:1;padding:8px 4px;font-size:12px">${d}</button>`).join('')}
-      </div>
+
+    <div style="display:flex;gap:6px;margin-bottom:14px;justify-content:center">
+      ${diffs.map(d => `<button class="diff-pill ${d===currentDiff?'active':''}" data-action="selectExerciseDifficulty" data-diff="${d}">${d}</button>`).join('')}
     </div>
-    <div style="max-height:260px;overflow-y:auto">
-      ${types.map(t => `
-        <button class="panel-btn-wide" style="margin-bottom:6px;text-align:left"
-          data-action="startExerciseSession" data-type="${t.key}" data-diff="${currentDiff}">
-          <div style="font-weight:600;font-size:13px;color:#2d3748">${t.label}</div>
-          <div style="font-size:11px;color:rgba(74,85,104,0.7)">${t.desc}</div>
-        </button>
-      `).join('')}
+
+    <button class="modal-btn primary" style="width:100%;margin-bottom:14px;padding:12px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px"
+      data-action="startExerciseSession" data-type="${quickStartType}" data-diff="${currentDiff}">
+      ▶ Quick Start — ${quickStartLabel}
+    </button>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;max-height:300px;overflow-y:auto">
+      ${types.map(t => {
+        const typeResults = byType[t.key] || [];
+        const sessionCount = typeResults.length;
+        let scoreColor = 'rgba(74,85,104,0.3)';
+        let scoreText = '';
+        if (sessionCount > 0) {
+          const lastPct = typeResults[typeResults.length - 1].pct;
+          scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
+          scoreText = lastPct + '%';
+        }
+        return `
+          <div class="exercise-card" data-action="startExerciseSession" data-type="${t.key}" data-diff="${currentDiff}">
+            ${scoreText ? `<span class="ec-score" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
+            <div class="ec-title"><span style="font-size:16px">${t.icon}</span>${t.label}</div>
+            <div class="ec-desc">${t.desc}</div>
+            <div class="ec-meta">${sessionCount > 0 ? `● ${sessionCount} session${sessionCount>1?'s':''}` : '○ Not started'}</div>
+          </div>`;
+      }).join('')}
     </div>
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+
+    <div style="display:flex;gap:8px">
+      <button class="modal-btn secondary" data-action="showCurriculumDialog" style="flex:1">📚 Curriculum</button>
+      <button class="modal-btn secondary" data-action="closeModal" style="flex:1">✕ Cancel</button>
+    </div>
   `);
 }
 
@@ -10037,6 +10519,7 @@ const IMPORTED_KEY = 'pauta_imported_reports';
 const TYPE_LABELS = {
   note_id: 'Note ID', interval_id: 'Interval ID', rhythm_read: 'Rhythm Read',
   melody_dictation: 'Melody Dict', key_sig_id: 'Key Sig ID', rhythm_worksheet: 'Rhythm Dict',
+  scale_id: 'Scale ID',
 };
 
 function _saveExerciseResult(session) {
@@ -10316,6 +10799,7 @@ const STARTER_TEMPLATES = [
   { id: 'rhythm-inter',     label: 'Rhythm Dictation (Intermed.)', desc: '8 measures, 50% notes',  fn: () => _genRhythmAssignment('intermediate') },
   { id: 'rhythm-adv',       label: 'Rhythm Dictation (Advanced)', desc: '8 measures, 35% notes',   fn: () => _genRhythmAssignment('advanced') },
   { id: 'melody-dict',      label: 'Melody Dictation Template', desc: '4-8 note melodies',       fn: () => _genMelodyDictAssignment() },
+  { id: 'scale-id-ear',     label: 'Scale ID by Ear (12 types)', desc: 'Major, minor, modes, blues', fn: () => _genScaleIdAssignment() },
 ];
 
 function showStarterAssignmentsDialog() {
@@ -10336,6 +10820,178 @@ function showStarterAssignmentsDialog() {
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
+}
+
+// ── Custom Exercise Builder ─────────────────────────────────────
+// Teachers can create custom exercise sets and export them for students.
+
+const CUSTOM_EXERCISES_KEY = 'pauta_custom_exercises';
+
+function _loadCustomExercises() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_EXERCISES_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function _saveCustomExercises(exercises) {
+  localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(exercises));
+}
+
+function showExerciseBuilderDialog() {
+  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+
+  const existing = _loadCustomExercises();
+
+  const typeOptions = [
+    { value: 'note_id', label: 'Note Identification' },
+    { value: 'interval_id', label: 'Interval Identification' },
+    { value: 'rhythm_read', label: 'Rhythm Reading' },
+    { value: 'rhythm_worksheet', label: 'Rhythm Dictation' },
+    { value: 'key_sig_id', label: 'Key Signature ID' },
+    { value: 'melody_dictation', label: 'Melody Dictation' },
+    { value: 'scale_id', label: 'Scale Identification' },
+  ];
+
+  const diffOptions = [
+    { value: 'beginner', label: 'Beginner' },
+    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'advanced', label: 'Advanced' },
+  ];
+
+  const existingHtml = existing.length ? `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:6px;font-weight:600">Your Custom Exercise Sets</div>
+      <div style="max-height:150px;overflow-y:auto">
+        ${existing.map((ex, idx) => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(192,86,33,0.03);border-radius:6px;margin-bottom:4px">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:12px;color:#2d3748">${escHtml(ex.name)}</div>
+              <div style="font-size:10px;color:rgba(74,85,104,0.6)">${ex.exercises.length} exercises · ${ex.difficulty}</div>
+            </div>
+            <button class="modal-btn secondary" data-action="exportCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px">📤</button>
+            <button class="modal-btn secondary" data-action="deleteCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px;color:#e06850">🗑</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  makeModal(`
+    <h2>🛠 Exercise Builder</h2>
+    ${existingHtml}
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Exercise Set Name</div>
+      <input id="exb-name" type="text" placeholder="e.g. Week 1: Treble Clef Basics" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Difficulty</div>
+        <select id="exb-diff" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+          ${diffOptions.map(d => `<option value="${d.value}">${d.label}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Exercises per set</div>
+        <select id="exb-count" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+    </div>
+    <div id="exb-types" style="margin-bottom:12px">
+      <div style="font-size:11px;color:#4a5568;margin-bottom:6px">Exercise Types (check to include)</div>
+      ${typeOptions.map((t, idx) => `
+        <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:#4a5568;cursor:pointer">
+          <input type="checkbox" class="exb-type-check" value="${t.value}" ${idx < 2 ? 'checked' : ''} style="accent-color:#c05621">
+          ${t.label}
+        </label>
+      `).join('')}
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="modal-btn primary" id="exb-save">💾 Save Set</button>
+      <button class="modal-btn secondary" id="exb-export">📤 Export JSON</button>
+      <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+    </div>
+  `);
+
+  setTimeout(() => {
+    const saveBtn = document.getElementById('exb-save');
+    const exportBtn = document.getElementById('exb-export');
+    if (saveBtn) saveBtn.addEventListener('click', () => {
+      const name = document.getElementById('exb-name')?.value?.trim();
+      if (!name) { showToast('Enter a name for the set'); return; }
+      const difficulty = document.getElementById('exb-diff')?.value || 'beginner';
+      const count = parseInt(document.getElementById('exb-count')?.value || '10');
+      const types = Array.from(document.querySelectorAll('.exb-type-check:checked')).map(cb => cb.value);
+      if (!types.length) { showToast('Select at least one exercise type'); return; }
+      const customEx = { name, difficulty, count, types, exercises: types.map(t => ({ type: t, count: Math.ceil(count / types.length) })) };
+      const all = _loadCustomExercises();
+      all.push(customEx);
+      _saveCustomExercises(all);
+      showToast(`"${name}" saved`);
+      closeModal();
+    });
+    if (exportBtn) exportBtn.addEventListener('click', () => {
+      const name = document.getElementById('exb-name')?.value?.trim() || 'Custom Exercise Set';
+      const difficulty = document.getElementById('exb-diff')?.value || 'beginner';
+      const count = parseInt(document.getElementById('exb-count')?.value || '10');
+      const types = Array.from(document.querySelectorAll('.exb-type-check:checked')).map(cb => cb.value);
+      if (!types.length) { showToast('Select at least one exercise type'); return; }
+      const data = { version: 1, name, difficulty, count, types, exercises: types.map(t => ({ type: t, count: Math.ceil(count / types.length) })) };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `pauta-exercise-set-${Date.now()}.json`; a.click();
+      URL.revokeObjectURL(url);
+      showToast('Exercise set exported');
+    });
+  }, 50);
+}
+
+function deleteCustomExercise(idx) {
+  const all = _loadCustomExercises();
+  if (!confirm(`Delete "${all[idx]?.name}"?`)) return;
+  all.splice(idx, 1);
+  _saveCustomExercises(all);
+  closeModal();
+  showExerciseBuilderDialog();
+}
+
+function exportCustomExercise(idx) {
+  const all = _loadCustomExercises();
+  const ex = all[idx];
+  if (!ex) return;
+  const blob = new Blob([JSON.stringify(ex, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `pauta-exercise-${ex.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.json`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Exercise set exported');
+}
+
+function importCustomExercise() {
+  closeModal();
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.name || !data.exercises) { showToast('Invalid exercise set format'); return; }
+        const all = _loadCustomExercises();
+        all.push(data);
+        _saveCustomExercises(all);
+        showToast(`Imported "${data.name}"`);
+        showExerciseBuilderDialog();
+      } catch(e) { showToast('Could not read file: ' + e.message); }
+    };
+    reader.readAsText(file);
+  });
+  input.click();
 }
 
 function _genScaleAssignment(type, octaves) {
@@ -10405,6 +11061,31 @@ function _genMelodyDictAssignment() {
       });
     }
     exercises.push({ title: `Melody Dictation ${i+1}`, score, answerKey: md.target.notes.map(n => n.pitch).join(',') });
+  }
+  return exercises;
+}
+
+function _genScaleIdAssignment() {
+  const exercises = [];
+  const scaleTypes = Object.keys(SCALE_PATTERNS);
+  for (let i = 0; i < 12; i++) {
+    const scaleType = scaleTypes[i % scaleTypes.length];
+    const tonic = 60 + Math.floor(Math.random() * 13);  // C4–C5
+    const intervals = SCALE_PATTERNS[scaleType];
+    const notes = intervals.map(idx => tonic + idx);
+    const score = createScore({ title: `Scale ID ${i+1}: ${_scaleNoteName(tonic)} ${SCALE_LABELS[scaleType]}`, instruments: ['Piano'], ts: {num:4,den:4}, ks: 0 });
+    const stave = score.parts[0].staves[0];
+    stave.measures = [];
+    const notesPerMeasure = 4;
+    for (let m = 0; m < Math.ceil(notes.length / notesPerMeasure); m++) {
+      const slice = notes.slice(m * notesPerMeasure, m * notesPerMeasure + notesPerMeasure);
+      stave.measures.push({
+        timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
+        keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0,
+        notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p))),
+      });
+    }
+    exercises.push({ title: `Scale ID ${i+1}`, score, answerKey: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType] });
   }
   return exercises;
 }
@@ -10736,7 +11417,7 @@ function _hideDiagBar() {
 }
 
 // ── Assign exercise functions to EXERCISE namespace ────────────
-[generateExercise, startExerciseSession, endExerciseSession, nextExercise, retryExercise,
+[generateExercise, startExerciseSession, endExerciseSession, nextExercise, retryExercise, skipExercise,
  checkExerciseAnswer, showExerciseDialog, selectExerciseDifficulty,
  _presentNoteId, _presentIntervalId, _presentRhythmRead, _presentMelodyDict, _presentKeySigId,
  _presentRhythmWorksheet, _renderRhythmBeatGrid,
@@ -11957,7 +12638,456 @@ function clearPlayCursor() {
 
 // ── MIDI Hardware Input (removed — browser permission warning) ──
 
+// ── EVALUATOR: Pure assessment functions (no side effects) ─────
+// Takes target + student input, returns a diagnostic result object.
+// No APP reads, no UI calls — just data in, data out.
+const EVALUATOR = {
+  // Note name lookup helpers
+  _NOTE_NAMES: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
+  _FLAT_NAMES: ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'],
 
+  _noteName(midi) {
+    const pc = midi % 12;
+    const oct = Math.floor(midi / 12) - 1;
+    const useFlat = [1,3,6,8,10].includes(pc);
+    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc] + oct;
+  },
+
+  _pcName(pc) {
+    const useFlat = [1,3,6,8,10].includes(pc);
+    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc];
+  },
+
+  // Core: evaluate a single note attempt against a target
+  // target: { pitch: midi, extraPitches?: [{ pitch }] }
+  // student: { pitch: midi }
+  // Returns: { isPerfect, isCorrectPitchClass, assessment, message, detail }
+  evaluateNote(target, student) {
+    if (!target || !student || target.pitch == null || student.pitch == null) {
+      return { isPerfect: false, isCorrectPitchClass: false, assessment: 'INVALID', message: 'No note to evaluate', detail: null };
+    }
+
+    const targetPC = target.pitch % 12;
+    const studentPC = student.pitch % 12;
+    const targetOct = Math.floor(target.pitch / 12) - 1;
+    const studentOct = Math.floor(student.pitch / 12) - 1;
+    const extras = (target.extraPitches || []).map(ep => ep.pitch % 12);
+    const isCorrectPC = (targetPC === studentPC) || extras.includes(studentPC);
+    const isExactMatch = student.pitch === target.pitch || (target.extraPitches || []).some(ep => ep.pitch === student.pitch);
+
+    if (isExactMatch) {
+      return {
+        isPerfect: true,
+        isCorrectPitchClass: true,
+        assessment: 'CORRECT',
+        message: `✓ ${this._noteName(student.pitch)}`,
+        detail: null,
+      };
+    }
+
+    if (isCorrectPC) {
+      const displacement = studentOct - targetOct;
+      return {
+        isPerfect: false,
+        isCorrectPitchClass: true,
+        assessment: 'OCTAVE_DISPLACEMENT',
+        message: `Right note, wrong octave`,
+        detail: {
+          target: this._noteName(target.pitch),
+          student: this._noteName(student.pitch),
+          displacement,
+          hint: displacement > 0
+            ? `Go down ${displacement} octave${displacement > 1 ? 's' : ''}`
+            : `Go up ${Math.abs(displacement)} octave${Math.abs(displacement) > 1 ? 's' : ''}`,
+        },
+      };
+    }
+
+    // Check if it's a nearby note (semitone off)
+    const semitoneDiff = Math.abs(studentPC - targetPC);
+    const minDiff = Math.min(semitoneDiff, 12 - semitoneDiff);
+    if (minDiff === 1) {
+      const direction = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
+      return {
+        isPerfect: false,
+        isCorrectPitchClass: false,
+        assessment: 'NEAR_MISS',
+        message: `${direction === 'up' ? '↑' : '↓'} One semitone ${direction}`,
+        detail: {
+          target: this._pcName(targetPC),
+          student: this._pcName(studentPC),
+          direction,
+          hint: `The correct note is one semitone ${direction === 'up' ? 'down' : 'up'}`,
+        },
+      };
+    }
+
+    // Wrong note
+    return {
+      isPerfect: false,
+      isCorrectPitchClass: false,
+      assessment: 'WRONG_NOTE',
+      message: `Expected ${this._pcName(targetPC)}`,
+      detail: {
+        target: this._noteName(target.pitch),
+        student: this._noteName(student.pitch),
+        hint: `Try ${this._pcName(targetPC)}${targetOct}`,
+      },
+    };
+  },
+
+  // Evaluate a pitch class match (for exercises — octave-agnostic)
+  evaluatePitchClass(targetPC, studentPC) {
+    if (targetPC === studentPC) {
+      return { isCorrect: true, assessment: 'CORRECT', message: '✓' };
+    }
+    const diff = Math.abs(studentPC - targetPC);
+    const minDiff = Math.min(diff, 12 - diff);
+    if (minDiff === 1) {
+      const dir = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
+      return { isCorrect: false, assessment: 'NEAR_MISS', message: `One semitone ${dir}` };
+    }
+    return { isCorrect: false, assessment: 'WRONG_NOTE', message: `Expected ${this._pcName(targetPC)}` };
+  },
+
+  // Evaluate a rhythm attempt (beat positions vs expected)
+  // expected: array of beat positions (e.g. [0, 0.5, 1, 2])
+  // student: array of beat positions
+  // tolerance: allowed deviation in beats (default 0.15)
+  evaluateRhythm(expected, student, tolerance = 0.15) {
+    if (!expected.length) return { isPerfect: true, correct: 0, total: 0, misses: [], extras: [] };
+    const misses = [];
+    const matched = new Set();
+    expected.forEach(exp => {
+      const found = student.findIndex((s, i) => !matched.has(i) && Math.abs(s - exp) <= tolerance);
+      if (found >= 0) {
+        matched.add(found);
+      } else {
+        misses.push(exp);
+      }
+    });
+    const extras = student.filter((_, i) => !matched.has(i));
+    const correct = expected.length - misses.length;
+    return {
+      isPerfect: misses.length === 0 && extras.length === 0,
+      correct,
+      total: expected.length,
+      misses,
+      extras,
+      accuracy: Math.round((correct / expected.length) * 100),
+    };
+  },
+};
+
+// ── SESSION MANAGER: Adaptive difficulty & progression ──────────
+// Tracks session scores and adapts difficulty based on performance.
+// Provides review loops when performance is low, advances when high.
+
+const SESSION_MANAGER = {
+  _SESSION_KEY: 'pauta_session_history',
+  _MAX_HISTORY: 50,
+
+  // Load session history from localStorage
+  _loadHistory() {
+    try { return JSON.parse(localStorage.getItem(this._SESSION_KEY)) || []; }
+    catch(e) { return []; }
+  },
+
+  // Save session history to localStorage
+  _saveHistory(history) {
+    localStorage.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
+  },
+
+  // Record a completed session
+  recordSession(type, difficulty, score, total, time) {
+    const history = this._loadHistory();
+    history.push({
+      type, difficulty, score, total,
+      pct: Math.round((score / total) * 100),
+      time: Math.floor(time / 1000),
+      date: Date.now(),
+    });
+    this._saveHistory(history);
+    return this.getRecommendation(type);
+  },
+
+  // Get recommendation based on recent performance
+  getRecommendation(type) {
+    const history = this._loadHistory();
+    const relevant = history.filter(h => h.type === type).slice(-5);
+    if (relevant.length < 2) return { action: 'continue', reason: 'Need more data' };
+
+    const avgPct = relevant.reduce((s, h) => s + h.pct, 0) / relevant.length;
+    const lastPct = relevant[relevant.length - 1].pct;
+    const trend = relevant.length >= 3
+      ? (relevant[relevant.length - 1].pct + relevant[relevant.length - 2].pct) / 2
+        - (relevant[0].pct + relevant[1].pct) / 2
+      : 0;
+
+    if (avgPct >= 85 && trend >= 0) {
+      return { action: 'advance', reason: `Excellent (${Math.round(avgPct)}% avg)`, avgPct };
+    }
+    if (avgPct < 60 || (trend < -10 && lastPct < 70)) {
+      return { action: 'review', reason: `Needs practice (${Math.round(avgPct)}% avg)`, avgPct };
+    }
+    return { action: 'continue', reason: `Good progress (${Math.round(avgPct)}% avg)`, avgPct };
+  },
+
+  // Get difficulty adjustment based on session performance
+  adjustDifficulty(currentDifficulty, sessionPct) {
+    const levels = ['beginner', 'intermediate', 'advanced'];
+    const idx = levels.indexOf(currentDifficulty);
+
+    // Upgrade threshold
+    if (sessionPct >= 85 && idx < 2) {
+      return { difficulty: levels[idx + 1], reason: 'Upgrading difficulty' };
+    }
+    // Downgrade threshold
+    if (sessionPct < 50 && idx > 0) {
+      return { difficulty: levels[idx - 1], reason: 'Reviewing at easier level' };
+    }
+    return { difficulty: currentDifficulty, reason: 'Maintaining level' };
+  },
+
+  // Get session stats for display
+  getStats(type) {
+    const history = this._loadHistory();
+    const relevant = type ? history.filter(h => h.type === type) : history;
+    if (!relevant.length) return null;
+
+    const totalSessions = relevant.length;
+    const avgPct = Math.round(relevant.reduce((s, h) => s + h.pct, 0) / totalSessions);
+    const totalTime = relevant.reduce((s, h) => s + h.time, 0);
+    const bestPct = Math.max(...relevant.map(h => h.pct));
+    const currentStreak = this._getCurrentStreak(relevant);
+
+    return { totalSessions, avgPct, totalTime, bestPct, currentStreak };
+  },
+
+  // Calculate current streak of improving scores
+  _getCurrentStreak(history) {
+    if (history.length < 2) return 0;
+    let streak = 0;
+    for (let i = history.length - 1; i > 0; i--) {
+      if (history[i].pct >= history[i - 1].pct) streak++;
+      else break;
+    }
+    return streak;
+  },
+
+  // ── Level & Completion History Persistence ─────────────────────
+  _PROGRESS_KEY: 'pauta_level_progress',
+
+  _loadProgress() {
+    try { return JSON.parse(localStorage.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
+    catch(e) { return { level: 1, completionHistory: {}, bestScores: {} }; }
+  },
+
+  _saveProgress(progress) {
+    localStorage.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
+  },
+
+  // Get current level
+  getLevel() {
+    return this._loadProgress().level || 1;
+  },
+
+  // Set level
+  setLevel(level) {
+    const progress = this._loadProgress();
+    progress.level = level;
+    this._saveProgress(progress);
+  },
+
+  // Record exercise completion
+  recordCompletion(exerciseType, score, total) {
+    const progress = this._loadProgress();
+    const pct = Math.round((score / total) * 100);
+
+    if (!progress.completionHistory[exerciseType]) {
+      progress.completionHistory[exerciseType] = [];
+    }
+    progress.completionHistory[exerciseType].push({
+      score, total, pct,
+      date: Date.now(),
+    });
+
+    // Update best score
+    if (!progress.bestScores[exerciseType] || pct > progress.bestScores[exerciseType]) {
+      progress.bestScores[exerciseType] = pct;
+    }
+
+    this._saveProgress(progress);
+    return progress;
+  },
+
+  // Get completion history for an exercise type
+  getCompletionHistory(exerciseType) {
+    const progress = this._loadProgress();
+    return progress.completionHistory[exerciseType] || [];
+  },
+
+  // Get best score for an exercise type
+  getBestScore(exerciseType) {
+    const progress = this._loadProgress();
+    return progress.bestScores[exerciseType] || 0;
+  },
+
+  // Get all best scores
+  getAllBestScores() {
+    return this._loadProgress().bestScores || {};
+  },
+
+  // Check if user has mastered an exercise type (80%+ on 3+ sessions)
+  hasMastered(exerciseType) {
+    const history = this.getCompletionHistory(exerciseType);
+    if (history.length < 3) return false;
+    const recent = history.slice(-3);
+    return recent.every(h => h.pct >= 80);
+  },
+
+  // Get mastery status for all exercise types
+  getMasteryStatus() {
+    const types = Object.values(EXERCISE_TYPES);
+    const status = {};
+    types.forEach(type => {
+      status[type] = {
+        mastered: this.hasMastered(type),
+        bestScore: this.getBestScore(type),
+        sessions: this.getCompletionHistory(type).length,
+      };
+    });
+    return status;
+  },
+
+  // ── Audio Latency Calibration ──────────────────────────────────
+  // Measures the difference between user click and audio engine timing.
+  // Stores latencyOffset and applies it to rhythm evaluation.
+
+  _LATENCY_KEY: 'pauta_latency_offset',
+  _latencySamples: [],
+  _calibrationActive: false,
+
+  // Get stored latency offset (in milliseconds)
+  getLatencyOffset() {
+    try { return parseInt(localStorage.getItem(this._LATENCY_KEY)) || 0; }
+    catch(e) { return 0; }
+  },
+
+  // Save latency offset
+  _saveLatencyOffset(offset) {
+    localStorage.setItem(this._LATENCY_KEY, String(Math.round(offset)));
+  },
+
+  // Start calibration session
+  startCalibration() {
+    this._latencySamples = [];
+    this._calibrationActive = true;
+    return {
+      message: 'Tap the button in sync with the metronome beat',
+      beatsNeeded: 8,
+    };
+  },
+
+  // Record a calibration tap
+  // expectedTime: audioContext.currentTime when the beat should have occurred
+  // actualTime: audioContext.currentTime when the user tapped
+  recordCalibrationTap(expectedTime, actualTime) {
+    if (!this._calibrationActive) return null;
+
+    const offset = (actualTime - expectedTime) * 1000; // Convert to ms
+    this._latencySamples.push(offset);
+
+    // Need at least 4 samples
+    if (this._latencySamples.length < 4) {
+      return { samples: this._latencySamples.length, needed: 4 };
+    }
+
+    // Calculate median offset (robust against outliers)
+    const sorted = [...this._latencySamples].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+
+    // Save if reasonable (within ±200ms)
+    if (Math.abs(median) <= 200) {
+      this._saveLatencyOffset(median);
+      this._calibrationActive = false;
+      return {
+        complete: true,
+        offset: Math.round(median),
+        message: `Calibrated: ${Math.round(median)}ms offset`,
+      };
+    }
+
+    // Invalid calibration
+    this._calibrationActive = false;
+    return {
+      complete: true,
+      offset: 0,
+      message: 'Calibration failed — offset too large. Using 0ms.',
+    };
+  },
+
+  // Apply latency offset to a timestamp
+  applyOffset(time) {
+    const offset = this.getLatencyOffset();
+    return time + (offset / 1000); // Convert ms to seconds
+  },
+
+  // Show calibration dialog
+  showCalibrationDialog() {
+    const result = this.startCalibration();
+    let tapCount = 0;
+    const totalBeats = result.beatsNeeded;
+
+    makeModal(`
+      <h2>Audio Latency Calibration</h2>
+      <p style="color:#4a5568;font-size:13px;margin-bottom:12px;text-align:center">
+        ${result.message}
+      </p>
+      <div style="text-align:center;margin-bottom:12px">
+        <div id="cal-beat-display" style="font-size:48px;font-weight:700;color:#c05621;margin-bottom:8px">0/${totalBeats}</div>
+        <div id="cal-tap-btn" style="width:80px;height:80px;border-radius:50%;background:#c05621;color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center">TAP</div>
+      </div>
+      <div id="cal-result" style="text-align:center;font-size:12px;color:#4a5568;min-height:20px"></div>
+      <button class="modal-btn secondary" data-action="closeModal" style="margin-top:8px">Cancel</button>
+    `);
+
+    // Start metronome-like beat indicator
+    let beatInterval = setInterval(() => {
+      const display = document.getElementById('cal-beat-display');
+      const btn = document.getElementById('cal-tap-btn');
+      if (!display || !btn) { clearInterval(beatInterval); return; }
+
+      tapCount++;
+      display.textContent = `${tapCount}/${totalBeats}`;
+      btn.style.background = '#22c55e';
+
+      setTimeout(() => { btn.style.background = '#c05621'; }, 100);
+
+      if (tapCount >= totalBeats) {
+        clearInterval(beatInterval);
+        const finalResult = this.recordCalibrationTap(0, 0);
+        const resultEl = document.getElementById('cal-result');
+        if (resultEl) {
+          resultEl.textContent = finalResult?.message || 'Calibration complete';
+          resultEl.style.color = '#22c55e';
+        }
+      }
+    }, 1000); // 1 beat per second = 60 BPM
+
+    // Handle tap button
+    setTimeout(() => {
+      const tapBtn = document.getElementById('cal-tap-btn');
+      if (tapBtn) {
+        tapBtn.addEventListener('click', () => {
+          const now = getAudioCtx().currentTime;
+          const offset = this.getLatencyOffset();
+          this.recordCalibrationTap(now - (offset / 1000), now);
+        });
+      }
+    }, 50);
+  },
+};
 
 // ── Practice Mode ───────────────────────────────────────────────
 // MIDI-gated playback: the student must play the correct note on
@@ -12042,35 +13172,102 @@ function _practiceAdvance() {
 }
 
 // Validate an incoming MIDI pitch against the target note.
-// Accepts any octave (pitch class match) so recorder / wind
-// students aren't penalised for octave displacement.
+// Uses EVALUATOR for pure assessment, then handles UI feedback.
 function _checkPracticeNote(incomingPitch) {
   if (!APP.practiceMode || !APP.practiceWaiting) return;
   const measure = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
   const note = measure?.notes[APP.selectedNoteIdx];
   if (!note || note.type !== 'note') { _practiceAdvance(); return; }
 
-  const targetPC = note.pitch % 12;
-  const incomingPC = incomingPitch % 12;
-  const extras = (note.extraPitches || []).map(ep => ep.pitch % 12);
-  const isCorrect = (targetPC === incomingPC) || extras.includes(incomingPC);
+  // Pure evaluation — no APP reads, no UI calls
+  const assessment = EVALUATOR.evaluateNote(
+    { pitch: note.pitch, extraPitches: note.extraPitches },
+    { pitch: incomingPitch }
+  );
 
-  if (isCorrect) {
-    // Brief audio confirmation
+  // Visual feedback on the score
+  _showPracticeFeedback(assessment, note.pitch);
+
+  if (assessment.isPerfect || assessment.isCorrectPitchClass) {
+    // Correct (or correct pitch class, wrong octave) — advance
     const ctx = getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
     scheduleNote(ctx, note.pitch, ctx.currentTime, 0.35, 'sine', 1);
     _practiceAdvance();
   } else {
-    // Wrong note — brief visual feedback via toast
-    const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    const targetName = names[targetPC];
-    showToast('Try again — play ' + targetName, 1200);
+    // Wrong note — show diagnostic feedback
+    showToast(assessment.message + (assessment.detail?.hint ? ` — ${assessment.detail.hint}` : ''), 1500);
   }
 }
 
 function _freqToMidi(freq) {
   return Math.round(69 + 12 * Math.log2(freq / 440));
+}
+
+// ── Practice Mode Visual Feedback ──────────────────────────────
+// Applies visual feedback to notes based on EVALUATOR output.
+// Uses SVG overlays on the score for immediate visual reinforcement.
+
+function _showPracticeFeedback(assessment, targetPitch) {
+  const container = document.getElementById('score-svg');
+  if (!container) return;
+
+  // Find the note position in the layout
+  const nl = APP.noteLayout.find(l =>
+    l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0) && l.ni === APP.selectedNoteIdx
+  );
+  if (!nl) return;
+
+  // Determine color and class based on assessment
+  let color, cls, label;
+  switch (assessment.assessment) {
+    case 'CORRECT':
+      color = '#22c55e'; cls = 'correct'; label = '✓';
+      break;
+    case 'OCTAVE_DISPLACEMENT':
+      color = '#e6a817'; cls = 'octave'; label = '↕ octave';
+      break;
+    case 'NEAR_MISS':
+      color = '#f59e0b'; cls = 'near'; label = assessment.detail?.direction === 'up' ? '↑ semitone' : '↓ semitone';
+      break;
+    case 'WRONG_NOTE':
+      color = '#e06850'; cls = 'wrong'; label = '✗';
+      break;
+    default:
+      return;
+  }
+
+  // Create SVG feedback circle
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+
+  // Remove any existing practice feedback
+  svg.querySelectorAll('.practice-feedback-circle').forEach(el => el.remove());
+
+  // Draw feedback circle
+  const circle = _svgCreate('circle', {
+    cx: nl.x, cy: nl.y, r: 10,
+    fill: 'none', stroke: color,
+    'stroke-width': 2.5, opacity: 0.9,
+    class: 'practice-feedback-circle',
+  }, svg);
+
+  // Add label text
+  const text = _svgCreate('text', {
+    x: nl.x, y: nl.y - 14,
+    'text-anchor': 'middle',
+    'font-family': "'Helvetica Neue',Helvetica,Arial,sans-serif",
+    'font-size': 10, 'font-weight': 700,
+    fill: color, opacity: 0.9,
+    class: 'practice-feedback-circle',
+  }, svg);
+  text.textContent = label;
+
+  // Auto-fade after 1 second
+  setTimeout(() => {
+    circle?.remove();
+    text?.remove();
+  }, 1000);
 }
 
 // ── Lyrics ────────────────────────────────────────────────────────
@@ -13122,9 +14319,12 @@ function showExercisesMenu(btn) {
     {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},
     {label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog},
+    {label:'🛠 Exercise Builder…', fn:showExerciseBuilderDialog},
+    {label:'📥 Import Exercise Set', fn:importCustomExercise},
     {sep:true},
     {label:'📊 My Progress', fn:showStudentProgress},
     {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
+    {label:'🎚 Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
     {sep:true},
     {label:practiceLabel, fn:togglePracticeMode},
   ];
@@ -13510,7 +14710,13 @@ function _renderNewScoreDialog() {
   const _savedKit = APP.teachingKit;
   const _savedLevel = APP.teachingKitLevel;
   const _familyKit = FAMILY_KIT_MAP[_ndFamily];
-  if (_familyKit && !APP.teachingKit) { APP.teachingKit = _familyKit; APP.teachingKitLevel = _ndLevel; }
+  if (_familyKit) {
+    APP.teachingKit = _familyKit;
+    APP.teachingKitLevel = _ndLevel;
+  } else {
+    APP.teachingKit = null;
+    APP.teachingKitLevel = null;
+  }
   const levelInstrs = _kitInstrumentList(_ndLevel);
   APP.teachingKit = _savedKit;
   APP.teachingKitLevel = _savedLevel;
@@ -14066,8 +15272,15 @@ window.addEventListener('keydown', e => {
   if (e.key === 'm' || e.key === 'M') { toggleMeasureNumbers(); return; }
   const durMap = {'1':'w','2':'h','3':'q','4':'8','5':'16','6':'32','7':'64'};
   if (durMap[e.key]) selectDur(durMap[e.key]);
+  // Practice mode: allow accidental toggling via keyboard
+  if (APP.practiceMode) {
+    if (e.key === '#' || (e.shiftKey && e.key === '3')) { setAcc('#'); return; }
+    if (e.key === 'b' && !e.shiftKey) { /* 'b' is a note name, skip */ }
+    else if (e.key === 'b' && e.shiftKey) { setAcc('b'); return; }
+    if (e.key === 'n' || e.key === 'N') { setAcc('n'); return; }
+  }
   const noteKeys = {c:'C',d:'D',e:'E',f:'F',g:'G',a:'A',b:'B'};
-  if (APP.inputMode && noteKeys[e.key.toLowerCase()]) insertNoteByName(noteKeys[e.key.toLowerCase()]);
+  if ((APP.inputMode || APP.practiceMode) && noteKeys[e.key.toLowerCase()]) insertNoteByName(noteKeys[e.key.toLowerCase()]);
   if (e.key === '0') { e.preventDefault(); insertRest(); }
   if (e.key === '`' || e.key === '~') { e.preventDefault(); toggleDebugOverlay(); }
 }, { capture: true });
@@ -14469,6 +15682,7 @@ _registerAction('startExerciseSession', (e) => {
 });
 _registerAction('selectExerciseDifficulty', (e) => selectExerciseDifficulty(e.target.closest('[data-diff]')?.dataset.diff));
 _registerAction('nextExercise', () => nextExercise());
+_registerAction('skipExercise', () => skipExercise());
 _registerAction('retryExercise', () => retryExercise());
 _registerAction('retryDictation', () => retryDictation());
 _registerAction('endExerciseSession', () => endExerciseSession());
@@ -14476,12 +15690,17 @@ _registerAction('closeModalExercise', () => closeModalExercise());
 _registerAction('restartExerciseSession', () => restartExerciseSession());
   _registerAction('reviewExerciseSession', () => reviewExerciseSession());
   _registerAction('showCurriculumDialog', () => showCurriculumDialog());
+  _registerAction('showExerciseBuilderDialog', () => showExerciseBuilderDialog());
+  _registerAction('importCustomExercise', () => importCustomExercise());
+  _registerAction('deleteCustomExercise', (e) => deleteCustomExercise(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
+  _registerAction('exportCustomExercise', (e) => exportCustomExercise(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
   _registerAction('startCurriculumGrade', (e) => {
     closeModal();
     const grade = e.target.closest('[data-grade]')?.dataset.grade;
     const exercise = e.target.closest('[data-exercise]')?.dataset.exercise;
     if (grade && exercise !== undefined) startCurriculumGrade(grade, parseInt(exercise));
   });
+  _registerAction('calibrateLatency', () => SESSION_MANAGER.showCalibrationDialog());
   _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
 _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
 _registerAction('togglePlayback', () => togglePlayback());
