@@ -2710,11 +2710,6 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   return g;
 }
 
-function updateBrassDiagram() {
-  updateDiagram('brass', renderBrassDiagram, brassFingeringForPitch, 'trumpet',
-    { nameAttr: 'data-instr-name' });
-}
-
 // ── Large-stave Notehead Post-processing ─────────────────────────
 // Handles both Boomwhacker and Beginning Recorder noteheads.
 // Uses position-primary matching: iterates over known note positions

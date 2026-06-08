@@ -1,6 +1,3 @@
-  }, 1000);
-}
-
 // ── Lyrics ────────────────────────────────────────────────────────
 function toggleLyricStyle(style) {
   if (style === 'bold') {
@@ -2486,4 +2483,3 @@ document.getElementById('tempo-slider')?.addEventListener('input', e => updateTe
 document.getElementById('tempo-input')?.addEventListener('change', e => updateTempo(e.target.value));
 document.getElementById('search-input')?.addEventListener('input', e => filterSearchPanels(e.target.value));
 })();
-</script>

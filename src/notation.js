@@ -9,7 +9,7 @@ function createScore(opts={}) {
       name: instr.name, instrument: instr.name, osc: instr.osc,
       staves: instr.staves.map(clef => ({
         clef,
-        measures: [{timeSigNum:ts.num, timeSigDen:ts.den, keySig:ks, lineBreak:false, notes:[mkRest('w')}]
+        measures: [{timeSigNum:ts.num, timeSigDen:ts.den, keySig:ks, lineBreak:false, notes:[mkRest('w')]}]
       }))
     };
   });

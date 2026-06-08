@@ -25,7 +25,7 @@ const modules = [
 const original = readFileSync(join(__dirname, 'pauta.html'), 'utf8');
 const lines = original.split('\n');
 const htmlHead = lines.slice(0, HTML_HEAD_LINES).join('\n');
-const htmlTail = lines.slice(-2).join('\n');
+const htmlTail = '</script>\n</body>\n</html>';
 
 let jsBundle = '';
 for (const mod of modules) {
