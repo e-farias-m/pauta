@@ -289,7 +289,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
         const wwG = renderWoodwindDiagram('', shorthand);
         const scale = 1.44;
-        const wwYOff = shorthand === 'flute' ? 193 : 173;
+        const wwYOff = shorthand === 'flute' ? 193 : 183;
         wwG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 190},${diagramCY - wwYOff}) scale(${scale})`);
         wwG.setAttribute('id', diagramId);
         wwG.setAttribute('data-instr-type', 'woodwind');
@@ -2299,12 +2299,19 @@ const WOODWIND_SPEC = {
     r:5.5, hR:6.3, smR:3.5,
   },
   clarinet: {
-    w:120, h:260,
+    w:120, h:270,
     body: 'M 52,6 L 46,6 Q 44,2 46,0 L 48,-2 Q 52,-4 54,0 L 56,6 L 56,22 Q 52,24 52,24 Z M 52,24 L 60,24 L 60,115 L 52,115 Z M 52,115 L 62,115 L 62,190 L 54,190 Z M 53,190 L 62,190 Q 66,210 72,235 L 38,235 Q 44,210 53,190 Z M 36,234 Q 30,238 28,244 L 82,244 Q 80,238 74,234 Z',
     fill:'url(#ww-clarinet-grad)', stroke:'#a09070',
     keys:[
-      [42,48,'Th','T'],[54,58,'L1','L'],[54,80,'L2','L'],[54,102,'L3','L'],
-      [60,142,'R1','R'],[60,164,'R2','R'],[60,186,'R3','R'],[72,204,'R4','R'],
+      [30,34,'Reg','T',true],  // 0  register key (left thumb, above thumb hole)
+      [54,58,'Th','T'],        // 1  thumb hole
+      [54,78,'L1','L'],        // 2  left index
+      [54,98,'L2','L'],        // 3  left middle
+      [54,118,'L3','L'],       // 4  left ring
+      [60,148,'R1','R'],       // 5  right index
+      [60,168,'R2','R'],       // 6  right middle
+      [60,188,'R3','R'],       // 7  right ring
+      [72,208,'R4','R'],       // 8  right pinky
     ], r:5.2, hR:5.8,
   },
   sax: {

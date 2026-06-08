@@ -2486,7 +2486,6 @@ const RECORDER_ALTO_FINGERINGS = {
 };
 // ── Woodwind Fingering Tables ────────────────────────────────────
 // Each pitch maps to a string of key states: '1' = pressed/covered, '0' = open.
-// Flute: 8 positions [thumb, L1, L2, L3, R1, R2, R3, G#]
 // Flute: 12 positions — [ThB, Bb, L1, L2, L3, G#, R1, R2, R3, Eb, C#, C]
 // ThB = thumb B key  |  Bb = Bb lever  |  G# = left-pinky Ab/G# key
 // Eb  = right-pinky D#/Eb key  |  C# = C# trill key  |  C = low C foot key
@@ -2522,7 +2521,21 @@ const FLUTE_FINGERINGS = {
   // ── Third register ────────────────────────────────────────────
   84:'001110110000', // C6  (same keys as E4, third harmonic)
 };
-// Clarinet: 8 positions [thumb, L1, L2, L3, R1, R2, R3, R4]
+// Clarinet: 9 positions [Reg, Th, L1, L2, L3, R1, R2, R3, R4]
+// Reg = register key (left thumb) | Th = thumb hole | L1-L3 left hand | R1-R4 right hand
+// Register key mirrors thumb state: closed (1) in chalumeau, open (0) in clarion
+const CLARINET_FINGERINGS = {
+  // ── Chalumeau register (low, register key closed = thumb closed) ──
+  59:'111111010', 60:'111110010', 61:'111110000', 62:'111100000',
+  63:'111000010', 64:'110000010', 65:'110000000', 66:'110110000',
+  // ── Clarion register (middle, register key open = thumb open) ────
+  67:'000110010', 68:'000100010', 69:'000000010', 70:'000110000',
+  71:'000010000', 72:'000001010', 73:'001110111', 74:'001110011',
+  // ── Third register (altissimo) ────────────────────────────────
+  75:'001100011', 76:'001000011', 77:'001000011', 78:'001000001',
+  79:'001010001', 80:'000110001', 81:'000100001', 82:'000000001',
+  83:'000001001', 84:'000001110',
+};
 const CLARINET_FINGERINGS = {
   59:'11111010', 60:'11110010', 61:'11110000', 62:'11100000',
   63:'11000010', 64:'10000010', 65:'10000000', 66:'10110000',
@@ -4392,7 +4405,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
         const wwG = renderWoodwindDiagram('', shorthand);
         const scale = 1.44;
-        const wwYOff = shorthand === 'flute' ? 193 : 173;
+        const wwYOff = shorthand === 'flute' ? 193 : 183;
         wwG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 190},${diagramCY - wwYOff}) scale(${scale})`);
         wwG.setAttribute('id', diagramId);
         wwG.setAttribute('data-instr-type', 'woodwind');
@@ -6402,12 +6415,19 @@ const WOODWIND_SPEC = {
     r:5.5, hR:6.3, smR:3.5,
   },
   clarinet: {
-    w:120, h:260,
+    w:120, h:270,
     body: 'M 52,6 L 46,6 Q 44,2 46,0 L 48,-2 Q 52,-4 54,0 L 56,6 L 56,22 Q 52,24 52,24 Z M 52,24 L 60,24 L 60,115 L 52,115 Z M 52,115 L 62,115 L 62,190 L 54,190 Z M 53,190 L 62,190 Q 66,210 72,235 L 38,235 Q 44,210 53,190 Z M 36,234 Q 30,238 28,244 L 82,244 Q 80,238 74,234 Z',
     fill:'url(#ww-clarinet-grad)', stroke:'#a09070',
     keys:[
-      [42,48,'Th','T'],[54,58,'L1','L'],[54,80,'L2','L'],[54,102,'L3','L'],
-      [60,142,'R1','R'],[60,164,'R2','R'],[60,186,'R3','R'],[72,204,'R4','R'],
+      [30,34,'Reg','T',true],  // 0  register key (left thumb, above thumb hole)
+      [54,58,'Th','T'],        // 1  thumb hole
+      [54,78,'L1','L'],        // 2  left index
+      [54,98,'L2','L'],        // 3  left middle
+      [54,118,'L3','L'],       // 4  left ring
+      [60,148,'R1','R'],       // 5  right index
+      [60,168,'R2','R'],       // 6  right middle
+      [60,188,'R3','R'],       // 7  right ring
+      [72,208,'R4','R'],       // 8  right pinky
     ], r:5.2, hR:5.8,
   },
   sax: {

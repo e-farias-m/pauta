@@ -91,7 +91,6 @@ const RECORDER_ALTO_FINGERINGS = {
 };
 // ── Woodwind Fingering Tables ────────────────────────────────────
 // Each pitch maps to a string of key states: '1' = pressed/covered, '0' = open.
-// Flute: 8 positions [thumb, L1, L2, L3, R1, R2, R3, G#]
 // Flute: 12 positions — [ThB, Bb, L1, L2, L3, G#, R1, R2, R3, Eb, C#, C]
 // ThB = thumb B key  |  Bb = Bb lever  |  G# = left-pinky Ab/G# key
 // Eb  = right-pinky D#/Eb key  |  C# = C# trill key  |  C = low C foot key
@@ -127,7 +126,21 @@ const FLUTE_FINGERINGS = {
   // ── Third register ────────────────────────────────────────────
   84:'001110110000', // C6  (same keys as E4, third harmonic)
 };
-// Clarinet: 8 positions [thumb, L1, L2, L3, R1, R2, R3, R4]
+// Clarinet: 9 positions [Reg, Th, L1, L2, L3, R1, R2, R3, R4]
+// Reg = register key (left thumb) | Th = thumb hole | L1-L3 left hand | R1-R4 right hand
+// Register key mirrors thumb state: closed (1) in chalumeau, open (0) in clarion
+const CLARINET_FINGERINGS = {
+  // ── Chalumeau register (low, register key closed = thumb closed) ──
+  59:'111111010', 60:'111110010', 61:'111110000', 62:'111100000',
+  63:'111000010', 64:'110000010', 65:'110000000', 66:'110110000',
+  // ── Clarion register (middle, register key open = thumb open) ────
+  67:'000110010', 68:'000100010', 69:'000000010', 70:'000110000',
+  71:'000010000', 72:'000001010', 73:'001110111', 74:'001110011',
+  // ── Third register (altissimo) ────────────────────────────────
+  75:'001100011', 76:'001000011', 77:'001000011', 78:'001000001',
+  79:'001010001', 80:'000110001', 81:'000100001', 82:'000000001',
+  83:'000001001', 84:'000001110',
+};
 const CLARINET_FINGERINGS = {
   59:'11111010', 60:'11110010', 61:'11110000', 62:'11100000',
   63:'11000010', 64:'10000010', 65:'10000000', 66:'10110000',
