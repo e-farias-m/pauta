@@ -6386,18 +6386,18 @@ const WOODWIND_SPEC = {
     fill:'url(#ww-flute-grad)', stroke:'#b8a080',
     keys:[
       // [x,   y,  label, hand, isAux]
-      [ 24, 18, 'Th',  'T', true ],   // 0  thumb B key
-      [ 41, 18, 'B♭',  'T', true ],   // 1  Bb lever
+      [ 24, 55, 'Th',  'T', true ],   // 0  thumb B key (below tube)
+      [ 41, 55, 'B♭',  'T', true ],   // 1  Bb lever (below tube)
       [ 67, 37, 'L1',  'L', false],   // 2  left index
       [ 85, 37, 'L2',  'L', false],   // 3  left middle
       [103, 37, 'L3',  'L', false],   // 4  left ring
-      [117, 55, 'G♯',  'L', true ],   // 5  G♯/A♭ key (left pinky)
+      [117, 18, 'G♯',  'L', true ],   // 5  G♯ key (above tube)
       [130, 37, 'R1',  'R', false],   // 6  right index
       [148, 37, 'R2',  'R', false],   // 7  right middle
       [165, 37, 'R3',  'R', false],   // 8  right ring
-      [186, 55, 'E♭',  'R', true ],   // 9  E♭/D♯ key (right pinky)
-      [202, 55, 'C♯',  'R', true ],   // 10 C♯ key   (right pinky)
-      [218, 55, 'C',   'R', true ],   // 11 low C key (right pinky)
+      [186, 55, 'E♭',  'R', true ],   // 9  E♭/D♯ key (below tube)
+      [202, 48, 'C',   'R', true ],   // 10 low C key (foot joint, upper)
+      [202, 62, 'C♯',  'R', true ],   // 11 C♯ key (foot joint, lower)
     ],
     r:5.5, hR:6.3, smR:3.5,
   },
