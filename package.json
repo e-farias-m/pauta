@@ -1,6 +1,6 @@
 {
   "name": "pauta",
-  "version": "0.22.0",
+  "version": "0.27.0",
   "private": true,
   "type": "module",
   "description": "Offline-first classroom music-learning environment",

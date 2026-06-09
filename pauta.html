@@ -1376,12 +1376,29 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
     </svg>
     <span>View</span>
   </button>
-  <button class="btn-top" data-action="showExercisesMenu" title="Workouts and teaching tools">
+  <button class="btn-top" data-action="showLearnMenu" title="Curriculum and learning content">
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3 L9 1 L16 3 L16 15 L9 13 L2 15 Z"/>
+      <path d="M9 1 L9 13"/>
+      <path d="M6 4 L4 4.5 L4 12.5 L6 12"/>
+      <path d="M12 4 L14 4.5 L14 12.5 L12 12"/>
+    </svg>
+    <span>Learn</span>
+  </button>
+  <button class="btn-top" data-action="showPracticeMenu" title="Exercises and drills">
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="10" cy="6" r="3"/>
       <path d="M5 17 Q10 11 15 17"/>
     </svg>
-    <span>Workouts</span>
+    <span>Practice</span>
+  </button>
+  <button class="btn-top" data-action="showTeachMenu" title="Teacher tools and assignments">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 17 L10 13 L18 17 L18 7 L10 3 L2 7 Z"/>
+      <path d="M2 7 L2 13"/>
+      <path d="M10 3 L10 13"/>
+    </svg>
+    <span>Teach</span>
   </button>
   <button class="btn-top" id="btn-input-mode" data-action="toggleInputMode" aria-label="Toggle input mode" title="Toggle note-input mode">
     <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -1740,23 +1757,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   <!-- Articulations panel -->
   <div class="panel-page" id="panel-artic" style="display:none">
     <div class="panel-title">Articulations</div>
-
-    <div class="panel-section-label">Common</div>
-    <div class="panel-grid">
-      <button class="panel-btn" aria-label="Staccato" data-action="applyArticulation" data-type="staccato"><span class="panel-sym">·</span><span class="panel-lbl">Staccato</span></button>
-      <button class="panel-btn" aria-label="Accent" data-action="applyArticulation" data-type="accent"><span class="panel-sym pal-sym-13">&gt;</span><span class="panel-lbl">Accent</span></button>
-      <button class="panel-btn" aria-label="Tenuto" data-action="applyArticulation" data-type="tenuto"><span class="panel-sym pal-sym-13">—</span><span class="panel-lbl">Tenuto</span></button>
-      <button class="panel-btn" aria-label="Marcato" data-action="applyArticulation" data-type="marcato"><span class="panel-sym pal-sym-13">^</span><span class="panel-lbl">Marcato</span></button>
-    </div>
-    <div class="panel-section-label">Combinations</div>
-    <div class="panel-grid">
-      <button class="panel-btn" aria-label="Portato" data-action="applyArticulation" data-type="staccato+tenuto"><span class="panel-sym pal-sym-f11">·—</span><span class="panel-lbl">Portato</span></button>
-      <button class="panel-btn" aria-label="Tenuto accent" data-action="applyArticulation" data-type="tenuto+accent"><span class="panel-sym pal-sym-f11">—&gt;</span><span class="panel-lbl">Ten.+Acc.</span></button>
-      <button class="panel-btn" aria-label="Staccato accent" data-action="applyArticulation" data-type="staccato+accent"><span class="panel-sym pal-sym-f11">·&gt;</span><span class="panel-lbl">Stacc.+Acc.</span></button>
-      <button class="panel-btn" aria-label="Martellato" data-action="applyArticulation" data-type="marcato+staccato"><span class="panel-sym pal-sym-f11">^·</span><span class="panel-lbl">Martellato</span></button>
-    </div>
-    <div class="panel-section-label">Other</div>
-    <div class="panel-grid">
 <script>
 
 // ─── Module: globals.js ────────────────────────────────────
@@ -9683,6 +9683,69 @@ function _presentExercise(ex) {
   _updateExerciseInputBar();
 }
 
+function _showMCGrid(options, correctAnswer, handler, promptText) {
+  const existing = document.getElementById('exercise-mc-container');
+  if (existing) existing.remove();
+  const container = document.createElement('div');
+  container.id = 'exercise-mc-container';
+  container.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:360px';
+  if (promptText) {
+    const prompt = document.createElement('div');
+    prompt.style.cssText = 'font-weight:600;font-size:14px;color:#2d3748;margin-bottom:4px';
+    prompt.textContent = promptText;
+    container.appendChild(prompt);
+  }
+  const choicesDiv = document.createElement('div');
+  choicesDiv.style.cssText = 'display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;width:100%';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-choice-btn';
+    btn.dataset.answer = opt;
+    btn.textContent = opt;
+    btn.style.cssText = 'padding:12px 20px;font-size:15px;font-weight:600;background:#f7f3ed;border:2px solid rgba(192,86,33,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:#2d3748;font-family:inherit';
+    btn.addEventListener('click', () => handler(opt, correctAnswer, container));
+    btn.addEventListener('mouseover', () => {
+      if (!btn.dataset.answered) {
+        btn.style.background = 'rgba(192,86,33,0.1)';
+        btn.style.borderColor = 'rgba(192,86,33,0.4)';
+      }
+    });
+    btn.addEventListener('mouseout', () => {
+      if (!btn.dataset.answered) {
+        btn.style.background = '#f7f3ed';
+        btn.style.borderColor = 'rgba(192,86,33,0.2)';
+      }
+    });
+    choicesDiv.appendChild(btn);
+  });
+  container.appendChild(choicesDiv);
+  document.body.appendChild(container);
+}
+
+function _handleMCAnswer(answer, correctAnswer, container, checkFn) {
+  const isCorrect = answer === correctAnswer;
+  const buttons = container.querySelectorAll('.mc-choice-btn');
+  buttons.forEach(btn => {
+    btn.dataset.answered = 'true';
+    btn.style.cursor = 'default';
+    if (btn.dataset.answer === correctAnswer) {
+      btn.style.background = '#22c55e';
+      btn.style.borderColor = '#16a34a';
+      btn.style.color = '#fff';
+    } else if (btn.dataset.answer === answer && !isCorrect) {
+      btn.style.background = '#e06850';
+      btn.style.borderColor = '#c05621';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.opacity = '0.4';
+    }
+  });
+  checkFn();
+  setTimeout(() => {
+    if (container.parentNode) container.remove();
+  }, 1500);
+}
+
 function _presentNoteId(ex) {
   // Clean, focused note recognition UI
   const existing = document.getElementById('note-id-exercise');
@@ -10116,7 +10179,38 @@ function _presentIntervalId(ex) {
   ];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  showToast('Name the interval! (e.g. Major 3rd, Perfect 5th)');
+  _showMCGrid(_generateIntervalOptions(ex.answer), ex.answer, _handleIntervalChoice, 'Name this interval');
+}
+
+function _generateIntervalOptions(correctAnswer) {
+  const allLabels = Object.values(INTERVAL_NAMES); // 13 intervals 0-12
+  const options = [correctAnswer];
+  const used = new Set([correctAnswer]);
+  // Pick ~3 plausible wrong answers from nearby semitones
+  const correctIdx = Object.values(INTERVAL_NAMES).indexOf(correctAnswer);
+  for (let offset of [-1, 1, -2, 2]) {
+    const idx = correctIdx + offset;
+    if (idx >= 0 && idx < allLabels.length && !used.has(allLabels[idx])) {
+      options.push(allLabels[idx]);
+      used.add(allLabels[idx]);
+    }
+    if (options.length >= 4) break;
+  }
+  // Fallback: add any unused intervals
+  if (options.length < 4) {
+    for (const label of allLabels) {
+      if (!used.has(label)) { options.push(label); used.add(label); if (options.length >= 4) break; }
+    }
+  }
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return options;
+}
+
+function _handleIntervalChoice(answer, correctAnswer, container) {
+  _handleMCAnswer(answer, correctAnswer, container, () => checkExerciseAnswer(answer));
 }
 
 function _presentRhythmRead(ex) {
@@ -10413,7 +10507,41 @@ function _presentKeySigId(ex) {
   score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  showToast(ex.askMinor ? 'Name the minor key! (e.g. Am, Dm, F#m)' : 'Name the major key! (e.g. C, G, F#, Bb)');
+  _showMCGrid(_generateKeySigOptions(ex), ex.answer, _handleKeySigChoice, ex.askMinor ? 'Name this minor key' : 'Name this major key');
+}
+
+function _generateKeySigOptions(ex) {
+  const correct = ex.answer;
+  const pool = ex.askMinor ? Object.values(KEY_SIG_MINOR_NAMES) : Object.values(KEY_SIG_NAMES);
+  const options = [correct];
+  const used = new Set([correct]);
+  const ksKeys = Object.keys(ex.askMinor ? KEY_SIG_MINOR_NAMES : KEY_SIG_NAMES).map(Number);
+  const correctKs = ex.target.keySig;
+  // Pick nearby keys in circle of fifths
+  for (let offset of [1, -1, 2, -2]) {
+    const nearby = correctKs + offset;
+    const name = ex.askMinor ? KEY_SIG_MINOR_NAMES[String(nearby)] : KEY_SIG_NAMES[String(nearby)];
+    if (name && !used.has(name)) {
+      options.push(name);
+      used.add(name);
+    }
+    if (options.length >= 4) break;
+  }
+  // Fallback: add any unused key names
+  if (options.length < 4) {
+    for (const name of pool) {
+      if (!used.has(name)) { options.push(name); used.add(name); if (options.length >= 4) break; }
+    }
+  }
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return options;
+}
+
+function _handleKeySigChoice(answer, correctAnswer, container) {
+  _handleMCAnswer(answer, correctAnswer, container, () => checkExerciseAnswer(answer));
 }
 
 function _presentScaleId(ex) {
@@ -10433,11 +10561,50 @@ function _presentScaleId(ex) {
   }
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  // Auto-play the scale
+  _showMCGrid(_generateScaleOptions(ex), ex.answer, _handleScaleChoice, 'Name this scale');
   setTimeout(() => {
     showToast('🎧 Listen to the scale, then name it!');
     startPlayback();
   }, 300);
+}
+
+function _generateScaleOptions(ex) {
+  const correct = ex.answer;
+  const tonic = ex.target.tonic;
+  const scaleType = ex.target.scaleType;
+  const options = [correct];
+  const used = new Set([correct]);
+  const tonicName = _scaleNoteName(tonic);
+  // Pick wrong scale types with same tonic
+  const otherTypes = Object.keys(SCALE_PATTERNS).filter(t => t !== scaleType);
+  for (let i = 0; i < otherTypes.length && options.length < 4; i++) {
+    const name = tonicName + ' ' + SCALE_LABELS[otherTypes[i]];
+    if (!used.has(name)) {
+      options.push(name);
+      used.add(name);
+    }
+  }
+  // Fallback: vary tonic with same scale type
+  if (options.length < 4) {
+    for (let octOffset of [-1, 1]) {
+      const t = tonic + octOffset * 2;
+      const name = _scaleNoteName(t) + ' ' + SCALE_LABELS[scaleType];
+      if (!used.has(name) && name !== correct) {
+        options.push(name);
+        used.add(name);
+      }
+      if (options.length >= 4) break;
+    }
+  }
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return options;
+}
+
+function _handleScaleChoice(answer, correctAnswer, container) {
+  _handleMCAnswer(answer, correctAnswer, container, () => checkExerciseAnswer(answer));
 }
 
 // ── Answer Checking ──────────────────────────────────────────────
@@ -10795,13 +10962,8 @@ function _updateExerciseInputBar() {
   if (!APP.exerciseMode || !s) return;
   const ex = s.current;
   if (!ex) return;
-  // Show text input bar for note ID, interval ID, key-sig, and scale ID exercises
-  const supportsTextInput = [
-    EXERCISE_TYPES.NOTE_ID,
-    EXERCISE_TYPES.INTERVAL_ID,
-    EXERCISE_TYPES.KEY_SIG_ID,
-    EXERCISE_TYPES.SCALE_ID,
-  ].includes(ex.type);
+  // No exercises require text input — all use multiple choice or on-staff interaction
+  const supportsTextInput = false;
   if (!supportsTextInput) return;
 
   const bar = document.createElement('div');
@@ -15335,9 +15497,17 @@ function confirmGenerateScale() {
   showToast(`Generated: ${scaleTonicName(ks, type)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`);
 }
 
-function showExercisesMenu(btn) {
+function showLearnMenu(btn) {
+  showDropdown(btn, [
+    {label:'📚 Curriculum', fn:showCurriculumDialog},
+    {label:'🎵 Recorder Exercises', fn:showRecorderExercises},
+    {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
+  ]);
+}
+
+function showPracticeMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
-  const items = [
+  showDropdown(btn, [
     // Rhythm category
     {label:'🥁 Rhythm Workout…', fn:showRhythmWorkoutDialog},
     {label:'𝅘𝅥𝅮 Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
@@ -15352,21 +15522,23 @@ function showExercisesMenu(btn) {
     // Ear Training category
     {label:'🎼 Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
     {sep:true},
-    // Tools
-    {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
-    {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
-    {sep:true},
+    // Practice mode toggle
+    {label:practiceLabel, fn:togglePracticeMode},
+  ]);
+}
+
+function showTeachMenu(btn) {
+  showDropdown(btn, [
     {label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog},
     {label:'🛠 Exercise Builder…', fn:showExerciseBuilderDialog},
     {label:'📥 Import Exercise Set', fn:importCustomExercise},
     {sep:true},
     {label:'📊 My Progress', fn:showStudentProgress},
     {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
-    {label:'🎚 Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
+    {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
     {sep:true},
-    {label:practiceLabel, fn:togglePracticeMode},
-  ];
-  showDropdown(btn, items);
+    {label:'🎚 Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
+  ]);
 }
 
 function showProfileSubmenu() {
@@ -16675,7 +16847,9 @@ _registerAction('showMixer', () => showMixer());
 _registerAction('showScoreInfo', () => showScoreInfo());
 _registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
 _registerAction('showViewMenu', (e) => showViewMenu(e.target));
-_registerAction('showExercisesMenu', (e) => showExercisesMenu(e.target));
+_registerAction('showLearnMenu', (e) => showLearnMenu(e.target));
+_registerAction('showPracticeMenu', (e) => showPracticeMenu(e.target));
+_registerAction('showTeachMenu', (e) => showTeachMenu(e.target));
 _registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.dataset.kit, e.target.closest('[data-level]')?.dataset.level); closeModal(); });
 _registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());

@@ -1038,9 +1038,17 @@ function confirmGenerateScale() {
   showToast(`Generated: ${scaleTonicName(ks, type)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`);
 }
 
-function showExercisesMenu(btn) {
+function showLearnMenu(btn) {
+  showDropdown(btn, [
+    {label:'📚 Curriculum', fn:showCurriculumDialog},
+    {label:'🎵 Recorder Exercises', fn:showRecorderExercises},
+    {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
+  ]);
+}
+
+function showPracticeMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
-  const items = [
+  showDropdown(btn, [
     // Rhythm category
     {label:'🥁 Rhythm Workout…', fn:showRhythmWorkoutDialog},
     {label:'𝅘𝅥𝅮 Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
@@ -1055,21 +1063,23 @@ function showExercisesMenu(btn) {
     // Ear Training category
     {label:'🎼 Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
     {sep:true},
-    // Tools
-    {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
-    {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
-    {sep:true},
+    // Practice mode toggle
+    {label:practiceLabel, fn:togglePracticeMode},
+  ]);
+}
+
+function showTeachMenu(btn) {
+  showDropdown(btn, [
     {label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog},
     {label:'🛠 Exercise Builder…', fn:showExerciseBuilderDialog},
     {label:'📥 Import Exercise Set', fn:importCustomExercise},
     {sep:true},
     {label:'📊 My Progress', fn:showStudentProgress},
     {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
-    {label:'🎚 Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
+    {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
     {sep:true},
-    {label:practiceLabel, fn:togglePracticeMode},
-  ];
-  showDropdown(btn, items);
+    {label:'🎚 Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
+  ]);
 }
 
 function showProfileSubmenu() {
@@ -2378,7 +2388,9 @@ _registerAction('showMixer', () => showMixer());
 _registerAction('showScoreInfo', () => showScoreInfo());
 _registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
 _registerAction('showViewMenu', (e) => showViewMenu(e.target));
-_registerAction('showExercisesMenu', (e) => showExercisesMenu(e.target));
+_registerAction('showLearnMenu', (e) => showLearnMenu(e.target));
+_registerAction('showPracticeMenu', (e) => showPracticeMenu(e.target));
+_registerAction('showTeachMenu', (e) => showTeachMenu(e.target));
 _registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.dataset.kit, e.target.closest('[data-level]')?.dataset.level); closeModal(); });
 _registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());

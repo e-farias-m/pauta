@@ -1252,6 +1252,69 @@ function _presentExercise(ex) {
   _updateExerciseInputBar();
 }
 
+function _showMCGrid(options, correctAnswer, handler, promptText) {
+  const existing = document.getElementById('exercise-mc-container');
+  if (existing) existing.remove();
+  const container = document.createElement('div');
+  container.id = 'exercise-mc-container';
+  container.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:360px';
+  if (promptText) {
+    const prompt = document.createElement('div');
+    prompt.style.cssText = 'font-weight:600;font-size:14px;color:#2d3748;margin-bottom:4px';
+    prompt.textContent = promptText;
+    container.appendChild(prompt);
+  }
+  const choicesDiv = document.createElement('div');
+  choicesDiv.style.cssText = 'display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;width:100%';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-choice-btn';
+    btn.dataset.answer = opt;
+    btn.textContent = opt;
+    btn.style.cssText = 'padding:12px 20px;font-size:15px;font-weight:600;background:#f7f3ed;border:2px solid rgba(192,86,33,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:#2d3748;font-family:inherit';
+    btn.addEventListener('click', () => handler(opt, correctAnswer, container));
+    btn.addEventListener('mouseover', () => {
+      if (!btn.dataset.answered) {
+        btn.style.background = 'rgba(192,86,33,0.1)';
+        btn.style.borderColor = 'rgba(192,86,33,0.4)';
+      }
+    });
+    btn.addEventListener('mouseout', () => {
+      if (!btn.dataset.answered) {
+        btn.style.background = '#f7f3ed';
+        btn.style.borderColor = 'rgba(192,86,33,0.2)';
+      }
+    });
+    choicesDiv.appendChild(btn);
+  });
+  container.appendChild(choicesDiv);
+  document.body.appendChild(container);
+}
+
+function _handleMCAnswer(answer, correctAnswer, container, checkFn) {
+  const isCorrect = answer === correctAnswer;
+  const buttons = container.querySelectorAll('.mc-choice-btn');
+  buttons.forEach(btn => {
+    btn.dataset.answered = 'true';
+    btn.style.cursor = 'default';
+    if (btn.dataset.answer === correctAnswer) {
+      btn.style.background = '#22c55e';
+      btn.style.borderColor = '#16a34a';
+      btn.style.color = '#fff';
+    } else if (btn.dataset.answer === answer && !isCorrect) {
+      btn.style.background = '#e06850';
+      btn.style.borderColor = '#c05621';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.opacity = '0.4';
+    }
+  });
+  checkFn();
+  setTimeout(() => {
+    if (container.parentNode) container.remove();
+  }, 1500);
+}
+
 function _presentNoteId(ex) {
   // Clean, focused note recognition UI
   const existing = document.getElementById('note-id-exercise');
@@ -1685,7 +1748,38 @@ function _presentIntervalId(ex) {
   ];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  showToast('Name the interval! (e.g. Major 3rd, Perfect 5th)');
+  _showMCGrid(_generateIntervalOptions(ex.answer), ex.answer, _handleIntervalChoice, 'Name this interval');
+}
+
+function _generateIntervalOptions(correctAnswer) {
+  const allLabels = Object.values(INTERVAL_NAMES); // 13 intervals 0-12
+  const options = [correctAnswer];
+  const used = new Set([correctAnswer]);
+  // Pick ~3 plausible wrong answers from nearby semitones
+  const correctIdx = Object.values(INTERVAL_NAMES).indexOf(correctAnswer);
+  for (let offset of [-1, 1, -2, 2]) {
+    const idx = correctIdx + offset;
+    if (idx >= 0 && idx < allLabels.length && !used.has(allLabels[idx])) {
+      options.push(allLabels[idx]);
+      used.add(allLabels[idx]);
+    }
+    if (options.length >= 4) break;
+  }
+  // Fallback: add any unused intervals
+  if (options.length < 4) {
+    for (const label of allLabels) {
+      if (!used.has(label)) { options.push(label); used.add(label); if (options.length >= 4) break; }
+    }
+  }
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return options;
+}
+
+function _handleIntervalChoice(answer, correctAnswer, container) {
+  _handleMCAnswer(answer, correctAnswer, container, () => checkExerciseAnswer(answer));
 }
 
 function _presentRhythmRead(ex) {
@@ -1982,7 +2076,41 @@ function _presentKeySigId(ex) {
   score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  showToast(ex.askMinor ? 'Name the minor key! (e.g. Am, Dm, F#m)' : 'Name the major key! (e.g. C, G, F#, Bb)');
+  _showMCGrid(_generateKeySigOptions(ex), ex.answer, _handleKeySigChoice, ex.askMinor ? 'Name this minor key' : 'Name this major key');
+}
+
+function _generateKeySigOptions(ex) {
+  const correct = ex.answer;
+  const pool = ex.askMinor ? Object.values(KEY_SIG_MINOR_NAMES) : Object.values(KEY_SIG_NAMES);
+  const options = [correct];
+  const used = new Set([correct]);
+  const ksKeys = Object.keys(ex.askMinor ? KEY_SIG_MINOR_NAMES : KEY_SIG_NAMES).map(Number);
+  const correctKs = ex.target.keySig;
+  // Pick nearby keys in circle of fifths
+  for (let offset of [1, -1, 2, -2]) {
+    const nearby = correctKs + offset;
+    const name = ex.askMinor ? KEY_SIG_MINOR_NAMES[String(nearby)] : KEY_SIG_NAMES[String(nearby)];
+    if (name && !used.has(name)) {
+      options.push(name);
+      used.add(name);
+    }
+    if (options.length >= 4) break;
+  }
+  // Fallback: add any unused key names
+  if (options.length < 4) {
+    for (const name of pool) {
+      if (!used.has(name)) { options.push(name); used.add(name); if (options.length >= 4) break; }
+    }
+  }
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return options;
+}
+
+function _handleKeySigChoice(answer, correctAnswer, container) {
+  _handleMCAnswer(answer, correctAnswer, container, () => checkExerciseAnswer(answer));
 }
 
 function _presentScaleId(ex) {
@@ -2002,11 +2130,50 @@ function _presentScaleId(ex) {
   }
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
-  // Auto-play the scale
+  _showMCGrid(_generateScaleOptions(ex), ex.answer, _handleScaleChoice, 'Name this scale');
   setTimeout(() => {
     showToast('🎧 Listen to the scale, then name it!');
     startPlayback();
   }, 300);
+}
+
+function _generateScaleOptions(ex) {
+  const correct = ex.answer;
+  const tonic = ex.target.tonic;
+  const scaleType = ex.target.scaleType;
+  const options = [correct];
+  const used = new Set([correct]);
+  const tonicName = _scaleNoteName(tonic);
+  // Pick wrong scale types with same tonic
+  const otherTypes = Object.keys(SCALE_PATTERNS).filter(t => t !== scaleType);
+  for (let i = 0; i < otherTypes.length && options.length < 4; i++) {
+    const name = tonicName + ' ' + SCALE_LABELS[otherTypes[i]];
+    if (!used.has(name)) {
+      options.push(name);
+      used.add(name);
+    }
+  }
+  // Fallback: vary tonic with same scale type
+  if (options.length < 4) {
+    for (let octOffset of [-1, 1]) {
+      const t = tonic + octOffset * 2;
+      const name = _scaleNoteName(t) + ' ' + SCALE_LABELS[scaleType];
+      if (!used.has(name) && name !== correct) {
+        options.push(name);
+        used.add(name);
+      }
+      if (options.length >= 4) break;
+    }
+  }
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return options;
+}
+
+function _handleScaleChoice(answer, correctAnswer, container) {
+  _handleMCAnswer(answer, correctAnswer, container, () => checkExerciseAnswer(answer));
 }
 
 // ── Answer Checking ──────────────────────────────────────────────
@@ -2364,13 +2531,8 @@ function _updateExerciseInputBar() {
   if (!APP.exerciseMode || !s) return;
   const ex = s.current;
   if (!ex) return;
-  // Show text input bar for note ID, interval ID, key-sig, and scale ID exercises
-  const supportsTextInput = [
-    EXERCISE_TYPES.NOTE_ID,
-    EXERCISE_TYPES.INTERVAL_ID,
-    EXERCISE_TYPES.KEY_SIG_ID,
-    EXERCISE_TYPES.SCALE_ID,
-  ].includes(ex.type);
+  // No exercises require text input — all use multiple choice or on-staff interaction
+  const supportsTextInput = false;
   if (!supportsTextInput) return;
 
   const bar = document.createElement('div');
