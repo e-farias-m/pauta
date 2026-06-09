@@ -7852,9 +7852,9 @@ function renderNoteLabels() {
     const n = m?.notes[nl.ni];
     if (!n || n.type !== 'note') continue;
     const ks = getResolvedKeySig(nl.mi, nl.si);
+    const sl = APP.staveLayout.find(l => l.mi === nl.mi && l.si === nl.si);
     const clef = sl?.clef || 'treble';
     const label = noteLabelForPitch(n.pitch, ks, n.accidental, mode, clef);
-    const sl = APP.staveLayout.find(l => l.mi === nl.mi && l.si === nl.si);
     const staffBot = sl ? sl.bottomY : nl.y;
     const fontSize = Math.round(LAYOUT.STAVE_H * 0.22);
     const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -9983,7 +9983,7 @@ function _presentScaleId(ex) {
   // Auto-play the scale
   setTimeout(() => {
     showToast('🎧 Listen to the scale, then name it!');
-    _playBackScore();
+    startPlayback();
   }, 300);
 }
 

@@ -1552,7 +1552,7 @@ function _presentScaleId(ex) {
   // Auto-play the scale
   setTimeout(() => {
     showToast('🎧 Listen to the scale, then name it!');
-    _playBackScore();
+    startPlayback();
   }, 300);
 }
 
