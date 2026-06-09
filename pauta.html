@@ -1128,12 +1128,12 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
     </svg>
     <span>View</span>
   </button>
-  <button class="btn-top" data-action="showExercisesMenu" title="Exercises and teaching tools">
+  <button class="btn-top" data-action="showExercisesMenu" title="Workouts and teaching tools">
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="10" cy="6" r="3"/>
       <path d="M5 17 Q10 11 15 17"/>
     </svg>
-    <span>Exercises</span>
+    <span>Workouts</span>
   </button>
   <button class="btn-top" id="btn-input-mode" data-action="toggleInputMode" aria-label="Toggle input mode" title="Toggle note-input mode">
     <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -14842,8 +14842,21 @@ function confirmGenerateScale() {
 function showExercisesMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
   const items = [
-    {label:'🎹 Start Exercise…', fn:showExerciseDialog},
+    // Rhythm category
+    {label:'🥁 Rhythm Workout…', fn:showRhythmWorkoutDialog},
+    {label:'𝅘𝅥𝅮 Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
     {label:'🔊 Rhythm Dictation', fn:showRhythmWorksheetDialog},
+    {sep:true},
+    // Pitch & Theory category
+    {label:'🎵 Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'↔ Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'♭♯ Key Sig Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'🎹 Scale Gym', fn:() => startExerciseSession('scale_id', APP.exerciseDifficulty || 'beginner')},
+    {sep:true},
+    // Ear Training category
+    {label:'🎼 Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
+    {sep:true},
+    // Tools
     {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
     {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},

@@ -1041,8 +1041,21 @@ function confirmGenerateScale() {
 function showExercisesMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
   const items = [
-    {label:'🎹 Start Exercise…', fn:showExerciseDialog},
+    // Rhythm category
+    {label:'🥁 Rhythm Workout…', fn:showRhythmWorkoutDialog},
+    {label:'𝅘𝅥𝅮 Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
     {label:'🔊 Rhythm Dictation', fn:showRhythmWorksheetDialog},
+    {sep:true},
+    // Pitch & Theory category
+    {label:'🎵 Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'↔ Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'♭♯ Key Sig Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'🎹 Scale Gym', fn:() => startExerciseSession('scale_id', APP.exerciseDifficulty || 'beginner')},
+    {sep:true},
+    // Ear Training category
+    {label:'🎼 Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
+    {sep:true},
+    // Tools
     {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
     {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {sep:true},
