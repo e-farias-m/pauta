@@ -9176,10 +9176,30 @@ function _genRhythmWorksheet(difficulty) {
 function _genMelodyDict(difficulty) {
   const lengths = [4, 6, 8];
   const len = lengths[Math.min(difficulty, 2)];
+  
+  // Leveling: start with C major, progress to other keys
+  const keyProgression = [
+    { ks: 0, name: 'C major' },           // Beginner
+    { ks: 0, name: 'C major' },           // Still C major
+    { ks: 1, name: 'G major' },           // One sharp
+    { ks: -1, name: 'F major' },          // One flat
+    { ks: 2, name: 'D major' },           // Two sharps
+    { ks: -2, name: 'Bb major' },         // Two flats
+    { ks: 3, name: 'A major' },           // Three sharps
+    { ks: -3, name: 'Eb major' },         // Three flats
+  ];
+  
+  // Use difficulty to determine which keys are available
+  const maxKeyIdx = Math.min(difficulty * 2 + 1, keyProgression.length - 1);
+  const keyIdx = Math.floor(Math.random() * (maxKeyIdx + 1));
+  const key = keyProgression[keyIdx];
+  const ks = key.ks;
+  
   const kitRange = _kitExerciseRange();
   const baseMin = kitRange ? kitRange.min : 60;
   const baseMax = kitRange ? kitRange.max : 72;
   const basePitch = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
+  
   const notes = [];
   for (let i = 0; i < len; i++) {
     const step = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
@@ -9187,12 +9207,21 @@ function _genMelodyDict(difficulty) {
     const durs = difficulty === 0 ? ['q','h'] : difficulty === 1 ? ['q','h','8'] : ['q','h','8','16'];
     notes.push({ pitch, duration: durs[Math.floor(Math.random() * durs.length)] });
   }
+  
+  // Get first note name for display
+  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const firstPc = notes[0].pitch % 12;
+  const firstOct = Math.floor(notes[0].pitch / 12) - 1;
+  const firstName = noteNames[firstPc] + firstOct;
+  
   return {
     type: EXERCISE_TYPES.MELODY_DICT,
     difficulty,
-    target: { notes },
+    target: { notes, keySig: ks, keyName: key.name },
     answer: notes.map(n => n.pitch).join(','),
-    hint: `Listen first, then enter one note at a time.`,
+    hint: `Key: ${key.name}. First note: ${firstName}. Listen carefully, then enter the notes.`,
+    keyName: key.name,
+    firstName: firstName,
   };
 }
 
@@ -9497,7 +9526,7 @@ function endExerciseSession() {
   _saveExerciseResult(s);
 
   // Clean up floating bars
-  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','note-id-choices'].forEach(id => {
+  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','note-id-choices','note-id-exercise'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.remove();
   });
@@ -9655,44 +9684,179 @@ function _presentExercise(ex) {
 }
 
 function _presentNoteId(ex) {
-  // Build a minimal score with one note — include accidental so chromatic
-  // pitches render correctly on the staff (e.g. F# not F natural)
-  const acc = midiAutoAcc(ex.target.pitch);
-  const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Note Drills', instruments: [instr], ts: {num:4,den:4}, ks: 0});
-  score.parts[0].staves[0].measures[0].notes = [mkNote(ex.target.pitch, 'q', 0, acc)];
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
-  renderScore();
-  
-  // Show multiple choice options
-  _showNoteIdChoices(ex.target.pitch);
-}
-
-function _showNoteIdChoices(correctPitch) {
-  const existing = document.getElementById('note-id-choices');
+  // Clean, focused note recognition UI
+  const existing = document.getElementById('note-id-exercise');
   if (existing) existing.remove();
 
+  const container = document.createElement('div');
+  container.id = 'note-id-exercise';
+  container.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:150;background:#fff;border-radius:12px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,0.12);display:flex;flex-direction:column;align-items:center;gap:24px;min-width:400px';
+
+  // Create clean staff SVG
+  const staffSvg = _createNoteStaff(ex.target.pitch);
+  container.appendChild(staffSvg);
+
+  // Create choice buttons
+  const choicesDiv = document.createElement('div');
+  choicesDiv.style.cssText = 'display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;width:100%';
+  
+  const options = _generateNoteOptions(ex.target.pitch);
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'note-choice-btn';
+    btn.dataset.answer = opt;
+    btn.textContent = opt;
+    btn.style.cssText = 'padding:16px 24px;font-size:18px;font-weight:600;background:#f7f3ed;border:2px solid rgba(192,86,33,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:#2d3748;font-family:inherit';
+    btn.addEventListener('click', () => _handleNoteChoice(opt, ex.target.pitch, container));
+    btn.addEventListener('mouseover', () => {
+      if (!btn.dataset.answered) {
+        btn.style.background = 'rgba(192,86,33,0.1)';
+        btn.style.borderColor = 'rgba(192,86,33,0.4)';
+      }
+    });
+    btn.addEventListener('mouseout', () => {
+      if (!btn.dataset.answered) {
+        btn.style.background = '#f7f3ed';
+        btn.style.borderColor = 'rgba(192,86,33,0.2)';
+      }
+    });
+    choicesDiv.appendChild(btn);
+  });
+  
+  container.appendChild(choicesDiv);
+  document.body.appendChild(container);
+}
+
+function _createNoteStaff(pitch) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '300');
+  svg.setAttribute('height', '120');
+  svg.setAttribute('viewBox', '0 0 300 120');
+  
+  // Draw 5 staff lines
+  for (let i = 0; i < 5; i++) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '20');
+    line.setAttribute('y1', String(30 + i * 15));
+    line.setAttribute('x2', '280');
+    line.setAttribute('y2', String(30 + i * 15));
+    line.setAttribute('stroke', '#4a5568');
+    line.setAttribute('stroke-width', '1.5');
+    svg.appendChild(line);
+  }
+  
+  // Calculate note position on staff
+  const notePos = _pitchToStaffPosition(pitch);
+  
+  // Draw ledger lines if needed
+  if (notePos.ledgerLines > 0) {
+    for (let i = 0; i < notePos.ledgerLines; i++) {
+      const ledger = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ledger.setAttribute('x1', '140');
+      ledger.setAttribute('y1', String(105 + i * 15));
+      ledger.setAttribute('x2', '160');
+      ledger.setAttribute('y2', String(105 + i * 15));
+      ledger.setAttribute('stroke', '#4a5568');
+      ledger.setAttribute('stroke-width', '1.5');
+      svg.appendChild(ledger);
+    }
+  } else if (notePos.ledgerLines < 0) {
+    for (let i = 0; i < Math.abs(notePos.ledgerLines); i++) {
+      const ledger = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ledger.setAttribute('x1', '140');
+      ledger.setAttribute('y1', String(15 - (i + 1) * 15));
+      ledger.setAttribute('x2', '160');
+      ledger.setAttribute('y2', String(15 - (i + 1) * 15));
+      ledger.setAttribute('stroke', '#4a5568');
+      ledger.setAttribute('stroke-width', '1.5');
+      svg.appendChild(ledger);
+    }
+  }
+  
+  // Draw note head
+  const note = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  note.setAttribute('cx', '150');
+  note.setAttribute('cy', String(notePos.y));
+  note.setAttribute('rx', '8');
+  note.setAttribute('ry', '6');
+  note.setAttribute('fill', '#2d3748');
+  note.setAttribute('transform', `rotate(-15, 150, ${notePos.y})`);
+  svg.appendChild(note);
+  
+  // Draw stem
+  const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  stem.setAttribute('x1', notePos.stemUp ? '158' : '142');
+  stem.setAttribute('y1', String(notePos.y));
+  stem.setAttribute('x2', notePos.stemUp ? '158' : '142');
+  stem.setAttribute('y2', notePos.stemUp ? String(notePos.y - 45) : String(notePos.y + 45));
+  stem.setAttribute('stroke', '#2d3748');
+  stem.setAttribute('stroke-width', '2');
+  svg.appendChild(stem);
+  
+  // Draw accidental if needed
+  if (notePos.accidental) {
+    const acc = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    acc.setAttribute('x', '130');
+    acc.setAttribute('y', String(notePos.y + 5));
+    acc.setAttribute('font-size', '20');
+    acc.setAttribute('font-weight', 'bold');
+    acc.setAttribute('fill', '#2d3748');
+    acc.textContent = notePos.accidental;
+    svg.appendChild(acc);
+  }
+  
+  return svg;
+}
+
+function _pitchToStaffPosition(pitch) {
+  // Treble clef: E4 is on the first line (bottom line)
+  // Each staff position is a diatonic step
+  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const pc = pitch % 12;
+  const oct = Math.floor(pitch / 12) - 1;
+  const noteName = noteNames[pc];
+  
+  // Map pitch to staff position (0 = bottom line E4, increases upward)
+  // E4 = 0, F4 = 1, G4 = 2, A4 = 3, B4 = 4, C5 = 5, etc.
+  const diatonicMap = { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 };
+  const baseNote = noteName.replace('#', '').replace('b', '');
+  const baseDiatonic = diatonicMap[baseNote];
+  
+  // Calculate position relative to E4 (first line)
+  const e4Pitch = 64; // E4 MIDI
+  const octavesFromE4 = oct - 4;
+  const positionFromE4 = octavesFromE4 * 7 + baseDiatonic - 2; // -2 because E is at position 2 in diatonicMap
+  
+  // Staff Y coordinates: bottom line (E4) = 105, each step up = -7.5
+  const y = 105 - (positionFromE4 * 7.5);
+  
+  // Determine stem direction (stems down if note is above middle line)
+  const stemUp = positionFromE4 < 4; // Middle line is B4 (position 4)
+  
+  // Determine ledger lines
+  let ledgerLines = 0;
+  if (positionFromE4 < 0) {
+    ledgerLines = Math.ceil(Math.abs(positionFromE4) / 2);
+  } else if (positionFromE4 > 8) {
+    ledgerLines = Math.ceil((positionFromE4 - 8) / 2);
+  }
+  
+  // Determine accidental
+  let accidental = null;
+  if (noteName.includes('#')) accidental = '♯';
+  else if (noteName.includes('b')) accidental = '♭';
+  
+  return { y, stemUp, ledgerLines, accidental };
+}
+
+function _generateNoteOptions(correctPitch) {
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const correctPc = correctPitch % 12;
   const correctOct = Math.floor(correctPitch / 12) - 1;
   const correctName = noteNames[correctPc] + correctOct;
 
-  // Generate 3 wrong options (different octaves or nearby notes)
   const options = [correctName];
   const usedNames = new Set([correctName]);
-  
-  // Add octave variations
-  for (let octOffset of [-1, 1]) {
-    const oct = correctOct + octOffset;
-    if (oct >= 3 && oct <= 6) {
-      const name = noteNames[correctPc] + oct;
-      if (!usedNames.has(name)) {
-        options.push(name);
-        usedNames.add(name);
-      }
-    }
-  }
   
   // Add nearby notes in same octave
   for (let pcOffset of [-1, 1, -2, 2]) {
@@ -9703,6 +9867,20 @@ function _showNoteIdChoices(correctPitch) {
       usedNames.add(name);
     }
   }
+  
+  // Add octave variations if needed
+  if (options.length < 4) {
+    for (let octOffset of [-1, 1]) {
+      const oct = correctOct + octOffset;
+      if (oct >= 3 && oct <= 6) {
+        const name = noteNames[correctPc] + oct;
+        if (!usedNames.has(name) && options.length < 4) {
+          options.push(name);
+          usedNames.add(name);
+        }
+      }
+    }
+  }
 
   // Shuffle options
   for (let i = options.length - 1; i > 0; i--) {
@@ -9710,30 +9888,43 @@ function _showNoteIdChoices(correctPitch) {
     [options[i], options[j]] = [options[j], options[i]];
   }
 
-  const bar = document.createElement('div');
-  bar.id = 'note-id-choices';
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;gap:8px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:10px;padding:10px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);';
+  return options;
+}
+
+function _handleNoteChoice(answer, correctPitch, container) {
+  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const correctPc = correctPitch % 12;
+  const correctOct = Math.floor(correctPitch / 12) - 1;
+  const correctName = noteNames[correctPc] + correctOct;
   
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.textContent = opt;
-    btn.style.cssText = 'padding:8px 16px;font-size:14px;font-weight:600;background:rgba(192,86,33,0.08);border:1.5px solid rgba(192,86,33,0.2);border-radius:6px;cursor:pointer;transition:all 0.15s;color:#2d3748;';
-    btn.addEventListener('mouseover', () => {
-      btn.style.background = 'rgba(192,86,33,0.15)';
-      btn.style.borderColor = 'rgba(192,86,33,0.4)';
-    });
-    btn.addEventListener('mouseout', () => {
-      btn.style.background = 'rgba(192,86,33,0.08)';
-      btn.style.borderColor = 'rgba(192,86,33,0.2)';
-    });
-    btn.addEventListener('click', () => {
-      checkExerciseAnswer(opt);
-      bar.remove();
-    });
-    bar.appendChild(btn);
+  const isCorrect = answer === correctName;
+  
+  // Mark all buttons as answered
+  const buttons = container.querySelectorAll('.note-choice-btn');
+  buttons.forEach(btn => {
+    btn.dataset.answered = 'true';
+    btn.style.cursor = 'default';
+    
+    if (btn.dataset.answer === correctName) {
+      btn.style.background = '#22c55e';
+      btn.style.borderColor = '#16a34a';
+      btn.style.color = '#fff';
+    } else if (btn.dataset.answer === answer && !isCorrect) {
+      btn.style.background = '#e06850';
+      btn.style.borderColor = '#c05621';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.opacity = '0.4';
+    }
   });
   
-  document.body.appendChild(bar);
+  // Check answer and advance
+  checkExerciseAnswer(answer);
+  
+  // Auto-advance after feedback
+  setTimeout(() => {
+    if (container.parentNode) container.remove();
+  }, 1500);
 }
 
 function _presentNoteConstruct(ex) {
@@ -9955,9 +10146,11 @@ function _presentRhythmWorksheet(ex) {
 }
 
 function _presentMelodyDict(ex) {
-  // Phase 1: blank score — student hears but does NOT see the melody
+  // Phase 1: blank score with key signature — student hears but does NOT see the melody
   const instr = _kitDefaultInstrument();
-  const blankScore = createScore({title: 'Melody Dictation', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  const ks = ex.target.keySig || 0;
+  const blankScore = createScore({title: 'Melody Dictation', instruments: [instr], ts: {num:4,den:4}, ks: ks});
+  
   // Fill with whole-measure rests so the score has structure but no pitches
   const totalBeats = ex.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
   const measureCount = Math.max(1, Math.ceil(totalBeats / 4));
@@ -9965,7 +10158,7 @@ function _presentMelodyDict(ex) {
   for (let i = 0; i < measureCount; i++) {
     blankScore.parts[0].staves[0].measures.push({
       timeSigNum: i === 0 ? 4 : null, timeSigDen: i === 0 ? 4 : null,
-      keySig: i === 0 ? 0 : null, lineBreak: false, notes: [mkRest('w')]
+      keySig: i === 0 ? ks : null, lineBreak: false, notes: [mkRest('w')]
     });
   }
   adoptScore(blankScore, { clearHistory: true, skipAssignmentPrompt: true });
@@ -9976,32 +10169,48 @@ function _presentMelodyDict(ex) {
   if (s) {
     s._dictationTarget = ex.target.notes;
     s._dictationPhase = 'listen';
+    s._dictationKey = ex.keyName;
+    s._dictationFirstName = ex.firstName;
   }
-  _showDictationListenBar();
+  _showDictationListenBar(ex);
 }
 
-function _showDictationListenBar() {
+function _showDictationListenBar(ex) {
   const existing = document.getElementById('dictation-bar');
   if (existing) existing.remove();
   const bar = document.createElement('div');
   bar.id = 'dictation-bar';
   bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:10px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:#4a5568;flex-wrap:wrap';
   const currentTempo = APP.tempo || 120;
-  bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">🎧 Listen</span>
-    <button class="modal-btn primary" id="dictation-play" style="padding:4px 12px;font-size:12px">▶ Play Melody</button>
-    <button class="modal-btn secondary" id="dictation-ready" style="padding:4px 12px;font-size:12px">📝 I'm Ready</button>
+  
+  const keyName = ex?.keyName || 'C major';
+  const firstName = ex?.firstName || 'C4';
+  
+  bar.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:4px;margin-right:12px">
+      <div style="font-size:11px;color:rgba(74,85,104,0.6)">Key</div>
+      <div style="font-size:14px;font-weight:700;color:#c05621">${keyName}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-right:12px">
+      <div style="font-size:11px;color:rgba(74,85,104,0.6)">First note</div>
+      <div style="font-size:14px;font-weight:700;color:#2d3748">${firstName}</div>
+    </div>
+    <button class="modal-btn primary" id="dictation-play" style="padding:6px 16px;font-size:13px">▶ Play Melody</button>
+    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:12px">📝 I'm Ready</button>
     <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
       <label style="font-size:11px;color:#4a5568;font-weight:600">♩</label>
       <input type="range" id="dictation-tempo" min="40" max="200" value="${currentTempo}" style="width:100px" aria-label="Tempo">
       <span id="dictation-tempo-val" style="font-size:12px;font-weight:700;color:#c05621;min-width:36px;text-align:right">${currentTempo}</span> BPM
     </div>`;
   document.body.appendChild(bar);
+  
   // Use event delegation on the bar to avoid DOM race
   bar.addEventListener('click', e => {
     const id = e.target?.id;
-    if (id === 'dictation-play') _playDictationMelody();
+    if (id === 'dictation-play') _playDictationMelodyWithCountdown();
     if (id === 'dictation-ready') _startDictationNotate();
   });
+  
   // Tempo slider handler
   const tempoSlider = bar.querySelector('#dictation-tempo');
   const tempoVal = bar.querySelector('#dictation-tempo-val');
@@ -10016,6 +10225,53 @@ function _showDictationListenBar() {
       APP.tempo = val;
     });
   }
+}
+
+function _playDictationMelodyWithCountdown() {
+  // Show visual countdown before playing
+  const existing = document.getElementById('dictation-countdown');
+  if (existing) existing.remove();
+  
+  const countdown = document.createElement('div');
+  countdown.id = 'dictation-countdown';
+  countdown.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;font-size:72px;font-weight:700;color:#c05621;text-shadow:0 4px 20px rgba(192,86,33,0.3);opacity:0;transition:all 0.3s ease;pointer-events:none';
+  document.body.appendChild(countdown);
+  
+  let count = 3;
+  
+  function showCount() {
+    if (count > 0) {
+      countdown.textContent = count;
+      countdown.style.opacity = '1';
+      countdown.style.transform = 'translate(-50%, -50%) scale(1.2)';
+      
+      setTimeout(() => {
+        countdown.style.transform = 'translate(-50%, -50%) scale(1)';
+      }, 100);
+      
+      setTimeout(() => {
+        countdown.style.opacity = '0';
+        count--;
+        setTimeout(showCount, 300);
+      }, 700);
+    } else {
+      // Show "GO!" briefly
+      countdown.textContent = 'GO!';
+      countdown.style.color = '#22c55e';
+      countdown.style.opacity = '1';
+      countdown.style.transform = 'translate(-50%, -50%) scale(1.3)';
+      
+      setTimeout(() => {
+        countdown.style.opacity = '0';
+        setTimeout(() => {
+          if (countdown.parentNode) countdown.remove();
+          _playDictationMelody();
+        }, 300);
+      }, 500);
+    }
+  }
+  
+  showCount();
 }
 
 function _playDictationMelody() {
@@ -12046,7 +12302,7 @@ function _finishDiagnostic() {
   _hideDiagBar();
   _hideSuccessBanner();
   // Cleanup
-  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','diagnostic-bar','note-id-choices'].forEach(id => {
+  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','diagnostic-bar','note-id-choices','note-id-exercise'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.remove();
   });
