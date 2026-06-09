@@ -579,8 +579,13 @@ function recommendDifficulty(exerciseType) {
 }
 
 function generateExercise(type, difficulty = 'beginner') {
+  const s = APP.exerciseSession;
+  
+  // Warm-up phase: first 3 questions always beginner difficulty
+  const effectiveDifficulty = (s && s.warmupCount < 3) ? 'beginner' : difficulty;
+  
   const diffs = { beginner: 0, intermediate: 1, advanced: 2 };
-  const d = diffs[difficulty] ?? 0;
+  const d = diffs[effectiveDifficulty] ?? 0;
 
   switch (type) {
     case EXERCISE_TYPES.NOTE_ID:
@@ -857,6 +862,121 @@ function startExerciseSession(type, difficulty) {
   if (!difficulty || difficulty === 'auto') {
     difficulty = 'beginner';
   }
+  
+  // Show session intro first
+  _showSessionIntro(type, difficulty);
+}
+
+function _showSessionIntro(type, difficulty) {
+  const intros = {
+    [EXERCISE_TYPES.NOTE_ID]: {
+      title: 'Note Identification',
+      goal: 'Build instant recognition of notes on the staff',
+      description: 'You\'ll see random notes and name them as fast as you can. This builds the foundation for sight-reading.',
+      tips: ['Start with the clef to orient yourself', 'Use landmarks: E-G-B (lines) and F-A-C-E (spaces) in treble clef']
+    },
+    [EXERCISE_TYPES.INTERVAL_ID]: {
+      title: 'Interval Training',
+      goal: 'Recognize the distance between two notes',
+      description: 'Intervals are the building blocks of melody and harmony. You\'ll learn to identify them by sight and sound.',
+      tips: ['Count the letter names (C to G = 5th)', 'Listen for the characteristic sound of each interval']
+    },
+    [EXERCISE_TYPES.RHYTHM_READ]: {
+      title: 'Rhythm Reading',
+      goal: 'Read and perform rhythmic patterns accurately',
+      description: 'Rhythm is the heartbeat of music. You\'ll practice reading various note values and rests.',
+      tips: ['Tap your foot to feel the pulse', 'Subdivide: think "1-and-2-and" for eighth notes']
+    },
+    [EXERCISE_TYPES.RHYTHM_WORKOUT]: {
+      title: 'Rhythm Workout',
+      goal: 'Master rhythmic accuracy and consistency',
+      description: 'A focused practice session with customizable rhythm patterns. Great for building solid timing.',
+      tips: ['Start slow, then gradually increase tempo', 'Use a metronome to stay on beat']
+    },
+    [EXERCISE_TYPES.MELODY_DICT]: {
+      title: 'Melody Dictation',
+      goal: 'Transcribe melodies by ear',
+      description: 'Listen to a melody and write it down. This develops your musical memory and notation skills.',
+      tips: ['Listen for the overall shape first', 'Identify the starting note, then work out intervals']
+    },
+    [EXERCISE_TYPES.KEY_SIG_ID]: {
+      title: 'Key Signature Drills',
+      goal: 'Instantly recognize major and minor keys',
+      description: 'Key signatures tell you which notes are sharp or flat throughout a piece. You\'ll build automatic recognition.',
+      tips: ['Sharps: last sharp is the leading tone (go up a half step)', 'Flats: second-to-last flat is the key name']
+    },
+    [EXERCISE_TYPES.RHYTHM_WS]: {
+      title: 'Rhythm Worksheet',
+      goal: 'Analyze and notate rhythmic patterns',
+      description: 'Work through structured rhythm exercises that build your understanding of note values and time signatures.',
+      tips: ['Count out loud as you work', 'Clap or tap the rhythm before writing it']
+    },
+    [EXERCISE_TYPES.SCALE_ID]: {
+      title: 'Scale Gym',
+      goal: 'Identify scales and their characteristics',
+      description: 'Scales are the DNA of music. You\'ll learn to recognize major, minor, and modal scales by ear.',
+      tips: ['Listen for the mood: major sounds bright, minor sounds dark', 'Identify the tonic (home note) first']
+    },
+    [EXERCISE_TYPES.NOTE_CONSTRUCT]: {
+      title: 'Note Construction',
+      goal: 'Build notes on the staff from their names',
+      description: 'Reverse of note identification: you\'ll place notes on the staff based on their names. Great for notation fluency.',
+      tips: ['Remember the staff lines and spaces', 'Use the grand staff for notes outside the treble/bass range']
+    }
+  };
+
+  const intro = intros[type] || {
+    title: TYPE_LABELS[type] || 'Exercise',
+    goal: 'Improve your musical skills',
+    description: 'A focused practice session.',
+    tips: ['Take your time', 'Focus on accuracy over speed']
+  };
+
+  const diffLabel = difficulty === 'beginner' ? 'Beginner' : difficulty === 'intermediate' ? 'Intermediate' : 'Advanced';
+
+  makeModal(`
+    <div class="pauta-modal">
+      <div class="pauta-modal-header">
+        <h2 class="pauta-modal-title">${intro.title}</h2>
+        <p class="pauta-modal-subtitle">${diffLabel} level</p>
+      </div>
+
+      <div class="pauta-modal-body">
+        <div style="background:rgba(192,86,33,0.05);border-left:3px solid #c05621;padding:12px;margin-bottom:16px;border-radius:0 6px 6px 0">
+          <div style="font-weight:600;color:#c05621;margin-bottom:4px">🎯 Learning Goal</div>
+          <div style="font-size:13px;color:#2d3748">${intro.goal}</div>
+        </div>
+
+        <p style="font-size:13px;color:#4a5568;line-height:1.6;margin-bottom:16px">${intro.description}</p>
+
+        <div style="margin-bottom:16px">
+          <div style="font-weight:600;color:#2d3748;margin-bottom:8px;font-size:12px">💡 Tips</div>
+          <ul style="margin:0;padding-left:20px;font-size:12px;color:#4a5568;line-height:1.8">
+            ${intro.tips.map(tip => `<li>${tip}</li>`).join('')}
+          </ul>
+        </div>
+
+        <div style="background:rgba(34,197,94,0.05);border-left:3px solid #22c55e;padding:12px;border-radius:0 6px 6px 0">
+          <div style="font-weight:600;color:#22c55e;margin-bottom:4px">📈 Session Structure</div>
+          <div style="font-size:12px;color:#4a5568">
+            • Warm-up: First 2-3 questions are easy to get you started<br>
+            • Main: Questions adapt to your performance<br>
+            • Milestones: Every 5 correct answers triggers a level-up moment
+          </div>
+        </div>
+      </div>
+
+      <div class="pauta-modal-footer">
+        <button class="modal-btn primary" data-action="beginExerciseSession" data-type="${type}" data-diff="${difficulty}" style="flex:1">
+          ▶ Start Session
+        </button>
+        <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+      </div>
+    </div>
+  `);
+}
+
+function _beginExerciseSession(type, difficulty) {
   const ex = generateExercise(type, difficulty);
   APP.exerciseSession = {
     type, difficulty,
@@ -867,6 +987,8 @@ function startExerciseSession(type, difficulty) {
     streak: 0,
     maxStreak: 0,
     startedAt: Date.now(),
+    warmupCount: 0, // Track warm-up questions
+    lastLevelUp: 0, // Track when we last showed a level-up message
   };
   APP.exerciseMode = true;
   _setExerciseUI(true);
@@ -944,7 +1066,7 @@ function endExerciseSession() {
   _saveExerciseResult(s);
 
   // Clean up floating bars
-  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid'].forEach(id => {
+  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','note-id-choices'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.remove();
   });
@@ -1111,7 +1233,76 @@ function _presentNoteId(ex) {
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
   renderScore();
-  showToast('🎵 Name this note! (tap palette or type letter)');
+  
+  // Show multiple choice options
+  _showNoteIdChoices(ex.target.pitch);
+}
+
+function _showNoteIdChoices(correctPitch) {
+  const existing = document.getElementById('note-id-choices');
+  if (existing) existing.remove();
+
+  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const correctPc = correctPitch % 12;
+  const correctOct = Math.floor(correctPitch / 12) - 1;
+  const correctName = noteNames[correctPc] + correctOct;
+
+  // Generate 3 wrong options (different octaves or nearby notes)
+  const options = [correctName];
+  const usedNames = new Set([correctName]);
+  
+  // Add octave variations
+  for (let octOffset of [-1, 1]) {
+    const oct = correctOct + octOffset;
+    if (oct >= 3 && oct <= 6) {
+      const name = noteNames[correctPc] + oct;
+      if (!usedNames.has(name)) {
+        options.push(name);
+        usedNames.add(name);
+      }
+    }
+  }
+  
+  // Add nearby notes in same octave
+  for (let pcOffset of [-1, 1, -2, 2]) {
+    const pc = (correctPc + pcOffset + 12) % 12;
+    const name = noteNames[pc] + correctOct;
+    if (!usedNames.has(name) && options.length < 4) {
+      options.push(name);
+      usedNames.add(name);
+    }
+  }
+
+  // Shuffle options
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+
+  const bar = document.createElement('div');
+  bar.id = 'note-id-choices';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;gap:8px;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:10px;padding:10px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);';
+  
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt;
+    btn.style.cssText = 'padding:8px 16px;font-size:14px;font-weight:600;background:rgba(192,86,33,0.08);border:1.5px solid rgba(192,86,33,0.2);border-radius:6px;cursor:pointer;transition:all 0.15s;color:#2d3748;';
+    btn.addEventListener('mouseover', () => {
+      btn.style.background = 'rgba(192,86,33,0.15)';
+      btn.style.borderColor = 'rgba(192,86,33,0.4)';
+    });
+    btn.addEventListener('mouseout', () => {
+      btn.style.background = 'rgba(192,86,33,0.08)';
+      btn.style.borderColor = 'rgba(192,86,33,0.2)';
+    });
+    btn.addEventListener('click', () => {
+      checkExerciseAnswer(opt);
+      bar.remove();
+    });
+    bar.appendChild(btn);
+  });
+  
+  document.body.appendChild(bar);
 }
 
 function _presentNoteConstruct(ex) {
@@ -1603,8 +1794,23 @@ function checkExerciseAnswer(userAnswer) {
     s.correctCount++;
     s.streak++;
     if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+    
+    // Track warm-up phase
+    if (s.warmupCount < 3) {
+      s.warmupCount++;
+    }
   } else {
     s.streak = 0;
+  }
+
+  // ── Level-up moments (every 5 correct answers) ──────────────────
+  const levelUpThresholds = [5, 10, 15, 20, 25, 30];
+  if (isCorrect && levelUpThresholds.includes(s.correctCount) && s.correctCount !== s.lastLevelUp) {
+    s.lastLevelUp = s.correctCount;
+    const pct = Math.round((s.correctCount / s.totalCount) * 100);
+    setTimeout(() => {
+      _showLevelUpMoment(s.correctCount, pct);
+    }, 1500); // Show after success banner fades
   }
 
   // ── Within-session adaptive difficulty ──────────────────────────
@@ -1699,6 +1905,47 @@ function _showSuccessBanner(msg, opts = {}) {
 function _hideSuccessBanner() {
   const el = document.getElementById('exercise-success-banner');
   if (el) el.style.opacity = '0';
+}
+
+function _showLevelUpMoment(correctCount, pct) {
+  const existing = document.getElementById('level-up-moment');
+  if (existing) existing.remove();
+
+  const s = APP.exerciseSession;
+  if (!s) return;
+
+  const messages = [
+    { threshold: 5, title: 'Warming Up!', desc: 'You\'re getting the hang of it.', emoji: '🔥' },
+    { threshold: 10, title: 'Halfway There!', desc: 'Great consistency. Keep going!', emoji: '⭐' },
+    { threshold: 15, title: 'Solid Progress!', desc: 'Your accuracy is improving.', emoji: '💪' },
+    { threshold: 20, title: 'Building Mastery!', desc: 'This skill is becoming automatic.', emoji: '🎯' },
+    { threshold: 25, title: 'Almost There!', desc: 'You\'re approaching mastery.', emoji: '🏆' },
+    { threshold: 30, title: 'Mastery Zone!', desc: 'Excellent work. You\'ve got this!', emoji: '👑' },
+  ];
+
+  const msg = messages.find(m => m.threshold === correctCount) || messages[0];
+
+  const el = document.createElement('div');
+  el.id = 'level-up-moment';
+  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%) scale(0.9);z-index:2001;background:linear-gradient(135deg,#c05621,#e06850);color:#fff;padding:32px 48px;border-radius:16px;box-shadow:0 12px 40px rgba(192,86,33,0.4);opacity:0;transition:all 0.3s ease;pointer-events:none;text-align:center;min-width:280px';
+  el.innerHTML = `
+    <div style="font-size:48px;margin-bottom:8px">${msg.emoji}</div>
+    <div style="font-size:24px;font-weight:700;margin-bottom:8px">${msg.title}</div>
+    <div style="font-size:14px;opacity:0.9;margin-bottom:12px">${msg.desc}</div>
+    <div style="font-size:13px;opacity:0.8">${correctCount} correct · ${pct}% accuracy</div>
+  `;
+  document.body.appendChild(el);
+
+  requestAnimationFrame(() => {
+    el.style.opacity = '1';
+    el.style.transform = 'translate(-50%, -50%) scale(1)';
+  });
+
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translate(-50%, -50%) scale(0.9)';
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
+  }, 2500);
 }
 
 function _showExerciseFeedback(ex, userAnswer) {
@@ -3368,7 +3615,7 @@ function _finishDiagnostic() {
   _hideDiagBar();
   _hideSuccessBanner();
   // Cleanup
-  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','diagnostic-bar'].forEach(id => {
+  ['dictation-bar','dictation-check-bar','exercise-input-bar','exercise-feedback-bar','rhythm-beat-grid','diagnostic-bar','note-id-choices'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.remove();
   });

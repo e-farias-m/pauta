@@ -2421,6 +2421,12 @@ _registerAction('startExerciseSession', (e) => {
   const diff = e.target.closest('[data-diff]')?.dataset.diff;
   if (type) startExerciseSession(type, diff);
 });
+_registerAction('beginExerciseSession', (e) => {
+  closeModal();
+  const type = e.target.closest('[data-type]')?.dataset.type;
+  const diff = e.target.closest('[data-diff]')?.dataset.diff;
+  if (type) _beginExerciseSession(type, diff);
+});
 _registerAction('showRhythmWorkoutDialog', () => { closeModal(); showRhythmWorkoutDialog(); });
 _registerAction('rwSetTs', (e) => _rwHandleAction('rwSetTs', e.target.closest('[data-num]')));
 _registerAction('rwSetMeasures', (e) => _rwHandleAction('rwSetMeasures', e.target.closest('[data-val]')));
