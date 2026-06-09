@@ -1106,12 +1106,12 @@ function _presentNoteId(ex) {
   // pitches render correctly on the staff (e.g. F# not F natural)
   const acc = midiAutoAcc(ex.target.pitch);
   const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Note Identification', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  const score = createScore({title: 'Note Drills', instruments: [instr], ts: {num:4,den:4}, ks: 0});
   score.parts[0].staves[0].measures[0].notes = [mkNote(ex.target.pitch, 'q', 0, acc)];
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = 0;
   renderScore();
-  showToast('Name this note! (tap palette or type letter)');
+  showToast('🎵 Name this note! (tap palette or type letter)');
 }
 
 function _presentNoteConstruct(ex) {
@@ -1296,7 +1296,7 @@ function _checkNoteConstructAnswer(pitch) {
 
 function _presentIntervalId(ex) {
   const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Interval Identification', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  const score = createScore({title: 'Interval Training', instruments: [instr], ts: {num:4,den:4}, ks: 0});
   score.parts[0].staves[0].measures[0].notes = [
     mkNote(ex.target.bottom, 'q', 0, midiAutoAcc(ex.target.bottom)),
     mkNote(ex.target.top, 'q', 0, midiAutoAcc(ex.target.top)),
@@ -1541,7 +1541,7 @@ function _presentKeySigId(ex) {
 function _presentScaleId(ex) {
   const { tonic, notes } = ex.target;
   const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Scale Identification', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  const score = createScore({title: 'Scale Gym', instruments: [instr], ts: {num:4,den:4}, ks: 0});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
   const notesPerMeasure = 4;
@@ -2095,14 +2095,14 @@ function _startRhythmWorksheet(difficulty) {
 function showExerciseDialog() {
   if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
   const types = [
-    {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Identification', desc:'Name the note on the staff'},
-    {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Identification', desc:'Name the interval between two notes'},
+    {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Drills', desc:'Name notes on the staff — build speed and accuracy'},
+    {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Training', desc:'Identify intervals by ear and sight'},
     {key: EXERCISE_TYPES.RHYTHM_READ,  icon:'𝅘𝅥𝅮', label:'Rhythm Reading', desc:'Read and clap rhythm patterns'},
-    {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'🥁', label:'Rhythm Workout', desc:'Random rhythms with settings (like rhythmrandomizer.com)'},
-    {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Melody Dictation', desc:'Hear a melody, then notate it'},
-    {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Signature', desc:'Name the key from the signature'},
-    {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear a rhythm, then mark each beat'},
-    {key: EXERCISE_TYPES.SCALE_ID,     icon:'🎹', label:'Scale Identification', desc:'Hear a scale, then name it'},
+    {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'🥁', label:'Rhythm Workout', desc:'Random rhythms with custom settings'},
+    {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Ear Training', desc:'Hear a melody, then notate it'},
+    {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Sig Drills', desc:'Name keys from signatures — build fluency'},
+    {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear a rhythm, mark each beat'},
+    {key: EXERCISE_TYPES.SCALE_ID,     icon:'🎹', label:'Scale Gym', desc:'Hear scales and modes — name them fast'},
   ];
   const diffs = ['beginner', 'intermediate', 'advanced', 'auto'];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
@@ -2185,9 +2185,9 @@ function selectExerciseDifficulty(diff) {
 const RESULTS_KEY = 'pauta_exercise_results';
 const IMPORTED_KEY = 'pauta_imported_reports';
 const TYPE_LABELS = {
-  note_id: 'Note ID', interval_id: 'Interval ID', rhythm_read: 'Rhythm Read',
-  melody_dictation: 'Melody Dict', key_sig_id: 'Key Sig ID', rhythm_worksheet: 'Rhythm Dict',
-  scale_id: 'Scale ID', rhythm_workout: 'Rhythm Workout',
+  note_id: 'Note Drills', interval_id: 'Interval Training', rhythm_read: 'Rhythm Reading',
+  melody_dictation: 'Ear Training', key_sig_id: 'Key Sig Drills', rhythm_worksheet: 'Rhythm Dictation',
+  scale_id: 'Scale Gym', rhythm_workout: 'Rhythm Workout',
 };
 
 function _saveExerciseResult(session) {
