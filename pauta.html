@@ -9791,45 +9791,56 @@ function _presentNoteId(ex) {
 }
 
 function _createNoteStaff(pitch) {
+  const STAFF_TOP = 25, STAFF_BOTTOM = 85, LINE_SPACING = 15;
+  const svgH = 140;
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '300');
-  svg.setAttribute('height', '120');
-  svg.setAttribute('viewBox', '0 0 300 120');
+  svg.setAttribute('height', String(svgH));
+  svg.setAttribute('viewBox', `0 0 300 ${svgH}`);
   
   // Draw 5 staff lines
   for (let i = 0; i < 5; i++) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const y = STAFF_TOP + i * LINE_SPACING;
     line.setAttribute('x1', '20');
-    line.setAttribute('y1', String(30 + i * 15));
+    line.setAttribute('y1', String(y));
     line.setAttribute('x2', '280');
-    line.setAttribute('y2', String(30 + i * 15));
+    line.setAttribute('y2', String(y));
     line.setAttribute('stroke', '#4a5568');
     line.setAttribute('stroke-width', '1.5');
     svg.appendChild(line);
   }
   
-  // Calculate note position on staff
   const notePos = _pitchToStaffPosition(pitch);
+  const bottomLineY = STAFF_BOTTOM;
   
-  // Draw ledger lines if needed
-  if (notePos.ledgerLines > 0) {
-    for (let i = 0; i < notePos.ledgerLines; i++) {
+  // Draw ledger lines
+  if (notePos.position < 0) {
+    // Below staff: ledger lines at even negative positions
+    const count = notePos.ledgerLines;
+    for (let i = 0; i < count; i++) {
+      const linePos = -2 * (i + 1);
+      const y = bottomLineY - linePos * 7.5;
       const ledger = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       ledger.setAttribute('x1', '140');
-      ledger.setAttribute('y1', String(105 + i * 15));
+      ledger.setAttribute('y1', String(y));
       ledger.setAttribute('x2', '160');
-      ledger.setAttribute('y2', String(105 + i * 15));
+      ledger.setAttribute('y2', String(y));
       ledger.setAttribute('stroke', '#4a5568');
       ledger.setAttribute('stroke-width', '1.5');
       svg.appendChild(ledger);
     }
-  } else if (notePos.ledgerLines < 0) {
-    for (let i = 0; i < Math.abs(notePos.ledgerLines); i++) {
+  } else if (notePos.position > 8) {
+    // Above staff: ledger lines at even positions > 8
+    const count = notePos.ledgerLines;
+    for (let i = 0; i < count; i++) {
+      const linePos = 8 + 2 * (i + 1);
+      const y = bottomLineY - linePos * 7.5;
       const ledger = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       ledger.setAttribute('x1', '140');
-      ledger.setAttribute('y1', String(15 - (i + 1) * 15));
+      ledger.setAttribute('y1', String(y));
       ledger.setAttribute('x2', '160');
-      ledger.setAttribute('y2', String(15 - (i + 1) * 15));
+      ledger.setAttribute('y2', String(y));
       ledger.setAttribute('stroke', '#4a5568');
       ledger.setAttribute('stroke-width', '1.5');
       svg.appendChild(ledger);
@@ -9851,7 +9862,7 @@ function _createNoteStaff(pitch) {
   stem.setAttribute('x1', notePos.stemUp ? '158' : '142');
   stem.setAttribute('y1', String(notePos.y));
   stem.setAttribute('x2', notePos.stemUp ? '158' : '142');
-  stem.setAttribute('y2', notePos.stemUp ? String(notePos.y - 45) : String(notePos.y + 45));
+  stem.setAttribute('y2', notePos.stemUp ? String(notePos.y - 40) : String(notePos.y + 40));
   stem.setAttribute('stroke', '#2d3748');
   stem.setAttribute('stroke-width', '2');
   svg.appendChild(stem);
@@ -9872,44 +9883,35 @@ function _createNoteStaff(pitch) {
 }
 
 function _pitchToStaffPosition(pitch) {
-  // Treble clef: E4 is on the first line (bottom line)
-  // Each staff position is a diatonic step
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
   const noteName = noteNames[pc];
   
-  // Map pitch to staff position (0 = bottom line E4, increases upward)
-  // E4 = 0, F4 = 1, G4 = 2, A4 = 3, B4 = 4, C5 = 5, etc.
   const diatonicMap = { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 };
   const baseNote = noteName.replace('#', '').replace('b', '');
   const baseDiatonic = diatonicMap[baseNote];
   
-  // Calculate position relative to E4 (first line)
-  const e4Pitch = 64; // E4 MIDI
   const octavesFromE4 = oct - 4;
-  const positionFromE4 = octavesFromE4 * 7 + baseDiatonic - 2; // -2 because E is at position 2 in diatonicMap
+  const position = octavesFromE4 * 7 + baseDiatonic - 2;
   
-  // Staff Y coordinates: bottom line (E4) = 105, each step up = -7.5
-  const y = 105 - (positionFromE4 * 7.5);
+  const bottomLineY = 85;
+  const y = bottomLineY - position * 7.5;
   
-  // Determine stem direction (stems down if note is above middle line)
-  const stemUp = positionFromE4 < 4; // Middle line is B4 (position 4)
+  const stemUp = position < 4;
   
-  // Determine ledger lines
   let ledgerLines = 0;
-  if (positionFromE4 < 0) {
-    ledgerLines = Math.ceil(Math.abs(positionFromE4) / 2);
-  } else if (positionFromE4 > 8) {
-    ledgerLines = Math.ceil((positionFromE4 - 8) / 2);
+  if (position < 0) {
+    ledgerLines = Math.ceil(Math.abs(position) / 2);
+  } else if (position > 8) {
+    ledgerLines = Math.ceil((position - 8) / 2);
   }
   
-  // Determine accidental
   let accidental = null;
   if (noteName.includes('#')) accidental = '♯';
   else if (noteName.includes('b')) accidental = '♭';
   
-  return { y, stemUp, ledgerLines, accidental };
+  return { y, stemUp, ledgerLines, accidental, position };
 }
 
 function _generateNoteOptions(correctPitch) {
@@ -9921,17 +9923,22 @@ function _generateNoteOptions(correctPitch) {
   const options = [correctName];
   const usedNames = new Set([correctName]);
   
-  // Add nearby notes in same octave
+  // Add nearby notes, adjusting octave when pitch class wraps
   for (let pcOffset of [-1, 1, -2, 2]) {
-    const pc = (correctPc + pcOffset + 12) % 12;
-    const name = noteNames[pc] + correctOct;
+    const rawPc = correctPc + pcOffset;
+    const pc = (rawPc + 12) % 12;
+    let octOffset = 0;
+    if (rawPc < 0) octOffset = -1;
+    else if (rawPc > 11) octOffset = 1;
+    const oct = correctOct + octOffset;
+    const name = noteNames[pc] + oct;
     if (!usedNames.has(name) && options.length < 4) {
       options.push(name);
       usedNames.add(name);
     }
   }
   
-  // Add octave variations if needed
+  // Add octave variations if still needed
   if (options.length < 4) {
     for (let octOffset of [-1, 1]) {
       const oct = correctOct + octOffset;
@@ -9945,7 +9952,6 @@ function _generateNoteOptions(correctPitch) {
     }
   }
 
-  // Shuffle options
   for (let i = options.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [options[i], options[j]] = [options[j], options[i]];
