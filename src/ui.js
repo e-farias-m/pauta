@@ -2408,6 +2408,12 @@ _registerAction('startExerciseSession', (e) => {
   const diff = e.target.closest('[data-diff]')?.dataset.diff;
   if (type) startExerciseSession(type, diff);
 });
+_registerAction('showRhythmWorkoutDialog', () => { closeModal(); showRhythmWorkoutDialog(); });
+_registerAction('rwSetTs', (e) => _rwHandleAction('rwSetTs', e.target.closest('[data-num]')));
+_registerAction('rwSetMeasures', (e) => _rwHandleAction('rwSetMeasures', e.target.closest('[data-val]')));
+_registerAction('rwSetTempo', (e) => _rwHandleAction('rwSetTempo', e));
+_registerAction('rwToggleGroup', (e) => _rwHandleAction('rwToggleGroup', e.target.closest('[data-idx]')));
+_registerAction('rwStart', () => _rwHandleAction('rwStart', null));
 _registerAction('selectExerciseDifficulty', (e) => selectExerciseDifficulty(e.target.closest('[data-diff]')?.dataset.diff));
 _registerAction('nextExercise', () => nextExercise());
 _registerAction('skipExercise', () => skipExercise());

@@ -272,6 +272,7 @@ const EXERCISE_TYPES = {
   RHYTHM_WS:     'rhythm_worksheet',
   SCALE_ID:      'scale_id',
   NOTE_CONSTRUCT:'note_construct',
+  RHYTHM_WORKOUT:'rhythm_workout',
 };
 
 const INTERVAL_NAMES = {
@@ -598,6 +599,8 @@ function generateExercise(type, difficulty = 'beginner') {
       return _genScaleId(d);
     case EXERCISE_TYPES.NOTE_CONSTRUCT:
       return _genNoteConstruct(d);
+    case EXERCISE_TYPES.RHYTHM_WORKOUT:
+      return _genRhythmWorkout();
     default:
       return _genNoteId(d);
   }
@@ -1087,6 +1090,9 @@ function _presentExercise(ex) {
       break;
     case EXERCISE_TYPES.SCALE_ID:
       _presentScaleId(ex);
+      break;
+    case EXERCISE_TYPES.RHYTHM_WORKOUT:
+      _presentRhythmWorkout(ex);
       break;
     case EXERCISE_TYPES.NOTE_CONSTRUCT:
       _presentNoteConstruct(ex);
@@ -2092,6 +2098,7 @@ function showExerciseDialog() {
     {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Identification', desc:'Name the note on the staff'},
     {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Identification', desc:'Name the interval between two notes'},
     {key: EXERCISE_TYPES.RHYTHM_READ,  icon:'𝅘𝅥𝅮', label:'Rhythm Reading', desc:'Read and clap rhythm patterns'},
+    {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'🥁', label:'Rhythm Workout', desc:'Random rhythms with settings (like rhythmrandomizer.com)'},
     {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Melody Dictation', desc:'Hear a melody, then notate it'},
     {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Signature', desc:'Name the key from the signature'},
     {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear a rhythm, then mark each beat'},
@@ -2150,8 +2157,9 @@ function showExerciseDialog() {
           scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
           scoreText = lastPct + '%';
         }
+        const isWorkout = t.key === EXERCISE_TYPES.RHYTHM_WORKOUT;
         return `
-          <div class="exercise-card" data-action="startExerciseSession" data-type="${t.key}" data-diff="${currentDiff}">
+          <div class="exercise-card" data-action="${isWorkout ? 'showRhythmWorkoutDialog' : 'startExerciseSession'}" data-type="${t.key}" data-diff="${currentDiff}">
             ${scoreText ? `<span class="ec-score" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
             <div class="ec-title"><span style="font-size:16px">${t.icon}</span>${t.label}</div>
             <div class="ec-desc">${t.desc}</div>
@@ -2179,7 +2187,7 @@ const IMPORTED_KEY = 'pauta_imported_reports';
 const TYPE_LABELS = {
   note_id: 'Note ID', interval_id: 'Interval ID', rhythm_read: 'Rhythm Read',
   melody_dictation: 'Melody Dict', key_sig_id: 'Key Sig ID', rhythm_worksheet: 'Rhythm Dict',
-  scale_id: 'Scale ID',
+  scale_id: 'Scale ID', rhythm_workout: 'Rhythm Workout',
 };
 
 function _saveExerciseResult(session) {
@@ -2202,6 +2210,267 @@ function _saveExerciseResult(session) {
 function _loadResults() {
   try { return JSON.parse(localStorage.getItem(RESULTS_KEY)) || []; }
   catch(e) { return []; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Random Rhythm Workout — inspired by rhythmrandomizer.com
+// ═══════════════════════════════════════════════════════════════════
+
+const RHYTHM_WORKOUT_DEFAULTS = {
+  timeSig: { num: 4, den: 4 },
+  measures: 4,
+  tempo: 100,
+  // Note value groups that can appear (each entry = one "slot" in a beat)
+  // dur: VexFlow duration string, group: how many per beat
+  noteGroups: [
+    { dur: 'q', count: 1, label: '♩' },
+    { dur: '8', count: 2, label: '♪♪' },
+    { dur: '8', count: 1, label: '♪', rest: true },
+    { dur: '16', count: 4, label: '♬♬' },
+    { dur: '8', count: 1, label: '♪.', dots: 1 },
+    { dur: '16', count: 1, label: '♪', rest: true },
+  ],
+};
+
+function _rwGetSettings() {
+  try { return JSON.parse(localStorage.getItem('pauta_rhythm_workout')) || structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
+  catch(e) { return structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
+}
+
+function _rwSaveSettings(s) {
+  try { localStorage.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) {}
+}
+
+function _rwBeatsPerMeasure(ts) {
+  const unit = ts.den === 2 ? 2 : ts.den === 4 ? 1 : ts.den === 8 ? 0.5 : 1;
+  return (ts.num * unit) / unit; // just ts.num beats in the beat unit
+}
+
+function _rwGenRhythm(settings) {
+  const { timeSig: ts, measures, noteGroups } = settings;
+  const beatsPerMeasure = ts.num * (4 / ts.den); // normalize to quarter-note beats
+  const totalBeats = beatsPerMeasure * measures;
+  const allNotes = [];
+
+  let beatsRemaining = totalBeats;
+  while (beatsRemaining > 0.001) {
+    const grp = noteGroups[Math.floor(Math.random() * noteGroups.length)];
+    const beatCost = grp.count * (4 / ts.den) * (grp.dur === 'w' ? 4 : grp.dur === 'h' ? 2 : grp.dur === 'q' ? 1 : grp.dur === '8' ? 0.5 : grp.dur === '16' ? 0.25 : 1);
+
+    if (beatCost > beatsRemaining + 0.001) continue; // doesn't fit
+
+    for (let i = 0; i < grp.count; i++) {
+      if (grp.rest) {
+        allNotes.push({ type: 'rest', duration: grp.dur, dots: grp.dots || 0 });
+      } else {
+        allNotes.push({ type: 'note', duration: grp.dur, dots: grp.dots || 0 });
+      }
+      beatsRemaining -= (4 / ts.den) * (grp.dur === 'w' ? 4 : grp.dur === 'h' ? 2 : grp.dur === 'q' ? 1 : grp.dur === '8' ? 0.5 : grp.dur === '16' ? 0.25 : 1);
+    }
+  }
+
+  // Split into measures
+  const measureBeats = [];
+  let idx = 0;
+  for (let m = 0; m < measures; m++) {
+    const mNotes = [];
+    let usedBeats = 0;
+    const targetBeats = beatsPerMeasure;
+    while (idx < allNotes.length && usedBeats < targetBeats - 0.001) {
+      const n = allNotes[idx];
+      const dur = n.duration;
+      const nb = (dur === 'w' ? 4 : dur === 'h' ? 2 : dur === 'q' ? 1 : dur === '8' ? 0.5 : dur === '16' ? 0.25 : 1);
+      if (usedBeats + nb > targetBeats + 0.001) break;
+      mNotes.push(n);
+      usedBeats += nb;
+      idx++;
+    }
+    measureBeats.push(mNotes);
+  }
+
+  return { timeSig: ts, measures: measureBeats };
+}
+
+function showRhythmWorkoutDialog() {
+  const s = _rwGetSettings();
+  const tsOptions = [
+    { num: 2, den: 4, label: '2/4' }, { num: 3, den: 4, label: '3/4' },
+    { num: 4, den: 4, label: '4/4' }, { num: 2, den: 2, label: '2/2' },
+    { num: 6, den: 8, label: '6/8' }, { num: 9, den: 8, label: '9/8' },
+    { num: 12, den: 8, label: '12/8' },
+  ];
+  const measureOptions = [1, 2, 4, 8];
+  const allGroups = [
+    { dur: 'q', count: 1, label: '♩ Quarter' },
+    { dur: 'h', count: 1, label: '𝅗𝅥 Half' },
+    { dur: '8', count: 2, label: '♪♪ Two 8ths' },
+    { dur: '16', count: 4, label: '♬♬ Four 16ths' },
+    { dur: '8', count: 1, label: '♪ Quarter rest', rest: true },
+    { dur: '8', count: 1, label: '♪. Dotted 8th + 16th', dots: 1 },
+    { dur: '16', count: 1, label: '♪ 8th rest', rest: true },
+    { dur: '8', count: 1, label: '♪ 8th note' },
+    { dur: '8', count: 1, label: '♩. Dotted quarter', dots: 1 },
+  ];
+
+  const activeSet = new Set(s.noteGroups.map(g => g.dur + (g.rest ? 'r' : '') + (g.dots || 0)));
+
+  makeModal(`
+    <h2>🥁 Rhythm Workout</h2>
+    <div style="display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow-y:auto">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px">Time Signature</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${tsOptions.map(ts => {
+            const active = s.timeSig.num === ts.num && s.timeSig.den === ts.den;
+            return `<button class="modal-btn ${active ? 'primary' : 'secondary'}" data-action="rwSetTs" data-num="${ts.num}" data-den="${ts.den}" style="padding:6px 10px;font-size:12px;min-width:48px">${ts.label}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px">Measures: <span id="rw-measures">${s.measures}</span></div>
+        <div style="display:flex;gap:4px">
+          ${measureOptions.map(m => `<button class="modal-btn ${s.measures === m ? 'primary' : 'secondary'}" data-action="rwSetMeasures" data-val="${m}" style="padding:6px 12px;font-size:12px">${m}</button>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px">Tempo: <span id="rw-tempo">${s.tempo}</span> BPM</div>
+        <input type="range" id="rw-tempo-slider" min="40" max="200" value="${s.tempo}" style="width:100%" data-action="rwSetTempo">
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px">Note Values (tap to toggle)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${allGroups.map((g, i) => {
+            const key = g.dur + (g.rest ? 'r' : '') + (g.dots || 0);
+            const active = activeSet.has(key);
+            return `<button class="modal-btn ${active ? 'primary' : 'secondary'}" data-action="rwToggleGroup" data-idx="${i}" style="padding:6px 10px;font-size:11px">${g.label}</button>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="modal-btn primary" data-action="rwStart" style="flex:1">▶ Start Workout</button>
+      <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+    </div>
+  `);
+
+  // Tempo slider live update
+  setTimeout(() => {
+    const slider = document.getElementById('rw-tempo-slider');
+    if (slider) slider.addEventListener('input', e => {
+      document.getElementById('rw-tempo').textContent = e.target.value;
+    });
+  }, 0);
+}
+
+function _rwHandleAction(action, el) {
+  const s = _rwGetSettings();
+
+  if (action === 'rwSetTs') {
+    s.timeSig = { num: parseInt(el.dataset.num), den: parseInt(el.dataset.den) };
+    _rwSaveSettings(s);
+    showRhythmWorkoutDialog();
+    return true;
+  }
+  if (action === 'rwSetMeasures') {
+    s.measures = parseInt(el.dataset.val);
+    _rwSaveSettings(s);
+    showRhythmWorkoutDialog();
+    return true;
+  }
+  if (action === 'rwSetTempo') {
+    s.tempo = parseInt(el.target?.value || el.dataset.val || 100);
+    _rwSaveSettings(s);
+    const el2 = document.getElementById('rw-tempo');
+    if (el2) el2.textContent = s.tempo;
+    return true;
+  }
+  if (action === 'rwToggleGroup') {
+    const idx = parseInt(el.dataset.idx);
+    const allGroups = [
+      { dur: 'q', count: 1 }, { dur: 'h', count: 1 },
+      { dur: '8', count: 2 }, { dur: '16', count: 4 },
+      { dur: '8', count: 1, rest: true }, { dur: '8', count: 1, dots: 1 },
+      { dur: '16', count: 1, rest: true }, { dur: '8', count: 1 },
+      { dur: '8', count: 1, dots: 1, rest: false },
+    ];
+    const g = allGroups[idx];
+    const key = g.dur + (g.rest ? 'r' : '') + (g.dots || 0);
+    const existing = s.noteGroups.findIndex(ng => ng.dur === g.dur && !!ng.rest === !!g.rest && (ng.dots||0) === (g.dots||0));
+    if (existing >= 0) {
+      if (s.noteGroups.length > 1) s.noteGroups.splice(existing, 1);
+    } else {
+      const labels = ['♩','𝅗𝅥','♪♪','♬♬','♪','♪.','♪','♪','♩.'];
+      s.noteGroups.push({ dur: g.dur, count: g.count, label: labels[idx] || '♪', rest: g.rest, dots: g.dots });
+    }
+    _rwSaveSettings(s);
+    showRhythmWorkoutDialog();
+    return true;
+  }
+  if (action === 'rwStart') {
+    closeModal();
+    startExerciseSession(EXERCISE_TYPES.RHYTHM_WORKOUT, 'beginner');
+    return true;
+  }
+  return false;
+}
+
+function _genRhythmWorkout() {
+  const s = _rwGetSettings();
+  const rhythm = _rwGenRhythm(s);
+
+  // Build flat note list with durations
+  const notes = [];
+  rhythm.measures.forEach(m => m.forEach(n => notes.push(n)));
+
+  return {
+    type: EXERCISE_TYPES.RHYTHM_WORKOUT,
+    difficulty: 0,
+    target: { timeSig: s.timeSig, notes, tempo: s.tempo },
+    answer: notes.map(n => n.rest ? 'r' : 'n').join(','),
+    hint: `Listen to the rhythm, then clap it back.`,
+  };
+}
+
+function _presentRhythmWorkout(ex) {
+  const { timeSig: ts, notes, tempo } = ex.target;
+  const score = createScore({
+    title: 'Rhythm Workout',
+    instruments: ['Percussion'],
+    ts: { num: ts.num, den: ts.den },
+    ks: 0,
+  });
+
+  // Build notes array
+  const vfNotes = notes.map(n => {
+    if (n.rest) return mkRest(n.duration, n.dots);
+    return mkNote(60, n.duration, n.dots);
+  });
+
+  score.parts[0].staves[0].measures[0].notes = vfNotes;
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
+  renderScore();
+  showToast(`🥁 ${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
+}
+
+function _checkRhythmWorkoutAnswer(userAnswer) {
+  const s = APP.exerciseSession;
+  if (!s || !s.current) return;
+
+  // For rhythm workout, "checking" just means the user played it back
+  // Mark as complete and advance
+  s.totalCount++;
+  s.correctCount++; // Always count as correct for practice mode
+  s.streak++;
+  if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+  s.completed.push({ type: EXERCISE_TYPES.RHYTHM_WORKOUT, answer: 'played', ok: true, hint: '' });
+  _updateScoreDisplay();
+
+  _showSuccessBanner(`✓ Rhythm played! · Streak: ${s.streak}`);
+  setTimeout(() => {
+    s.current = _genRhythmWorkout();
+    _presentRhythmWorkout(s.current);
+  }, 1500);
 }
 
 function showStudentProgress() {
