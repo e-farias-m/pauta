@@ -2145,81 +2145,63 @@ function showExerciseDialog() {
   const overallPct = results.length > 0 ? Math.round(results.reduce((s,r) => s + r.pct, 0) / results.length) : 0;
 
   makeModal(`
-    <style>
-      .ex-hero{background:linear-gradient(135deg,#e06850,#c05621);color:#fff;border-radius:12px;padding:20px;margin-bottom:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
-      .ex-hero:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(224,104,80,0.3)}
-      .ex-hero:active{transform:scale(0.98)}
-      .ex-hero-title{font-size:20px;font-weight:700;margin-bottom:4px}
-      .ex-hero-desc{font-size:13px;opacity:0.9}
-      .ex-hero-badge{position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
-      .ex-cat{margin-bottom:16px}
-      .ex-cat-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding-left:4px}
-      .ex-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-      .ex-card{background:var(--bg-score-area,#f0ebe3);border:1.5px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;position:relative}
-      .ex-card:hover{border-color:var(--cat-color,#c05621);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-      .ex-card:active{transform:scale(0.97)}
-      .ex-card-title{font-weight:600;font-size:13px;color:#2d3748;display:flex;align-items:center;gap:6px}
-      .ex-card-desc{font-size:11px;color:rgba(74,85,104,0.7);margin-top:2px;line-height:1.3}
-      .ex-card-meta{font-size:10px;color:rgba(74,85,104,0.5);margin-top:4px}
-      .ex-card-score{position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px}
-      .ex-diff{display:flex;gap:4px;margin-bottom:12px;justify-content:center}
-      .ex-diff-btn{border:1.5px solid rgba(0,0,0,0.1);background:transparent;border-radius:16px;padding:5px 12px;font-size:11px;font-weight:600;color:#4a5568;cursor:pointer;transition:all .15s}
-      .ex-diff-btn.active{background:#c05621;color:#fff;border-color:#c05621}
-      .ex-diff-btn:hover:not(.active){border-color:#c05621;color:#c05621}
-      .ex-stats{display:flex;gap:16px;justify-content:center;margin-bottom:12px;font-size:12px;color:#4a5568}
-      .ex-stat-num{font-weight:700;color:#c05621}
-    </style>
-    <h2 style="margin-bottom:4px">Practice Gym</h2>
-    <p style="font-size:12px;color:rgba(74,85,104,0.6);margin-bottom:16px">Daily exercises for musicians</p>
+    <div class="pauta-modal">
+      <div class="pauta-modal-header">
+        <h2 class="pauta-modal-title">Practice Gym</h2>
+        <p class="pauta-modal-subtitle">Daily exercises for musicians</p>
 
-    ${totalSessions > 0 ? `
-    <div class="ex-stats">
-      <span><span class="ex-stat-num">${totalSessions}</span> sessions</span>
-      <span><span class="ex-stat-num">${overallPct}%</span> avg</span>
-    </div>` : ''}
+        ${totalSessions > 0 ? `
+        <div class="pauta-stats">
+          <span><span class="pauta-stat-num">${totalSessions}</span> sessions</span>
+          <span><span class="pauta-stat-num">${overallPct}%</span> avg</span>
+        </div>` : ''}
 
-    <div class="ex-diff">
-      ${['beginner','intermediate','advanced','auto'].map(d =>
-        `<button class="ex-diff-btn ${d===currentDiff?'active':''}" data-action="selectExerciseDifficulty" data-diff="${d}">${d}</button>`
-      ).join('')}
-    </div>
-
-    <div class="ex-hero" data-action="showRhythmWorkoutDialog">
-      <div class="ex-hero-badge">⚡ Most Popular</div>
-      <div class="ex-hero-title">🥁 Rhythm Workout</div>
-      <div class="ex-hero-desc">Random rhythms with custom time signatures, tempo, and note values</div>
-    </div>
-
-    ${categories.map(cat => `
-      <div class="ex-cat">
-        <div class="ex-cat-title" style="color:${cat.color}">${cat.name}</div>
-        <div class="ex-grid">
-          ${cat.exercises.map(ex => {
-            const typeResults = byType[ex.key] || [];
-            const sessions = typeResults.length;
-            let scoreColor = 'rgba(74,85,104,0.3)';
-            let scoreText = '';
-            if (sessions > 0) {
-              const lastPct = typeResults[typeResults.length - 1].pct;
-              scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
-              scoreText = lastPct + '%';
-            }
-            return `
-              <div class="ex-card" style="--cat-color:${cat.color}" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
-                ${scoreText ? `<span class="ex-card-score" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
-                <div class="ex-card-title"><span style="font-size:15px">${ex.icon}</span>${ex.label}</div>
-                <div class="ex-card-desc">${ex.desc}</div>
-                <div class="ex-card-meta">${sessions > 0 ? `${sessions} session${sessions>1?'s':''}` : '○ Not started'}</div>
-              </div>`;
-          }).join('')}
+        <div class="pauta-pills">
+          ${['beginner','intermediate','advanced','auto'].map(d =>
+            `<button class="pauta-pill ${d===currentDiff?'active':''}" data-action="selectExerciseDifficulty" data-diff="${d}">${d}</button>`
+          ).join('')}
         </div>
       </div>
-    `).join('')}
 
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="modal-btn secondary" data-action="showCurriculumDialog" style="flex:1">📚 Curriculum</button>
-      <button class="modal-btn secondary" data-action="showStudentProgress" style="flex:1">📊 Progress</button>
-      <button class="modal-btn secondary" data-action="closeModal" style="flex:1">✕ Close</button>
+      <div class="pauta-modal-body">
+        <div class="pauta-hero" data-action="showRhythmWorkoutDialog">
+          <div class="pauta-hero-badge">⚡ Most Popular</div>
+          <div class="pauta-hero-title">🥁 Rhythm Workout</div>
+          <div class="pauta-hero-desc">Random rhythms with custom time signatures, tempo, and note values</div>
+        </div>
+
+        ${categories.map(cat => `
+          <div class="pauta-category">
+            <div class="pauta-category-title" style="color:${cat.color}">${cat.name}</div>
+            <div class="pauta-grid">
+              ${cat.exercises.map(ex => {
+                const typeResults = byType[ex.key] || [];
+                const sessions = typeResults.length;
+                let scoreColor = 'rgba(74,85,104,0.3)';
+                let scoreText = '';
+                if (sessions > 0) {
+                  const lastPct = typeResults[typeResults.length - 1].pct;
+                  scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
+                  scoreText = lastPct + '%';
+                }
+                return `
+                  <div class="pauta-card" style="--pauta-card-color:${cat.color}" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
+                    ${scoreText ? `<span class="pauta-card-badge" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
+                    <div class="pauta-card-title"><span style="font-size:15px">${ex.icon}</span>${ex.label}</div>
+                    <div class="pauta-card-desc">${ex.desc}</div>
+                    <div class="pauta-card-meta">${sessions > 0 ? `${sessions} session${sessions>1?'s':''}` : '○ Not started'}</div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="pauta-modal-footer">
+        <button class="modal-btn secondary" data-action="showCurriculumDialog">📚 Curriculum</button>
+        <button class="modal-btn secondary" data-action="showStudentProgress">📊 Progress</button>
+        <button class="modal-btn secondary" data-action="closeModal">✕ Close</button>
+      </div>
     </div>
   `);
 }

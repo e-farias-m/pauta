@@ -1079,6 +1079,254 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 #debug-overlay .dbg-err  { color: #e07060; }
 #debug-overlay .dbg-ok   { color: #70c070; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   Pauta Design System
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Colors ─────────────────────────────────────────────────── */
+  --pauta-primary: #c05621;
+  --pauta-primary-light: #e06850;
+  --pauta-primary-dark: #9c4221;
+
+  --pauta-success: #22c55e;
+  --pauta-warning: #e6a817;
+  --pauta-error: #e06850;
+
+  --pauta-bg: #f0ebe3;
+  --pauta-bg-card: #fff;
+  --pauta-text: #2d3748;
+  --pauta-text-muted: rgba(74,85,104,0.7);
+  --pauta-text-subtle: rgba(74,85,104,0.5);
+
+  /* ── Category Colors ────────────────────────────────────────── */
+  --pauta-cat-rhythm: #e06850;
+  --pauta-cat-pitch: #c05621;
+  --pauta-cat-ear: #22c55e;
+  --pauta-cat-theory: #4a5568;
+
+  /* ── Spacing ────────────────────────────────────────────────── */
+  --pauta-space-xs: 4px;
+  --pauta-space-sm: 8px;
+  --pauta-space-md: 12px;
+  --pauta-space-lg: 16px;
+  --pauta-space-xl: 20px;
+  --pauta-space-2xl: 24px;
+
+  /* ── Border Radius ──────────────────────────────────────────── */
+  --pauta-radius-sm: 6px;
+  --pauta-radius-md: 10px;
+  --pauta-radius-lg: 12px;
+  --pauta-radius-pill: 16px;
+  --pauta-radius-full: 9999px;
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --pauta-font-mono: "SF Mono", Monaco, Consolas, monospace;
+
+  --pauta-text-xs: 10px;
+  --pauta-text-sm: 11px;
+  --pauta-text-md: 12px;
+  --pauta-text-lg: 13px;
+  --pauta-text-xl: 14px;
+  --pauta-text-2xl: 16px;
+  --pauta-text-3xl: 20px;
+
+  /* ── Shadows ────────────────────────────────────────────────── */
+  --pauta-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --pauta-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+
+  /* ── Transitions ────────────────────────────────────────────── */
+  --pauta-transition: all 0.15s ease;
+}
+
+/* ── Hero Section ──────────────────────────────────────────────── */
+.pauta-hero {
+  background: linear-gradient(135deg, var(--pauta-primary-light), var(--pauta-primary));
+  color: #fff;
+  border-radius: var(--pauta-radius-lg);
+  padding: var(--pauta-space-xl);
+  margin-bottom: var(--pauta-space-lg);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+  overflow: hidden;
+}
+.pauta-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(224,104,80,0.3);
+}
+.pauta-hero:active {
+  transform: scale(0.98);
+}
+.pauta-hero-title {
+  font-size: var(--pauta-text-3xl);
+  font-weight: 700;
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-hero-desc {
+  font-size: var(--pauta-text-lg);
+  opacity: 0.9;
+}
+.pauta-hero-badge {
+  position: absolute;
+  top: var(--pauta-space-md);
+  right: var(--pauta-space-md);
+  background: rgba(255,255,255,0.2);
+  padding: var(--pauta-space-xs) var(--pauta-space-md);
+  border-radius: var(--pauta-radius-pill);
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+}
+
+/* ── Category Section ──────────────────────────────────────────── */
+.pauta-category {
+  margin-bottom: var(--pauta-space-lg);
+}
+.pauta-category-title {
+  font-size: var(--pauta-text-md);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--pauta-space-sm);
+  padding-left: var(--pauta-space-xs);
+}
+
+/* ── Card Grid ─────────────────────────────────────────────────── */
+.pauta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pauta-space-sm);
+}
+
+/* ── Card ──────────────────────────────────────────────────────── */
+.pauta-card {
+  background: var(--pauta-bg);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: var(--pauta-radius-md);
+  padding: var(--pauta-space-md);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+}
+.pauta-card:hover {
+  border-color: var(--pauta-card-color, var(--pauta-primary));
+  box-shadow: var(--pauta-shadow-md);
+}
+.pauta-card:active {
+  transform: scale(0.97);
+}
+.pauta-card-title {
+  font-weight: 600;
+  font-size: var(--pauta-text-lg);
+  color: var(--pauta-text);
+  display: flex;
+  align-items: center;
+  gap: var(--pauta-space-sm);
+}
+.pauta-card-desc {
+  font-size: var(--pauta-text-sm);
+  color: var(--pauta-text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.pauta-card-meta {
+  font-size: var(--pauta-text-xs);
+  color: var(--pauta-text-subtle);
+  margin-top: var(--pauta-space-xs);
+}
+.pauta-card-badge {
+  position: absolute;
+  top: var(--pauta-space-sm);
+  right: var(--pauta-space-sm);
+  font-size: var(--pauta-text-xs);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--pauta-radius-sm);
+}
+
+/* ── Pill Buttons ──────────────────────────────────────────────── */
+.pauta-pills {
+  display: flex;
+  gap: var(--pauta-space-xs);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+}
+.pauta-pill {
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: transparent;
+  border-radius: var(--pauta-radius-pill);
+  padding: 5px 12px;
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+  color: var(--pauta-text-muted);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+}
+.pauta-pill.active {
+  background: var(--pauta-primary);
+  color: #fff;
+  border-color: var(--pauta-primary);
+}
+.pauta-pill:hover:not(.active) {
+  border-color: var(--pauta-primary);
+  color: var(--pauta-primary);
+}
+
+/* ── Stats Row ─────────────────────────────────────────────────── */
+.pauta-stats {
+  display: flex;
+  gap: var(--pauta-space-lg);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+}
+.pauta-stat-num {
+  font-weight: 700;
+  color: var(--pauta-primary);
+}
+
+/* ── Modal Title ───────────────────────────────────────────────── */
+.pauta-modal-title {
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-modal-subtitle {
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+  margin-bottom: var(--pauta-space-lg);
+}
+
+/* ── Modal Actions ─────────────────────────────────────────────── */
+.pauta-actions {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  margin-top: var(--pauta-space-lg);
+}
+.pauta-actions > * {
+  flex: 1;
+}
+
+/* ── Shared Modal Component ────────────────────────────────────── */
+.pauta-modal {
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.pauta-modal-header {
+  margin-bottom: var(--pauta-space-lg);
+}
+.pauta-modal-body {
+  margin-bottom: var(--pauta-space-lg);
+}
+.pauta-modal-footer {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  padding-top: var(--pauta-space-md);
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
 </style>
 </head>
 <body>
@@ -1509,254 +1757,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
     </div>
     <div class="panel-section-label">Other</div>
     <div class="panel-grid">
-      <button class="panel-btn" aria-label="Fermata" data-action="applyArticulation" data-type="fermata"><span class="panel-sym">𝄐</span><span class="panel-lbl">Fermata</span></button>
-      <button class="panel-btn" aria-label="Staccatissimo" data-action="applyArticulation" data-type="staccatissimo"><span class="panel-sym" style="font-size:18px">▾</span><span class="panel-lbl">Staccatiss.</span></button>
-      <button class="panel-btn" aria-label="Trill" data-action="applyArticulation" data-type="trill"><span class="panel-sym" style="font-size:12px">tr~</span><span class="panel-lbl">Trill</span></button>
-      <button class="panel-btn" aria-label="Remove articulation" data-action="applyArticulation"><span class="panel-sym" style="font-size:12px">✕</span><span class="panel-lbl">Remove</span></button>
-    </div>
-    <div class="panel-section-label">Fingering</div>
-    <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
-      Select a note, then tap a number to add or remove fingering.</p>
-    <div class="panel-grid">
-      <button class="panel-btn" aria-label="Fingering thumb 1" data-action="applyFingering" data-f="1"><span class="panel-sym pal-sym-f14">1</span><span class="panel-lbl">Thumb</span></button>
-      <button class="panel-btn" aria-label="Fingering index 2" data-action="applyFingering" data-f="2"><span class="panel-sym pal-sym-f14">2</span><span class="panel-lbl">Index</span></button>
-      <button class="panel-btn" aria-label="Fingering middle 3" data-action="applyFingering" data-f="3"><span class="panel-sym pal-sym-f14">3</span><span class="panel-lbl">Middle</span></button>
-      <button class="panel-btn" aria-label="Fingering ring 4" data-action="applyFingering" data-f="4"><span class="panel-sym pal-sym-f14">4</span><span class="panel-lbl">Ring</span></button>
-      <button class="panel-btn" aria-label="Fingering pinky 5" data-action="applyFingering" data-f="5"><span class="panel-sym pal-sym-f14">5</span><span class="panel-lbl">Pinky</span></button>
-      <button class="panel-btn" aria-label="Remove fingering" data-action="applyFingering" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
-        <span class="panel-sym pal-sym-f11">✕</span>
-        <span class="panel-lbl">Remove</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Lines panel -->
-  <div class="panel-page" id="panel-lines" style="display:none">
-    <div class="panel-title">Lines</div>
-    <div class="panel-section-label">Phrase</div>
-    <div class="panel-grid">
-      <button class="panel-btn" id="btn-tie"   aria-label="Tie notes" data-action="startMarking" data-type="tie"><span class="panel-sym">⌢</span><span class="panel-lbl">Tie</span></button>
-      <button class="panel-btn" id="btn-slur"  aria-label="Slur notes" data-action="startMarking" data-type="slur"><span class="panel-sym">⌣</span><span class="panel-lbl">Slur</span></button>
-      <button class="panel-btn" id="btn-cresc" aria-label="Crescendo" data-action="startMarking" data-type="cresc"><span class="panel-sym" style="font-size:0">
-        <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 17,8 1,14"/></svg>
-      </span><span class="panel-lbl">Cresc</span></button>
-      <button class="panel-btn" id="btn-dim"   aria-label="Diminuendo" data-action="startMarking" data-type="dim"><span class="panel-sym" style="font-size:0">
-        <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17,2 1,8 17,14"/></svg>
-      </span><span class="panel-lbl">Dim</span></button>
-      <button class="panel-btn" aria-label="Clear tie" data-action="clearTie" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Clear Tie</span></button>
-      <button class="panel-btn" aria-label="Clear slur" data-action="clearSlur" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Clear Slur</span></button>
-    </div>
-
-  </div>
-
-  <!-- Clef panel -->
-  <div class="panel-page" id="panel-clef" style="display:none">
-    <div class="panel-title">Clef</div>
-    <div class="panel-grid">
-      <button class="panel-btn" aria-label="Treble clef" data-action="applyClefChange" data-type="treble">
-        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄞</span>
-        <span class="panel-lbl">Treble</span>
-      </button>
-      <button class="panel-btn" aria-label="Bass clef" data-action="applyClefChange" data-type="bass">
-        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄢</span>
-        <span class="panel-lbl">Bass</span>
-      </button>
-      <button class="panel-btn" aria-label="Alto C clef" data-action="applyClefChange" data-type="alto">
-        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
-        <span class="panel-lbl">Alto</span>
-      </button>
-      <button class="panel-btn" aria-label="Tenor C clef" data-action="applyClefChange" data-type="tenor">
-        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
-        <span class="panel-lbl">Tenor</span>
-      </button>
-      <button class="panel-btn" aria-label="Percussion clef" data-action="applyClefChange" data-type="percussion">
-        <span class="panel-sym" style="font-size:0">
-          <svg viewBox="0 0 20 28" width="20" height="28" fill="currentColor">
-            <rect x="5" y="3" width="3.5" height="22" rx="1.2"/>
-            <rect x="12" y="3" width="3.5" height="22" rx="1.2"/>
-          </svg>
-        </span>
-        <span class="panel-lbl">Percussion</span>
-      </button>
-      <button class="panel-btn" aria-label="Remove clef" data-action="applyClefChange" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
-        <span class="panel-sym pal-sym-f11">✕</span>
-        <span class="panel-lbl">Remove</span>
-      </button>
-    </div>
-    <div class="panel-section-label">Key Signature</div>
-    <div class="panel-grid" style="grid-template-columns:repeat(5,1fr)">
-      <button class="panel-btn" aria-label="Key of F major 1 flat" data-action="applyKeySig" data-ks="-1"><span class="panel-sym pal-sym-f13">F</span><span class="panel-lbl">1♭</span></button>
-      <button class="panel-btn" aria-label="Key of B flat major 2 flats" data-action="applyKeySig" data-ks="-2"><span class="panel-sym pal-sym-f13">B♭</span><span class="panel-lbl">2♭</span></button>
-      <button class="panel-btn" aria-label="Key of E flat major 3 flats" data-action="applyKeySig" data-ks="-3"><span class="panel-sym pal-sym-f13">E♭</span><span class="panel-lbl">3♭</span></button>
-      <button class="panel-btn" aria-label="Key of A flat major 4 flats" data-action="applyKeySig" data-ks="-4"><span class="panel-sym pal-sym-f13">A♭</span><span class="panel-lbl">4♭</span></button>
-      <button class="panel-btn" aria-label="Key of C major no sharps or flats" data-action="applyKeySig" data-ks="0"><span class="panel-sym pal-sym-f13">C</span><span class="panel-lbl">♮</span></button>
-      <button class="panel-btn" aria-label="Key of G major 1 sharp" data-action="applyKeySig" data-ks="1"><span class="panel-sym pal-sym-f13">G</span><span class="panel-lbl">1♯</span></button>
-      <button class="panel-btn" aria-label="Key of D major 2 sharps" data-action="applyKeySig" data-ks="2"><span class="panel-sym pal-sym-f13">D</span><span class="panel-lbl">2♯</span></button>
-      <button class="panel-btn" aria-label="Key of A major 3 sharps" data-action="applyKeySig" data-ks="3"><span class="panel-sym pal-sym-f13">A</span><span class="panel-lbl">3♯</span></button>
-      <button class="panel-btn" aria-label="Key of E major 4 sharps" data-action="applyKeySig" data-ks="4"><span class="panel-sym pal-sym-f13">E</span><span class="panel-lbl">4♯</span></button>
-      <button class="panel-btn" aria-label="More key signatures" data-action="showKeySigDialog" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
-        <span class="panel-sym pal-sym-f11">⋯</span><span class="panel-lbl">More</span>
-      </button>
-    </div>
-    <div class="panel-section-label">Time Signature</div>
-    <div class="panel-grid" style="grid-template-columns:repeat(4,1fr)">
-      <button class="panel-btn" aria-label="Time signature 2 2" data-action="applyTimeSig" data-num="2" data-den="2"><span class="panel-sym" style="font-size:0">
-        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
-          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
-          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
-        </svg>
-      </span><span class="panel-lbl">2/2</span></button>
-      <button class="panel-btn" aria-label="Time signature 2 4" data-action="applyTimeSig" data-num="2" data-den="4"><span class="panel-sym" style="font-size:0">
-        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
-          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
-          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
-        </svg>
-      </span><span class="panel-lbl">2/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 3 4" data-action="applyTimeSig" data-num="3" data-den="4"><span class="panel-sym" style="font-size:0">
-        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
-          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
-          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
-        </svg>
-      </span><span class="panel-lbl">3/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 4 4" data-action="applyTimeSig" data-num="4" data-den="4"><span class="panel-sym" style="font-size:0">
-        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
-          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
-          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
-        </svg>
-      </span><span class="panel-lbl">4/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 5 4" data-action="applyTimeSig" data-num="5" data-den="4"><span class="panel-sym" style="font-size:0">
-        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
-          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">5</text>
-          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
-        </svg>
-      </span><span class="panel-lbl">5/4</span></button>
-      <button class="panel-btn" aria-label="Time signature 3 8" data-action="applyTimeSig" data-num="3" data-den="8"><span class="panel-sym" style="font-size:0">
-        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
-          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
-          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
-        </svg>
-      </span><span class="panel-lbl">3/8</span></button>
-      <button class="panel-btn" aria-label="Time signature 6 8" data-action="applyTimeSig" data-num="6" data-den="8"><span class="panel-sym" style="font-size:0">
-        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
-          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">6</text>
-          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
-        </svg>
-      </span><span class="panel-lbl">6/8</span></button>
-      <button class="panel-btn" aria-label="More time signatures" data-action="showTimeSigDialog" style="background:rgba(192,86,33,0.1);border-color:rgba(192,86,33,0.3);color:#c05621">
-        <span class="panel-sym pal-sym-f11">⋯</span><span class="panel-lbl">More</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Barlines panel -->
-  <div class="panel-page" id="panel-bars" style="display:none">
-    <div class="panel-title">Barlines</div>
-    <div class="panel-section-label">Barline Type</div>
-    <div class="panel-grid">
-      <button class="panel-btn" aria-label="Normal barline" data-action="applyBarline" data-type="single"><span class="panel-sym" style="font-size:18px">|</span><span class="panel-lbl">Normal</span></button>
-      <button class="panel-btn" aria-label="Double barline" data-action="applyBarline" data-type="double"><span class="panel-sym" style="font-size:18px">‖</span><span class="panel-lbl">Double</span></button>
-      <button class="panel-btn" aria-label="Final barline" data-action="applyBarline" data-type="end"><span class="panel-sym" style="font-size:0">
-        <svg width="18" height="18" viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
-          <line x1="2" y1="0" x2="2" y2="28"/>
-          <rect x="5" y="0" width="4" height="28" rx="0.8"/>
-        </svg>
-      </span><span class="panel-lbl">Final</span></button>
-      <button class="panel-btn" aria-label="Repeat start barline" data-action="applyBarline" data-type="repeat_begin"><span class="panel-sym" style="font-size:14px">|:</span><span class="panel-lbl">Rep. Start</span></button>
-      <button class="panel-btn" aria-label="Repeat end barline" data-action="applyBarline" data-type="repeat_end"><span class="panel-sym" style="font-size:14px">:|</span><span class="panel-lbl">Rep. End</span></button>
-      <button class="panel-btn" aria-label="Repeat both barline" data-action="applyBarline" data-type="repeat_both"><span class="panel-sym" style="font-size:14px">:|:</span><span class="panel-lbl">Rep. Both</span></button>
-    </div>
-  </div>
-
-  <!-- Tempo panel -->
-  <div class="panel-page" id="panel-tempo" style="display:none">
-    <div class="panel-title">Tempo</div>
-    <button class="panel-btn-wide active" id="btn-tempo-toggle" data-action="toggleTempoDisplay"
-      style="margin-bottom:6px">
-      ✓ Show on score
-    </button>
-    <div class="panel-section-label">Slow</div>
-    <button class="panel-btn-wide tempo-btn" data-action="applyTempo" data-name="Larghissimo" data-bpm="24">Larghissimo <span style="opacity:0.5;font-size:9px">♩=24</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Grave" data-bpm="40">Grave <span style="opacity:0.5;font-size:9px">♩=40</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Largo" data-bpm="50">Largo <span style="opacity:0.5;font-size:9px">♩=50</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Lento" data-bpm="52">Lento <span style="opacity:0.5;font-size:9px">♩=52</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Larghetto" data-bpm="60">Larghetto <span style="opacity:0.5;font-size:9px">♩=60</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagio" data-bpm="66">Adagio <span style="opacity:0.5;font-size:9px">♩=66</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagietto" data-bpm="72">Adagietto <span style="opacity:0.5;font-size:9px">♩=72</span></button>
-    <div class="panel-section-label">Medium</div>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andante" data-bpm="76">Andante <span style="opacity:0.5;font-size:9px">♩=76</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andantino" data-bpm="88">Andantino <span style="opacity:0.5;font-size:9px">♩=88</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Moderato" data-bpm="96">Moderato <span style="opacity:0.5;font-size:9px">♩=96</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegretto" data-bpm="112">Allegretto <span style="opacity:0.5;font-size:9px">♩=112</span></button>
-    <div class="panel-section-label">Fast</div>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegro" data-bpm="132">Allegro <span style="opacity:0.5;font-size:9px">♩=132</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Vivace" data-bpm="160">Vivace <span style="opacity:0.5;font-size:9px">♩=160</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Presto" data-bpm="184">Presto <span style="opacity:0.5;font-size:9px">♩=184</span></button>
-    <button class="panel-btn-wide" data-action="applyTempo" data-name="Prestissimo" data-bpm="208">Prestissimo <span style="opacity:0.5;font-size:9px">♩=208</span></button>
-  </div>
-  <div class="panel-page" id="panel-text" style="display:none">
-    <div class="panel-title">Text</div>
-    <div class="panel-section-label">Staff Text</div>
-    <button class="panel-btn-wide" aria-label="Add staff text annotation" data-action="addStaffText">✎ Add Text Annotation</button>
-    <button class="panel-btn-wide danger-btn" aria-label="Remove staff text" data-action="clearStaffText">✕ Remove Text</button>
-    <div class="panel-section-label">Chord Symbol</div>
-    <button class="panel-btn-wide" aria-label="Add or edit chord symbol" data-action="editChordSymbol">𝄢 Add / Edit Chord</button>
-    <button class="panel-btn-wide danger-btn" aria-label="Remove chord symbol" data-action="clearChordSymbol">✕ Remove Chord</button>
-    <div class="panel-section-label">Rehearsal Mark</div>
-    <div class="panel-grid">
-      <button class="panel-btn" aria-label="Rehearsal mark letter" data-action="addRehearsalMark" data-type="letter"><span class="panel-sym pal-sym-f13">A</span><span class="panel-lbl">Letter</span></button>
-      <button class="panel-btn" aria-label="Rehearsal mark number" data-action="addRehearsalMark" data-type="number"><span class="panel-sym pal-sym-f13">1</span><span class="panel-lbl">Number</span></button>
-      <button class="panel-btn" aria-label="Custom rehearsal mark" data-action="editRehearsalMark"><span class="panel-sym pal-sym-f11">✎</span><span class="panel-lbl">Custom</span></button>
-      <button class="panel-btn" aria-label="Remove rehearsal mark" data-action="clearRehearsalMark" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Remove</span></button>
-    </div>
-    <div class="panel-section-label">Navigation Markers</div>
-    <div class="panel-grid">
-      <button class="panel-btn" aria-label="Segno marker" data-action="applyMarker" data-type="segno"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif">&#xE047;</span><span class="panel-lbl">Segno</span></button>
-      <button class="panel-btn" aria-label="Coda marker" data-action="applyMarker" data-type="coda"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif;position:relative">
-        <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;position:absolute;top:0;left:50%;transform:translateX(-50%)">
-          <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/>
-          <line x1="9" y1="0" x2="9" y2="18" stroke="currentColor" stroke-width="1.6"/>
-          <line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="1.6"/>
-        </svg>
-        &#x200B;</span><span class="panel-lbl">Coda</span></button>
-      <button class="panel-btn" aria-label="Fine marker" data-action="applyMarker" data-type="fine"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:bold">Fine</span><span class="panel-lbl">Fine</span></button>
-      <button class="panel-btn" aria-label="Da Capo" data-action="applyMarker" data-type="dc"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.C.</span><span class="panel-lbl">Da Capo</span></button>
-      <button class="panel-btn" aria-label="Dal Segno" data-action="applyMarker" data-type="ds"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.S.</span><span class="panel-lbl">Dal Segno</span></button>
-      <button class="panel-btn" aria-label="Clear navigation markers" data-action="clearMarker" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym pal-sym-f11">✕</span><span class="panel-lbl">Clear</span></button>
-    </div>
-    <div class="panel-section-label" style="margin-top:8px">Lyrics</div>
-    <button class="panel-btn-wide" aria-label="Edit lyrics" data-action="editLyric">✎ Edit Lyric</button>
-    <button class="panel-btn-wide danger-btn" aria-label="Remove lyrics" data-action="clearLyric">✕ Remove</button>
-    <div class="panel-section-label" style="margin-top:8px">Font</div>
-    <select id="lyric-font" class="panel-select">
-      <option value="'Helvetica Neue',Helvetica,sans-serif">Helvetica</option>
-      <option value="serif">Serif</option>
-      <option value="Georgia,serif">Georgia</option>
-      <option value="'Times New Roman',serif">Times</option>
-      <option value="Arial,sans-serif">Arial</option>
-    </select>
-    <div class="panel-section-label">Size</div>
-    <select id="lyric-size" class="panel-select">
-      <option value="10">10</option>
-      <option value="11" selected>11</option>
-      <option value="12">12</option>
-      <option value="14">14</option>
-      <option value="16">16</option>
-    </select>
-    <div style="display:flex;gap:6px;margin-top:6px">
-      <button class="panel-btn" id="btn-lyric-bold"   data-action="toggleLyricStyle" data-style="bold"   style="flex:1;font-weight:700">B</button>
-      <button class="panel-btn" id="btn-lyric-italic" data-action="toggleLyricStyle" data-style="italic" style="flex:1;font-style:italic">I</button>
-    </div>
-    <p style="color:rgba(74,85,104,0.4);font-size:10px;margin-top:8px;line-height:1.4;text-align:center">
-      Select a note, tap Edit Lyric.<br>
-      Dash (–) → next syllable<br>
-      Space → next word
-    </p>
-  </div>
-
-</div>
-
-<div id="toast"></div>
-
 <script>
 
 // ─── Module: globals.js ────────────────────────────────────
@@ -10576,81 +10576,63 @@ function showExerciseDialog() {
   const overallPct = results.length > 0 ? Math.round(results.reduce((s,r) => s + r.pct, 0) / results.length) : 0;
 
   makeModal(`
-    <style>
-      .ex-hero{background:linear-gradient(135deg,#e06850,#c05621);color:#fff;border-radius:12px;padding:20px;margin-bottom:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
-      .ex-hero:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(224,104,80,0.3)}
-      .ex-hero:active{transform:scale(0.98)}
-      .ex-hero-title{font-size:20px;font-weight:700;margin-bottom:4px}
-      .ex-hero-desc{font-size:13px;opacity:0.9}
-      .ex-hero-badge{position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
-      .ex-cat{margin-bottom:16px}
-      .ex-cat-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding-left:4px}
-      .ex-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-      .ex-card{background:var(--bg-score-area,#f0ebe3);border:1.5px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;position:relative}
-      .ex-card:hover{border-color:var(--cat-color,#c05621);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-      .ex-card:active{transform:scale(0.97)}
-      .ex-card-title{font-weight:600;font-size:13px;color:#2d3748;display:flex;align-items:center;gap:6px}
-      .ex-card-desc{font-size:11px;color:rgba(74,85,104,0.7);margin-top:2px;line-height:1.3}
-      .ex-card-meta{font-size:10px;color:rgba(74,85,104,0.5);margin-top:4px}
-      .ex-card-score{position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px}
-      .ex-diff{display:flex;gap:4px;margin-bottom:12px;justify-content:center}
-      .ex-diff-btn{border:1.5px solid rgba(0,0,0,0.1);background:transparent;border-radius:16px;padding:5px 12px;font-size:11px;font-weight:600;color:#4a5568;cursor:pointer;transition:all .15s}
-      .ex-diff-btn.active{background:#c05621;color:#fff;border-color:#c05621}
-      .ex-diff-btn:hover:not(.active){border-color:#c05621;color:#c05621}
-      .ex-stats{display:flex;gap:16px;justify-content:center;margin-bottom:12px;font-size:12px;color:#4a5568}
-      .ex-stat-num{font-weight:700;color:#c05621}
-    </style>
-    <h2 style="margin-bottom:4px">Practice Gym</h2>
-    <p style="font-size:12px;color:rgba(74,85,104,0.6);margin-bottom:16px">Daily exercises for musicians</p>
+    <div class="pauta-modal">
+      <div class="pauta-modal-header">
+        <h2 class="pauta-modal-title">Practice Gym</h2>
+        <p class="pauta-modal-subtitle">Daily exercises for musicians</p>
 
-    ${totalSessions > 0 ? `
-    <div class="ex-stats">
-      <span><span class="ex-stat-num">${totalSessions}</span> sessions</span>
-      <span><span class="ex-stat-num">${overallPct}%</span> avg</span>
-    </div>` : ''}
+        ${totalSessions > 0 ? `
+        <div class="pauta-stats">
+          <span><span class="pauta-stat-num">${totalSessions}</span> sessions</span>
+          <span><span class="pauta-stat-num">${overallPct}%</span> avg</span>
+        </div>` : ''}
 
-    <div class="ex-diff">
-      ${['beginner','intermediate','advanced','auto'].map(d =>
-        `<button class="ex-diff-btn ${d===currentDiff?'active':''}" data-action="selectExerciseDifficulty" data-diff="${d}">${d}</button>`
-      ).join('')}
-    </div>
-
-    <div class="ex-hero" data-action="showRhythmWorkoutDialog">
-      <div class="ex-hero-badge">⚡ Most Popular</div>
-      <div class="ex-hero-title">🥁 Rhythm Workout</div>
-      <div class="ex-hero-desc">Random rhythms with custom time signatures, tempo, and note values</div>
-    </div>
-
-    ${categories.map(cat => `
-      <div class="ex-cat">
-        <div class="ex-cat-title" style="color:${cat.color}">${cat.name}</div>
-        <div class="ex-grid">
-          ${cat.exercises.map(ex => {
-            const typeResults = byType[ex.key] || [];
-            const sessions = typeResults.length;
-            let scoreColor = 'rgba(74,85,104,0.3)';
-            let scoreText = '';
-            if (sessions > 0) {
-              const lastPct = typeResults[typeResults.length - 1].pct;
-              scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
-              scoreText = lastPct + '%';
-            }
-            return `
-              <div class="ex-card" style="--cat-color:${cat.color}" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
-                ${scoreText ? `<span class="ex-card-score" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
-                <div class="ex-card-title"><span style="font-size:15px">${ex.icon}</span>${ex.label}</div>
-                <div class="ex-card-desc">${ex.desc}</div>
-                <div class="ex-card-meta">${sessions > 0 ? `${sessions} session${sessions>1?'s':''}` : '○ Not started'}</div>
-              </div>`;
-          }).join('')}
+        <div class="pauta-pills">
+          ${['beginner','intermediate','advanced','auto'].map(d =>
+            `<button class="pauta-pill ${d===currentDiff?'active':''}" data-action="selectExerciseDifficulty" data-diff="${d}">${d}</button>`
+          ).join('')}
         </div>
       </div>
-    `).join('')}
 
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="modal-btn secondary" data-action="showCurriculumDialog" style="flex:1">📚 Curriculum</button>
-      <button class="modal-btn secondary" data-action="showStudentProgress" style="flex:1">📊 Progress</button>
-      <button class="modal-btn secondary" data-action="closeModal" style="flex:1">✕ Close</button>
+      <div class="pauta-modal-body">
+        <div class="pauta-hero" data-action="showRhythmWorkoutDialog">
+          <div class="pauta-hero-badge">⚡ Most Popular</div>
+          <div class="pauta-hero-title">🥁 Rhythm Workout</div>
+          <div class="pauta-hero-desc">Random rhythms with custom time signatures, tempo, and note values</div>
+        </div>
+
+        ${categories.map(cat => `
+          <div class="pauta-category">
+            <div class="pauta-category-title" style="color:${cat.color}">${cat.name}</div>
+            <div class="pauta-grid">
+              ${cat.exercises.map(ex => {
+                const typeResults = byType[ex.key] || [];
+                const sessions = typeResults.length;
+                let scoreColor = 'rgba(74,85,104,0.3)';
+                let scoreText = '';
+                if (sessions > 0) {
+                  const lastPct = typeResults[typeResults.length - 1].pct;
+                  scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
+                  scoreText = lastPct + '%';
+                }
+                return `
+                  <div class="pauta-card" style="--pauta-card-color:${cat.color}" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
+                    ${scoreText ? `<span class="pauta-card-badge" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
+                    <div class="pauta-card-title"><span style="font-size:15px">${ex.icon}</span>${ex.label}</div>
+                    <div class="pauta-card-desc">${ex.desc}</div>
+                    <div class="pauta-card-meta">${sessions > 0 ? `${sessions} session${sessions>1?'s':''}` : '○ Not started'}</div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="pauta-modal-footer">
+        <button class="modal-btn secondary" data-action="showCurriculumDialog">📚 Curriculum</button>
+        <button class="modal-btn secondary" data-action="showStudentProgress">📊 Progress</button>
+        <button class="modal-btn secondary" data-action="closeModal">✕ Close</button>
+      </div>
     </div>
   `);
 }
