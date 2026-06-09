@@ -10653,6 +10653,98 @@ function showStudentProgress() {
   let bestStreak = results.reduce((s, r) => Math.max(s, r.maxStreak || 0), 0);
   let totalTime = results.reduce((s, r) => s + (r.time || 0), 0);
 
+  // ── Streak Calendar (last 12 weeks) ────────────────────────────
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const dayMs = 86400000;
+  const daysToShow = 84; // 12 weeks
+  const startDate = new Date(today.getTime() - (daysToShow - 1) * dayMs);
+
+  // Count sessions per day
+  const sessionsByDay = {};
+  results.forEach(r => {
+    const d = new Date(r.date);
+    d.setHours(0,0,0,0);
+    const key = d.getTime();
+    sessionsByDay[key] = (sessionsByDay[key] || 0) + 1;
+  });
+
+  // Build calendar grid (7 rows × 12 columns)
+  const calSize = 11;
+  const calGap = 2;
+  const calCols = 12;
+  let calSvg = `<svg width="${calCols * (calSize + calGap)}" height="${7 * (calSize + calGap)}" style="display:block;margin:0 auto">`;
+  for (let week = 0; week < calCols; week++) {
+    for (let day = 0; day < 7; day++) {
+      const dayIdx = week * 7 + day;
+      const date = new Date(startDate.getTime() + dayIdx * dayMs);
+      const key = date.getTime();
+      const count = sessionsByDay[key] || 0;
+      const isFuture = date > today;
+      let fill = '#ebedf0';
+      if (!isFuture && count > 0) {
+        fill = count >= 4 ? '#22c55e' : count >= 2 ? '#4ade80' : count >= 1 ? '#86efac' : '#ebedf0';
+      }
+      const x = week * (calSize + calGap);
+      const y = day * (calSize + calGap);
+      calSvg += `<rect x="${x}" y="${y}" width="${calSize}" height="${calSize}" rx="2" fill="${fill}" stroke="none"/>`;
+    }
+  }
+  calSvg += `</svg>`;
+
+  // ── Skill Radar Chart ───────────────────────────────────────────
+  const types = Object.keys(TYPE_LABELS);
+  const radarData = types.map(type => {
+    const r = byType[type];
+    return r ? Math.round(r.reduce((s, x) => s + x.pct, 0) / r.length) : 0;
+  });
+  const radarLabels = types.map(t => TYPE_LABELS[t] || t);
+
+  function radarChart(data, labels, size) {
+    const cx = size / 2, cy = size / 2;
+    const maxR = size / 2 - 20;
+    const n = data.length;
+    if (n < 3) return ''; // Need at least 3 axes
+
+    function polarToCart(angle, r) {
+      const rad = (angle - 90) * Math.PI / 180;
+      return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+    }
+
+    let svg = `<svg width="${size}" height="${size}" style="display:block;margin:0 auto">`;
+
+    // Grid circles
+    [0.25, 0.5, 0.75, 1].forEach(frac => {
+      const r = maxR * frac;
+      svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ddd" stroke-width="0.5"/>`;
+    });
+
+    // Axes and labels
+    for (let i = 0; i < n; i++) {
+      const angle = (360 / n) * i;
+      const [ex, ey] = polarToCart(angle, maxR);
+      svg += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="#ddd" stroke-width="0.5"/>`;
+      const [lx, ly] = polarToCart(angle, maxR + 14);
+      const anchor = Math.abs(lx - cx) < 2 ? 'middle' : lx > cx ? 'start' : 'end';
+      svg += `<text x="${lx}" y="${ly + 3}" text-anchor="${anchor}" font-size="8" fill="#666" font-family="Helvetica Neue,sans-serif">${labels[i]}</text>`;
+    }
+
+    // Data polygon
+    const pts = data.map((v, i) => {
+      const angle = (360 / n) * i;
+      return polarToCart(angle, maxR * (v / 100));
+    });
+    svg += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="rgba(192,86,33,0.15)" stroke="#c05621" stroke-width="1.5"/>`;
+
+    // Data points
+    pts.forEach((p, i) => {
+      svg += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${data[i] >= 80 ? '#22c55e' : data[i] >= 60 ? '#e6a817' : '#e06850'}" stroke="#fff" stroke-width="1"/>`;
+    });
+
+    svg += `</svg>`;
+    return svg;
+  }
+
   // Recent 10 sessions for sparkline
   const recent = results.slice(-10);
   const recentPcts = recent.map(r => r.pct);
@@ -10717,7 +10809,19 @@ function showStudentProgress() {
     }
   });
 
-  const timeStr = totalTime >= 60 ? `${Math.floor(totalTime/60)}m ${totalTime%60}s` : `${totalTime}s`;
+  // Calculate current streak (consecutive days with sessions)
+  let currentStreak = 0;
+  let checkDate = new Date(today);
+  while (true) {
+    const key = checkDate.getTime();
+    if (sessionsByDay[key]) {
+      currentStreak++;
+      checkDate = new Date(checkDate.getTime() - dayMs);
+    } else break;
+  }
+
+  const timeStr = totalTime >= 3600 ? `${Math.floor(totalTime/3600)}h ${Math.floor((totalTime%3600)/60)}m`
+    : totalTime >= 60 ? `${Math.floor(totalTime/60)}m ${totalTime%60}s` : `${totalTime}s`;
 
   makeModal(`
     <h2>📊 My Progress</h2>
@@ -10737,18 +10841,29 @@ function showStudentProgress() {
         </div>
       </div>
       <div style="display:flex;gap:16px;justify-content:center;font-size:12px;color:#4a5568;margin-bottom:8px">
+        <span>🔥 Current streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}</span>
         <span>🔥 Best streak: ${bestStreak}</span>
         <span>⏱ Total time: ${timeStr}</span>
       </div>
-      ${recentPcts.length >= 2 ? `<div style="margin-top:8px;padding:8px;background:rgba(192,86,33,0.03);border-radius:8px">
-        <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px">Recent ${recent.length} sessions</div>
-        ${sparkline(recentPcts, 200, 40, '#c05621')}
-      </div>` : ''}
     </div>
     ${badges.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
       ${badges.map(b => `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:${b.color}15;border:1px solid ${b.color}30;border-radius:20px;font-size:11px;font-weight:600;color:${b.color}">
         <span style="font-size:14px">${b.emoji}</span>${b.label}
       </span>`).join('')}
+    </div>` : ''}
+    <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;justify-content:center">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px;text-align:center">Practice Streak (12 weeks)</div>
+        <div style="padding:8px;background:rgba(192,86,33,0.03);border-radius:8px;overflow-x:auto">${calSvg}</div>
+      </div>
+      ${radarData.length >= 3 ? `<div style="flex:0 0 180px">
+        <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px;text-align:center">Skill Profile</div>
+        <div style="padding:8px;background:rgba(192,86,33,0.03);border-radius:8px">${radarChart(radarData, radarLabels, 160)}</div>
+      </div>` : ''}
+    </div>
+    ${recentPcts.length >= 2 ? `<div style="margin-bottom:12px;padding:8px;background:rgba(192,86,33,0.03);border-radius:8px">
+      <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px">Recent ${recent.length} sessions</div>
+      ${sparkline(recentPcts, 200, 40, '#c05621')}
     </div>` : ''}
     <div style="max-height:220px;overflow-y:auto;margin-bottom:12px">
       ${typeHtml}
