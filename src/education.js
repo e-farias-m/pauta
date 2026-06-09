@@ -1821,13 +1821,22 @@ function _setExerciseUI(enabled) {
   // Hide entire palette during exercises to reduce distraction
   const pal = document.getElementById('palette');
   if (pal) pal.style.display = enabled ? 'none' : '';
-  // Score display
+  // Score display with exit button
   let scoreEl = document.getElementById('exercise-score');
   if (enabled && !scoreEl) {
     scoreEl = document.createElement('div');
     scoreEl.id = 'exercise-score';
-    scoreEl.style.cssText = 'position:fixed;top:48px;right:12px;z-index:200;';
+    scoreEl.style.cssText = 'position:fixed;top:48px;right:12px;z-index:200;display:flex;align-items:center;gap:8px;';
+    scoreEl.innerHTML = `
+      <button id="exercise-exit-btn" style="padding:6px 12px;font-size:12px;background:rgba(224,104,80,0.1);border:1px solid rgba(224,104,80,0.3);color:#e06850;border-radius:6px;cursor:pointer;font-weight:600;transition:all 0.15s"
+        onmouseover="this.style.background='rgba(224,104,80,0.2)'"
+        onmouseout="this.style.background='rgba(224,104,80,0.1)'">✕ Exit</button>
+    `;
     document.body.appendChild(scoreEl);
+    setTimeout(() => {
+      const exitBtn = document.getElementById('exercise-exit-btn');
+      if (exitBtn) exitBtn.addEventListener('click', endExerciseSession);
+    }, 50);
   }
   if (!enabled && scoreEl) scoreEl.remove();
   _updateScoreDisplay();
