@@ -10525,83 +10525,123 @@ function _startRhythmWorksheet(difficulty) {
 
 function showExerciseDialog() {
   if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
-  const types = [
-    {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Drills', desc:'Name notes on the staff — build speed and accuracy'},
-    {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Training', desc:'Identify intervals by ear and sight'},
-    {key: EXERCISE_TYPES.RHYTHM_READ,  icon:'𝅘𝅥𝅮', label:'Rhythm Reading', desc:'Read and clap rhythm patterns'},
-    {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'🥁', label:'Rhythm Workout', desc:'Random rhythms with custom settings'},
-    {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Ear Training', desc:'Hear a melody, then notate it'},
-    {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Sig Drills', desc:'Name keys from signatures — build fluency'},
-    {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear a rhythm, mark each beat'},
-    {key: EXERCISE_TYPES.SCALE_ID,     icon:'🎹', label:'Scale Gym', desc:'Hear scales and modes — name them fast'},
-  ];
-  const diffs = ['beginner', 'intermediate', 'advanced', 'auto'];
-  const currentDiff = APP.exerciseDifficulty || 'beginner';
-  const results = _loadResults();
 
+  const results = _loadResults();
   const byType = {};
   results.forEach(r => { if (!byType[r.type]) byType[r.type] = []; byType[r.type].push(r); });
 
-  let weakestType = null, weakestAvg = 101;
-  let mostPracticed = null, mostCount = 0;
-  Object.keys(byType).forEach(t => {
-    const avg = Math.round(byType[t].reduce((s, x) => s + x.pct, 0) / byType[t].length);
-    const cnt = byType[t].length;
-    if (cnt >= 2 && avg < weakestAvg) { weakestAvg = avg; weakestType = t; }
-    if (cnt > mostCount) { mostCount = cnt; mostPracticed = t; }
-  });
-  const quickStartType = weakestType || mostPracticed || EXERCISE_TYPES.NOTE_ID;
-  const quickStartLabel = weakestType ? `Weakest: ${types.find(t=>t.key===weakestType)?.label||weakestType}` : mostPracticed ? `Most practiced: ${types.find(t=>t.key===mostPracticed)?.label||mostPracticed}` : 'Start with Note Identification';
+  const currentDiff = APP.exerciseDifficulty || 'beginner';
+
+  // Categories with exercises
+  const categories = [
+    {
+      name: 'Rhythm',
+      color: '#e06850',
+      exercises: [
+        {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'🥁', label:'Rhythm Workout', desc:'Random rhythms — customize time sig, tempo, note values'},
+        {key: EXERCISE_TYPES.RHYTHM_READ,  icon:'𝅘𝅥𝅮', label:'Rhythm Reading', desc:'Read and clap patterns'},
+        {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear it, mark each beat'},
+      ]
+    },
+    {
+      name: 'Pitch & Theory',
+      color: '#c05621',
+      exercises: [
+        {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Drills', desc:'Name notes on the staff'},
+        {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Training', desc:'Identify intervals'},
+        {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Sig Drills', desc:'Name keys from signatures'},
+        {key: EXERCISE_TYPES.SCALE_ID,     icon:'🎹', label:'Scale Gym', desc:'Hear scales and modes'},
+      ]
+    },
+    {
+      name: 'Ear Training',
+      color: '#22c55e',
+      exercises: [
+        {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Melody Dictation', desc:'Hear it, notate it'},
+      ]
+    },
+  ];
+
+  // Quick stats
+  const totalSessions = results.length;
+  const overallPct = results.length > 0 ? Math.round(results.reduce((s,r) => s + r.pct, 0) / results.length) : 0;
 
   makeModal(`
     <style>
-      .exercise-card{background:var(--bg-score-area,#f0ebe3);border:1.5px solid rgba(192,86,33,0.15);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s ease;position:relative;display:flex;flex-direction:column;gap:4px}
-      .exercise-card:hover{border-color:#c05621;box-shadow:0 2px 8px rgba(192,86,33,0.15);transform:translateY(-1px)}
-      .exercise-card:active{transform:scale(0.97);box-shadow:none}
-      .exercise-card .ec-title{font-weight:700;font-size:13px;color:#2d3748;display:flex;align-items:center;gap:6px}
-      .exercise-card .ec-desc{font-size:11px;color:rgba(74,85,104,0.6);line-height:1.3}
-      .exercise-card .ec-meta{font-size:10px;color:rgba(74,85,104,0.5);margin-top:2px}
-      .exercise-card .ec-score{position:absolute;top:10px;right:10px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px}
-      .diff-pill{border:1.5px solid rgba(192,86,33,0.15);background:transparent;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:#4a5568;cursor:pointer;transition:all .15s}
-      .diff-pill.active{background:#c05621;color:#fff;border-color:#c05621}
-      .diff-pill:hover:not(.active){border-color:#c05621;color:#c05621}
+      .ex-hero{background:linear-gradient(135deg,#e06850,#c05621);color:#fff;border-radius:12px;padding:20px;margin-bottom:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+      .ex-hero:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(224,104,80,0.3)}
+      .ex-hero:active{transform:scale(0.98)}
+      .ex-hero-title{font-size:20px;font-weight:700;margin-bottom:4px}
+      .ex-hero-desc{font-size:13px;opacity:0.9}
+      .ex-hero-badge{position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+      .ex-cat{margin-bottom:16px}
+      .ex-cat-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding-left:4px}
+      .ex-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .ex-card{background:var(--bg-score-area,#f0ebe3);border:1.5px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;position:relative}
+      .ex-card:hover{border-color:var(--cat-color,#c05621);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+      .ex-card:active{transform:scale(0.97)}
+      .ex-card-title{font-weight:600;font-size:13px;color:#2d3748;display:flex;align-items:center;gap:6px}
+      .ex-card-desc{font-size:11px;color:rgba(74,85,104,0.7);margin-top:2px;line-height:1.3}
+      .ex-card-meta{font-size:10px;color:rgba(74,85,104,0.5);margin-top:4px}
+      .ex-card-score{position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px}
+      .ex-diff{display:flex;gap:4px;margin-bottom:12px;justify-content:center}
+      .ex-diff-btn{border:1.5px solid rgba(0,0,0,0.1);background:transparent;border-radius:16px;padding:5px 12px;font-size:11px;font-weight:600;color:#4a5568;cursor:pointer;transition:all .15s}
+      .ex-diff-btn.active{background:#c05621;color:#fff;border-color:#c05621}
+      .ex-diff-btn:hover:not(.active){border-color:#c05621;color:#c05621}
+      .ex-stats{display:flex;gap:16px;justify-content:center;margin-bottom:12px;font-size:12px;color:#4a5568}
+      .ex-stat-num{font-weight:700;color:#c05621}
     </style>
-    <h2>Exercise Browser</h2>
+    <h2 style="margin-bottom:4px">Practice Gym</h2>
+    <p style="font-size:12px;color:rgba(74,85,104,0.6);margin-bottom:16px">Daily exercises for musicians</p>
 
-    <div style="display:flex;gap:6px;margin-bottom:14px;justify-content:center">
-      ${diffs.map(d => `<button class="diff-pill ${d===currentDiff?'active':''}" data-action="selectExerciseDifficulty" data-diff="${d}">${d}</button>`).join('')}
+    ${totalSessions > 0 ? `
+    <div class="ex-stats">
+      <span><span class="ex-stat-num">${totalSessions}</span> sessions</span>
+      <span><span class="ex-stat-num">${overallPct}%</span> avg</span>
+    </div>` : ''}
+
+    <div class="ex-diff">
+      ${['beginner','intermediate','advanced','auto'].map(d =>
+        `<button class="ex-diff-btn ${d===currentDiff?'active':''}" data-action="selectExerciseDifficulty" data-diff="${d}">${d}</button>`
+      ).join('')}
     </div>
 
-    <button class="modal-btn primary" style="width:100%;margin-bottom:14px;padding:12px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px"
-      data-action="startExerciseSession" data-type="${quickStartType}" data-diff="${currentDiff}">
-      ▶ Quick Start — ${quickStartLabel}
-    </button>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;max-height:300px;overflow-y:auto">
-      ${types.map(t => {
-        const typeResults = byType[t.key] || [];
-        const sessionCount = typeResults.length;
-        let scoreColor = 'rgba(74,85,104,0.3)';
-        let scoreText = '';
-        if (sessionCount > 0) {
-          const lastPct = typeResults[typeResults.length - 1].pct;
-          scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
-          scoreText = lastPct + '%';
-        }
-        const isWorkout = t.key === EXERCISE_TYPES.RHYTHM_WORKOUT;
-        return `
-          <div class="exercise-card" data-action="${isWorkout ? 'showRhythmWorkoutDialog' : 'startExerciseSession'}" data-type="${t.key}" data-diff="${currentDiff}">
-            ${scoreText ? `<span class="ec-score" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
-            <div class="ec-title"><span style="font-size:16px">${t.icon}</span>${t.label}</div>
-            <div class="ec-desc">${t.desc}</div>
-            <div class="ec-meta">${sessionCount > 0 ? `● ${sessionCount} session${sessionCount>1?'s':''}` : '○ Not started'}</div>
-          </div>`;
-      }).join('')}
+    <div class="ex-hero" data-action="showRhythmWorkoutDialog">
+      <div class="ex-hero-badge">⚡ Most Popular</div>
+      <div class="ex-hero-title">🥁 Rhythm Workout</div>
+      <div class="ex-hero-desc">Random rhythms with custom time signatures, tempo, and note values</div>
     </div>
 
-    <div style="display:flex;gap:8px">
+    ${categories.map(cat => `
+      <div class="ex-cat">
+        <div class="ex-cat-title" style="color:${cat.color}">${cat.name}</div>
+        <div class="ex-grid">
+          ${cat.exercises.map(ex => {
+            const typeResults = byType[ex.key] || [];
+            const sessions = typeResults.length;
+            let scoreColor = 'rgba(74,85,104,0.3)';
+            let scoreText = '';
+            if (sessions > 0) {
+              const lastPct = typeResults[typeResults.length - 1].pct;
+              scoreColor = lastPct >= 80 ? '#22c55e' : lastPct >= 60 ? '#e6a817' : '#e06850';
+              scoreText = lastPct + '%';
+            }
+            return `
+              <div class="ex-card" style="--cat-color:${cat.color}" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
+                ${scoreText ? `<span class="ex-card-score" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
+                <div class="ex-card-title"><span style="font-size:15px">${ex.icon}</span>${ex.label}</div>
+                <div class="ex-card-desc">${ex.desc}</div>
+                <div class="ex-card-meta">${sessions > 0 ? `${sessions} session${sessions>1?'s':''}` : '○ Not started'}</div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('')}
+
+    <div style="display:flex;gap:8px;margin-top:16px">
       <button class="modal-btn secondary" data-action="showCurriculumDialog" style="flex:1">📚 Curriculum</button>
-      <button class="modal-btn secondary" data-action="closeModal" style="flex:1">✕ Cancel</button>
+      <button class="modal-btn secondary" data-action="showStudentProgress" style="flex:1">📊 Progress</button>
+      <button class="modal-btn secondary" data-action="closeModal" style="flex:1">✕ Close</button>
     </div>
   `);
 }
