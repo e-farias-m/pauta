@@ -3848,14 +3848,61 @@ function _genScaleIdAssignment() {
   return exercises;
 }
 
-function downloadStarterAssignment(templateId) {
+function _applyClefToScore(score, clef) {
+  score.parts.forEach(part => {
+    part.staves.forEach(stave => {
+      stave.clef = clef;
+    });
+  });
+  return score;
+}
+
+function showClefSelectionDialog(templateId) {
   closeModal();
   const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
-  if (!tpl) { showToast('Template not found: ' + templateId); return; }
+  if (!tpl) { showToast('Template not found'); return; }
+  window._pendingStarterTemplate = templateId;
+  makeModal(`
+    <h2>Choose Clef</h2>
+    <p style="color:#4a5568;font-size:13px;margin-bottom:16px">
+      Select the clef for this assignment:
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
+      <button data-action="selectAssignmentClef" data-clef="treble"
+        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
+        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄞</div>
+        <div style="font-size:13px;font-weight:600;color:#2d3748">Treble Clef</div>
+        <div style="font-size:11px;color:rgba(74,85,104,0.7)">G clef · Most common</div>
+      </button>
+      <button data-action="selectAssignmentClef" data-clef="alto"
+        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
+        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄡</div>
+        <div style="font-size:13px;font-weight:600;color:#2d3748">Alto Clef</div>
+        <div style="font-size:11px;color:rgba(74,85,104,0.7)">C clef · Viola</div>
+      </button>
+      <button data-action="selectAssignmentClef" data-clef="bass"
+        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
+        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄢</div>
+        <div style="font-size:13px;font-weight:600;color:#2d3748">Bass Clef</div>
+        <div style="font-size:11px;color:rgba(74,85,104,0.7)">F clef · Low instruments</div>
+      </button>
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function generateStarterAssignmentWithClef(templateId, clef) {
+  closeModal();
+  const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
+  if (!tpl) { showToast('Template not found'); return; }
   try {
     showToast('Generating: ' + tpl.label);
     const exercises = tpl.fn();
     if (!exercises || !exercises.length) { showToast('No exercises generated'); return; }
+    // Apply clef to all generated scores
+    exercises.forEach(ex => {
+      if (ex.score) _applyClefToScore(ex.score, clef);
+    });
     if (exercises.length === 1) {
       const { score, answerKey } = exercises[0];
       _exportMSCZ(score, answerKey, exercises[0].title);
@@ -3864,8 +3911,12 @@ function downloadStarterAssignment(templateId) {
     }
   } catch(e) {
     showToast('Error: ' + e.message);
-    console.error('downloadStarterAssignment error:', e);
+    console.error('generateStarterAssignmentWithClef error:', e);
   }
+}
+
+function downloadStarterAssignment(templateId) {
+  showClefSelectionDialog(templateId);
 }
 
 function _exportMSCZ(score, answerKey, filename) {

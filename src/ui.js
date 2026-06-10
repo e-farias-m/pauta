@@ -2450,6 +2450,13 @@ _registerAction('downloadStarterAssignment', (e) => {
   if (tpl) downloadStarterAssignment(tpl.id);
   else showToast('Template not found');
 });
+_registerAction('selectAssignmentClef', (e) => {
+  const btn = e.target.closest('[data-action="selectAssignmentClef"]');
+  if (!btn) return;
+  const clef = btn.dataset.clef;
+  const tplId = window._pendingStarterTemplate;
+  if (tplId) generateStarterAssignmentWithClef(tplId, clef);
+});
 _registerAction('startExerciseSession', (e) => {
   closeModal();
   const type = e.target.closest('[data-type]')?.dataset.type;
