@@ -1449,7 +1449,7 @@ const TS_DEN_VALUES = [1, 2, 4, 8, 16, 32];
 
 function showNewScoreDialog() {
   _ndFamily = 'Recorder';
-  _ndSelectedInstruments = new Map([['Recorder', 1]]); // default instrument
+  _ndSelectedInstruments = new Map();
   _ndLevel = APP.teachingKitLevel || 'advanced';
   _renderNewScoreDialog();
 }
@@ -1493,17 +1493,21 @@ function _renderNewScoreDialog() {
   // Instrument grid buttons
   const instrBtns = instrList.map(i => {
     const count = _ndSelectedInstruments.get(i.name) || 0;
+    const sel = count > 0;
     return `
     <button data-action="selectNDInstr" data-name="${i.name}"
-      class="nd-instr-btn${count ? ' nd-sel' : ''}"
-      data-name="${i.name}"
-      style="padding:8px 6px;border-radius:8px;border:1px solid rgba(192,86,33,0.18);
-             background:rgba(192,86,33,0.04);color:#4a5568;font-size:11px;cursor:pointer;
+      class="nd-instr-btn${sel ? ' nd-sel' : ''}"
+      style="padding:8px 6px;border-radius:8px;border:1px solid ${sel ? 'rgba(192,86,33,0.55)' : 'rgba(192,86,33,0.18)'};
+             background:${sel ? 'rgba(192,86,33,0.12)' : 'rgba(192,86,33,0.04)'};color:${sel ? '#c05621' : '#4a5568'};font-size:11px;cursor:pointer;
              text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
              -webkit-tap-highlight-color:transparent">
       ${i.name}${count ? ` <span class="nd-count" style="background:#c05621;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : ''}
     </button>`;
   }).join('');
+
+  const totalSelected = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
+  const createLabel = totalSelected === 0 ? 'Select an instrument first' : 'Create';
+  const createStyle = totalSelected === 0 ? 'margin-top:10px;opacity:0.5;pointer-events:none' : 'margin-top:10px';
 
   // Preserve existing title/composer if modal already open
   const prevTitle    = document.getElementById('nd-title')?.value    || 'Untitled Score';
@@ -1619,7 +1623,7 @@ function _renderNewScoreDialog() {
       ${instrBtns}
     </div>
 
-    <button class="modal-btn primary" style="margin-top:10px" data-action="createNewScore">Create</button>
+    <button class="modal-btn primary" style="${createStyle}" data-action="createNewScore">${createLabel}</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 
@@ -2493,13 +2497,14 @@ _registerAction('selectNDInstr', (e) => {
   if (!btn) return;
   const name = btn.dataset.name;
   const cur = _ndSelectedInstruments.get(name) || 0;
-  _ndSelectedInstruments.set(name, cur + 1);
-  btn.classList.add('nd-sel');
-  const badge = btn.querySelector('.nd-count');
-  if (badge) badge.textContent = cur + 1;
-  const total = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
-  const c = document.getElementById('nd-instr-count');
-  if (c) c.textContent = '(' + total + ')';
+  if (cur === 0) {
+    _ndSelectedInstruments.set(name, 1);
+  } else if (cur === 1) {
+    _ndSelectedInstruments.delete(name);
+  } else {
+    _ndSelectedInstruments.set(name, cur - 1);
+  }
+  _renderNewScoreDialog();
 });
 
 // Single delegated click handler for all [data-action] elements
