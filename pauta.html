@@ -12778,7 +12778,9 @@ function _hideDiagBar() {
  clearProgress, showTeacherDashboard, clearAllImported,
   showDiagnosticDialog, _startDiagnostic, _presentDiagQuestion, _answerDiag, _finishDiagnostic,
   _showDiagBar, _diagSubmit, _updateDiagBar, _hideDiagBar,
-  showStarterAssignmentsDialog, downloadStarterAssignment, _genScaleAssignment, _genRhythmAssignment,
+   showStarterAssignmentsDialog, showClefSelectionDialog, generateStarterAssignmentWithClef,
+   showStarterPreviewDialog, confirmStarterDownload, previewStarterScore,
+   _genScaleAssignment, _genRhythmAssignment,
   _genMelodyDictAssignment, _exportMSCZ, _exportMSCZBatch, _downloadBlob
 ].forEach(fn => { EXERCISE[fn.name] = fn; });
 
