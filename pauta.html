@@ -15912,8 +15912,7 @@ const TS_DEN_VALUES = [1, 2, 4, 8, 16, 32];
 
 function showNewScoreDialog() {
   _ndFamily = 'Recorder';
-  _ndSelectedInstruments = new Map();
-  // Default level from current kit (if any), or advanced
+  _ndSelectedInstruments = new Map([['Recorder', 1]]); // default instrument
   _ndLevel = APP.teachingKitLevel || 'advanced';
   _renderNewScoreDialog();
 }
