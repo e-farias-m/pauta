@@ -3893,6 +3893,10 @@ function _applyClefToScore(score, clef) {
   score.parts.forEach(part => {
     part.staves.forEach(stave => {
       stave.clef = clef;
+      // Also set clef on the first measure so exportMSCXFromScore picks it up
+      if (stave.measures.length > 0) {
+        stave.measures[0].clef = clef;
+      }
     });
   });
   return score;
@@ -4002,7 +4006,6 @@ function previewStarterScore() {
     renderScore();
     showToast('Previewing: ' + exercises[0].title);
   } else {
-    // Combine all exercises into one score for preview
     const combined = createScore({ title: window._pendingStarterLabel, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
     combined.parts[0].staves[0].measures = [];
     exercises.forEach((ex, idx) => {
@@ -4013,6 +4016,9 @@ function previewStarterScore() {
       });
       if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [mkRest('w')] });
     });
+    // Apply the clef from the first exercise to the combined score
+    const firstClef = exercises[0].score.parts[0].staves[0].clef || 'treble';
+    _applyClefToScore(combined, firstClef);
     adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
     renderScore();
     showToast('Previewing: ' + window._pendingStarterLabel);
@@ -4032,8 +4038,7 @@ function _exportMSCZ(score, answerKey, filename) {
 }
 
 function _exportMSCZBatch(exercises, label) {
-  // Create a simple combined score with all exercises sequentially
-  const combined = createScore({ title: label, instruments: ['Piano'], ts: {num:4,den:4}, ks: 0 });
+  const combined = createScore({ title: label, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
   combined.parts[0].staves[0].measures = [];
   exercises.forEach((ex, idx) => {
     ex.score.parts[0].staves[0].measures.forEach((m, mi) => {
@@ -4043,6 +4048,8 @@ function _exportMSCZBatch(exercises, label) {
     });
     if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [mkRest('w')] });
   });
+  const firstClef = exercises[0].score.parts[0].staves[0].clef || 'treble';
+  _applyClefToScore(combined, firstClef);
   adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
   renderScore();
   const mscx = exportMSCXFromScore(combined);
