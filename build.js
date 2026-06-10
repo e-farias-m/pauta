@@ -7,7 +7,6 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const HTML_HEAD_LINES = 1759;
 const srcDir = join(__dirname, 'src');
 
 const modules = [
@@ -23,9 +22,17 @@ const modules = [
 ];
 
 const original = readFileSync(join(__dirname, 'pauta.html'), 'utf8');
-const lines = original.split('\n');
-const htmlHead = lines.slice(0, HTML_HEAD_LINES).join('\n');
+
+// Find the <script> tag position to split HTML head from JS bundle
+const scriptIdx = original.indexOf('<script>');
+if (scriptIdx === -1) { console.error('No <script> tag found in pauta.html'); process.exit(1); }
+const htmlHead = original.slice(0, scriptIdx);
 const htmlTail = '</script>\n</body>\n</html>';
+
+// Inline design-system.css
+const dsCssPath = join(srcDir, 'design-system.css');
+const dsCss = existsSync(dsCssPath) ? readFileSync(dsCssPath, 'utf8') : '';
+const cssBlock = dsCss ? `\n<style id="design-system">\n${dsCss}\n</style>\n` : '';
 
 let jsBundle = '';
 for (const mod of modules) {
@@ -40,6 +47,6 @@ for (const mod of modules) {
   jsBundle += '\n';
 }
 
-const output = htmlHead + '\n<script>\n' + jsBundle + htmlTail;
+const output = htmlHead + cssBlock + '\n<script>\n' + jsBundle + htmlTail;
 writeFileSync(join(__dirname, 'pauta.html'), output, 'utf8');
 console.log(`Built pauta.html — ${modules.length} modules, ${jsBundle.split('\n').length} JS lines`);
