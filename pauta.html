@@ -1337,6 +1337,8 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   <p>Loading notation engine…</p>
 </div>
 
+<div id="toast"></div>
+
 <!-- Top Bar -->
 <div id="topbar">
   <button class="btn-top" data-action="showNewScoreDialog" title="New score" style="font-size:18px;font-weight:300;padding:8px 10px">+</button>
@@ -1755,8 +1757,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   </div>
 
   <!-- Articulations panel -->
-  <div class="panel-page" id="panel-artic" style="display:none">
-    <div class="panel-title">Articulations</div>
 <script>
 
 // ─── Module: globals.js ────────────────────────────────────
@@ -16184,63 +16184,67 @@ function ndPickupSync() {
 }
 
 function createNewScore() {
-  const title     = document.getElementById('nd-title')?.value.trim()    || 'Untitled Score';
-  const composer  = document.getElementById('nd-composer')?.value.trim() || '';
-  const ks        = parseInt(document.getElementById('nd-ks')?.value)     || 0;
-  const totalInstrs = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
-  const instrNames = totalInstrs > 0
-    ? [..._ndSelectedInstruments].flatMap(([name, count]) => Array(count).fill(name))
-    : (() => { showToast('Select at least one instrument'); return null; })();
-  if (!instrNames) return;
-  const tsNum     = parseInt(document.getElementById('nd-ts-num')?.value) || 4;
-  const tsDen     = parseInt(document.getElementById('nd-ts-den')?.value) || 4;
-  const ts        = {num:tsNum, den:tsDen};
-  const pickup    = document.getElementById('nd-pickup')?.checked;
-  const puNum     = pickup ? (parseInt(document.getElementById('nd-pu-num')?.value) || 1) : 0;
-  const puDen     = pickup ? (parseInt(document.getElementById('nd-pu-den')?.value) || 4) : 0;
+  try {
+    const title     = document.getElementById('nd-title')?.value.trim()    || 'Untitled Score';
+    const composer  = document.getElementById('nd-composer')?.value.trim() || '';
+    const ks        = parseInt(document.getElementById('nd-ks')?.value)     || 0;
+    const totalInstrs = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
+    const instrNames = totalInstrs > 0
+      ? [..._ndSelectedInstruments].flatMap(([name, count]) => Array(count).fill(name))
+      : (() => { showToast('Select at least one instrument'); return null; })();
+    if (!instrNames) return;
+    const tsNum     = parseInt(document.getElementById('nd-ts-num')?.value) || 4;
+    const tsDen     = parseInt(document.getElementById('nd-ts-den')?.value) || 4;
+    const ts        = {num:tsNum, den:tsDen};
+    const pickup    = document.getElementById('nd-pickup')?.checked;
+    const puNum     = pickup ? (parseInt(document.getElementById('nd-pu-num')?.value) || 1) : 0;
+    const puDen     = pickup ? (parseInt(document.getElementById('nd-pu-den')?.value) || 4) : 0;
 
-  const raw = createScore({title, composer, ts, ks, instruments:instrNames});
+    const raw = createScore({title, composer, ts, ks, instruments:instrNames});
 
-  for (let i = 0; i < 3; i++) {
-    raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
-  }
-  if (pickup && puNum > 0 && puNum < tsNum) {
-    const puBeat = puNum * (4 / puDen);
-    const bestRest = beatsToBestRestDuration(puBeat);
-    const restDur = bestRest ? bestRest.dur : 'q';
-    raw.parts.forEach(p => p.staves.forEach(s => {
-      const m = s.measures[0];
-      m.pickup = {num: puNum, den: puDen};
-      m.timeSigNum = tsNum;
-      m.timeSigDen = tsDen;
-      m.notes = [mkRest(restDur)];
-    }));
-  }
-
-  adoptScore(raw, { clearHistory: true });
-  // Detect kit from selected instruments and apply
-  const selectedFamilies = new Set(instrNames.map(n => INSTRUMENTS.find(i => i.name === n)?.family).filter(Boolean));
-  let kitToApply = null;
-  for (const fam of selectedFamilies) {
-    const k = FAMILY_KIT_MAP[fam];
-    if (k) { kitToApply = k; break; }
-  }
-  if (kitToApply) {
-    applyKit(kitToApply, _ndLevel);
-  } else {
-    clearKit();
-  }
-  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
-  APP.undoStack = []; APP.redoStack = []; APP._lastUndoFP = '';
-  document.getElementById('score-title').textContent = title;
-  closeModal();
-  requestAnimationFrame(() => {
-    try { renderScore(); } catch(e) {
-      showLibError('Notation engine error: ' + e.message + '<br>Please reload.');
+    for (let i = 0; i < 3; i++) {
+      raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
     }
-    document.getElementById('score-area').focus({ preventScroll: true });
-  });
-  showToast(`New score — ${instrNames.length} stave${instrNames.length > 1 ? 's' : ''}`);
+    if (pickup && puNum > 0 && puNum < tsNum) {
+      const puBeat = puNum * (4 / puDen);
+      const bestRest = beatsToBestRestDuration(puBeat);
+      const restDur = bestRest ? bestRest.dur : 'q';
+      raw.parts.forEach(p => p.staves.forEach(s => {
+        const m = s.measures[0];
+        m.pickup = {num: puNum, den: puDen};
+        m.timeSigNum = tsNum;
+        m.timeSigDen = tsDen;
+        m.notes = [mkRest(restDur)];
+      }));
+    }
+
+    adoptScore(raw, { clearHistory: true });
+    const selectedFamilies = new Set(instrNames.map(n => INSTRUMENTS.find(i => i.name === n)?.family).filter(Boolean));
+    let kitToApply = null;
+    for (const fam of selectedFamilies) {
+      const k = FAMILY_KIT_MAP[fam];
+      if (k) { kitToApply = k; break; }
+    }
+    if (kitToApply) {
+      applyKit(kitToApply, _ndLevel);
+    } else {
+      clearKit();
+    }
+    APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
+    APP.undoStack = []; APP.redoStack = []; APP._lastUndoFP = '';
+    document.getElementById('score-title').textContent = title;
+    closeModal();
+    requestAnimationFrame(() => {
+      try { renderScore(); } catch(e) {
+        showLibError('Notation engine error: ' + e.message + '<br>Please reload.');
+      }
+      document.getElementById('score-area').focus({ preventScroll: true });
+    });
+    showToast(`New score — ${instrNames.length} stave${instrNames.length > 1 ? 's' : ''}`);
+  } catch(e) {
+    showToast('Error creating score: ' + e.message);
+    console.error('createNewScore error:', e);
+  }
 }
 
 function showTitleDialog() {
@@ -16387,6 +16391,7 @@ function updateStatusBar() {
 let _toastT = null;
 function showToast(msg) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
   if (_toastT) clearTimeout(_toastT);
