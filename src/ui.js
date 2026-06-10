@@ -2447,7 +2447,7 @@ _registerAction('downloadStarterAssignment', (e) => {
   if (!btn) return;
   const idx = parseInt(btn.dataset.idx);
   const tpl = STARTER_TEMPLATES[idx];
-  if (tpl) downloadStarterAssignment(tpl.id);
+  if (tpl) showClefSelectionDialog(tpl.id);
   else showToast('Template not found');
 });
 _registerAction('selectAssignmentClef', (e) => {
@@ -2457,6 +2457,8 @@ _registerAction('selectAssignmentClef', (e) => {
   const tplId = window._pendingStarterTemplate;
   if (tplId) generateStarterAssignmentWithClef(tplId, clef);
 });
+_registerAction('confirmStarterDownload', () => confirmStarterDownload());
+_registerAction('previewStarterScore', () => previewStarterScore());
 _registerAction('startExerciseSession', (e) => {
   closeModal();
   const type = e.target.closest('[data-type]')?.dataset.type;

@@ -12246,9 +12246,8 @@ function _genScaleAssignment(type, octaves) {
     const isMinorType = type === 'natural-minor' || type === 'harmonic-minor' || type === 'melodic-minor' || type === 'minor-arpeggio';
     const scale = generateScale(ks, type, octaves, isMinorType ? 5 : 3);
     if (!scale.length) return;
-    const instr = _kitDefaultInstrument() || 'Piano';
     const tonic = scaleTonicName(ks, type);
-    const score = createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instr], ts: {num:4,den:4}, ks });
+    const score = createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const notes = scale.map((n, i) => mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
@@ -12289,7 +12288,7 @@ function _genMelodyDictAssignment() {
   const exercises = [];
   for (let i = 0; i < 5; i++) {
     const md = _genMelodyDict(1);
-    const score = createScore({ title: `Melody Dictation ${i+1}`, instruments: ['Piano'], ts: {num:4,den:4}, ks: 0 });
+    const score = createScore({ title: `Melody Dictation ${i+1}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const totalBeats = md.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
@@ -12313,7 +12312,7 @@ function _genScaleIdAssignment() {
     const tonic = 60 + Math.floor(Math.random() * 13);  // C4–C5
     const intervals = SCALE_PATTERNS[scaleType];
     const notes = intervals.map(idx => tonic + idx);
-    const score = createScore({ title: `Scale ID ${i+1}: ${_scaleNoteName(tonic)} ${SCALE_LABELS[scaleType]}`, instruments: ['Piano'], ts: {num:4,den:4}, ks: 0 });
+    const score = createScore({ title: `Scale ID ${i+1}: ${_scaleNoteName(tonic)} ${SCALE_LABELS[scaleType]}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const notesPerMeasure = 4;
@@ -12385,20 +12384,79 @@ function generateStarterAssignmentWithClef(templateId, clef) {
     exercises.forEach(ex => {
       if (ex.score) _applyClefToScore(ex.score, clef);
     });
-    if (exercises.length === 1) {
-      const { score, answerKey } = exercises[0];
-      _exportMSCZ(score, answerKey, exercises[0].title);
-    } else {
-      _exportMSCZBatch(exercises, tpl.label);
-    }
+    // Show preview dialog instead of auto-downloading
+    showStarterPreviewDialog(exercises, tpl.label);
   } catch(e) {
     showToast('Error: ' + e.message);
     console.error('generateStarterAssignmentWithClef error:', e);
   }
 }
 
-function downloadStarterAssignment(templateId) {
-  showClefSelectionDialog(templateId);
+function showStarterPreviewDialog(exercises, label) {
+  const count = exercises.length;
+  const fileLabel = count === 1 ? exercises[0].title : label;
+  makeModal(`
+    <h2>📋 ${escHtml(label)}</h2>
+    <p style="color:#4a5568;font-size:13px;margin-bottom:12px">
+      ${count} exercise${count > 1 ? 's' : ''} generated with the selected clef.
+    </p>
+    <div style="max-height:200px;overflow-y:auto;margin-bottom:16px;font-size:12px;color:#4a5568">
+      ${exercises.map((ex, i) => `
+        <div style="padding:6px 8px;background:rgba(192,86,33,0.03);border-radius:6px;margin-bottom:4px">
+          <div style="font-weight:600;color:#2d3748">${escHtml(ex.title)}</div>
+          ${ex.answerKey ? `<div style="font-size:10px;color:rgba(74,85,104,0.6)">Answer key included</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="modal-btn primary" data-action="confirmStarterDownload" style="flex:1">📥 Download .mscx</button>
+      <button class="modal-btn secondary" data-action="previewStarterScore">Preview in Pauta</button>
+      <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+    </div>
+  `);
+  // Store exercises for download/preview actions
+  window._pendingStarterExercises = exercises;
+  window._pendingStarterLabel = label;
+}
+
+function confirmStarterDownload() {
+  closeModal();
+  const exercises = window._pendingStarterExercises;
+  const label = window._pendingStarterLabel;
+  if (!exercises || !exercises.length) return;
+  if (exercises.length === 1) {
+    const { score, answerKey } = exercises[0];
+    _exportMSCZ(score, answerKey, exercises[0].title);
+  } else {
+    _exportMSCZBatch(exercises, label);
+  }
+}
+
+function previewStarterScore() {
+  closeModal();
+  const exercises = window._pendingStarterExercises;
+  if (!exercises || !exercises.length) return;
+  if (exercises.length === 1) {
+    const { score } = exercises[0];
+    adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+    renderScore();
+    showToast('Previewing: ' + exercises[0].title);
+  } else {
+    // Combine all exercises into one score for preview
+    const combined = createScore({ title: window._pendingStarterLabel, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
+    combined.parts[0].staves[0].measures = [];
+    exercises.forEach((ex, idx) => {
+      ex.score.parts[0].staves[0].measures.forEach((m, mi) => {
+        const newM = { ...m };
+        if (mi === 0 && idx === 0) newM.timeSigNum = 4;
+        combined.parts[0].staves[0].measures.push(newM);
+      });
+      if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [mkRest('w')] });
+    });
+    adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
+    renderScore();
+    showToast('Previewing: ' + window._pendingStarterLabel);
+  }
 }
 
 function _exportMSCZ(score, answerKey, filename) {
@@ -17030,7 +17088,7 @@ _registerAction('downloadStarterAssignment', (e) => {
   if (!btn) return;
   const idx = parseInt(btn.dataset.idx);
   const tpl = STARTER_TEMPLATES[idx];
-  if (tpl) downloadStarterAssignment(tpl.id);
+  if (tpl) showClefSelectionDialog(tpl.id);
   else showToast('Template not found');
 });
 _registerAction('selectAssignmentClef', (e) => {
@@ -17040,6 +17098,8 @@ _registerAction('selectAssignmentClef', (e) => {
   const tplId = window._pendingStarterTemplate;
   if (tplId) generateStarterAssignmentWithClef(tplId, clef);
 });
+_registerAction('confirmStarterDownload', () => confirmStarterDownload());
+_registerAction('previewStarterScore', () => previewStarterScore());
 _registerAction('startExerciseSession', (e) => {
   closeModal();
   const type = e.target.closest('[data-type]')?.dataset.type;
