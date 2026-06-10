@@ -779,6 +779,7 @@ function showScoreMenu(btn) {
 }
 
 function showViewMenu(btn) {
+  const role = localStorage.getItem('pauta_role') || 'teacher';
   const items = [
     {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
@@ -786,7 +787,10 @@ function showViewMenu(btn) {
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
     {label:`${APP.showTheoryOverlay?'✓':'○'} 🎼 Theory Overlay`, fn:toggleTheoryOverlay},
-    {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
+    {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
+    {sep:true},
+    {label:`${role==='student'?'✓':'○'} 🎓 Student Mode`, fn:() => switchRole('student')},
+    {label:`${role==='teacher'?'✓':'○'} 🎼 Teacher Mode`, fn:() => switchRole('teacher')},
     {sep:true},
     {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
   ];
@@ -2171,6 +2175,9 @@ function bootApp() {
     }
   } catch(e) { console.warn('[Pauta]', e.message); }
 
+  // Restore role and set document title
+  _updateDocTitle();
+
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
   setTimeout(() => loading.remove(), 500);
@@ -2359,6 +2366,7 @@ _registerAction('showHelpPanel', () => showHelpPanel());
 _registerAction('closeWelcome', () => closeWelcome());
 _registerAction('startLearnerOnboarding', () => startLearnerOnboarding());
 _registerAction('startComposerOnboarding', () => startComposerOnboarding());
+_registerAction('switchRole', (e) => { const role = e.target.closest('[data-role]')?.dataset.role; if (role) switchRole(role); });
 _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
 _registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });

@@ -537,18 +537,33 @@ function showWelcomeModal() {
 function startLearnerOnboarding() {
   applyKit('recorder', 'beginner');
   localStorage.setItem('pauta_welcome_seen', '1');
+  localStorage.setItem('pauta_role', 'student');
+  _updateDocTitle();
   closeModal();
   setTimeout(() => showExerciseDialog(), 300);
 }
 
 function startComposerOnboarding() {
   localStorage.setItem('pauta_welcome_seen', '1');
+  localStorage.setItem('pauta_role', 'teacher');
+  _updateDocTitle();
   closeModal();
 }
 
 function closeWelcome() {
   localStorage.setItem('pauta_welcome_seen', '1');
   closeModal();
+}
+
+function _updateDocTitle() {
+  const role = localStorage.getItem('pauta_role') || 'teacher';
+  document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
+}
+
+function switchRole(role) {
+  localStorage.setItem('pauta_role', role);
+  _updateDocTitle();
+  showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
 }
 
 const HELP_TIPS = [

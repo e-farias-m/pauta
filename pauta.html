@@ -13239,18 +13239,33 @@ function showWelcomeModal() {
 function startLearnerOnboarding() {
   applyKit('recorder', 'beginner');
   localStorage.setItem('pauta_welcome_seen', '1');
+  localStorage.setItem('pauta_role', 'student');
+  _updateDocTitle();
   closeModal();
   setTimeout(() => showExerciseDialog(), 300);
 }
 
 function startComposerOnboarding() {
   localStorage.setItem('pauta_welcome_seen', '1');
+  localStorage.setItem('pauta_role', 'teacher');
+  _updateDocTitle();
   closeModal();
 }
 
 function closeWelcome() {
   localStorage.setItem('pauta_welcome_seen', '1');
   closeModal();
+}
+
+function _updateDocTitle() {
+  const role = localStorage.getItem('pauta_role') || 'teacher';
+  document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
+}
+
+function switchRole(role) {
+  localStorage.setItem('pauta_role', role);
+  _updateDocTitle();
+  showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
 }
 
 const HELP_TIPS = [
@@ -15296,6 +15311,7 @@ function showScoreMenu(btn) {
 }
 
 function showViewMenu(btn) {
+  const role = localStorage.getItem('pauta_role') || 'teacher';
   const items = [
     {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
@@ -15303,7 +15319,10 @@ function showViewMenu(btn) {
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
     {label:`${APP.showTheoryOverlay?'✓':'○'} 🎼 Theory Overlay`, fn:toggleTheoryOverlay},
-    {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
+    {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
+    {sep:true},
+    {label:`${role==='student'?'✓':'○'} 🎓 Student Mode`, fn:() => switchRole('student')},
+    {label:`${role==='teacher'?'✓':'○'} 🎼 Teacher Mode`, fn:() => switchRole('teacher')},
     {sep:true},
     {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
   ];
@@ -16688,6 +16707,9 @@ function bootApp() {
     }
   } catch(e) { console.warn('[Pauta]', e.message); }
 
+  // Restore role and set document title
+  _updateDocTitle();
+
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
   setTimeout(() => loading.remove(), 500);
@@ -16876,6 +16898,7 @@ _registerAction('showHelpPanel', () => showHelpPanel());
 _registerAction('closeWelcome', () => closeWelcome());
 _registerAction('startLearnerOnboarding', () => startLearnerOnboarding());
 _registerAction('startComposerOnboarding', () => startComposerOnboarding());
+_registerAction('switchRole', (e) => { const role = e.target.closest('[data-role]')?.dataset.role; if (role) switchRole(role); });
 _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
 _registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
