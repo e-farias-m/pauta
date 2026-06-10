@@ -6066,10 +6066,13 @@ function parseFing(fingArr, altIndex) {
   const fing = (fingArr?.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
   const covered = new Set();
   const halfHole = new Set();
-  // Recorder format: characters are hole numbers ('0'-'9' = covered, 'X' = pinched thumb)
+  // Recorder format: characters are hole numbers ('0'-'9') and 'X' (pinched thumb)
+  //   Each character appears at most once (unique hole numbers)
   // Woodwind/brass format: characters are states ('0'=open, '1'=covered, '2'=half-hole)
-  const isRecorderFormat = /[3-9X]/.test(fing);
-  if (isRecorderFormat) {
+  //   Characters repeat (e.g. '111000111001')
+  const hasUniqueChars = new Set(fing).size === fing.length;
+  const isRecorder = fing.length > 0 && hasUniqueChars && /^[0-9X]+$/.test(fing);
+  if (isRecorder) {
     for (let i = 0; i < fing.length; i++) {
       const c = fing[i];
       if (c === 'X') halfHole.add(0);
@@ -6213,7 +6216,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   // Mouthpiece at top (low Y), bell/double holes at bottom (high Y)
   // IDs match fingering string positions: 0=thumb, 1-5=holes 1-5, 6-7=double 6, 8-9=double 7
   const SVG_HOLES = [
-    [ '0', 24.8, -295.0, 6.3, false ],   // thumb (centered on body)
+    [ '0', 24.8, -278.0, 6.3, false ],   // thumb (centered on body)
     [ '1', 24.8, -312.5, 6.3, false ],   // hole 1
     [ '2', 24.8, -350.0, 6.3, false ],   // hole 2
     [ '3', 24.8, -380.6, 4.1, false ],   // hole 3
@@ -6226,11 +6229,11 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   ];
 
   // Thumb indicator — mirrors thumb state, shown left of body
-  const THUMB_INDICATOR = [2, -295.0, 6.3];
+  const THUMB_INDICATOR = [2, -278.0, 6.3];
 
   // Built-in hole base shapes (inner-space coordinates) — main holes 0-5
   const holeDefs = [
-    [24.8,-295.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
+    [24.8,-278.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
     [24.8,-380.6,4.1],[24.8,-414.7,6.3],[24.8,-440.5,6.3]
   ];
   for (const [hx, hy, hr] of holeDefs) {
