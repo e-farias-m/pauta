@@ -3564,8 +3564,9 @@ function showStarterAssignmentsDialog() {
   makeModal(`
     <h2>📋 Starter Assignments</h2>
     <p style="color:#4a5568;font-size:13px;margin-bottom:10px">
-      Quick-generate common assignment templates as .mscz files.
-      Each includes answer key where applicable.
+      Download ready-made exercise files (.mscx) for your students.
+      Each file includes an answer key where applicable —
+      students open it in Pauta or any MusicXML app.
     </p>
     <div style="max-height:300px;overflow-y:auto">
       ${STARTER_TEMPLATES.map(t => `
@@ -3851,17 +3852,14 @@ function downloadStarterAssignment(templateId) {
   closeModal();
   const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
   if (!tpl) return;
-  showToast('Generating…');
+  showToast('Generating assignment…');
   setTimeout(() => {
     const exercises = tpl.fn();
     if (!exercises.length) { showToast('No exercises generated'); return; }
     if (exercises.length === 1) {
       const { score, answerKey } = exercises[0];
-      adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-      renderScore();
       _exportMSCZ(score, answerKey, exercises[0].title);
     } else {
-      // Multiple exercises: zip them as a multi-file .mscz
       _exportMSCZBatch(exercises, tpl.label);
     }
   }, 50);
