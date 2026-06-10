@@ -617,22 +617,56 @@ const NATURAL_PITCHES = {
   advanced:     null,  // full chromatic range
 };
 
+const CLEF_DEFAULT_RANGES = {
+  treble: { min: 60, max: 79 },  // C4–G5
+  alto:   { min: 55, max: 72 },  // G3–C5
+  bass:   { min: 48, max: 67 },  // C3–A4
+};
+
+function _instrumentClef(instrName) {
+  const instr = INSTRUMENTS.find(i => i.name === instrName);
+  return instr?.staves?.[0] || 'treble';
+}
+
+function _defaultRange() {
+  const kitRange = _kitExerciseRange();
+  if (kitRange) return kitRange;
+  const clef = _instrumentClef(_kitDefaultInstrument());
+  return CLEF_DEFAULT_RANGES[clef] || CLEF_DEFAULT_RANGES.treble;
+}
+
+function _snapToKey(pitch, ks) {
+  const tonicPC = ({0:0,1:7,2:2,3:9,4:4,5:11,6:6,7:1,"-1":5,"-2":10,"-3":3,"-4":8,"-5":1,"-6":6,"-7":11}[ks] ?? 0);
+  const diatonic = new Set([0,2,4,5,7,9,11].map(i => (tonicPC + i) % 12));
+  const pc = pitch % 12;
+  if (diatonic.has(pc)) return pitch;
+  // Snap to nearest diatonic pitch class
+  let up = pitch, down = pitch;
+  while (true) {
+    up = up + 1;
+    down = down - 1;
+    if (diatonic.has(up % 12)) return up;
+    if (diatonic.has(down % 12)) return down;
+    if (up - pitch > 6) return pitch; // safety
+  }
+}
+
 function _genNoteId(difficulty) {
   const levelNames = ['beginner','intermediate','advanced'];
-  const kitRange = _kitExerciseRange();
+  const range = _defaultRange();
   let pitch;
-  if (kitRange) {
+  if (_kitExerciseRange()) {
     // Kit-aware: use kit range, still naturals-only for beginner
     const pool = NATURAL_PITCHES[levelNames[difficulty]];
-    const validPool = pool ? pool.filter(p => p >= kitRange.min && p <= kitRange.max) : null;
+    const validPool = pool ? pool.filter(p => p >= range.min && p <= range.max) : null;
     pitch = validPool?.length
       ? validPool[Math.floor(Math.random() * validPool.length)]
-      : Math.floor(Math.random() * (kitRange.max - kitRange.min + 1)) + kitRange.min;
+      : Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
   } else {
     const pool = NATURAL_PITCHES[levelNames[difficulty]];
     pitch = pool
       ? pool[Math.floor(Math.random() * pool.length)]
-      : Math.floor(Math.random() * 37) + 48; // C3–C6 chromatic
+      : Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
   }
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
@@ -649,19 +683,19 @@ function _genNoteId(difficulty) {
 
 function _genNoteConstruct(difficulty) {
   const levelNames = ['beginner','intermediate','advanced'];
-  const kitRange = _kitExerciseRange();
+  const range = _defaultRange();
   let pitch;
-  if (kitRange) {
+  if (_kitExerciseRange()) {
     const pool = NATURAL_PITCHES[levelNames[difficulty]];
-    const validPool = pool ? pool.filter(p => p >= kitRange.min && p <= kitRange.max) : null;
+    const validPool = pool ? pool.filter(p => p >= range.min && p <= range.max) : null;
     pitch = validPool?.length
       ? validPool[Math.floor(Math.random() * validPool.length)]
-      : Math.floor(Math.random() * (kitRange.max - kitRange.min + 1)) + kitRange.min;
+      : Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
   } else {
     const pool = NATURAL_PITCHES[levelNames[difficulty]];
     pitch = pool
       ? pool[Math.floor(Math.random() * pool.length)]
-      : Math.floor(Math.random() * 37) + 48;
+      : Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
   }
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
@@ -680,11 +714,11 @@ function _genIntervalId(difficulty) {
   const intervals = difficulty === 0 ? [2,3,4,5,7] : difficulty === 1 ? [1,2,3,4,5,6,7,8] : [0,1,2,3,4,5,6,7,8,9,10,11,12];
   const semitones = intervals[Math.floor(Math.random() * intervals.length)];
   const dir = Math.random() > 0.5 ? 1 : -1;
-  const kitRange = _kitExerciseRange();
-  const baseMin = kitRange ? kitRange.min : 60;
-  const baseMax = kitRange ? kitRange.max : 72;
-  const range = Math.max(1, baseMax - baseMin - semitones + 1);
-  const bottom = Math.max(baseMin, Math.min(baseMax - semitones, baseMin + Math.floor(Math.random() * range)));
+  const range = _defaultRange();
+  const baseMin = range.min;
+  const baseMax = range.max;
+  const rangeSize = Math.max(1, baseMax - baseMin - semitones + 1);
+  const bottom = Math.max(baseMin, Math.min(baseMax - semitones, baseMin + Math.floor(Math.random() * rangeSize)));
   const top = Math.max(baseMin, Math.min(baseMax, bottom + semitones * dir));
   const actualSemitones = Math.abs(top - bottom);
   return {
@@ -772,7 +806,8 @@ function _genMelodyDict(difficulty) {
   const notes = [];
   for (let i = 0; i < len; i++) {
     const step = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
-    const pitch = Math.max(baseMin, Math.min(baseMax, (notes.length ? notes[i-1].pitch : basePitch) + step));
+    let pitch = Math.max(baseMin, Math.min(baseMax, (notes.length ? notes[i-1].pitch : basePitch) + step));
+    pitch = _snapToKey(pitch, ks);
     const durs = difficulty === 0 ? ['q','h'] : difficulty === 1 ? ['q','h','8'] : ['q','h','8','16'];
     notes.push({ pitch, duration: durs[Math.floor(Math.random() * durs.length)] });
   }
@@ -856,6 +891,29 @@ function _scaleNoteName(midi) {
   return (useFlat ? FLAT_NAMES : CHROMATIC_NOTE_NAMES)[pc] + oct;
 }
 
+// Pitch class → key signature for major keys (prefers sharps for enharmonic)
+const PC_TO_KS = {0:0, 7:1, 2:2, 9:3, 4:4, 11:5, 6:6, 1:7, 5:-1, 10:-2, 3:-3, 8:-4};
+
+function _tonicToKeySig(tonicMidi, scaleType) {
+  const pc = tonicMidi % 12;
+  // Scale types that start on a tonic whose KS is the relative major's key
+  const minorLike = { natural_minor: true, harmonic_minor: true, melodic_minor_up: true,
+    pentatonic_minor: true, blues: true };
+  const modeMap = { dorian: 10, phrygian: 8, lydian: 7, mixolydian: 5 };
+  if (scaleType === 'major' || scaleType === 'pentatonic_major') {
+    return PC_TO_KS[pc] ?? 0;
+  }
+  if (minorLike[scaleType]) {
+    return PC_TO_KS[(pc + 3) % 12] ?? 0;  // relative major
+  }
+  if (modeMap[scaleType] !== undefined) {
+    return PC_TO_KS[(pc + modeMap[scaleType]) % 12] ?? 0;
+  }
+  if (scaleType === 'whole_tone') return 0;
+  // Fallback: assume major-ish
+  return PC_TO_KS[pc] ?? 0;
+}
+
 function _genScaleId(difficulty) {
   const kitRange = _kitExerciseRange();
   const minTonic = kitRange ? Math.max(kitRange.min, 60) : 60;  // C4
@@ -874,11 +932,12 @@ function _genScaleId(difficulty) {
   const tonic = minTonic + Math.floor(Math.random() * (maxTonic - minTonic + 1));
   const intervals = SCALE_PATTERNS[scaleType];
   const notes = intervals.map(i => tonic + i);
+  const keySig = _tonicToKeySig(tonic, scaleType);
 
   return {
     type: EXERCISE_TYPES.SCALE_ID,
     difficulty: DIFF_NAMES[difficulty] || 'beginner',
-    target: { scaleType, tonic, notes },
+    target: { scaleType, tonic, notes, keySig },
     answer: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType],
     answerMajor: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType],
     hint: `Starts on ${_scaleNoteName(tonic)}. Pattern: ${SCALE_LABELS[scaleType]}`,
@@ -2120,9 +2179,10 @@ function _handleKeySigChoice(answer, correctAnswer, container) {
 }
 
 function _presentScaleId(ex) {
-  const { tonic, notes } = ex.target;
+  const { tonic, notes, scaleType, keySig } = ex.target;
   const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Scale Gym', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  const ks = keySig ?? _tonicToKeySig(tonic, scaleType);
+  const score = createScore({title: 'Scale Gym', instruments: [instr], ts: {num:4,den:4}, ks});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
   const notesPerMeasure = 4;
@@ -2130,8 +2190,8 @@ function _presentScaleId(ex) {
     const slice = notes.slice(m * notesPerMeasure, m * notesPerMeasure + notesPerMeasure);
     stave.measures.push({
       timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-      keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0,
-      notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p))),
+      keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0,
+      notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p, ks))),
     });
   }
   adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
@@ -3753,16 +3813,14 @@ function importCustomExercise() {
 }
 
 function _genScaleAssignment(type, octaves) {
-  const keys = ['C','G','D','A','E','B','F#','C#','F','Bb','Eb','Ab','Db','Gb','Cb'];
-  const allKeys = keys.map(k => {
-    const idx = keys.indexOf(k);
-    const ks = idx <= 7 ? idx : 7 - idx;
-    return { key: k, ks };
-  });
+  const allKeys = [];
+  for (let ks = -7; ks <= 7; ks++) {
+    allKeys.push({ key: keySigName(ks), ks });
+  }
   const exercises = [];
   allKeys.forEach(({key, ks}) => {
     const isMinorType = type === 'natural-minor' || type === 'harmonic-minor' || type === 'melodic-minor' || type === 'minor-arpeggio';
-    const scale = generateScale(ks, type, octaves, isMinorType ? 4 : 2);
+    const scale = generateScale(ks, type, octaves, 4);
     if (!scale.length) return;
     const tonic = scaleTonicName(ks, type);
     const score = createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
@@ -3819,13 +3877,14 @@ function _genMelodyDictLow(difficulty) {
   const keyIdx = Math.floor(Math.random() * (maxKeyIdx + 1));
   const key = keyProgression[keyIdx];
   const ks = key.ks;
-  const baseMin = 48;  // C3 (one octave lower than default)
-  const baseMax = 60;  // C4
+  const baseMin = 60;  // C4
+  const baseMax = 72;  // C5
   const basePitch = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
   const notes = [];
   for (let i = 0; i < len; i++) {
     const step = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
-    const pitch = Math.max(baseMin, Math.min(baseMax, (notes.length ? notes[i-1].pitch : basePitch) + step));
+    let pitch = Math.max(baseMin, Math.min(baseMax, (notes.length ? notes[i-1].pitch : basePitch) + step));
+    pitch = _snapToKey(pitch, ks);
     const durs = difficulty === 0 ? ['q','h'] : difficulty === 1 ? ['q','h','8'] : ['q','h','8','16'];
     notes.push({ pitch, duration: durs[Math.floor(Math.random() * durs.length)] });
   }
@@ -3848,7 +3907,8 @@ function _genMelodyDictAssignment() {
   const exercises = [];
   for (let i = 0; i < 5; i++) {
     const md = _genMelodyDictLow(1);
-    const score = createScore({ title: `Melody Dictation ${i+1}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
+    const targetKeySig = md.target.keySig;
+    const score = createScore({ title: `Melody Dictation ${i+1}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: targetKeySig });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const totalBeats = md.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
@@ -3856,7 +3916,7 @@ function _genMelodyDictAssignment() {
     for (let m = 0; m < measureCount; m++) {
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-        keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0, notes: [mkRest('w')]
+        keySig: m === 0 ? targetKeySig : null, lineBreak: m > 0 && m % 4 === 0, notes: [mkRest('w')]
       });
     }
     exercises.push({ title: `Melody Dictation ${i+1}`, score, answerKey: md.target.notes.map(n => n.pitch).join(',') });
@@ -3869,10 +3929,11 @@ function _genScaleIdAssignment() {
   const scaleTypes = Object.keys(SCALE_PATTERNS);
   for (let i = 0; i < 12; i++) {
     const scaleType = scaleTypes[i % scaleTypes.length];
-    const tonic = 48 + Math.floor(Math.random() * 13);  // C3–C4 (one octave lower)
+    const tonic = 60 + Math.floor(Math.random() * 13);  // C4–C5
     const intervals = SCALE_PATTERNS[scaleType];
     const notes = intervals.map(idx => tonic + idx);
-    const score = createScore({ title: `Scale ID ${i+1}: ${_scaleNoteName(tonic)} ${SCALE_LABELS[scaleType]}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
+    const ks = _tonicToKeySig(tonic, scaleType);
+    const score = createScore({ title: `Scale ID ${i+1}: ${_scaleNoteName(tonic)} ${SCALE_LABELS[scaleType]}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const notesPerMeasure = 4;
@@ -3880,8 +3941,8 @@ function _genScaleIdAssignment() {
       const slice = notes.slice(m * notesPerMeasure, m * notesPerMeasure + notesPerMeasure);
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-        keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0,
-        notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p))),
+        keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0,
+        notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p, ks))),
       });
     }
     exercises.push({ title: `Scale ID ${i+1}`, score, answerKey: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType] });
@@ -3892,8 +3953,9 @@ function _genScaleIdAssignment() {
 function _applyClefToScore(score, clef) {
   score.parts.forEach(part => {
     part.staves.forEach(stave => {
+      // Skip percussion staves — they use their own clef
+      if (stave.clef === 'percussion') return;
       stave.clef = clef;
-      // Also set clef on the first measure so exportMSCXFromScore picks it up
       if (stave.measures.length > 0) {
         stave.measures[0].clef = clef;
       }

@@ -27,9 +27,12 @@ function midiToVexKey(midi, acc) {
   if (![0,2,4,5,7,9,11].includes(pc)) return `${name}#/${oct}`;
   return `${name}/${oct}`;
 }
-function midiAutoAcc(midi) {
+function midiAutoAcc(midi, ks) {
   const pc = midi % 12;
-  return [0,2,4,5,7,9,11].includes(pc) ? null : '#';
+  if ([0,2,4,5,7,9,11].includes(pc)) return null;
+  // In flat keys, prefer flats
+  if (ks !== undefined && ks < 0) return 'b';
+  return '#';
 }
 function durBeats(dur, dots, tuplet) {
   let v = DUR_BEATS[dur] || 1;

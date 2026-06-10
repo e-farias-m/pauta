@@ -2447,8 +2447,13 @@ _registerAction('downloadStarterAssignment', (e) => {
   if (!btn) return;
   const idx = parseInt(btn.dataset.idx);
   const tpl = STARTER_TEMPLATES[idx];
-  if (tpl) showClefSelectionDialog(tpl.id);
-  else showToast('Template not found');
+  if (!tpl) { showToast('Template not found'); return; }
+  // Rhythm templates always use percussion clef — skip clef dialog
+  if (tpl.id.startsWith('rhythm-')) {
+    generateStarterAssignmentWithClef(tpl.id, 'percussion');
+  } else {
+    showClefSelectionDialog(tpl.id);
+  }
 });
 _registerAction('selectAssignmentClef', (e) => {
   const btn = e.target.closest('[data-action="selectAssignmentClef"]');
