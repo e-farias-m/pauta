@@ -3569,8 +3569,8 @@ function showStarterAssignmentsDialog() {
       students open it in Pauta or any MusicXML app.
     </p>
     <div style="max-height:300px;overflow-y:auto">
-      ${STARTER_TEMPLATES.map(t => `
-        <button class="panel-btn-wide" style="margin-bottom:6px;text-align:left" data-action="downloadStarterAssignment" data-id="${t.id}">
+      ${STARTER_TEMPLATES.map((t, i) => `
+        <button class="panel-btn-wide" style="margin-bottom:6px;text-align:left" data-action="downloadStarterAssignment" data-idx="${i}">
           <div style="font-weight:600;font-size:13px;color:#2d3748">${t.label}</div>
           <div style="font-size:11px;color:rgba(74,85,104,0.7)">${t.desc}</div>
         </button>

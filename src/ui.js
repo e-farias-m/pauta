@@ -2442,7 +2442,14 @@ _registerAction('clearAllImported', () => clearAllImported());
 _registerAction('showDiagnosticDialog', () => showDiagnosticDialog());
 _registerAction('diagSubmit', () => _diagSubmit());
 _registerAction('showStarterAssignmentsDialog', () => showStarterAssignmentsDialog());
-_registerAction('downloadStarterAssignment', (e) => downloadStarterAssignment(e.target.dataset.id));
+_registerAction('downloadStarterAssignment', (e) => {
+  const btn = e.target.closest('[data-action="downloadStarterAssignment"]');
+  if (!btn) return;
+  const idx = parseInt(btn.dataset.idx);
+  const tpl = STARTER_TEMPLATES[idx];
+  if (tpl) downloadStarterAssignment(tpl.id);
+  else showToast('Template not found');
+});
 _registerAction('startExerciseSession', (e) => {
   closeModal();
   const type = e.target.closest('[data-type]')?.dataset.type;
