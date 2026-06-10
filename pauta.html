@@ -6066,9 +6066,20 @@ function parseFing(fingArr, altIndex) {
   const fing = (fingArr?.length > 0 && fingArr[altIndex]) ? fingArr[altIndex] : '';
   const covered = new Set();
   const halfHole = new Set();
-  for (let i = 0; i < fing.length; i++) {
-    if (fing[i] === '1') covered.add(i);
-    else if (fing[i] === '2') halfHole.add(i);
+  // Recorder format: characters are hole numbers ('0'-'9' = covered, 'X' = pinched thumb)
+  // Woodwind/brass format: characters are states ('0'=open, '1'=covered, '2'=half-hole)
+  const isRecorderFormat = /[3-9X]/.test(fing);
+  if (isRecorderFormat) {
+    for (let i = 0; i < fing.length; i++) {
+      const c = fing[i];
+      if (c === 'X') halfHole.add(0);
+      else if (c >= '0' && c <= '9') covered.add(parseInt(c));
+    }
+  } else {
+    for (let i = 0; i < fing.length; i++) {
+      if (fing[i] === '1') covered.add(i);
+      else if (fing[i] === '2') halfHole.add(i);
+    }
   }
   return { fingArr, fing, covered, halfHole };
 }
@@ -6200,22 +6211,27 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   // SVG hole positions (inner-space coordinates, natural orientation)
   // Mouthpiece at top (low Y), bell/double holes at bottom (high Y)
+  // IDs match fingering string positions: 0=thumb, 1-5=holes 1-5, 6-7=double 6, 8-9=double 7
   const SVG_HOLES = [
-    [ '0', 2, -278.0, 6.3, false ],      // thumb (left of body)
-    [ '2', 24.8, -312.5, 6.3, false ],   // hole 1
-    [ '3', 24.8, -350.0, 6.3, false ],   // hole 2
-    [ '4', 24.8, -380.6, 4.1, false ],   // hole 3
-    [ '5', 24.8, -414.7, 6.3, false ],   // hole 4
-    [ '6', 20.8, -440.5, 3.6, false ],   // 6a
-    [ '7', 29.7, -441.8, 2.6, false ],   // 6b
-    [ '8', 17.1, -473.7, 3.6, false ],   // 7a
-    [ '9', 25.2, -475.0, 2.6, false ],   // 7b (nearest bell)
+    [ '0', 24.8, -295.0, 6.3, false ],   // thumb (centered on body)
+    [ '1', 24.8, -312.5, 6.3, false ],   // hole 1
+    [ '2', 24.8, -350.0, 6.3, false ],   // hole 2
+    [ '3', 24.8, -380.6, 4.1, false ],   // hole 3
+    [ '4', 24.8, -414.7, 6.3, false ],   // hole 4
+    [ '5', 24.8, -440.5, 6.3, false ],   // hole 5
+    [ '6', 20.8, -465.0, 3.6, false ],   // 6a (left)
+    [ '7', 29.7, -466.0, 2.6, false ],   // 6b (right)
+    [ '8', 17.1, -490.0, 3.6, false ],   // 7a (left)
+    [ '9', 25.2, -491.0, 2.6, false ],   // 7b (right, nearest bell)
   ];
 
-  // Built-in hole base shapes (inner-space coordinates)
+  // Thumb indicator — mirrors thumb state, shown left of body
+  const THUMB_INDICATOR = [2, -295.0, 6.3];
+
+  // Built-in hole base shapes (inner-space coordinates) — main holes 0-5
   const holeDefs = [
-    [2,-278.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
-    [24.8,-380.6,4.1],[24.8,-414.7,6.3]
+    [24.8,-295.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
+    [24.8,-380.6,4.1],[24.8,-414.7,6.3],[24.8,-440.5,6.3]
   ];
   for (const [hx, hy, hr] of holeDefs) {
     const el = document.createElementNS(ns, 'circle');
@@ -6224,20 +6240,28 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
     el.setAttribute('stroke-width', '0.8');
     inner.appendChild(el);
   }
-  for (const [hx, hy, hr] of [[20.8,-440.5,3.6],[29.7,-441.8,2.6]]) {
+  // Double holes 6a/6b, 7a/7b
+  for (const [hx, hy, hr] of [[20.8,-465.0,3.6],[29.7,-466.0,2.6]]) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.6');
     inner.appendChild(el);
   }
-  for (const [hx, hy, hr] of [[17.1,-473.7,3.6],[25.2,-475.0,2.6]]) {
+  for (const [hx, hy, hr] of [[17.1,-490.0,3.6],[25.2,-491.0,2.6]]) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.6');
     inner.appendChild(el);
   }
+
+  // Thumb indicator base shape (left of body, mirrors thumb hole)
+  const tiEl = document.createElementNS(ns, 'circle');
+  tiEl.setAttribute('cx', THUMB_INDICATOR[0]); tiEl.setAttribute('cy', THUMB_INDICATOR[1]); tiEl.setAttribute('r', THUMB_INDICATOR[2]);
+  tiEl.setAttribute('fill', '#3a2510'); tiEl.setAttribute('stroke', '#7a5a30');
+  tiEl.setAttribute('stroke-width', '0.8');
+  inner.appendChild(tiEl);
 
   // Hole overlays — fingering indicators
   const covered = pf.covered;
@@ -6278,9 +6302,10 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
     }
 
     // Hole number label (above each hole)
-    const holeLabel = id.length === 1 ? id : id;  // '1','2','3','4','5','6a','7a'
-    // Only label main holes (1-5 and thumb)
-    if (!isEllipse) {
+    // ID '0' = thumb (label "T"), IDs '1'-'5' = holes 1-5, IDs '6'-'9' = double holes (no label)
+    const isMainHole = id === '0' || (id >= '1' && id <= '5');
+    if (isMainHole) {
+      const holeLabel = id === '0' ? 'T' : id;
       const lblY = hy - drawRx - 1.5;
       const lbl = document.createElementNS(ns, 'text');
       lbl.setAttribute('x', hx);
@@ -6290,6 +6315,29 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
       lbl.textContent = holeLabel;
       inner.appendChild(lbl);
     }
+  }
+
+  // Thumb indicator overlay (left of body, mirrors thumb state)
+  const thumbCovered = covered.has(0);
+  const thumbHalf = halfHole.has(0);
+  const [tiX, tiY, tiR] = THUMB_INDICATOR;
+  const tiDrawR = (thumbCovered || thumbHalf) ? tiR * 1.2 : tiR;
+  const tiEl2 = document.createElementNS(ns, 'circle');
+  tiEl2.setAttribute('cx', tiX); tiEl2.setAttribute('cy', tiY); tiEl2.setAttribute('r', tiDrawR);
+  if (thumbCovered) {
+    tiEl2.setAttribute('fill', diagActiveFill(APP.playing));
+    tiEl2.setAttribute('stroke', diagActiveStroke(APP.playing));
+    tiEl2.setAttribute('stroke-width', '1');
+  } else {
+    tiEl2.setAttribute('fill', '#7a5a30');
+    tiEl2.setAttribute('stroke', '#7a5a30');
+    tiEl2.setAttribute('stroke-width', '0.6');
+  }
+  inner.appendChild(tiEl2);
+  if (thumbCovered) {
+    diagHighlight(inner, tiX, tiY, tiDrawR, APP.playing);
+  } else if (thumbHalf) {
+    diagHalfPad(inner, tiX, tiY, tiDrawR, APP.playing);
   }
 
   // ── Note name ─────────────────────────────────────────────────
