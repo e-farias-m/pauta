@@ -6735,6 +6735,792 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
 </style>
 
+
+<style id="design-system">
+/* ═══════════════════════════════════════════════════════════════════
+   Pauta Design System
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Colors ─────────────────────────────────────────────────── */
+  --pauta-primary: #c05621;
+  --pauta-primary-light: #e06850;
+  --pauta-primary-dark: #9c4221;
+
+  --pauta-success: #22c55e;
+  --pauta-warning: #e6a817;
+  --pauta-error: #e06850;
+
+  --pauta-bg: #f0ebe3;
+  --pauta-bg-card: #fff;
+  --pauta-text: #2d3748;
+  --pauta-text-muted: rgba(74,85,104,0.7);
+  --pauta-text-subtle: rgba(74,85,104,0.5);
+
+  /* ── Category Colors ────────────────────────────────────────── */
+  --pauta-cat-rhythm: #e06850;
+  --pauta-cat-pitch: #c05621;
+  --pauta-cat-ear: #22c55e;
+  --pauta-cat-theory: #4a5568;
+
+  /* ── Spacing ────────────────────────────────────────────────── */
+  --pauta-space-xs: 4px;
+  --pauta-space-sm: 8px;
+  --pauta-space-md: 12px;
+  --pauta-space-lg: 16px;
+  --pauta-space-xl: 20px;
+  --pauta-space-2xl: 24px;
+
+  /* ── Border Radius ──────────────────────────────────────────── */
+  --pauta-radius-sm: 6px;
+  --pauta-radius-md: 10px;
+  --pauta-radius-lg: 12px;
+  --pauta-radius-pill: 16px;
+  --pauta-radius-full: 9999px;
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --pauta-font-mono: "SF Mono", Monaco, Consolas, monospace;
+
+  --pauta-text-xs: 10px;
+  --pauta-text-sm: 11px;
+  --pauta-text-md: 12px;
+  --pauta-text-lg: 13px;
+  --pauta-text-xl: 14px;
+  --pauta-text-2xl: 16px;
+  --pauta-text-3xl: 20px;
+
+  /* ── Shadows ────────────────────────────────────────────────── */
+  --pauta-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --pauta-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+
+  /* ── Transitions ────────────────────────────────────────────── */
+  --pauta-transition: all 0.15s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Modal Components
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Hero Section */
+.pauta-hero {
+  background: linear-gradient(135deg, var(--pauta-primary-light), var(--pauta-primary));
+  color: #fff;
+  border-radius: var(--pauta-radius-lg);
+  padding: var(--pauta-space-xl);
+  margin-bottom: var(--pauta-space-lg);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+  overflow: hidden;
+}
+.pauta-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(224,104,80,0.3);
+}
+.pauta-hero:active {
+  transform: scale(0.98);
+}
+.pauta-hero-title {
+  font-size: var(--pauta-text-3xl);
+  font-weight: 700;
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-hero-desc {
+  font-size: var(--pauta-text-lg);
+  opacity: 0.9;
+}
+.pauta-hero-badge {
+  position: absolute;
+  top: var(--pauta-space-md);
+  right: var(--pauta-space-md);
+  background: rgba(255,255,255,0.2);
+  padding: var(--pauta-space-xs) var(--pauta-space-md);
+  border-radius: var(--pauta-radius-pill);
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+}
+
+/* Category Section */
+.pauta-category {
+  margin-bottom: var(--pauta-space-lg);
+}
+.pauta-category-title {
+  font-size: var(--pauta-text-md);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--pauta-space-sm);
+  padding-left: var(--pauta-space-xs);
+}
+
+/* Card Grid */
+.pauta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pauta-space-sm);
+}
+
+/* Card */
+.pauta-card {
+  background: var(--pauta-bg);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: var(--pauta-radius-md);
+  padding: var(--pauta-space-md);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+}
+.pauta-card:hover {
+  border-color: var(--pauta-card-color, var(--pauta-primary));
+  box-shadow: var(--pauta-shadow-md);
+}
+.pauta-card:active {
+  transform: scale(0.97);
+}
+.pauta-card-title {
+  font-weight: 600;
+  font-size: var(--pauta-text-lg);
+  color: var(--pauta-text);
+  display: flex;
+  align-items: center;
+  gap: var(--pauta-space-sm);
+}
+.pauta-card-desc {
+  font-size: var(--pauta-text-sm);
+  color: var(--pauta-text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.pauta-card-meta {
+  font-size: var(--pauta-text-xs);
+  color: var(--pauta-text-subtle);
+  margin-top: var(--pauta-space-xs);
+}
+.pauta-card-badge {
+  position: absolute;
+  top: var(--pauta-space-sm);
+  right: var(--pauta-space-sm);
+  font-size: var(--pauta-text-xs);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--pauta-radius-sm);
+}
+
+/* Pill Buttons */
+.pauta-pills {
+  display: flex;
+  gap: var(--pauta-space-xs);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+}
+.pauta-pill {
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: transparent;
+  border-radius: var(--pauta-radius-pill);
+  padding: 5px 12px;
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+  color: var(--pauta-text-muted);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+}
+.pauta-pill.active {
+  background: var(--pauta-primary);
+  color: #fff;
+  border-color: var(--pauta-primary);
+}
+.pauta-pill:hover:not(.active) {
+  border-color: var(--pauta-primary);
+  color: var(--pauta-primary);
+}
+
+/* Stats Row */
+.pauta-stats {
+  display: flex;
+  gap: var(--pauta-space-lg);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+}
+.pauta-stat-num {
+  font-weight: 700;
+  color: var(--pauta-primary);
+}
+
+/* Modal Title */
+.pauta-modal-title {
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-modal-subtitle {
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+  margin-bottom: var(--pauta-space-lg);
+}
+
+/* Modal Actions */
+.pauta-actions {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  margin-top: var(--pauta-space-lg);
+}
+.pauta-actions > * {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Shared Modal Component
+   ═══════════════════════════════════════════════════════════════════ */
+
+.pauta-modal {
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.pauta-modal-header {
+  margin-bottom: var(--pauta-space-lg);
+}
+
+.pauta-modal-body {
+  margin-bottom: var(--pauta-space-lg);
+}
+
+.pauta-modal-footer {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  padding-top: var(--pauta-space-md);
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+</style>
+
+
+<style id="design-system">
+/* ═══════════════════════════════════════════════════════════════════
+   Pauta Design System
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Colors ─────────────────────────────────────────────────── */
+  --pauta-primary: #c05621;
+  --pauta-primary-light: #e06850;
+  --pauta-primary-dark: #9c4221;
+
+  --pauta-success: #22c55e;
+  --pauta-warning: #e6a817;
+  --pauta-error: #e06850;
+
+  --pauta-bg: #f0ebe3;
+  --pauta-bg-card: #fff;
+  --pauta-text: #2d3748;
+  --pauta-text-muted: rgba(74,85,104,0.7);
+  --pauta-text-subtle: rgba(74,85,104,0.5);
+
+  /* ── Category Colors ────────────────────────────────────────── */
+  --pauta-cat-rhythm: #e06850;
+  --pauta-cat-pitch: #c05621;
+  --pauta-cat-ear: #22c55e;
+  --pauta-cat-theory: #4a5568;
+
+  /* ── Spacing ────────────────────────────────────────────────── */
+  --pauta-space-xs: 4px;
+  --pauta-space-sm: 8px;
+  --pauta-space-md: 12px;
+  --pauta-space-lg: 16px;
+  --pauta-space-xl: 20px;
+  --pauta-space-2xl: 24px;
+
+  /* ── Border Radius ──────────────────────────────────────────── */
+  --pauta-radius-sm: 6px;
+  --pauta-radius-md: 10px;
+  --pauta-radius-lg: 12px;
+  --pauta-radius-pill: 16px;
+  --pauta-radius-full: 9999px;
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --pauta-font-mono: "SF Mono", Monaco, Consolas, monospace;
+
+  --pauta-text-xs: 10px;
+  --pauta-text-sm: 11px;
+  --pauta-text-md: 12px;
+  --pauta-text-lg: 13px;
+  --pauta-text-xl: 14px;
+  --pauta-text-2xl: 16px;
+  --pauta-text-3xl: 20px;
+
+  /* ── Shadows ────────────────────────────────────────────────── */
+  --pauta-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --pauta-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+
+  /* ── Transitions ────────────────────────────────────────────── */
+  --pauta-transition: all 0.15s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Modal Components
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Hero Section */
+.pauta-hero {
+  background: linear-gradient(135deg, var(--pauta-primary-light), var(--pauta-primary));
+  color: #fff;
+  border-radius: var(--pauta-radius-lg);
+  padding: var(--pauta-space-xl);
+  margin-bottom: var(--pauta-space-lg);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+  overflow: hidden;
+}
+.pauta-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(224,104,80,0.3);
+}
+.pauta-hero:active {
+  transform: scale(0.98);
+}
+.pauta-hero-title {
+  font-size: var(--pauta-text-3xl);
+  font-weight: 700;
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-hero-desc {
+  font-size: var(--pauta-text-lg);
+  opacity: 0.9;
+}
+.pauta-hero-badge {
+  position: absolute;
+  top: var(--pauta-space-md);
+  right: var(--pauta-space-md);
+  background: rgba(255,255,255,0.2);
+  padding: var(--pauta-space-xs) var(--pauta-space-md);
+  border-radius: var(--pauta-radius-pill);
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+}
+
+/* Category Section */
+.pauta-category {
+  margin-bottom: var(--pauta-space-lg);
+}
+.pauta-category-title {
+  font-size: var(--pauta-text-md);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--pauta-space-sm);
+  padding-left: var(--pauta-space-xs);
+}
+
+/* Card Grid */
+.pauta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pauta-space-sm);
+}
+
+/* Card */
+.pauta-card {
+  background: var(--pauta-bg);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: var(--pauta-radius-md);
+  padding: var(--pauta-space-md);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+}
+.pauta-card:hover {
+  border-color: var(--pauta-card-color, var(--pauta-primary));
+  box-shadow: var(--pauta-shadow-md);
+}
+.pauta-card:active {
+  transform: scale(0.97);
+}
+.pauta-card-title {
+  font-weight: 600;
+  font-size: var(--pauta-text-lg);
+  color: var(--pauta-text);
+  display: flex;
+  align-items: center;
+  gap: var(--pauta-space-sm);
+}
+.pauta-card-desc {
+  font-size: var(--pauta-text-sm);
+  color: var(--pauta-text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.pauta-card-meta {
+  font-size: var(--pauta-text-xs);
+  color: var(--pauta-text-subtle);
+  margin-top: var(--pauta-space-xs);
+}
+.pauta-card-badge {
+  position: absolute;
+  top: var(--pauta-space-sm);
+  right: var(--pauta-space-sm);
+  font-size: var(--pauta-text-xs);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--pauta-radius-sm);
+}
+
+/* Pill Buttons */
+.pauta-pills {
+  display: flex;
+  gap: var(--pauta-space-xs);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+}
+.pauta-pill {
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: transparent;
+  border-radius: var(--pauta-radius-pill);
+  padding: 5px 12px;
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+  color: var(--pauta-text-muted);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+}
+.pauta-pill.active {
+  background: var(--pauta-primary);
+  color: #fff;
+  border-color: var(--pauta-primary);
+}
+.pauta-pill:hover:not(.active) {
+  border-color: var(--pauta-primary);
+  color: var(--pauta-primary);
+}
+
+/* Stats Row */
+.pauta-stats {
+  display: flex;
+  gap: var(--pauta-space-lg);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+}
+.pauta-stat-num {
+  font-weight: 700;
+  color: var(--pauta-primary);
+}
+
+/* Modal Title */
+.pauta-modal-title {
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-modal-subtitle {
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+  margin-bottom: var(--pauta-space-lg);
+}
+
+/* Modal Actions */
+.pauta-actions {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  margin-top: var(--pauta-space-lg);
+}
+.pauta-actions > * {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Shared Modal Component
+   ═══════════════════════════════════════════════════════════════════ */
+
+.pauta-modal {
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.pauta-modal-header {
+  margin-bottom: var(--pauta-space-lg);
+}
+
+.pauta-modal-body {
+  margin-bottom: var(--pauta-space-lg);
+}
+
+.pauta-modal-footer {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  padding-top: var(--pauta-space-md);
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+</style>
+
+
+<style id="design-system">
+/* ═══════════════════════════════════════════════════════════════════
+   Pauta Design System
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Colors ─────────────────────────────────────────────────── */
+  --pauta-primary: #c05621;
+  --pauta-primary-light: #e06850;
+  --pauta-primary-dark: #9c4221;
+
+  --pauta-success: #22c55e;
+  --pauta-warning: #e6a817;
+  --pauta-error: #e06850;
+
+  --pauta-bg: #f0ebe3;
+  --pauta-bg-card: #fff;
+  --pauta-text: #2d3748;
+  --pauta-text-muted: rgba(74,85,104,0.7);
+  --pauta-text-subtle: rgba(74,85,104,0.5);
+
+  /* ── Category Colors ────────────────────────────────────────── */
+  --pauta-cat-rhythm: #e06850;
+  --pauta-cat-pitch: #c05621;
+  --pauta-cat-ear: #22c55e;
+  --pauta-cat-theory: #4a5568;
+
+  /* ── Spacing ────────────────────────────────────────────────── */
+  --pauta-space-xs: 4px;
+  --pauta-space-sm: 8px;
+  --pauta-space-md: 12px;
+  --pauta-space-lg: 16px;
+  --pauta-space-xl: 20px;
+  --pauta-space-2xl: 24px;
+
+  /* ── Border Radius ──────────────────────────────────────────── */
+  --pauta-radius-sm: 6px;
+  --pauta-radius-md: 10px;
+  --pauta-radius-lg: 12px;
+  --pauta-radius-pill: 16px;
+  --pauta-radius-full: 9999px;
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --pauta-font-mono: "SF Mono", Monaco, Consolas, monospace;
+
+  --pauta-text-xs: 10px;
+  --pauta-text-sm: 11px;
+  --pauta-text-md: 12px;
+  --pauta-text-lg: 13px;
+  --pauta-text-xl: 14px;
+  --pauta-text-2xl: 16px;
+  --pauta-text-3xl: 20px;
+
+  /* ── Shadows ────────────────────────────────────────────────── */
+  --pauta-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --pauta-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+
+  /* ── Transitions ────────────────────────────────────────────── */
+  --pauta-transition: all 0.15s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Modal Components
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Hero Section */
+.pauta-hero {
+  background: linear-gradient(135deg, var(--pauta-primary-light), var(--pauta-primary));
+  color: #fff;
+  border-radius: var(--pauta-radius-lg);
+  padding: var(--pauta-space-xl);
+  margin-bottom: var(--pauta-space-lg);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+  overflow: hidden;
+}
+.pauta-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(224,104,80,0.3);
+}
+.pauta-hero:active {
+  transform: scale(0.98);
+}
+.pauta-hero-title {
+  font-size: var(--pauta-text-3xl);
+  font-weight: 700;
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-hero-desc {
+  font-size: var(--pauta-text-lg);
+  opacity: 0.9;
+}
+.pauta-hero-badge {
+  position: absolute;
+  top: var(--pauta-space-md);
+  right: var(--pauta-space-md);
+  background: rgba(255,255,255,0.2);
+  padding: var(--pauta-space-xs) var(--pauta-space-md);
+  border-radius: var(--pauta-radius-pill);
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+}
+
+/* Category Section */
+.pauta-category {
+  margin-bottom: var(--pauta-space-lg);
+}
+.pauta-category-title {
+  font-size: var(--pauta-text-md);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--pauta-space-sm);
+  padding-left: var(--pauta-space-xs);
+}
+
+/* Card Grid */
+.pauta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--pauta-space-sm);
+}
+
+/* Card */
+.pauta-card {
+  background: var(--pauta-bg);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: var(--pauta-radius-md);
+  padding: var(--pauta-space-md);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  position: relative;
+}
+.pauta-card:hover {
+  border-color: var(--pauta-card-color, var(--pauta-primary));
+  box-shadow: var(--pauta-shadow-md);
+}
+.pauta-card:active {
+  transform: scale(0.97);
+}
+.pauta-card-title {
+  font-weight: 600;
+  font-size: var(--pauta-text-lg);
+  color: var(--pauta-text);
+  display: flex;
+  align-items: center;
+  gap: var(--pauta-space-sm);
+}
+.pauta-card-desc {
+  font-size: var(--pauta-text-sm);
+  color: var(--pauta-text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.pauta-card-meta {
+  font-size: var(--pauta-text-xs);
+  color: var(--pauta-text-subtle);
+  margin-top: var(--pauta-space-xs);
+}
+.pauta-card-badge {
+  position: absolute;
+  top: var(--pauta-space-sm);
+  right: var(--pauta-space-sm);
+  font-size: var(--pauta-text-xs);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--pauta-radius-sm);
+}
+
+/* Pill Buttons */
+.pauta-pills {
+  display: flex;
+  gap: var(--pauta-space-xs);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+}
+.pauta-pill {
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: transparent;
+  border-radius: var(--pauta-radius-pill);
+  padding: 5px 12px;
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+  color: var(--pauta-text-muted);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+}
+.pauta-pill.active {
+  background: var(--pauta-primary);
+  color: #fff;
+  border-color: var(--pauta-primary);
+}
+.pauta-pill:hover:not(.active) {
+  border-color: var(--pauta-primary);
+  color: var(--pauta-primary);
+}
+
+/* Stats Row */
+.pauta-stats {
+  display: flex;
+  gap: var(--pauta-space-lg);
+  justify-content: center;
+  margin-bottom: var(--pauta-space-md);
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+}
+.pauta-stat-num {
+  font-weight: 700;
+  color: var(--pauta-primary);
+}
+
+/* Modal Title */
+.pauta-modal-title {
+  margin-bottom: var(--pauta-space-xs);
+}
+.pauta-modal-subtitle {
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text-muted);
+  margin-bottom: var(--pauta-space-lg);
+}
+
+/* Modal Actions */
+.pauta-actions {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  margin-top: var(--pauta-space-lg);
+}
+.pauta-actions > * {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Shared Modal Component
+   ═══════════════════════════════════════════════════════════════════ */
+
+.pauta-modal {
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.pauta-modal-header {
+  margin-bottom: var(--pauta-space-lg);
+}
+
+.pauta-modal-body {
+  margin-bottom: var(--pauta-space-lg);
+}
+
+.pauta-modal-footer {
+  display: flex;
+  gap: var(--pauta-space-sm);
+  padding-top: var(--pauta-space-md);
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+</style>
+
 <script>
 
 // ─── Module: globals.js ────────────────────────────────────
@@ -6838,6 +7624,7 @@ const APP = {
   staveLayout: [],
   noteLayout: [],   // per-note hit regions for individual selection
   playTimers: [],
+  _activeAudioNodes: [], // track oscillators/buffer sources for cleanup
   playStartTime: 0,
   countIn: false,
   metronome: false,
@@ -7526,13 +8313,6 @@ const SAX_FINGERINGS = {
   76:'100000110000000', 77:'100000010000000', 78:'101100010000000', 79:'001100010000000',
   80:'001000010000000', 81:'000000010000000', 82:'000100010000000', 83:'111101100000000',
   84:'111100100000000',
-  // Accidentals with explicit key combinations
-  61:'111100100000000', // C#/Db
-  63:'111000000000000', // D#/Eb
-  66:'100000000000000', // F#/Gb
-  68:'001100100000000', // G#/Ab
-  70:'000000100000000', // A#/Bb
-  82:'000100010000000', // C#/Db alt
 };
 // Oboe: 8 positions [L1, L2, L3, L4, R1, R2, R3, R4]
 const OBOE_FINGERINGS = {
@@ -7654,7 +8434,7 @@ function getInstrForSI(si) {
 function recorderTypeForSI(si) { return getInstrForSI(si)?.recorderType || 'soprano'; }
 function isAnyRecorderSI(si) { return !!getInstrForSI(si)?.recorder; }
 function instrByName(name) {
-  return INSTRUMENTS.find(i => i.name === name) || INSTRUMENTS[0];
+  return INSTRUMENTS.find(i => i.name === name) || null;
 }
 
 // Resolve a global stave index (si) to {stave, part, localSI}
@@ -7834,6 +8614,7 @@ function showRecorderExercises() {
 
 function addInstrumentToScore(score, instrName) {
   const instr  = instrByName(instrName);
+  if (!instr) return;
   const nM     = score.parts[0].staves[0].measures.length;
   const refS   = score.parts[0].staves[0];
   score.parts.push({
@@ -7924,7 +8705,7 @@ function _syncMeasureCounts(score) {
     }
     if (!part.name) part.name = part.instrument || 'Part';
     if (!part.instrument) part.instrument = part.name;
-    if (!part.osc) part.osc = instrByName(part.instrument).osc;
+    if (!part.osc) { const fi = instrByName(part.instrument); part.osc = fi ? fi.osc : 'triangle'; }
     part.staves.forEach(stave => {
       if (!stave.clef) stave.clef = 'treble';
       if (!Array.isArray(stave.measures)) stave.measures = [];
@@ -8580,7 +9361,6 @@ function parseMusicXML(xmlStr) {
   }
 
   const stepToIdx = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
-  const PC_TO_DIA2 = [0,0,1,1,2,3,3,4,4,5,5,6];
 
   function mxmlPitch(step, octave, alter) {
     const stepIdx = stepToIdx[step] !== undefined ? stepToIdx[step] : 0;
@@ -9745,7 +10525,7 @@ function _renderStaveMeasure(rc, sm) {
   const v2Indices = v2Data.map(d => d.idx);
 
   const hasV2Real = v2Notes.length > 0 && !isWholeRestPlaceholder(v2Notes);
-  const dirs1 = hasV2Real ? v1Notes.map(() => VF.Stem.UP) : calcStemDirections(v1Notes, stave.clef, ts);
+  const dirs1 = hasV2Real ? v1Notes.map(() => VF.Stem.UP) : calcStemDirections(v1Notes, stave.clef, ts, si + siOffset);
   const dirs2 = v2Notes.map(() => VF.Stem.DOWN);
 
   const vfNotes1 = buildVFNotes(v1Notes, stave.clef, mi, si + siOffset, dirs1, isBW, isBR);
@@ -10383,7 +11163,11 @@ function stemDir(pitch, clef) {
 
 // Pre-calculate stem directions for every note in a measure,
 // applying majority-vote within each beam group so they all go the same way.
-function calcStemDirections(notes, clef, ts) {
+function calcStemDirections(notes, clef, ts, si) {
+  // Single-line rhythm staff: always stems up
+  const staveObj = getStaveBySI(si);
+  if (staveObj && staveObj.singleLine) return notes.map(() => VF.Stem.UP);
+
   const beamable  = ['8','16','32'];
   const beatSize  = 4 / ts.den;
   const groupSize = (ts.num % 3 === 0 && ts.num > 3) ? beatSize * 3 : beatSize;
@@ -10458,7 +11242,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
   Object.assign(measureAccState, keyAccMap);
 
   const ts   = resolvedTimeSig(mi, si);
-  if (!dirs) dirs = calcStemDirections(notes, clef, ts);
+  if (!dirs) dirs = calcStemDirections(notes, clef, ts, si);
 
   return notes.reduce((arr, note, ni) => {
     try {
@@ -11905,8 +12689,8 @@ function renderBWNoteheads() {
   APP.score.parts.forEach(part => {
     const instr = instrByName(part.instrument || part.name);
     part.staves.forEach((_, s) => {
-      if (instr.boomwhacker)      bwSIs.add(gsi + s);
-      if (instr.beginnerRecorder) brSIs.add(gsi + s);
+      if (instr?.boomwhacker)      bwSIs.add(gsi + s);
+      if (instr?.beginnerRecorder) brSIs.add(gsi + s);
       gsi++;
     });
   });
@@ -12291,12 +13075,9 @@ function handleScoreTap(e) {
       const n = _stave?.measures[bestNote.mi]?.notes[bestNote.ni];
       if (n) {
         const isPercLabel = _stave?.clef === 'percussion';
-        const DRUM_LABELS = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
-          41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
-          47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
         const label = n.type === 'rest'
           ? `Rest (${VEX_TO_MSCX[n.duration]||n.duration})`
-          : isPercLabel ? (DRUM_LABELS[n.pitch] || `Drum ${n.pitch}`)
+          : isPercLabel ? (DRUM_FULL_NAMES[n.pitch] || `Drum ${n.pitch}`)
           : `${NOTE_NAMES[PC_TO_DIA[n.pitch%12]].toUpperCase()}${Math.floor(n.pitch/12)-1}`;
         showToast(label + ' selected');
       }
@@ -12560,10 +13341,7 @@ function insertNote(mi, si, pitch) {
 
   const isPerc = getStaveBySI(si)?.clef === 'percussion';
   if (isPerc) {
-    const DRUM_LABELS = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
-      41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
-      47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
-    showToast(APP.curRest ? 'Rest inserted' : `${DRUM_LABELS[pitch] || 'Drum ' + pitch} (V${APP.curVoice})`);
+    showToast(APP.curRest ? 'Rest inserted' : `${DRUM_FULL_NAMES[pitch] || 'Drum ' + pitch} (V${APP.curVoice})`);
   } else {
     const pc2     = pitch % 12;
     const name    = NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase();
@@ -12575,13 +13353,10 @@ function insertNote(mi, si, pitch) {
 
 // ── Percussion palette relabeling ─────────────────────────────────
 // When a percussion clef stave is active, relabel note buttons to drum names
-const DRUM_LABELS = { C:'BD', D:'SN', E:'HH', F:'CC', G:'MT', A:'CB', B:'CL' };
-const NOTE_LABELS = { C:'C', D:'D', E:'E', F:'F', G:'G', A:'A', B:'B' };
-
 function updatePaletteForPercussion() {
   const stave = getStaveBySI(APP.selectedStaff);
   const isPerc = stave?.clef === 'percussion';
-  const map = isPerc ? DRUM_LABELS : NOTE_LABELS;
+  const map = isPerc ? DRUM_PAL_LABELS : NOTE_PAL_LABELS;
   document.querySelectorAll('.note-key').forEach(btn => {
     // Single-line (rhythm composition) — keep original text
     if (stave?.singleLine) return;
@@ -12593,6 +13368,18 @@ function updatePaletteForPercussion() {
 
 // ── Controls ─────────────────────────────────────────────────────
 const NAME_TO_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+// Drum voice labels — MIDI pitch → full name (toasts, selection)
+const DRUM_FULL_NAMES = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
+  41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
+  47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
+// Drum palette labels — letter key → abbreviation
+const DRUM_PAL_LABELS = { C:'BD', D:'SN', E:'HH', F:'CC', G:'MT', A:'CB', B:'CL' };
+// Drum abbreviations — MIDI pitch → short label (note labels, overlays)
+const DRUM_SHORT_NAMES = {35:'BD',36:'BD',37:'SS',38:'SN',39:'SS',40:'SN',
+  41:'LT',42:'HH',43:'LT',44:'CH',45:'MT',46:'OH',47:'MT',48:'HT',49:'CC',50:'HT',51:'RC',52:'CH',53:'RB',56:'CB'};
+// Letter key → MIDI pitch for percussion input
+const DRUM_KEY_MAP = { C:36, D:38, E:42, F:49, G:45, A:56, B:39 };
+const NOTE_PAL_LABELS = { C:'C', D:'D', E:'E', F:'F', G:'G', A:'A', B:'B' };
 
 function insertNoteByName(name) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
@@ -12659,8 +13446,7 @@ function insertNoteByName(name) {
       APP.curDur = _sDur; APP.curDot = _sDot;
       return;
     }
-    const DRUM_MAP = { C:36, D:38, E:42, F:49, G:45, A:56, B:39 };
-    const midi = DRUM_MAP[name] || 38;
+    const midi = DRUM_KEY_MAP[name] || 38;
     APP.curRest = false;
     document.getElementById('btn-rest')?.classList.remove('active');
     const _sDur = APP.curDur, _sDot = APP.curDot;
@@ -12873,13 +13659,7 @@ const SOLFEGE = [
 function noteLabelForPitch(pitch, ks, acc, mode, clef) {
   // ── Percussion: return drum abbreviations ──
   if (clef === 'percussion') {
-    const DRUM_NAMES = {
-      35:'BD', 36:'BD', 37:'SS', 38:'SN', 39:'SS', 40:'SN',
-      41:'LT', 42:'HH', 43:'LT', 44:'CH', 45:'MT',
-      46:'OH', 47:'MT', 48:'HT', 49:'CC', 50:'HT', 51:'RC',
-      52:'CH', 53:'RB', 56:'CB'
-    };
-    const name = DRUM_NAMES[pitch];
+    const name = DRUM_SHORT_NAMES[pitch];
     if (name) return name;
   }
   const pc = pitch % 12;
@@ -13252,6 +14032,10 @@ function selectDur(d) {
   APP.curDur = d;
   document.querySelectorAll('[data-dur]').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-dur="${d}"]`)?.classList.add('active');
+  // Rhythm composition: insert note immediately on the line
+  if (APP.compositionMode === 'rhythm' && APP.inputMode) {
+    try { insertNoteByName('C'); } catch(e) { /* capacity full, etc. */ }
+  }
 }
 function toggleDot() {
   APP.curDot = !APP.curDot;
@@ -18986,6 +19770,7 @@ function scheduleNote(ctx, midi, startTime, dur, oscType, partVolume) {
 
     osc.start(startTime);
     osc.stop(endT + 0.05);
+    if (APP._activeAudioNodes) APP._activeAudioNodes.push(osc);
   }
 
   // Fundamental
@@ -19068,6 +19853,7 @@ function _schedulePercussion(ctx, midi, startTime, dur, vol) {
 
   src.start(startTime);
   src.stop(endT + 0.02);
+  if (APP._activeAudioNodes) APP._activeAudioNodes.push(src);
 }
 
 function toggleCountIn() {
@@ -19165,6 +19951,7 @@ function scheduleMetronomeClick(ctx, time, accent, intensity = 1) {
   gain.connect(APP.metronomeGain || ctx.destination);
   osc.start(time);
   osc.stop(time + 0.06);
+  if (APP._activeAudioNodes) APP._activeAudioNodes.push(osc);
 }
 
 function playCountIn(ctx, beatDur, beats, baseTime) {
@@ -19182,6 +19969,7 @@ function playCountIn(ctx, beatDur, beats, baseTime) {
     gain.connect(dest);
     osc.start(clickTime);
     osc.stop(clickTime + 0.08);
+    if (APP._activeAudioNodes) APP._activeAudioNodes.push(osc);
   }
 }
 
@@ -19341,6 +20129,14 @@ function stopPlayback() {
   APP.playing = false;
   clearPlayCursor();
   if (APP._playScrollRAF) cancelAnimationFrame(APP._playScrollRAF);
+  // Stop all active audio nodes (oscillators, buffer sources) to prevent orphaned nodes
+  if (APP._activeAudioNodes) {
+    APP._activeAudioNodes.forEach(node => {
+      try { node.stop(); } catch(e) { /* already stopped */ }
+      try { node.disconnect(); } catch(e) { /* already disconnected */ }
+    });
+    APP._activeAudioNodes = [];
+  }
   if (APP.masterGain) APP.masterGain.gain.value = 0;
   if (APP.metronomeGain) APP.metronomeGain.gain.value = 0;
   if (APP.reverbGain) APP.reverbGain.gain.value = 0;

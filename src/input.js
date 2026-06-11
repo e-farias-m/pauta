@@ -296,12 +296,9 @@ function handleScoreTap(e) {
       const n = _stave?.measures[bestNote.mi]?.notes[bestNote.ni];
       if (n) {
         const isPercLabel = _stave?.clef === 'percussion';
-        const DRUM_LABELS = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
-          41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
-          47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
         const label = n.type === 'rest'
           ? `Rest (${VEX_TO_MSCX[n.duration]||n.duration})`
-          : isPercLabel ? (DRUM_LABELS[n.pitch] || `Drum ${n.pitch}`)
+          : isPercLabel ? (DRUM_FULL_NAMES[n.pitch] || `Drum ${n.pitch}`)
           : `${NOTE_NAMES[PC_TO_DIA[n.pitch%12]].toUpperCase()}${Math.floor(n.pitch/12)-1}`;
         showToast(label + ' selected');
       }
@@ -565,10 +562,7 @@ function insertNote(mi, si, pitch) {
 
   const isPerc = getStaveBySI(si)?.clef === 'percussion';
   if (isPerc) {
-    const DRUM_LABELS = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
-      41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
-      47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
-    showToast(APP.curRest ? 'Rest inserted' : `${DRUM_LABELS[pitch] || 'Drum ' + pitch} (V${APP.curVoice})`);
+    showToast(APP.curRest ? 'Rest inserted' : `${DRUM_FULL_NAMES[pitch] || 'Drum ' + pitch} (V${APP.curVoice})`);
   } else {
     const pc2     = pitch % 12;
     const name    = NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase();
@@ -580,13 +574,10 @@ function insertNote(mi, si, pitch) {
 
 // ── Percussion palette relabeling ─────────────────────────────────
 // When a percussion clef stave is active, relabel note buttons to drum names
-const DRUM_LABELS = { C:'BD', D:'SN', E:'HH', F:'CC', G:'MT', A:'CB', B:'CL' };
-const NOTE_LABELS = { C:'C', D:'D', E:'E', F:'F', G:'G', A:'A', B:'B' };
-
 function updatePaletteForPercussion() {
   const stave = getStaveBySI(APP.selectedStaff);
   const isPerc = stave?.clef === 'percussion';
-  const map = isPerc ? DRUM_LABELS : NOTE_LABELS;
+  const map = isPerc ? DRUM_PAL_LABELS : NOTE_PAL_LABELS;
   document.querySelectorAll('.note-key').forEach(btn => {
     // Single-line (rhythm composition) — keep original text
     if (stave?.singleLine) return;
@@ -598,6 +589,18 @@ function updatePaletteForPercussion() {
 
 // ── Controls ─────────────────────────────────────────────────────
 const NAME_TO_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+// Drum voice labels — MIDI pitch → full name (toasts, selection)
+const DRUM_FULL_NAMES = {35:'Bass Drum',36:'Bass Drum',37:'Side Stick',38:'Snare',39:'Clap',40:'Snare',
+  41:'Low Tom',42:'Hi-Hat',43:'Low-Mid Tom',44:'Pedal HH',45:'Mid Tom',46:'Open HH',
+  47:'Mid-High Tom',48:'High Tom',49:'Crash',50:'High Tom 2',51:'Ride',52:'Chinese',53:'Ride Bell',56:'Cowbell'};
+// Drum palette labels — letter key → abbreviation
+const DRUM_PAL_LABELS = { C:'BD', D:'SN', E:'HH', F:'CC', G:'MT', A:'CB', B:'CL' };
+// Drum abbreviations — MIDI pitch → short label (note labels, overlays)
+const DRUM_SHORT_NAMES = {35:'BD',36:'BD',37:'SS',38:'SN',39:'SS',40:'SN',
+  41:'LT',42:'HH',43:'LT',44:'CH',45:'MT',46:'OH',47:'MT',48:'HT',49:'CC',50:'HT',51:'RC',52:'CH',53:'RB',56:'CB'};
+// Letter key → MIDI pitch for percussion input
+const DRUM_KEY_MAP = { C:36, D:38, E:42, F:49, G:45, A:56, B:39 };
+const NOTE_PAL_LABELS = { C:'C', D:'D', E:'E', F:'F', G:'G', A:'A', B:'B' };
 
 function insertNoteByName(name) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
@@ -664,8 +667,7 @@ function insertNoteByName(name) {
       APP.curDur = _sDur; APP.curDot = _sDot;
       return;
     }
-    const DRUM_MAP = { C:36, D:38, E:42, F:49, G:45, A:56, B:39 };
-    const midi = DRUM_MAP[name] || 38;
+    const midi = DRUM_KEY_MAP[name] || 38;
     APP.curRest = false;
     document.getElementById('btn-rest')?.classList.remove('active');
     const _sDur = APP.curDur, _sDot = APP.curDot;
@@ -878,13 +880,7 @@ const SOLFEGE = [
 function noteLabelForPitch(pitch, ks, acc, mode, clef) {
   // ── Percussion: return drum abbreviations ──
   if (clef === 'percussion') {
-    const DRUM_NAMES = {
-      35:'BD', 36:'BD', 37:'SS', 38:'SN', 39:'SS', 40:'SN',
-      41:'LT', 42:'HH', 43:'LT', 44:'CH', 45:'MT',
-      46:'OH', 47:'MT', 48:'HT', 49:'CC', 50:'HT', 51:'RC',
-      52:'CH', 53:'RB', 56:'CB'
-    };
-    const name = DRUM_NAMES[pitch];
+    const name = DRUM_SHORT_NAMES[pitch];
     if (name) return name;
   }
   const pc = pitch % 12;

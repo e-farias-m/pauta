@@ -735,6 +735,7 @@ function scheduleNote(ctx, midi, startTime, dur, oscType, partVolume) {
 
     osc.start(startTime);
     osc.stop(endT + 0.05);
+    if (APP._activeAudioNodes) APP._activeAudioNodes.push(osc);
   }
 
   // Fundamental
@@ -817,6 +818,7 @@ function _schedulePercussion(ctx, midi, startTime, dur, vol) {
 
   src.start(startTime);
   src.stop(endT + 0.02);
+  if (APP._activeAudioNodes) APP._activeAudioNodes.push(src);
 }
 
 function toggleCountIn() {
@@ -914,6 +916,7 @@ function scheduleMetronomeClick(ctx, time, accent, intensity = 1) {
   gain.connect(APP.metronomeGain || ctx.destination);
   osc.start(time);
   osc.stop(time + 0.06);
+  if (APP._activeAudioNodes) APP._activeAudioNodes.push(osc);
 }
 
 function playCountIn(ctx, beatDur, beats, baseTime) {
@@ -931,6 +934,7 @@ function playCountIn(ctx, beatDur, beats, baseTime) {
     gain.connect(dest);
     osc.start(clickTime);
     osc.stop(clickTime + 0.08);
+    if (APP._activeAudioNodes) APP._activeAudioNodes.push(osc);
   }
 }
 
@@ -1090,6 +1094,14 @@ function stopPlayback() {
   APP.playing = false;
   clearPlayCursor();
   if (APP._playScrollRAF) cancelAnimationFrame(APP._playScrollRAF);
+  // Stop all active audio nodes (oscillators, buffer sources) to prevent orphaned nodes
+  if (APP._activeAudioNodes) {
+    APP._activeAudioNodes.forEach(node => {
+      try { node.stop(); } catch(e) { /* already stopped */ }
+      try { node.disconnect(); } catch(e) { /* already disconnected */ }
+    });
+    APP._activeAudioNodes = [];
+  }
   if (APP.masterGain) APP.masterGain.gain.value = 0;
   if (APP.metronomeGain) APP.metronomeGain.gain.value = 0;
   if (APP.reverbGain) APP.reverbGain.gain.value = 0;

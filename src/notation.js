@@ -874,7 +874,6 @@ function parseMusicXML(xmlStr) {
   }
 
   const stepToIdx = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
-  const PC_TO_DIA2 = [0,0,1,1,2,3,3,4,4,5,5,6];
 
   function mxmlPitch(step, octave, alter) {
     const stepIdx = stepToIdx[step] !== undefined ? stepToIdx[step] : 0;

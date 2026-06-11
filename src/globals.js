@@ -98,6 +98,7 @@ const APP = {
   staveLayout: [],
   noteLayout: [],   // per-note hit regions for individual selection
   playTimers: [],
+  _activeAudioNodes: [], // track oscillators/buffer sources for cleanup
   playStartTime: 0,
   countIn: false,
   metronome: false,
