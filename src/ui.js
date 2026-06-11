@@ -1078,6 +1078,9 @@ function showTeachMenu(btn) {
     {label:'🛠 Exercise Builder…', fn:showExerciseBuilderDialog},
     {label:'📥 Import Exercise Set', fn:importCustomExercise},
     {sep:true},
+    {label:'🥁 Rhythm Composer…', fn:showRhythmComposer},
+    {label:'🎵 Melody Composer…', fn:showMelodyComposer},
+    {sep:true},
     {label:'📊 My Progress', fn:showStudentProgress},
     {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
     {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
@@ -2519,6 +2522,12 @@ _registerAction('setPartVolume', (e) => { const idx = parseInt(e.target.dataset.
 _registerAction('setMasterVolume', (e) => { APP.masterVolume = e.target.value / 100; if (APP.masterGain) APP.masterGain.gain.value = APP.masterVolume; document.getElementById('mix-master-val').textContent = e.target.value; });
 _registerAction('setMetronomeVolume', (e) => { APP.metronomeVolume = e.target.value / 100; if (APP.metronomeGain) APP.metronomeGain.gain.value = APP.metronomeVolume; document.getElementById('mix-met-val').textContent = e.target.value; });
 _registerAction('reload', () => location.reload());
+// ── Composition Tool Actions ─────────────────────────────────
+_registerAction('showRhythmComposer', () => showRhythmComposer());
+_registerAction('showMelodyComposer', () => showMelodyComposer());
+_registerAction('startRhythmComposer', () => startRhythmComposer());
+_registerAction('startMelodyComposer', () => startMelodyComposer());
+_registerAction('exitCompositionMode', () => exitCompositionMode());
 _registerAction('restoreAutosave', () => restoreAutosave());
 _registerAction('applyTitleDialog', () => applyTitleDialog());
 _registerAction('selectNDInstr', (e) => {
@@ -2557,4 +2566,11 @@ document.getElementById('score-title')?.addEventListener('dblclick', showTitleDi
 document.getElementById('tempo-slider')?.addEventListener('input', e => updateTempo(e.target.value));
 document.getElementById('tempo-input')?.addEventListener('change', e => updateTempo(e.target.value));
 document.getElementById('search-input')?.addEventListener('input', e => filterSearchPanels(e.target.value));
+// ── Change delegation for number inputs (measures/BPM fields) ──
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.tagName !== 'INPUT' || el.type !== 'number' || !el.dataset.action) return;
+  const fn = _ACTION_MAP[el.dataset.action];
+  if (fn) fn(e);
+});
 })();

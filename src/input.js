@@ -588,6 +588,8 @@ function updatePaletteForPercussion() {
   const isPerc = stave?.clef === 'percussion';
   const map = isPerc ? DRUM_LABELS : NOTE_LABELS;
   document.querySelectorAll('.note-key').forEach(btn => {
+    // Single-line (rhythm composition) — keep original text
+    if (stave?.singleLine) return;
     const name = btn.dataset.name;
     const sym = btn.querySelector('.pal-sym');
     if (sym && map[name]) sym.textContent = map[name];
@@ -652,6 +654,16 @@ function insertNoteByName(name) {
   const stave = getStaveBySI(APP.selectedStaff);
   const clef  = stave?.clef || 'treble';
   if (clef === 'percussion') {
+    // Single-line rhythm staff: always use clap sound
+    if (stave.singleLine) {
+      const midi = 39;
+      APP.curRest = false;
+      document.getElementById('btn-rest')?.classList.remove('active');
+      const _sDur = APP.curDur, _sDot = APP.curDot;
+      insertNote(APP.selectedMeasure, APP.selectedStaff, midi);
+      APP.curDur = _sDur; APP.curDot = _sDot;
+      return;
+    }
     const DRUM_MAP = { C:36, D:38, E:42, F:49, G:45, A:56, B:39 };
     const midi = DRUM_MAP[name] || 38;
     APP.curRest = false;
@@ -688,7 +700,16 @@ function insertNoteByName(name) {
     .pop();
 
   let midi;
-  if (prevNote) {
+  if (APP.compositionMode === 'rhythm') {
+    // Rhythm composer: always place at C5
+    midi = 72;
+    APP.curOctave = 5;
+    updateOctaveDisplay();
+  } else if (APP.compositionMode === 'melody') {
+    // Melody composer: respect current octave selection
+    midi = (APP.curOctave + 1) * 12 + pc;
+    updateOctaveDisplay();
+  } else if (prevNote) {
     // Always pick the octave that minimises the absolute semitone interval.
     // Build candidates spanning ±1 octave above and below reference.
     const refPitch = prevNote.pitch;
@@ -1236,6 +1257,10 @@ function selectDur(d) {
   APP.curDur = d;
   document.querySelectorAll('[data-dur]').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-dur="${d}"]`)?.classList.add('active');
+  // Rhythm composition: insert note immediately on the line
+  if (APP.compositionMode === 'rhythm' && APP.inputMode) {
+    try { insertNoteByName('C'); } catch(e) { /* capacity full, etc. */ }
+  }
 }
 function toggleDot() {
   APP.curDot = !APP.curDot;

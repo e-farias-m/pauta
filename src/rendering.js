@@ -565,13 +565,36 @@ function _renderSystems(rc) {
   updateOctaveDisplay();
 }
 
+// Hide all staff lines except the middle one for single-line rhythm staves
+function _hideNonMiddleStaffLines(container, vfStave) {
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+  const midY = vfStave.getYForLine(2);
+  const staveW = vfStave.getWidth();
+  svg.querySelectorAll('path').forEach(path => {
+    const d = path.getAttribute('d');
+    if (!d) return;
+    const m = d.match(/M\s*([\d.]+)\s+([\d.]+)\s*L\s*([\d.]+)\s+([\d.]+)/);
+    if (!m) return;
+    const x1 = parseFloat(m[1]), y1 = parseFloat(m[2]);
+    const x2 = parseFloat(m[3]), y2 = parseFloat(m[4]);
+    if (Math.abs(y1 - y2) > 0.5) return; // vertical (bar line)
+    if (x2 - x1 < staveW * 0.35) return; // too short (ledger line)
+    if (Math.abs(y1 - midY) > 0.5) {
+      path.setAttribute('stroke', 'none');
+      path.setAttribute('stroke-opacity', '0');
+    }
+  });
+}
+
 function _renderStaveMeasure(rc, sm) {
   const { container, ctx, siOffset, viewScale, multiRestGroups } = rc;
   const { mi, si, stave, mx, li, isFirstOfSys, isGlobalFirst, staveY, vfStaveRef, mWidths } = sm;
   let mWidth = mWidths[li] + (isFirstOfSys ? sm.firstExtra : 0);
 
+  const isSingleLine = stave.singleLine;
   const vfStave = new VF.Stave(mx, staveY, mWidth,
-    { space_above_staff_ln: 4, num_lines: 5, fill_style: '#000' }
+    { space_above_staff_ln: 4, num_lines: isSingleLine ? 5 : 5, fill_style: '#000' }
   );
   try { vfStave.setSpacingBetweenLines(Math.round(33 * viewScale)); } catch(e) { if (DEBUG) console.warn('[Pauta] stave spacing:', e.message); }
 
@@ -634,7 +657,7 @@ function _renderStaveMeasure(rc, sm) {
   const v2Indices = v2Data.map(d => d.idx);
 
   const hasV2Real = v2Notes.length > 0 && !isWholeRestPlaceholder(v2Notes);
-  const dirs1 = hasV2Real ? v1Notes.map(() => VF.Stem.UP) : calcStemDirections(v1Notes, stave.clef, ts);
+  const dirs1 = hasV2Real ? v1Notes.map(() => VF.Stem.UP) : calcStemDirections(v1Notes, stave.clef, ts, si + siOffset);
   const dirs2 = v2Notes.map(() => VF.Stem.DOWN);
 
   const vfNotes1 = buildVFNotes(v1Notes, stave.clef, mi, si + siOffset, dirs1, isBW, isBR);
@@ -701,6 +724,8 @@ function _renderStaveMeasure(rc, sm) {
       [...tups1, ...tups2].forEach(t => vfSafe(() => t.setContext(ctx).draw(), 'tuplet'));
     } catch(e) { console.warn('Render measure', mi, e.message); }
   }
+
+  if (isSingleLine) _hideNonMiddleStaffLines(container, vfStave);
 
   APP.staveLayout.push({
     mi, si: si + siOffset, x: mx, y: staveY,
@@ -1270,7 +1295,11 @@ function stemDir(pitch, clef) {
 
 // Pre-calculate stem directions for every note in a measure,
 // applying majority-vote within each beam group so they all go the same way.
-function calcStemDirections(notes, clef, ts) {
+function calcStemDirections(notes, clef, ts, si) {
+  // Single-line rhythm staff: always stems up
+  const staveObj = getStaveBySI(si);
+  if (staveObj && staveObj.singleLine) return notes.map(() => VF.Stem.UP);
+
   const beamable  = ['8','16','32'];
   const beatSize  = 4 / ts.den;
   const groupSize = (ts.num % 3 === 0 && ts.num > 3) ? beatSize * 3 : beatSize;
@@ -1345,39 +1374,48 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
   Object.assign(measureAccState, keyAccMap);
 
   const ts   = resolvedTimeSig(mi, si);
-  if (!dirs) dirs = calcStemDirections(notes, clef, ts);
+  if (!dirs) dirs = calcStemDirections(notes, clef, ts, si);
 
   return notes.reduce((arr, note, ni) => {
     try {
       let vfNote;
 
+      const staveObj = getStaveBySI(si);
+      const isSingleLine = staveObj && staveObj.singleLine;
+
       if (note.type === 'rest') {
         let restKey;
-        if (clef === 'percussion') restKey = 'd/4';
+        if (clef === 'percussion') restKey = isSingleLine ? 'd/5' : 'd/4';
         else if (clef === 'bass') restKey = note.duration === 'w' ? 'f/3' : 'd/3';
         else if (clef === 'alto') restKey = note.duration === 'w' ? 'e/4' : 'c/4';
         else if (clef === 'tenor') restKey = note.duration === 'w' ? 'c/4' : 'a/3';
         else restKey = note.duration === 'w' ? 'd/5' : 'b/4';
         const durStr  = note.duration + (note.dots ? 'd' : '') + 'r';
         vfNote = new VF.StaveNote({ keys: [restKey], duration: durStr, clef });
+        if (isSingleLine) vfNote.setKeyLine(0, 3);
         if (note.dots) { vfSafe(() => vfNote.addDot(0), 'restDot'); }
 
       } else {
         // ── Percussion ────────────────────────────────────────────
         if (clef === 'percussion') {
-          const pos = _percussionLinePos(note.pitch);
           const durStr = note.duration + (note.dots ? 'd' : '');
           vfNote = new VF.StaveNote({
-            keys: [pos.key],
+            keys: ['b/4'],
             duration: durStr,
             clef: 'percussion',
             stem_direction: dirs[ni] || VF.Stem.UP
           });
-          // Apply appropriate notehead for drum voice
-          const nhType = pos.notehead === 'x' ? 'x' :
-                         pos.notehead === 'diamond' ? 'D' :
-                         pos.notehead === 'triangle' ? 'T' : 'N';
-          vfSafe(() => vfNote.setNoteHead(nhType, 0), 'percNotehead');
+          if (isSingleLine) {
+            // Single-line rhythm staff: normal notehead on the middle line
+            vfNote.setKeyLine(0, 2);
+            vfSafe(() => vfNote.setNoteHead('N', 0), 'percNotehead');
+          } else {
+            const pos = _percussionLinePos(note.pitch);
+            const nhType = pos.notehead === 'x' ? 'x' :
+                           pos.notehead === 'diamond' ? 'D' :
+                           pos.notehead === 'triangle' ? 'T' : 'N';
+            vfSafe(() => vfNote.setNoteHead(nhType, 0), 'percNotehead');
+          }
           if (note.dots) { vfSafe(() => vfNote.addDot(0), 'percDot'); }
           arr.push(vfNote);
           return arr;
@@ -2783,8 +2821,8 @@ function renderBWNoteheads() {
   APP.score.parts.forEach(part => {
     const instr = instrByName(part.instrument || part.name);
     part.staves.forEach((_, s) => {
-      if (instr.boomwhacker)      bwSIs.add(gsi + s);
-      if (instr.beginnerRecorder) brSIs.add(gsi + s);
+      if (instr?.boomwhacker)      bwSIs.add(gsi + s);
+      if (instr?.beginnerRecorder) brSIs.add(gsi + s);
       gsi++;
     });
   });

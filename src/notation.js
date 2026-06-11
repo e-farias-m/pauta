@@ -127,6 +127,7 @@ function showRecorderExercises() {
 
 function addInstrumentToScore(score, instrName) {
   const instr  = instrByName(instrName);
+  if (!instr) return;
   const nM     = score.parts[0].staves[0].measures.length;
   const refS   = score.parts[0].staves[0];
   score.parts.push({
@@ -217,7 +218,7 @@ function _syncMeasureCounts(score) {
     }
     if (!part.name) part.name = part.instrument || 'Part';
     if (!part.instrument) part.instrument = part.name;
-    if (!part.osc) part.osc = instrByName(part.instrument).osc;
+    if (!part.osc) { const fi = instrByName(part.instrument); part.osc = fi ? fi.osc : 'triangle'; }
     part.staves.forEach(stave => {
       if (!stave.clef) stave.clef = 'treble';
       if (!Array.isArray(stave.measures)) stave.measures = [];

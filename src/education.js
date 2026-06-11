@@ -4437,3 +4437,294 @@ function showTransposeDialog() {
   `);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 6: Composition Tools — inline palette
+// ═══════════════════════════════════════════════════════════════════
+
+const MC_NOTES = ['C','D','E','F','G','A','B'];
+
+let _savedPalette = null; // saved innerHTML of #palette-body rows
+
+// ── helpers ──────────────────────────────────────────────────────
+
+function _ensureAccMap(ks) {
+  const acc = Array(7).fill('');
+  if (ks > 0) {
+    const sharpOrder = [3,0,4,1,5,2,6];
+    for (let i = 0; i < Math.min(ks, 7); i++) acc[sharpOrder[i]] = '#';
+  } else if (ks < 0) {
+    const flatOrder = [3,6,2,5,1,4,0];
+    for (let i = 0; i < Math.min(-ks, 7); i++) acc[flatOrder[i]] = 'b';
+  }
+  return acc;
+}
+
+function _savePalette() {
+  if (_savedPalette) return;
+  const body = document.getElementById('palette-body');
+  if (!body) return;
+  _savedPalette = body.innerHTML;
+}
+
+function _restorePalette() {
+  if (!_savedPalette) return;
+  const body = document.getElementById('palette-body');
+  if (body) body.innerHTML = _savedPalette;
+  _savedPalette = null;
+  delete APP.compositionMode;
+  // Re-highlight active duration
+  const activeDur = document.querySelector(`.pal-btn[data-dur="${APP.curDur}"]`);
+  if (activeDur) activeDur.classList.add('active');
+}
+
+// ── Rhythm Composer ──────────────────────────────────────────────
+
+function showRhythmComposer() {
+  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  makeModal(`
+    <h2 style="font-size:15px;margin-bottom:6px">🥁 Rhythm Composer</h2>
+    <div style="margin-bottom:6px">
+      <span style="font-size:11px;color:#4a5568">Time:</span>
+      <select id="rc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:#2d3748;margin-left:6px">
+        ${['2/4','3/4','4/4','6/8'].map(v => `<option value="${v}" ${v==='4/4'?'selected':''}>${v}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <span style="font-size:11px;color:#4a5568">Measures:</span>
+      <input type="number" id="rc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:#2d3748;margin-left:6px">
+    </div>
+    <button class="modal-btn primary" data-action="startRhythmComposer">Start Composing</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function startRhythmComposer() {
+  const tsEl = document.getElementById('rc-ts');
+  const msEl = document.getElementById('rc-meas');
+  if (!tsEl) return;
+  const [num, den] = tsEl.value.split('/').map(Number);
+  const measures = msEl ? Math.max(1, parseInt(msEl.value) || 4) : 4;
+
+  const score = createScore({ title: 'Rhythm Composition', instruments: ['Piano'], ts: {num,den}, ks: 0 });
+  score.parts[0].name = 'Rhythm';
+  score.parts[0].instrument = 'Rhythm';
+  score.parts[0].osc = 'noise';
+  score.parts[0].percussion = true;
+  const stave = score.parts[0].staves[0];
+  score.parts[0].staves = [stave]; // one stave only
+  stave.clef = 'percussion';
+  stave.singleLine = true;
+  // Grow to required measures
+  while (stave.measures.length < measures) {
+    const ref = stave.measures[0];
+    stave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [mkRest('w')] });
+  }
+
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
+  APP.inputMode = true;
+  APP.curOctave = 5;
+  document.getElementById('btn-input')?.classList.add('active');
+  renderScore();
+
+  closeModal();
+  _enterRhythmMode();
+  showToast('Tap note durations & click staff to add notes. 𝄽 to exit.');
+}
+
+function _enterRhythmMode() {
+  APP.compositionMode = 'rhythm';
+  _savePalette();
+
+  const body = document.getElementById('palette-body');
+  if (!body) return;
+
+  body.innerHTML = `
+    <!-- Rhythm row: durations -->
+    <div class="palette-row" id="rc-dur-row">
+      <button class="pal-btn" data-action="selectDur" data-dur="w">
+        <span class="pal-sym">
+          <svg width="20" height="11" viewBox="0 0 20 11">
+            <g transform="rotate(-15 10 5.5)">
+              <path fill-rule="evenodd" fill="currentColor"
+                d="M10,0.5 a8.5,4.5 0 1,0 0.01,0 Z M10,2.5 a4.5,2 0 1,1 -0.01,0 Z"/>
+            </g>
+          </svg>
+        </span>
+        <span class="pal-lbl">Whole</span>
+      </button>
+      <button class="pal-btn" data-action="selectDur" data-dur="h">
+        <span class="pal-sym">
+          <svg width="15" height="30" viewBox="0 0 15 30">
+            <g transform="rotate(-15 6 24)">
+              <path fill-rule="evenodd" fill="currentColor"
+                d="M6,19 a5.5,3.5 0 1,0 0.01,0 Z M6,21 a2.8,1.5 0 1,1 -0.01,0 Z"/>
+            </g>
+            <line x1="11.5" y1="23" x2="11.5" y2="1" stroke="currentColor" stroke-width="1.4"/>
+          </svg>
+        </span>
+        <span class="pal-lbl">Half</span>
+      </button>
+      <button class="pal-btn active" data-action="selectDur" data-dur="q">
+        <span class="pal-sym">
+          <svg width="15" height="30" viewBox="0 0 15 30">
+            <ellipse cx="6" cy="23" rx="5.5" ry="3.5" fill="currentColor" transform="rotate(-15 6 23)"/>
+            <line x1="11.5" y1="23" x2="11.5" y2="1" stroke="currentColor" stroke-width="1.4"/>
+          </svg>
+        </span>
+        <span class="pal-lbl">Quarter</span>
+      </button>
+      <button class="pal-btn" data-action="selectDur" data-dur="8">
+        <span class="pal-sym">
+          <svg width="18" height="30" viewBox="0 0 18 30">
+            <ellipse cx="6" cy="23" rx="5.5" ry="3.5" fill="currentColor" transform="rotate(-15 6 23)"/>
+            <line x1="11.5" y1="23" x2="11.5" y2="1" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M11.5 1 C16 3, 17.5 8, 12.5 13" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="pal-lbl">8th</span>
+      </button>
+      <button class="pal-btn" data-action="toggleDot">
+        <span class="pal-sym pal-sym-0">
+          <svg width="16" height="16" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="3.5"/></svg>
+        </span>
+        <span class="pal-lbl">Dot</span>
+      </button>
+      <button class="pal-btn" data-action="insertRest">
+        <span class="pal-sym pal-sym-0">
+          <svg viewBox="0 0 10 18" width="13" height="23" fill="currentColor">
+            <g transform="translate(-482.02112,-143.61753)">
+              <g transform="matrix(1.8,0,0,1.8,-471.40868,9.4615275)" stroke="none">
+                <path d="M 531.098,74.847 C 530.578,74.945 530.18,75.304 530,75.8 C 529.961,75.96 529.961,75.999 529.961,76.218 C 529.961,76.519 529.98,76.679 530.121,76.917 C 530.32,77.316 530.738,77.636 531.215,77.753 C 531.715,77.894 532.551,77.773 533.508,77.456 L 533.746,77.374 L 532.57,80.624 L 531.414,83.87 C 531.414,83.87 531.453,83.89 531.516,83.933 C 531.633,84.011 531.832,84.07 531.973,84.07 C 532.211,84.07 532.512,83.933 532.551,83.812 C 532.551,83.773 533.109,81.878 533.785,79.628 L 534.98,75.503 L 534.941,75.445 C 534.844,75.324 534.645,75.285 534.523,75.382 C 534.484,75.421 534.422,75.503 534.383,75.562 C 534.203,75.863 533.746,76.398 533.508,76.597 C 533.289,76.777 533.168,76.796 532.969,76.718 C 532.789,76.62 532.73,76.519 532.609,75.98 C 532.492,75.445 532.352,75.202 532.051,75.003 C 531.773,74.824 531.414,74.765 531.098,74.847 z"/>
+              </g>
+            </g>
+          </svg>
+        </span>
+        <span class="pal-lbl">Rest</span>
+      </button>
+      <button class="pal-btn" style="background:rgba(192,86,33,0.1)" data-action="exitCompositionMode">
+        <span class="pal-sym" style="font-size:12px">✕</span>
+        <span class="pal-lbl">Exit</span>
+      </button>
+    </div>
+    <!-- Rhythm note row -->
+    <div class="palette-row" style="gap:6px">
+      <button class="pal-btn note-key" data-action="insertNoteByName" data-name="C"><span class="pal-sym pal-sym-key" style="font-size:13px">＋ Note</span></button>
+      <span style="font-size:10px;color:rgba(74,85,104,0.5)">Add note to staff</span>
+    </div>
+  `;
+  const d = document.querySelector('#rc-dur-row [data-dur="q"]');
+  if (d) d.classList.add('active');
+}
+
+// ── Melody Composer ──────────────────────────────────────────────
+
+function showMelodyComposer() {
+  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  const KEY_NAMES = ['C♭','G♭','D♭','A♭','E♭','B♭','F','C','G','D','A','E','B','F♯','C♯'];
+  const ksOpts = [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7].map(v =>
+    `<option value="${v}" ${v===0?'selected':''}>${KEY_NAMES[v+7]||'C'}</option>`
+  ).join('');
+
+  makeModal(`
+    <h2 style="font-size:15px;margin-bottom:6px">🎵 Melody Composer</h2>
+    <div style="margin-bottom:6px">
+      <span style="font-size:11px;color:#4a5568">Key:</span>
+      <select id="mc-ks" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:#2d3748;margin-left:6px">${ksOpts}</select>
+    </div>
+    <div style="margin-bottom:6px">
+      <span style="font-size:11px;color:#4a5568">Time:</span>
+      <select id="mc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:#2d3748;margin-left:6px">
+        ${['2/4','3/4','4/4','6/8'].map(v => `<option value="${v}" ${v==='4/4'?'selected':''}>${v}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <span style="font-size:11px;color:#4a5568">Measures:</span>
+      <input type="number" id="mc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:#2d3748;margin-left:6px">
+    </div>
+    <button class="modal-btn primary" data-action="startMelodyComposer">Start Composing</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function startMelodyComposer() {
+  const ksEl = document.getElementById('mc-ks');
+  const tsEl = document.getElementById('mc-ts');
+  const msEl = document.getElementById('mc-meas');
+  if (!tsEl) return;
+  const ks = ksEl ? parseInt(ksEl.value) : 0;
+  const [num, den] = tsEl.value.split('/').map(Number);
+  const measures = msEl ? Math.max(1, parseInt(msEl.value) || 4) : 4;
+
+  const score = createScore({ title: 'Melody Composition', instruments: ['Piano'], ts: {num,den}, ks });
+  const stave = score.parts[0].staves[0];
+  while (stave.measures.length < measures) {
+    stave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [mkRest('w')] });
+  }
+
+  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
+  APP.inputMode = true;
+  APP.curOctave = 4;
+  document.getElementById('btn-input')?.classList.add('active');
+  renderScore();
+
+  closeModal();
+  _enterMelodyMode(ks);
+  showToast('🎵 Tap a scale degree, then click staff to place notes. ✕ to exit.');
+}
+
+function _enterMelodyMode(ks) {
+  APP.compositionMode = 'melody';
+  _savePalette();
+
+  const body = document.getElementById('palette-body');
+  if (!body) return;
+
+  const accMap = _ensureAccMap(ks);
+  const noteNames = MC_NOTES.map((n, i) => {
+    let name = n;
+    if (accMap[i] === '#') name += '#';
+    else if (accMap[i] === 'b') name += 'b';
+    return name;
+  });
+
+  // Scale-degree note buttons — display accidental but send plain letter name
+  const noteBtns = noteNames.map((nm, i) =>
+    `<button class="pal-btn note-key" data-action="insertNoteByName" data-name="${MC_NOTES[i]}"><span class="pal-sym pal-sym-key">${nm}</span></button>`
+  ).join('');
+
+  body.innerHTML = `
+    <!-- Melody duration row -->
+    <div class="palette-row">
+      <button class="pal-btn" data-action="selectDur" data-dur="q"><span class="pal-sym" style="font-size:16px;font-family:serif">♩</span><span class="pal-lbl">Quarter</span></button>
+      <button class="pal-btn" data-action="selectDur" data-dur="h"><span class="pal-sym" style="font-size:16px;font-family:serif">𝅘𝅥</span><span class="pal-lbl">Half</span></button>
+      <button class="pal-btn" data-action="selectDur" data-dur="w"><span class="pal-sym" style="font-size:16px;font-family:serif">𝅝</span><span class="pal-lbl">Whole</span></button>
+      <button class="pal-btn" data-action="selectDur" data-dur="8"><span class="pal-sym" style="font-size:16px;font-family:serif">♪</span><span class="pal-lbl">8th</span></button>
+      <button class="pal-btn" data-action="selectDur" data-dur="16"><span class="pal-sym" style="font-size:16px;font-family:serif">♬</span><span class="pal-lbl">16th</span></button>
+      <button class="pal-btn" data-action="toggleDot"><span class="pal-sym" style="font-size:12px">·</span><span class="pal-lbl">Dot</span></button>
+      <button class="pal-btn" data-action="changeOctave" data-delta="-1"><span class="pal-sym" style="font-size:10px">−8</span><span class="pal-lbl">Oct ↓</span></button>
+      <button class="pal-btn" data-action="changeOctave" data-delta="1"><span class="pal-sym" style="font-size:10px">+8</span><span class="pal-lbl">Oct ↑</span></button>
+      <button class="pal-btn" data-action="insertRest"><span class="pal-sym" style="font-size:14px;font-family:serif">𝄽</span><span class="pal-lbl">Rest</span></button>
+      <button class="pal-btn" style="background:rgba(192,86,33,0.1)" data-action="exitCompositionMode"><span class="pal-sym" style="font-size:12px">✕</span><span class="pal-lbl">Exit</span></button>
+    </div>
+    <!-- Scale-degree note names -->
+    <div class="palette-row">${noteBtns}</div>
+    <div style="display:flex;align-items:center;padding:2px 6px 4px;gap:8px">
+      <span id="oct-display" class="oct-display">Octave ${APP.curOctave}</span>
+      <span style="font-size:9px;color:rgba(74,85,104,0.4)">— select pitch &amp; click staff</span>
+    </div>
+  `;
+  const d = document.querySelector('.palette-row [data-dur="q"]');
+  if (d) d.classList.add('active');
+}
+
+// ── Exit Composition Mode ────────────────────────────────────────
+
+function exitCompositionMode() {
+  _restorePalette();
+  APP.inputMode = false;
+  document.getElementById('btn-input')?.classList.remove('active');
+  showToast('Composition mode exited');
+}
+

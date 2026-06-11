@@ -278,7 +278,7 @@ function getInstrForSI(si) {
 function recorderTypeForSI(si) { return getInstrForSI(si)?.recorderType || 'soprano'; }
 function isAnyRecorderSI(si) { return !!getInstrForSI(si)?.recorder; }
 function instrByName(name) {
-  return INSTRUMENTS.find(i => i.name === name) || INSTRUMENTS[0];
+  return INSTRUMENTS.find(i => i.name === name) || null;
 }
 
 // Resolve a global stave index (si) to {stave, part, localSI}
