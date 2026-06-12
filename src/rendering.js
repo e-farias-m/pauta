@@ -2095,7 +2095,7 @@ function diagActiveFill(isPlaying) { return isPlaying ? '#ff5a4a' : 'var(--pauta
 function diagActiveStroke(isPlaying) { return isPlaying ? '#e04030' : 'var(--pauta-primary)'; }
 
 // ── Large Baroque Recorder Diagram ─────────────────────────────
-function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
+function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName = '') {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('pointer-events', 'none');
