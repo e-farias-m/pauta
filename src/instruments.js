@@ -63,6 +63,9 @@ const INSTRUMENTS = [
 //   '6' = 6a (left)   '7' = 6b (right)   — double-hole pair for hole 6
 //   '8' = 7a (left)   '9' = 7b (right)   — double-hole pair for hole 7
 //   'X' = pinched (half-open) thumb
+// Display shows 8 holes (0=thumb, 1-7=front).  '6'|'7' map to hole 6.
+// '8'|'9' map to hole 7.  If either sub-hole is covered, the display
+// shows the whole hole as covered (educational simplification).
 // Data from Dolmetsch Baroque fingerings for recorder in C.
 const RECORDER_SOPRANO_FINGERINGS = {
   // 1st octave (C4–B4)

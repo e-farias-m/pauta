@@ -1926,22 +1926,22 @@ function renderLyricClickHandlers() {
 
 
 // ── Recorder fingering SVG diagram ───────────────────────────────
-// fing is a string encoding which sub-holes are covered.
+// Display mapping: 8 holes shown (0=thumb, 1-7=front tone holes).
+// Fingering data uses 10 sub-holes for precision (6a/6b and 7a/7b
+// double-hole pairs).  Display merges: '6'|'7' → hole 6, '8'|'9' → hole 7.
 // Characters: '0'(thumb) '1'-'5'(single holes) '6'(6a) '7'(6b) '8'(7a) '9'(7b).
 // 'X' = pinched (half-open) thumb.
 // Covered = solid dark fill.  Open = transparent ring (cream page shows
 // through centre) with thick dark outline.  Pinched thumb = top-half filled.
 const RECORDER_HOLES = [
-  [ '0',  4,  4, 3.0, 2.0, true  ],  // thumb — oval, wide
-  [ '1', 12,  8, 3.0, 2.0, true  ],  // single — oval
-  [ '2', 12, 13.5, 3.0, 2.0, true  ],
-  [ '3', 12, 19, 3.0, 2.0, true  ],
-  [ '4', 12, 25, 3.0, 2.0, true  ],
-  [ '5', 12, 30.5, 3.0, 2.0, true  ],
-  [ '6', 10, 36.5, 2.2, 2.2, false ],  // 6a — circle
-  [ '7', 14, 36.5, 2.2, 2.2, false ],  // 6b
-  [ '8', 10, 42,   2.2, 2.2, false ],  // 7a
-  [ '9', 14, 42,   2.2, 2.2, false ],  // 7b
+  [ '0',  4,  5,  4.0, 3.0, true  ],  // thumb — oval, wide
+  [ '1', 15,  9,  4.0, 3.5, true  ],  // single — oval
+  [ '2', 15, 15.5, 4.0, 3.5, true  ],
+  [ '3', 15, 22,  4.0, 3.5, true  ],
+  [ '4', 15, 28.5, 4.0, 3.5, true  ],
+  [ '5', 15, 35,  4.0, 3.5, true  ],
+  [ '6', 15, 41.5, 4.5, 3.5, false ],  // double-hole 6 (wider)
+  [ '7', 15, 48,  4.5, 3.5, false ],  // double-hole 7 (wider)
 ];
 
 function renderRecorderFingSVG(fing, cx, cy, scale) {
@@ -1953,8 +1953,14 @@ function renderRecorderFingSVG(fing, cx, cy, scale) {
   const covered = new Set(fing.split(''));
   const thumbPinched = covered.has('X');
 
+  function isHoleCovered(holeId) {
+    if (holeId === '6') return covered.has('6') || covered.has('7');
+    if (holeId === '7') return covered.has('8') || covered.has('9');
+    return covered.has(holeId);
+  }
+
   for (const [id, hx, hy, rx, ry, isEllipse] of RECORDER_HOLES) {
-    const isCovered = covered.has(id);
+    const isCovered = isHoleCovered(id);
     const el = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
     el.setAttribute('cx', hx);
     el.setAttribute('cy', hy);
@@ -2142,51 +2148,29 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   bodyGrp.appendChild(p('m318.03 319.91c1.2 7.63 3.54 16.57-3 20.34h-7.68c-6.28-4.27-3.66-12.8-2.94-20.39', '#b09070', '#7a5a30', '0.5'));
 
   inner.appendChild(bodyGrp);
-
-  // SVG hole positions (inner-space coordinates, natural orientation)
-  // Mouthpiece at top (low Y), bell/double holes at bottom (high Y)
-  // IDs match fingering string positions: 0=thumb, 1-5=holes 1-5, 6-7=double 6, 8-9=double 7
+  // SVG hole positions — 8 display holes (0=thumb, 1-7=front tone holes)
+  // Display mapping merges double sub-holes: fingering '6'|'7' → hole 6, '8'|'9' → hole 7.
   const SVG_HOLES = [
-    [ '0', 24.8, -278.0, 6.3, false ],   // thumb (centered on body)
-    [ '1', 24.8, -312.5, 6.3, false ],   // hole 1
-    [ '2', 24.8, -350.0, 6.3, false ],   // hole 2
-    [ '3', 24.8, -380.6, 4.1, false ],   // hole 3
-    [ '4', 24.8, -414.7, 6.3, false ],   // hole 4
-    [ '5', 24.8, -440.5, 6.3, false ],   // hole 5
-    [ '6', 20.8, -465.0, 3.6, false ],   // 6a (left)
-    [ '7', 29.7, -466.0, 2.6, false ],   // 6b (right)
-    [ '8', 17.1, -490.0, 3.6, false ],   // 7a (left)
-    [ '9', 25.2, -491.0, 2.6, false ],   // 7b (right, nearest bell)
+    [ '0', 24.8, -278.0, 7.0, false ],   // thumb
+    [ '1', 24.8, -312.5, 7.0, false ],   // hole 1
+    [ '2', 24.8, -350.0, 7.0, false ],   // hole 2
+    [ '3', 24.8, -380.6, 5.5, false ],   // hole 3
+    [ '4', 24.8, -414.7, 7.0, false ],   // hole 4
+    [ '5', 24.8, -440.5, 7.0, false ],   // hole 5
+    [ '6', 24.8, -465.0, 8.0, false ],   // hole 6 (double, wider)
+    [ '7', 24.8, -490.0, 8.0, false ],   // hole 7 (double, wider)
   ];
 
   // Thumb indicator — mirrors thumb state, shown left of body
-  const THUMB_INDICATOR = [2, -278.0, 6.3];
+  const THUMB_INDICATOR = [2, -278.0, 7.0];
 
-  // Built-in hole base shapes (inner-space coordinates) — main holes 0-5
-  const holeDefs = [
-    [24.8,-278.0,6.3],[24.8,-312.5,6.3],[24.8,-350.0,6.3],
-    [24.8,-380.6,4.1],[24.8,-414.7,6.3],[24.8,-440.5,6.3]
-  ];
+  // Built-in hole base shapes (inner-space coordinates) — all 8 holes
+  const holeDefs = SVG_HOLES.map(([,hx,hy,rx]) => [hx, hy, rx]);
   for (const [hx, hy, hr] of holeDefs) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.8');
-    inner.appendChild(el);
-  }
-  // Double holes 6a/6b, 7a/7b
-  for (const [hx, hy, hr] of [[20.8,-465.0,3.6],[29.7,-466.0,2.6]]) {
-    const el = document.createElementNS(ns, 'circle');
-    el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
-    el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
-    el.setAttribute('stroke-width', '0.6');
-    inner.appendChild(el);
-  }
-  for (const [hx, hy, hr] of [[17.1,-490.0,3.6],[25.2,-491.0,2.6]]) {
-    const el = document.createElementNS(ns, 'circle');
-    el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
-    el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
-    el.setAttribute('stroke-width', '0.6');
     inner.appendChild(el);
   }
 
@@ -2201,12 +2185,22 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   const covered = pf.covered;
   const halfHole = pf.halfHole;
 
-  const holeLabelStyle = 'font-family:var(--pauta-font-sans);font-size:3.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
+  const holeLabelStyle = 'font-family:var(--pauta-font-sans);font-size:4.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
+
+  // Map 10-position fingering data to 8 display holes
+  function isDisplayCovered(displayId) {
+    if (displayId === '6') return covered.has(6) || covered.has(7);
+    if (displayId === '7') return covered.has(8) || covered.has(9);
+    return covered.has(parseInt(displayId));
+  }
+  function isDisplayHalf(displayId) {
+    if (displayId === '0') return halfHole.has(0);
+    return false;
+  }
 
   for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
-    const idx = SVG_HOLES.indexOf(SVG_HOLES.find(h => h[0] === id));
-    const isCovered = covered.has(+id);
-    const isHalf = halfHole.has(idx);
+    const isCovered = isDisplayCovered(id);
+    const isHalf = isDisplayHalf(id);
     const drawRx = (isCovered || isHalf) ? rx * 1.2 : rx;
 
     const el = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
@@ -2236,19 +2230,15 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
     }
 
     // Hole number label (above each hole)
-    // ID '0' = thumb (label "T"), IDs '1'-'5' = holes 1-5, IDs '6'-'9' = double holes (no label)
-    const isMainHole = id === '0' || (id >= '1' && id <= '5');
-    if (isMainHole) {
-      const holeLabel = id === '0' ? 'T' : id;
-      const lblY = hy - drawRx - 1.5;
-      const lbl = document.createElementNS(ns, 'text');
-      lbl.setAttribute('x', hx);
-      lbl.setAttribute('y', lblY);
-      lbl.setAttribute('style', holeLabelStyle);
-      lbl.setAttribute('transform', `translate(${hx},${lblY}) scale(1,-1) translate(${-hx},${-lblY})`);
-      lbl.textContent = holeLabel;
-      inner.appendChild(lbl);
-    }
+    const holeLabel = id === '0' ? 'T' : id;
+    const lblY = hy - drawRx - 2;
+    const lbl = document.createElementNS(ns, 'text');
+    lbl.setAttribute('x', hx);
+    lbl.setAttribute('y', lblY);
+    lbl.setAttribute('style', holeLabelStyle);
+    lbl.setAttribute('transform', `translate(${hx},${lblY}) scale(1,-1) translate(${-hx},${-lblY})`);
+    lbl.textContent = holeLabel;
+    inner.appendChild(lbl);
   }
 
   // Thumb indicator overlay (left of body, mirrors thumb state)
