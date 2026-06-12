@@ -2160,7 +2160,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     } else {
       el.setAttribute('fill', 'none');
       el.setAttribute('stroke', '#222');
-      el.setAttribute('stroke-width', '8');
+      el.setAttribute('stroke-width', '4');
     }
     inner.appendChild(el);
 
