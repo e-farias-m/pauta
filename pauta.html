@@ -1790,6 +1790,9 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
 
 
+
+
+
 <style id="design-system">
 /* ═══════════════════════════════════════════════════════════════════
    Pauta Design System
@@ -16950,29 +16953,10 @@ function _renderNewScoreDialog(restoreScroll) {
   const instrList = INSTRUMENTS.filter(i => i.family === _ndFamily && levelInstrs.includes(i.name));
 
   // Family tab buttons
-  const famBtns = families.map(f => `
-    <button data-action="selectNDFamily" data-family="${f}"
-      style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_ndFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
-             background:${f===_ndFamily?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
-             color:${f===_ndFamily?'var(--pauta-primary)':'var(--pauta-text-subtle)'};font-size:11px;font-weight:${f===_ndFamily?'700':'500'};
-             cursor:pointer;white-space:nowrap;font-family:var(--pauta-font-sans)">
-      ${f}
-    </button>`).join('');
+  const famBtns = families.map(f => pillBtn(f, {active: f === _ndFamily, action: 'selectNDFamily', className: `data-family="${f}"`})).join('');
 
   // Instrument grid buttons
-  const instrBtns = instrList.map(i => {
-    const count = _ndSelectedInstruments.get(i.name) || 0;
-    const sel = count > 0;
-    return `
-    <button data-action="selectNDInstr" data-name="${i.name}"
-      class="nd-instr-btn${sel ? ' nd-sel' : ''}"
-      style="padding:8px 6px;border-radius:8px;border:1px solid ${sel ? 'rgba(192,86,33,0.55)' : 'rgba(192,86,33,0.28)'};
-             background:${sel ? 'rgba(192,86,33,0.12)' : 'rgba(192,86,33,0.06)'};color:${sel ? 'var(--pauta-primary)' : 'var(--pauta-text)'};font-size:11px;font-weight:500;cursor:pointer;
-             text-align:left;font-family:var(--pauta-font-sans);
-             -webkit-tap-highlight-color:transparent">
-      ${i.name}${count ? ` <span class="nd-count" style="background:var(--pauta-primary);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : ''}
-    </button>`;
-  }).join('');
+  const instrBtns = instrList.map(i => instrGridBtn(i.name, _ndSelectedInstruments.get(i.name) || 0)).join('');
 
   const totalSelected = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
   const createLabel = totalSelected === 0 ? 'Select an instrument first' : 'Create';
@@ -16995,11 +16979,11 @@ function _renderNewScoreDialog(restoreScroll) {
       <h2 style="margin:0">New Score</h2>
       <div style="opacity:0.3"><span style="color:var(--pauta-primary);font-weight:700;font-size:16px">p</span><span style="color:var(--pauta-text);font-weight:300;font-size:16px">auta</span></div>
     </div>
-    <input id="nd-title" placeholder="Title" value="${prevTitle.replace(/"/g,'&quot;')}">
-    <input id="nd-composer" placeholder="Composer (optional)" value="${prevComposer.replace(/"/g,'&quot;')}">
+    ${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}
+    ${input({id: 'nd-composer', placeholder: 'Composer (optional)', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}
 
     <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
-      <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;display:block;text-align:center;margin-bottom:4px;font-weight:600">Key &amp; Time Signature</label>
+      ${sectionLabel('Key &amp; Time Signature')}
       <div style="display:flex;gap:4px;align-items:stretch">
         <!-- Key Signature -->
         <div style="flex:1;background:rgba(255,255,255,0.03);border-radius:8px;padding:4px 2px">
@@ -17010,8 +16994,8 @@ function _renderNewScoreDialog(restoreScroll) {
               <span id="nd-ks-label" style="font-size:10px;color:var(--pauta-primary);font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-              <button id="nd-ks-next" data-action="ndKSAdj" data-delta="1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <button id="nd-ks-prev" data-action="ndKSAdj" data-delta="-1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              ${iconBtn('▲', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', id: 'nd-ks-next', dataAttrs: {delta: 1}})}
+              ${iconBtn('▼', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', id: 'nd-ks-prev', dataAttrs: {delta: -1}})}
             </div>
           </div>
           <div id="nd-ks-accel" style="text-align:center;font-size:9px;color:rgba(74,85,104,0.50)"></div>
@@ -17022,15 +17006,15 @@ function _renderNewScoreDialog(restoreScroll) {
           <input type="hidden" id="nd-ts-den" value="${initTSden}">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button data-action="ndTSNumAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              ${iconBtn('▲', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-num-up', dataAttrs: {delta: 1}})}
               <span id="nd-ts-num-label" style="font-size:24px;color:var(--pauta-primary);font-weight:700;font-family:var(--pauta-font-sans);line-height:1">${initTSnum}</span>
-              <button data-action="ndTSNumAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              ${iconBtn('▼', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-num-down', dataAttrs: {delta: -1}})}
             </div>
             <span style="font-size:24px;color:rgba(74,85,104,0.40);font-weight:100;line-height:1">/</span>
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button data-action="ndTSDenAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              ${iconBtn('▲', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-den-up', dataAttrs: {delta: 1}})}
               <span id="nd-ts-den-label" style="font-size:24px;color:var(--pauta-primary);font-weight:700;font-family:var(--pauta-font-sans);line-height:1">${initTSden}</span>
-              <button data-action="ndTSDenAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              ${iconBtn('▼', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-den-down', dataAttrs: {delta: -1}})}
             </div>
           </div>
         </div>
@@ -17039,17 +17023,11 @@ function _renderNewScoreDialog(restoreScroll) {
 
     <!-- Pickup measure toggle -->
     <div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding:2px 4px">
-      <input type="checkbox" id="nd-pickup" data-action="ndPickupToggle"
-        style="accent-color:var(--pauta-primary);width:14px;height:14px;cursor:pointer" ${prevPickup ? 'checked' : ''}>
-      <label for="nd-pickup" style="color:var(--pal-label);font-size:10px;cursor:pointer">Pickup measure</label>
+      ${checkbox({id: 'nd-pickup', label: 'Pickup measure', checked: prevPickup, action: 'ndPickupToggle'})}
       <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:4px;margin-left:auto">
-        <select id="nd-pu-num" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-muted);border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
-          ${[1,2,3,4,5,6,7].map(v => `<option value="${v}" ${String(v) === prevPuNum ? 'selected' : ''}>${v}</option>`).join('')}
-        </select>
+        ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum})}
         <span style="color:rgba(74,85,104,0.40);font-size:14px">/</span>
-        <select id="nd-pu-den" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-muted);border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
-          ${['4','8'].map(v => `<option value="${v}" ${v === prevPuDen ? 'selected' : ''}>${v}</option>`).join('')}
-        </select>
+        ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen})}
       </span>
     </div>
 
@@ -17062,7 +17040,7 @@ function _renderNewScoreDialog(restoreScroll) {
       const _ll = _levelLabels[FAMILY_KIT_MAP[_ndFamily]] || { beginner:'', intermediate:'', advanced:'' };
       return `
     <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
-      <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;display:block;text-align:center;margin-bottom:4px;font-weight:600">Level<span style="font-weight:400;color:rgba(74,85,104,0.5)"> — ${_kitName}</span></label>
+      ${sectionLabel(`Level — ${_kitName}`)}
       <div style="display:flex;gap:4px">
           ${['beginner','intermediate','advanced'].map(lvl => `
           <button data-action="ndSelectLevel" data-level="${lvl}"
@@ -17077,8 +17055,7 @@ function _renderNewScoreDialog(restoreScroll) {
       </div>
     </div>`; })() : ''}
 
-    <label style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;
-                  letter-spacing:0.3px;margin-top:4px;display:block;font-weight:600">Instruments <span id="nd-instr-count" style="font-weight:400">(0)</span></label>
+    ${sectionLabel('Instruments')} <span id="nd-instr-count" style="font-weight:400">(0)</span>
 
     <!-- Family tabs -->
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
@@ -17091,8 +17068,10 @@ function _renderNewScoreDialog(restoreScroll) {
       ${instrBtns}
     </div>
 
-    <button class="modal-btn primary" style="${createStyle}" data-action="createNewScore">${createLabel}</button>
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      ${btn(createLabel, {variant: 'primary', block: true, disabled: totalSelected === 0, action: 'createNewScore'})}
+      ${btn('Cancel', {variant: 'secondary', block: true, action: 'closeModal'})}
+    </div>
   `);
 
   if (restoreScroll) {
@@ -18142,11 +18121,30 @@ function gridItem(content, {span = 1} = {}) {
 }
 
 // Simple icon button for compact controls
-function iconBtn(icon, {variant = 'ghost', size = 'sm', action = '', title = '', className = ''} = {}) {
+function iconBtn(icon, {variant = 'ghost', size = 'sm', action = '', title = '', className = '', id = '', dataAttrs = {}} = {}) {
   const actionAttr = action ? ` data-action="${action}"` : '';
   const classAttr = className ? ` ${className}` : '';
   const titleAttr = title ? ` title="${title}"` : '';
-  return `<button class="pauta-btn ${variant} ${size} icon-only"${actionAttr}${titleAttr}${classAttr}>${icon}</button>`;
+  const idAttr = id ? ` id="${id}"` : '';
+  const dataAttrsStr = Object.entries(dataAttrs).map(([k, v]) => ` data-${k}="${v}"`).join(' ');
+  return `<button class="pauta-btn ${variant} ${size} icon-only"${actionAttr}${titleAttr}${classAttr}${idAttr} ${dataAttrsStr}>${icon}</button>`;
+}
+
+// Pill-style button for tab/segmented controls
+function pillBtn(label, {active = false, action = '', className = ''} = {}) {
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const classAttr = className ? ` ${className}` : '';
+  const activeClass = active ? ' active' : '';
+  return `<button class="pauta-pill${activeClass}${classAttr}"${actionAttr}>${label}</button>`;
+}
+
+// Instrument grid item (used in New Score)
+function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
+  const sel = count > 0;
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const selClass = sel ? ' nd-sel' : '';
+  const countHtml = count ? `<span class="nd-count" style="background:var(--pauta-primary);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : '';
+  return `<button${actionAttr} data-name="${name}" class="nd-instr-btn${selClass}">${name}${countHtml}</button>`;
 }
 })();
 
