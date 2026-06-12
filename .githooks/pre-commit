@@ -1,0 +1,29 @@
+#!/bin/bash
+# Pre-commit hook: reject commit if src/*.js is newer than pauta.html
+# Forces running `node build.js` before committing.
+# Install: git config core.hooksPath .githooks
+
+set -e
+
+PAUTA="pauta.html"
+
+if [ ! -f "$PAUTA" ]; then
+  echo "ERROR: $PAUTA not found — run 'node build.js' first."
+  exit 1
+fi
+
+PAUTA_MTIME=$(stat -f %m "$PAUTA" 2>/dev/null || echo 0)
+
+NEWEST_SRC_MTIME=0
+for f in src/*.js; do
+  [ -f "$f" ] || continue
+  SRC_MTIME=$(stat -f %m "$f" 2>/dev/null || echo 0)
+  [ "$SRC_MTIME" -gt "$NEWEST_SRC_MTIME" ] && NEWEST_SRC_MTIME=$SRC_MTIME
+done
+
+if [ "$NEWEST_SRC_MTIME" -gt "$PAUTA_MTIME" ]; then
+  echo "ERROR: src/*.js is newer than $PAUTA."
+  echo "Run 'node build.js' to rebuild, then commit again."
+  echo "  \$ node build.js && git add $PAUTA && git commit"
+  exit 1
+fi
