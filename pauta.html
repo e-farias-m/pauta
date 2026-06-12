@@ -1784,6 +1784,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
 
 
+
 <style id="design-system">
 /* ═══════════════════════════════════════════════════════════════════
    Pauta Design System
@@ -6385,7 +6386,7 @@ function diagActiveFill(isPlaying) { return isPlaying ? '#ff5a4a' : 'var(--pauta
 function diagActiveStroke(isPlaying) { return isPlaying ? '#e04030' : 'var(--pauta-primary)'; }
 
 // ── Large Baroque Recorder Diagram ─────────────────────────────
-function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
+function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName = '') {
   const ns = 'http://www.w3.org/2000/svg';
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('pointer-events', 'none');
@@ -6403,7 +6404,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   const CX_L = -3.2;         // left-column x (d=28 from CX_R — double gap)
   const R = 14.0;            // all circles
   const DY = 44;             // vertical spacing
-  const Y0 = -180;           // top row y (raised on page)
+  const Y0 = -80;            // top row y (higher on page)
 
   const SVG_HOLES = [
     [ 'T',  CX_L, Y0,          ],
@@ -6423,7 +6424,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   const sep = document.createElementNS(ns, 'line');
   sep.setAttribute('x1', '-20'); sep.setAttribute('y1', sepY);
   sep.setAttribute('x2', '42');  sep.setAttribute('y2', sepY);
-  sep.setAttribute('stroke', '#222'); sep.setAttribute('stroke-width', '1.2');
+  sep.setAttribute('stroke', '#222'); sep.setAttribute('stroke-width', '2');
   inner.appendChild(sep);
 
   const covered = pf.covered;
@@ -6450,7 +6451,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
     } else {
       el.setAttribute('fill', 'none');
       el.setAttribute('stroke', '#222');
-      el.setAttribute('stroke-width', '1.2');
+      el.setAttribute('stroke-width', '8');
     }
     inner.appendChild(el);
 
@@ -6471,7 +6472,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   g.appendChild(inner);
 
   // ── Note name ─────────────────────────────────────────────────
-  diagNoteName(inner, noteName, 25, -160, { size: '8', flipY: true });
+  diagNoteName(inner, noteName, 25, -60, { size: '8', flipY: true });
 
   // ── Alternate-fingering click overlay ─────────────────────────
   diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 280, updateRecorderDiagram, { x: '12', y: '-460', tx: '38', ty: '-233', fontSize: '4', flipY: true });
