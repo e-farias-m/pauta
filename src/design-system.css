@@ -390,6 +390,86 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   Form Components
+   ════════════════════════════════════════════════════════════════════ */
+
+.pauta-input,
+.pauta-select,
+.pauta-textarea {
+  display: block;
+  width: 100%;
+  padding: var(--pauta-space-sm) var(--pauta-space-md);
+  font-size: var(--pauta-text-md);
+  font-family: var(--pauta-font-sans);
+  color: var(--pauta-text);
+  background: var(--pauta-bg-card);
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: var(--pauta-radius-md);
+  transition: var(--pauta-transition);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.pauta-input:focus,
+.pauta-select:focus,
+.pauta-textarea:focus {
+  outline: none;
+  border-color: var(--pauta-primary);
+  box-shadow: 0 0 0 3px rgba(192,86,33,0.15);
+}
+.pauta-input::placeholder {
+  color: var(--pauta-text-subtle);
+}
+.pauta-input:disabled,
+.pauta-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--pauta-bg);
+}
+
+.pauta-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A5568' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--pauta-space-md) center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.pauta-label {
+  display: block;
+  font-size: var(--pauta-text-sm);
+  font-weight: 600;
+  color: var(--pauta-text);
+  margin-bottom: var(--pauta-space-xs);
+}
+
+.pauta-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pauta-space-xs);
+}
+
+.pauta-checkbox,
+.pauta-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pauta-space-sm);
+  cursor: pointer;
+}
+.pauta-checkbox input,
+.pauta-radio input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--pauta-primary);
+  cursor: pointer;
+}
+.pauta-checkbox label,
+.pauta-radio label {
+  font-size: var(--pauta-text-md);
+  color: var(--pauta-text);
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Shared Modal Component
    ═══════════════════════════════════════════════════════════════════ */
 
