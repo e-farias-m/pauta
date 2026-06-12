@@ -1787,6 +1787,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
 
 
+
 <style id="design-system">
 /* ═══════════════════════════════════════════════════════════════════
    Pauta Design System
@@ -1985,6 +1986,164 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 .pauta-pill:hover:not(.active) {
   border-color: var(--pauta-primary);
   color: var(--pauta-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Button Component
+   ════════════════════════════════════════════════════════════════════ */
+
+.pauta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pauta-space-xs);
+  border: 1px solid transparent;
+  border-radius: var(--pauta-radius-md);
+  padding: var(--pauta-space-sm) var(--pauta-space-md);
+  font-size: var(--pauta-text-md);
+  font-weight: 600;
+  font-family: var(--pauta-font-sans);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.pauta-btn:disabled,
+.pauta-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.pauta-btn:focus-visible {
+  outline: 2px solid var(--pauta-primary);
+  outline-offset: 2px;
+}
+
+/* Primary - main actions */
+.pauta-btn.primary {
+  background: var(--pauta-primary);
+  color: #fff;
+  border-color: var(--pauta-primary);
+}
+.pauta-btn.primary:hover:not(:disabled) {
+  background: var(--pauta-primary-dark);
+  border-color: var(--pauta-primary-dark);
+}
+.pauta-btn.primary:active:not(:disabled) {
+  background: var(--pauta-primary-dark);
+  transform: scale(0.98);
+}
+
+/* Secondary - alternative actions */
+.pauta-btn.secondary {
+  background: var(--pauta-bg-card);
+  color: var(--pauta-text);
+  border-color: rgba(0,0,0,0.12);
+}
+.pauta-btn.secondary:hover:not(:disabled) {
+  background: var(--pauta-bg);
+  border-color: rgba(0,0,0,0.2);
+}
+.pauta-btn.secondary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Danger - destructive actions */
+.pauta-btn.danger {
+  background: var(--pauta-error);
+  color: #fff;
+  border-color: var(--pauta-error);
+}
+.pauta-btn.danger:hover:not(:disabled) {
+  background: #c84330;
+  border-color: #c84330;
+}
+.pauta-btn.danger:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Ghost - subtle actions */
+.pauta-btn.ghost {
+  background: transparent;
+  color: var(--pauta-text);
+  border-color: transparent;
+}
+.pauta-btn.ghost:hover:not(:disabled) {
+  background: rgba(0,0,0,0.06);
+}
+.pauta-btn.ghost:active:not(:disabled) {
+  background: rgba(0,0,0,0.1);
+}
+
+/* Size variants */
+.pauta-btn.sm {
+  padding: var(--pauta-space-xs) var(--pauta-space-sm);
+  font-size: var(--pauta-text-sm);
+}
+.pauta-btn.lg {
+  padding: var(--pauta-space-md) var(--pauta-space-lg);
+  font-size: var(--pauta-text-lg);
+}
+.pauta-btn.icon-only {
+  padding: var(--pauta-space-sm);
+  border-radius: var(--pauta-radius-full);
+}
+
+/* Full width */
+.pauta-btn.block {
+  width: 100%;
+}
+
+/* Backward-compat aliases for existing modal-btn usage */
+.modal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pauta-space-xs);
+  border: 1px solid transparent;
+  border-radius: var(--pauta-radius-md);
+  padding: var(--pauta-space-sm) var(--pauta-space-md);
+  font-size: var(--pauta-text-md);
+  font-weight: 600;
+  font-family: var(--pauta-font-sans);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.modal-btn:disabled,
+.modal-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.modal-btn:focus-visible {
+  outline: 2px solid var(--pauta-primary);
+  outline-offset: 2px;
+}
+.modal-btn.primary {
+  background: var(--pauta-primary);
+  color: #fff;
+  border-color: var(--pauta-primary);
+}
+.modal-btn.primary:hover:not(:disabled) {
+  background: var(--pauta-primary-dark);
+  border-color: var(--pauta-primary-dark);
+}
+.modal-btn.primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.modal-btn.secondary {
+  background: var(--pauta-bg-card);
+  color: var(--pauta-text);
+  border-color: rgba(0,0,0,0.12);
+}
+.modal-btn.secondary:hover:not(:disabled) {
+  background: var(--pauta-bg);
+  border-color: rgba(0,0,0,0.2);
+}
+.modal-btn.secondary:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 /* Stats Row */
