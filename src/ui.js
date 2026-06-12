@@ -1495,6 +1495,7 @@ function _ksMiniSVG(ks) {
 let _ndFamily = 'Recorder'; // tracks selected family between renders
 let _ndSelectedInstruments = new Map(); // name → count (allows duplicates)
 let _ndLevel = 'advanced';              // beginner | intermediate | advanced
+let _ndScrollPos = 0;                    // preserved scroll position for dialog
 const TS_DEN_VALUES = [1, 2, 4, 8, 16, 32];
 
 function showNewScoreDialog() {
@@ -1504,7 +1505,7 @@ function showNewScoreDialog() {
   _renderNewScoreDialog();
 }
 
-function _renderNewScoreDialog() {
+function _renderNewScoreDialog(restoreScroll) {
   const famOrder = ['Recorder','Brass','Woodwinds','Voice'];
   // Temporarily activate the kit for the current family during render
   const _savedKit = APP.teachingKit;
@@ -1676,6 +1677,11 @@ function _renderNewScoreDialog() {
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 
+  if (restoreScroll) {
+    const modal = document.querySelector('.pauta-modal');
+    if (modal) modal.scrollTop = restoreScroll;
+  }
+
   // Update count display
   setTimeout(() => {
     const total = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
@@ -1686,7 +1692,8 @@ function _renderNewScoreDialog() {
 
 function selectNDFamily(fam) {
   _ndFamily = fam;
-  _renderNewScoreDialog();
+  _ndScrollPos = getNDScrollPos();
+  _renderNewScoreDialog(_ndScrollPos);
 }
 
 function ndSelectLevel(lvl) {
@@ -1704,7 +1711,13 @@ function ndSelectLevel(lvl) {
   for (const [name] of _ndSelectedInstruments) {
     if (!allowed.includes(name)) _ndSelectedInstruments.delete(name);
   }
-  _renderNewScoreDialog();
+  _ndScrollPos = getNDScrollPos();
+  _renderNewScoreDialog(_ndScrollPos);
+}
+
+function getNDScrollPos() {
+  const modal = document.querySelector('.pauta-modal');
+  return modal ? modal.scrollTop : 0;
 }
 
 function ndKSAdj(dir) {
@@ -2577,14 +2590,43 @@ _registerAction('selectNDInstr', (e) => {
   if (!btn) return;
   const name = btn.dataset.name;
   const cur = _ndSelectedInstruments.get(name) || 0;
+  let newCount;
   if (cur === 0) {
     _ndSelectedInstruments.set(name, 1);
+    newCount = 1;
   } else if (cur === 1) {
     _ndSelectedInstruments.delete(name);
+    newCount = 0;
   } else {
     _ndSelectedInstruments.set(name, cur - 1);
+    newCount = cur - 1;
   }
-  _renderNewScoreDialog();
+  const sel = newCount > 0;
+  btn.classList.toggle('nd-sel', sel);
+  btn.style.borderColor = sel ? 'rgba(192,86,33,0.55)' : 'rgba(192,86,33,0.28)';
+  btn.style.background = sel ? 'rgba(192,86,33,0.12)' : 'rgba(192,86,33,0.06)';
+  btn.style.color = sel ? 'var(--pauta-primary)' : 'var(--pauta-text)';
+  let countSpan = btn.querySelector('.nd-count');
+  if (newCount > 0) {
+    if (!countSpan) {
+      countSpan = document.createElement('span');
+      countSpan.className = 'nd-count';
+      countSpan.style.cssText = 'background:var(--pauta-primary);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px';
+      btn.appendChild(countSpan);
+    }
+    countSpan.textContent = newCount;
+  } else if (countSpan) {
+    countSpan.remove();
+  }
+  const total = [..._ndSelectedInstruments.values()].reduce((a, b) => a + b, 0);
+  const c = document.getElementById('nd-instr-count');
+  if (c) c.textContent = '(' + total + ')';
+  const createBtn = document.querySelector('[data-action="createNewScore"]');
+  if (createBtn) {
+    createBtn.textContent = total === 0 ? 'Select an instrument first' : 'Create';
+    createBtn.style.opacity = total === 0 ? '0.5' : '1';
+    createBtn.style.pointerEvents = total === 0 ? 'none' : 'auto';
+  }
 });
 
 // Single delegated click handler for all [data-action] elements
