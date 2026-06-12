@@ -2657,4 +2657,77 @@ document.addEventListener('change', (e) => {
   const fn = _ACTION_MAP[el.dataset.action];
   if (fn) fn(e);
 });
+
+// ── UI Component Helpers (design-system aligned) ─────────────────────
+
+function btn(label, {variant = 'primary', size = 'md', block = false, icon = '', action, className = '', disabled = false} = {}) {
+  const variantClass = variant ? ` ${variant}` : '';
+  const sizeClass = size !== 'md' ? ` ${size}` : '';
+  const blockClass = block ? ' block' : '';
+  const disabledAttr = disabled ? ' disabled' : '';
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const classAttr = className ? ` ${className}` : '';
+  const iconHtml = icon ? `<span>${icon}</span>` : '';
+  return `<button class="pauta-btn${variantClass}${sizeClass}${blockClass}${classAttr}"${actionAttr}${disabledAttr}>${iconHtml}${label}</button>`;
+}
+
+function input({id, placeholder = '', value = '', type = 'text', label = '', required = false, action = '', className = ''} = {}) {
+  const labelHtml = label ? `<label class="pauta-label" for="${id}">${label}${required ? ' *' : ''}</label>` : '';
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const classAttr = className ? ` ${className}` : '';
+  return `${labelHtml}<input class="pauta-input${classAttr}" id="${id}" type="${type}" placeholder="${placeholder}" value="${value}"${actionAttr} ${required ? 'required' : ''}>`;
+}
+
+function select({id, options = [], value = '', label = '', action = '', className = ''} = {}) {
+  const labelHtml = label ? `<label class="pauta-label" for="${id}">${label}</label>` : '';
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const classAttr = className ? ` ${className}` : '';
+  const optsHtml = options.map(o => `<option value="${o.value}" ${o.value === value ? 'selected' : ''}>${o.label}</option>`).join('');
+  return `${labelHtml}<select class="pauta-select${classAttr}" id="${id}"${actionAttr}>${optsHtml}</select>`;
+}
+
+function checkbox({id, label = '', checked = false, action = '', className = ''} = {}) {
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const classAttr = className ? ` ${className}` : '';
+  return `<label class="pauta-checkbox${classAttr}"><input type="checkbox" id="${id}"${checked ? ' checked' : ''}${actionAttr}><span>${label}</span></label>`;
+}
+
+function badge(text, {variant = 'default'} = {}) {
+  return `<span class="pauta-badge ${variant}">${text}</span>`;
+}
+
+function card({title = '', desc = '', meta = '', badge = '', action = '', className = ''} = {}) {
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const classAttr = className ? ` ${className}` : '';
+  const badgeHtml = badge ? `<span class="pauta-card-badge">${badge}</span>` : '';
+  return `<div class="pauta-card${classAttr}"${actionAttr}>${badgeHtml}<div class="pauta-card-title">${title}</div>${desc ? `<div class="pauta-card-desc">${desc}</div>` : ''}${meta ? `<div class="pauta-card-meta">${meta}</div>` : ''}</div>`;
+}
+
+function modalHeader({title = '', subtitle = '', actions = ''} = {}) {
+  return `<div class="pauta-modal-header"><h2 class="pauta-modal-title">${title}</h2>${subtitle ? `<p class="pauta-modal-subtitle">${subtitle}</p>` : ''}${actions}</div>`;
+}
+
+function modalBody(content = '') {
+  return `<div class="pauta-modal-body">${content}</div>`;
+}
+
+function modalFooter(content = '') {
+  return `<div class="pauta-modal-footer">${content}</div>`;
+}
+
+function sectionLabel(text) {
+  return `<label class="pauta-section-label" style="color:rgba(74,85,104,0.70);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;margin-top:4px;display:block;font-weight:600">${text}</label>`;
+}
+
+function gridItem(content, {span = 1} = {}) {
+  return `<div style="grid-column:span ${span}">${content}</div>`;
+}
+
+// Simple icon button for compact controls
+function iconBtn(icon, {variant = 'ghost', size = 'sm', action = '', title = '', className = ''} = {}) {
+  const actionAttr = action ? ` data-action="${action}"` : '';
+  const classAttr = className ? ` ${className}` : '';
+  const titleAttr = title ? ` title="${title}"` : '';
+  return `<button class="pauta-btn ${variant} ${size} icon-only"${actionAttr}${titleAttr}${classAttr}>${icon}</button>`;
+}
 })();
