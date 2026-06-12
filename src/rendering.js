@@ -1926,7 +1926,8 @@ function renderLyricClickHandlers() {
 
 
 // ── Recorder fingering SVG diagram ───────────────────────────────
-// Display mapping: 8 holes shown (0=thumb, 1-7=front tone holes).
+// Display: 8 elements — thumb indicator on the left + 7 front holes.
+// Holes 1-5 are single, holes 6-7 are double (shown wider).
 // Fingering data uses 10 sub-holes for precision (6a/6b and 7a/7b
 // double-hole pairs).  Display merges: '6'|'7' → hole 6, '8'|'9' → hole 7.
 // Characters: '0'(thumb) '1'-'5'(single holes) '6'(6a) '7'(6b) '8'(7a) '9'(7b).
@@ -2148,38 +2149,37 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   bodyGrp.appendChild(p('m318.03 319.91c1.2 7.63 3.54 16.57-3 20.34h-7.68c-6.28-4.27-3.66-12.8-2.94-20.39', '#b09070', '#7a5a30', '0.5'));
 
   inner.appendChild(bodyGrp);
-  // SVG hole positions — 8 display holes (0=thumb, 1-7=front tone holes)
-  // Display mapping merges double sub-holes: fingering '6'|'7' → hole 6, '8'|'9' → hole 7.
+  // 7 front tone holes (1-5 single, 6-7 double/wider).
+  // Display mapping merges 10-position fingering: '6'|'7' → hole 6, '8'|'9' → hole 7.
+  // Thumb hole is shown as a separate indicator on the left of the body.
   const SVG_HOLES = [
-    [ '0', 24.8, -278.0, 7.0, false ],   // thumb
     [ '1', 24.8, -312.5, 7.0, false ],   // hole 1
     [ '2', 24.8, -350.0, 7.0, false ],   // hole 2
-    [ '3', 24.8, -380.6, 5.5, false ],   // hole 3
+    [ '3', 24.8, -380.6, 5.5, false ],   // hole 3 (smaller due to taper)
     [ '4', 24.8, -414.7, 7.0, false ],   // hole 4
     [ '5', 24.8, -440.5, 7.0, false ],   // hole 5
-    [ '6', 24.8, -465.0, 8.0, false ],   // hole 6 (double, wider)
-    [ '7', 24.8, -490.0, 8.0, false ],   // hole 7 (double, wider)
+    [ '6', 24.8, -465.0, 8.0, false ],   // hole 6 (double hole, wider)
+    [ '7', 24.8, -490.0, 8.0, false ],   // hole 7 (double hole, wider)
   ];
 
-  // Thumb indicator — mirrors thumb state, shown left of body
+  // Thumb indicator — shown left of body, mirrors thumb-hole state
   const THUMB_INDICATOR = [2, -278.0, 7.0];
 
-  // Built-in hole base shapes (inner-space coordinates) — all 8 holes
-  const holeDefs = SVG_HOLES.map(([,hx,hy,rx]) => [hx, hy, rx]);
-  for (const [hx, hy, hr] of holeDefs) {
+  // Built-in hole base shapes (inner-space coordinates)
+  for (const [hx, hy, hr] of SVG_HOLES.map(([,hx,hy,rx]) => [hx, hy, rx])) {
     const el = document.createElementNS(ns, 'circle');
     el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', hr);
     el.setAttribute('fill', '#3a2510'); el.setAttribute('stroke', '#7a5a30');
     el.setAttribute('stroke-width', '0.8');
     inner.appendChild(el);
   }
-
-  // Thumb indicator base shape (left of body, mirrors thumb hole)
-  const tiEl = document.createElementNS(ns, 'circle');
-  tiEl.setAttribute('cx', THUMB_INDICATOR[0]); tiEl.setAttribute('cy', THUMB_INDICATOR[1]); tiEl.setAttribute('r', THUMB_INDICATOR[2]);
-  tiEl.setAttribute('fill', '#3a2510'); tiEl.setAttribute('stroke', '#7a5a30');
-  tiEl.setAttribute('stroke-width', '0.8');
-  inner.appendChild(tiEl);
+  // Thumb indicator base shape
+  const [tiX, tiY, tiR] = THUMB_INDICATOR;
+  const tiBase = document.createElementNS(ns, 'circle');
+  tiBase.setAttribute('cx', tiX); tiBase.setAttribute('cy', tiY); tiBase.setAttribute('r', tiR);
+  tiBase.setAttribute('fill', '#3a2510'); tiBase.setAttribute('stroke', '#7a5a30');
+  tiBase.setAttribute('stroke-width', '0.8');
+  inner.appendChild(tiBase);
 
   // Hole overlays — fingering indicators
   const covered = pf.covered;
@@ -2187,82 +2187,54 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
 
   const holeLabelStyle = 'font-family:var(--pauta-font-sans);font-size:4.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
 
-  // Map 10-position fingering data to 8 display holes
-  function isDisplayCovered(displayId) {
-    if (displayId === '6') return covered.has(6) || covered.has(7);
-    if (displayId === '7') return covered.has(8) || covered.has(9);
-    return covered.has(parseInt(displayId));
-  }
-  function isDisplayHalf(displayId) {
-    if (displayId === '0') return halfHole.has(0);
-    return false;
+  // Map 10-position fingering data to 7 display holes
+  function isDisplayCovered(id) {
+    if (id === '6') return covered.has(6) || covered.has(7);
+    if (id === '7') return covered.has(8) || covered.has(9);
+    return covered.has(parseInt(id));
   }
 
-  for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
-    const isCovered = isDisplayCovered(id);
-    const isHalf = isDisplayHalf(id);
-    const drawRx = (isCovered || isHalf) ? rx * 1.2 : rx;
-
-    const el = document.createElementNS(ns, isEllipse ? 'ellipse' : 'circle');
-    el.setAttribute('cx', hx);
-    el.setAttribute('cy', hy);
-    if (isEllipse) {
-      el.setAttribute('rx', drawRx);
-      el.setAttribute('ry', drawRx);
-    } else {
-      el.setAttribute('r', drawRx);
-    }
-    if (isCovered) {
-      el.setAttribute('fill', diagActiveFill(APP.playing));
-      el.setAttribute('stroke', diagActiveStroke(APP.playing));
-      el.setAttribute('stroke-width', '1');
-    } else {
-      el.setAttribute('fill', '#7a5a30');
-      el.setAttribute('stroke', '#7a5a30');
-      el.setAttribute('stroke-width', '0.6');
-    }
+  // Hole overlays + labels for 7 front holes
+  for (const [id, hx, hy, rx, _isEll] of SVG_HOLES) {
+    const isCov = isDisplayCovered(id);
+    const drawR = isCov ? rx * 1.2 : rx;
+    const el = document.createElementNS(ns, 'circle');
+    el.setAttribute('cx', hx); el.setAttribute('cy', hy); el.setAttribute('r', drawR);
+    el.setAttribute('fill', isCov ? diagActiveFill(APP.playing) : '#7a5a30');
+    el.setAttribute('stroke', isCov ? diagActiveStroke(APP.playing) : '#7a5a30');
+    el.setAttribute('stroke-width', isCov ? '1' : '0.6');
     inner.appendChild(el);
+    if (isCov) diagHighlight(inner, hx, hy, drawR, APP.playing);
 
-    if (isCovered) {
-      diagHighlight(inner, hx, hy, drawRx, APP.playing);
-    } else if (isHalf) {
-      diagHalfPad(inner, hx, hy, drawRx, APP.playing);
-    }
-
-    // Hole number label (above each hole)
-    const holeLabel = id === '0' ? 'T' : id;
-    const lblY = hy - drawRx - 2;
+    // Label
     const lbl = document.createElementNS(ns, 'text');
-    lbl.setAttribute('x', hx);
-    lbl.setAttribute('y', lblY);
+    lbl.setAttribute('x', hx); lbl.setAttribute('y', hy - drawR - 2);
     lbl.setAttribute('style', holeLabelStyle);
-    lbl.setAttribute('transform', `translate(${hx},${lblY}) scale(1,-1) translate(${-hx},${-lblY})`);
-    lbl.textContent = holeLabel;
+    lbl.setAttribute('transform', `translate(${hx},${hy - drawR - 2}) scale(1,-1) translate(${-hx},${-hy + drawR + 2})`);
+    lbl.textContent = id;
     inner.appendChild(lbl);
   }
 
-  // Thumb indicator overlay (left of body, mirrors thumb state)
-  const thumbCovered = covered.has(0);
+  // Thumb indicator overlay (left of body)
+  const thumbCov = covered.has(0);
   const thumbHalf = halfHole.has(0);
-  const [tiX, tiY, tiR] = THUMB_INDICATOR;
-  const tiDrawR = (thumbCovered || thumbHalf) ? tiR * 1.2 : tiR;
-  const tiEl2 = document.createElementNS(ns, 'circle');
-  tiEl2.setAttribute('cx', tiX); tiEl2.setAttribute('cy', tiY); tiEl2.setAttribute('r', tiDrawR);
-  if (thumbCovered) {
-    tiEl2.setAttribute('fill', diagActiveFill(APP.playing));
-    tiEl2.setAttribute('stroke', diagActiveStroke(APP.playing));
-    tiEl2.setAttribute('stroke-width', '1');
-  } else {
-    tiEl2.setAttribute('fill', '#7a5a30');
-    tiEl2.setAttribute('stroke', '#7a5a30');
-    tiEl2.setAttribute('stroke-width', '0.6');
-  }
-  inner.appendChild(tiEl2);
-  if (thumbCovered) {
-    diagHighlight(inner, tiX, tiY, tiDrawR, APP.playing);
-  } else if (thumbHalf) {
-    diagHalfPad(inner, tiX, tiY, tiDrawR, APP.playing);
-  }
+  const tiDrawR = (thumbCov || thumbHalf) ? tiR * 1.2 : tiR;
+  const tiEl = document.createElementNS(ns, 'circle');
+  tiEl.setAttribute('cx', tiX); tiEl.setAttribute('cy', tiY); tiEl.setAttribute('r', tiDrawR);
+  tiEl.setAttribute('fill', thumbCov ? diagActiveFill(APP.playing) : '#7a5a30');
+  tiEl.setAttribute('stroke', thumbCov ? diagActiveStroke(APP.playing) : '#7a5a30');
+  tiEl.setAttribute('stroke-width', thumbCov ? '1' : '0.6');
+  inner.appendChild(tiEl);
+  if (thumbCov) diagHighlight(inner, tiX, tiY, tiDrawR, APP.playing);
+  else if (thumbHalf) diagHalfPad(inner, tiX, tiY, tiDrawR, APP.playing);
+
+  // "T" label for thumb indicator
+  const tiLbl = document.createElementNS(ns, 'text');
+  tiLbl.setAttribute('x', tiX); tiLbl.setAttribute('y', tiY - tiDrawR - 2);
+  tiLbl.setAttribute('style', holeLabelStyle);
+  tiLbl.setAttribute('transform', `translate(${tiX},${tiY - tiDrawR - 2}) scale(1,-1) translate(${-tiX},${-tiY + tiDrawR + 2})`);
+  tiLbl.textContent = 'T';
+  inner.appendChild(tiLbl);
 
   // ── Note name ─────────────────────────────────────────────────
   diagNoteName(inner, noteName, 25, -230, { size: '8', flipY: true });
