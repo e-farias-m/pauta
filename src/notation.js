@@ -20,111 +20,6 @@ function createScore(opts={}) {
 }
 
 // Add a new instrument part to the current score
-// ── Recorder Exercises ───────────────────────────────────────────
-const RECORDER_EXERCISES = {
-  'hot-cross-buns': {
-    title: 'Hot Cross Buns', ts: {num:4,den:4}, tempoName: 'Moderato', tempoBpm: 80,
-    notes: [
-      {pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
-      {pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
-      {pitch:67,dur:'8'},{pitch:67,dur:'8'},{pitch:67,dur:'8'},{pitch:67,dur:'8'},
-      {pitch:69,dur:'8'},{pitch:69,dur:'8'},{pitch:69,dur:'8'},{pitch:69,dur:'8'},
-      {pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
-    ]
-  },
-  'mary-lamb': {
-    title: 'Mary Had a Little Lamb', ts: {num:4,den:4}, tempoName: 'Moderato', tempoBpm: 80,
-    notes: [
-      {pitch:69,dur:'q'},{pitch:71,dur:'q'},{pitch:72,dur:'q'},{pitch:71,dur:'q'},
-      {pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:69,dur:'h'},
-      {pitch:71,dur:'q'},{pitch:71,dur:'q'},{pitch:71,dur:'h'},
-      {pitch:69,dur:'q'},{pitch:67,dur:'q'},{pitch:67,dur:'h'},
-      {pitch:69,dur:'q'},{pitch:71,dur:'q'},{pitch:72,dur:'q'},{pitch:71,dur:'q'},
-      {pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:69,dur:'q'},
-      {pitch:71,dur:'q'},{pitch:71,dur:'q'},{pitch:69,dur:'q'},{pitch:71,dur:'q'},{pitch:72,dur:'h'},
-    ]
-  },
-  'twinkle': {
-    title: 'Twinkle Twinkle Little Star', ts: {num:4,den:4}, tempoName: 'Andante', tempoBpm: 72,
-    notes: [
-      {pitch:60,dur:'q'},{pitch:60,dur:'q'},{pitch:67,dur:'q'},{pitch:67,dur:'q'},
-      {pitch:69,dur:'q'},{pitch:69,dur:'q'},{pitch:67,dur:'h'},
-      {pitch:65,dur:'q'},{pitch:65,dur:'q'},{pitch:64,dur:'q'},{pitch:64,dur:'q'},
-      {pitch:62,dur:'q'},{pitch:62,dur:'q'},{pitch:60,dur:'h'},
-    ]
-  },
-  'ode-to-joy': {
-    title: 'Ode to Joy (Beethoven)', ts: {num:4,den:4}, tempoName: 'Moderato', tempoBpm: 90,
-    notes: [
-      {pitch:64,dur:'q'},{pitch:64,dur:'q'},{pitch:65,dur:'q'},{pitch:67,dur:'q'},
-      {pitch:67,dur:'q'},{pitch:65,dur:'q'},{pitch:64,dur:'q'},{pitch:62,dur:'q'},
-      {pitch:60,dur:'q'},{pitch:60,dur:'q'},{pitch:62,dur:'q'},{pitch:64,dur:'q'},
-      {pitch:64,dur:'q'},{pitch:62,dur:'q'},{pitch:62,dur:'h'},
-    ]
-  },
-  'jingle-bells': {
-    title: 'Jingle Bells', ts: {num:4,den:4}, tempoName: 'Allegro', tempoBpm: 110,
-    notes: [
-      {pitch:64,dur:'q'},{pitch:64,dur:'q'},{pitch:64,dur:'h'},
-      {pitch:64,dur:'q'},{pitch:64,dur:'q'},{pitch:64,dur:'h'},
-      {pitch:64,dur:'q'},{pitch:67,dur:'q'},{pitch:60,dur:'q'},{pitch:62,dur:'q'},{pitch:64,dur:'h'},
-    ]
-  },
-};
-
-function loadRecorderExercise(key) {
-  const ex = RECORDER_EXERCISES[key];
-  if (!ex) { showToast('Exercise not found'); return; }
-  const score = createScore({title: ex.title, instruments: ['Soprano Recorder'], ts: ex.ts, ks: 0});
-  const stave = score.parts[0].staves[0];
-  stave.measures = [];
-
-  const beatsPerMeasure = ex.ts.num * (4 / ex.ts.den);
-  let measureNotes = [], beats = 0;
-
-  for (const n of ex.notes) {
-    measureNotes.push(mkNote(n.pitch, n.dur));
-    beats += durBeats(n.dur, 0, null);
-    if (beats >= beatsPerMeasure - 0.001) {
-      stave.measures.push({
-        timeSigNum: stave.measures.length === 0 ? ex.ts.num : null,
-        timeSigDen: stave.measures.length === 0 ? ex.ts.den : null,
-        keySig: stave.measures.length === 0 ? 0 : null,
-        lineBreak: false, notes: measureNotes
-      });
-      measureNotes = []; beats = 0;
-    }
-  }
-  if (measureNotes.length) {
-    stave.measures.push({
-      timeSigNum: null, timeSigDen: null, keySig: null,
-      lineBreak: false, notes: measureNotes
-    });
-  }
-
-  adoptScore(score, { clearHistory: true });
-  APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
-  renderScore();
-  showToast('Loaded: ' + ex.title);
-}
-
-function showRecorderExercises() {
-  const exercises = Object.entries(RECORDER_EXERCISES).map(([key, ex]) => `
-    <button class="panel-btn-wide" style="margin-bottom:4px;text-align:left"
-      data-action="loadRecorderExercise" data-key="${key}">
-      <span style="font-weight:700">${ex.title}</span>
-      <span style="float:right;opacity:0.6;font-size:11px">${ex.tempoName} · ♩=${ex.tempoBpm}</span>
-    </button>
-  `).join('');
-
-  makeModal(`
-    <h2>Recorder Exercises</h2>
-    <p class="dialog-hint">Built-in songs with automatic fingerings. Great for classroom practice.</p>
-    ${exercises}
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
-  `);
-}
-
 function addInstrumentToScore(score, instrName) {
   const instr  = instrByName(instrName);
   if (!instr) return;
@@ -290,7 +185,7 @@ function adoptScore(raw, opts = {}) {
       if (pending.length) {
         makeModal(`
           <h2>📚 Assignment Detected</h2>
-          <div style="font-size:13px;color:#4a5568;margin-bottom:12px">
+          <div style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:12px">
             This score contains ${pending.length} assignment${pending.length > 1 ? 's' : ''}.
           </div>
           ${pending.map(a => `<button class="modal-btn secondary" style="margin-bottom:6px;width:100%;text-align:left" data-action="startAssignment" data-id="${a.id}">${a.title} (measures ${a.range.startMi+1}–${a.range.endMi+1})</button>`).join('')}

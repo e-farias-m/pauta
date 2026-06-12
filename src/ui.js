@@ -62,7 +62,7 @@ function openInlineLyricEditor(mi, si, ni) {
     fontWeight:   APP.lyricBold   ? 'bold'   : 'normal',
     fontStyle:    APP.lyricItalic ? 'italic' : 'normal',
     background:   'rgba(255,255,240,0.97)',
-    border: '2px solid #c05621',
+    border: '2px solid var(--pauta-primary)',
     borderRadius: '5px',
     color:        '#111',
     zIndex:       '500',
@@ -110,7 +110,7 @@ function openInlineLyricEditor(mi, si, ni) {
   const mkSel = (opts, cur, onChange) => {
     const s = document.createElement('select');
     opts.forEach(([v,l]) => { const o=document.createElement('option'); o.value=v; o.textContent=l; if(v===cur||v==cur)o.selected=true; s.appendChild(o); });
-    Object.assign(s.style,{background:'transparent',border:'none',color:'#718096',fontSize:'11px',cursor:'pointer',outline:'none'});
+    Object.assign(s.style,{background:'transparent',border:'none',color:'var(--pauta-text-subtle)',fontSize:'11px',cursor:'pointer',outline:'none'});
     s.onchange = () => onChange(s.value);
     return s;
   };
@@ -123,7 +123,7 @@ function openInlineLyricEditor(mi, si, ni) {
     const b=document.createElement('button');
     b.textContent=lbl;
     let act=act0;
-    const upd=()=>{ b.style.background=act?'rgba(192,86,33,0.20)':'transparent'; b.style.color=act?'#c05621':'#718096'; b.style.border=act?'1px solid rgba(192,86,33,0.50)':'1px solid transparent'; };
+    const upd=()=>{ b.style.background=act?'rgba(192,86,33,0.20)':'transparent'; b.style.color=act?'var(--pauta-primary)':'var(--pauta-text-subtle)'; b.style.border=act?'1px solid rgba(192,86,33,0.50)':'1px solid transparent'; };
     Object.assign(b.style,{borderRadius:'4px',fontSize:'11px',fontWeight:lbl==='B'?'700':'400',fontStyle:lbl==='I'?'italic':'normal',padding:'0 5px',cursor:'pointer',lineHeight:'18px'});
     upd();
     b.onmousedown=ev=>{ ev.preventDefault(); act=!act; onToggle(act); upd(); };
@@ -255,7 +255,7 @@ function openInlineChordEditor(mi, si, ni) {
     fontFamily:  "'Helvetica Neue',Helvetica,Arial,sans-serif",
     fontWeight:   'bold',
     background:   'rgba(255,255,240,0.97)',
-    border: '2px solid #c05621',
+    border: '2px solid var(--pauta-primary)',
     borderRadius: '5px',
     color:        '#111',
     zIndex:       '500',
@@ -388,7 +388,7 @@ function editRehearsalMark() {
       Select a measure first, then type a letter or number</p>
     <input id="rm-input" value="${cur}" placeholder="e.g. A, B, 1, Coda"
       style="font-size:22px;font-weight:700;text-align:center;
-             font-family:'Helvetica Neue',Helvetica,sans-serif" maxlength="6">
+              font-family:var(--pauta-font-sans)" maxlength="6">
     <button class="modal-btn primary" data-action="saveRehearsalMark">Apply</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
@@ -430,6 +430,49 @@ function renderRehearsalMarks() {
   });
 }
 
+// ── Help Tips ───────────────────────────────────────────────────
+const HELP_TIPS = [
+  { q: 'How do I add a note?', a: 'Tap ✏️ Input, then tap a note name (C, D, E…) in the palette. The note is inserted at the selected measure.' },
+  { q: 'How do I change a note\'s pitch?', a: 'Select the note (tap it on the score), then tap a different note name in the palette.' },
+  { q: 'How do I add a rest?', a: 'Tap the rest button (𝄽) in the palette while in input mode, or press the 0 key.' },
+  { q: 'How do I play back the score?', a: 'Press Space or tap the ▶ button in the transport bar.' },
+  { q: 'How do I add a tie or slur?', a: 'Select the first note, tap Tie or Slur in the Lines panel, then select the end note.' },
+  { q: 'How do I transpose?', a: 'Score menu → Transpose, then choose the interval.' },
+  { q: 'How do I add lyrics?', a: 'Select a note and tap Lyric in the palette, or use the Lyrics panel.' },
+  { q: 'How do I use Practice Mode?', a: 'Tap the Practice button in the transport bar. Play each highlighted note on your MIDI keyboard or microphone.' },
+  { q: 'How do I export to PDF?', a: 'File → Export Engraved PDF. The score is rendered as a high-resolution image and saved as a PDF.' },
+  { q: 'How do assignments work?', a: 'Score → Create Assignment to hide notes for students. Share the .mscz file. Students open it, fill in answers, and send it back.' },
+  { q: 'What keyboard shortcuts are available?', a: 'Space = play/pause, 0 = rest, Arrow keys = move selection, Home = rewind, Delete = remove note.' },
+  { q: 'How do I add a chord?', a: 'Select a note, tap Chord mode (the chord icon), then tap additional note names to stack them.' },
+];
+
+function showHelpPanel() {
+  makeModal(`
+    <h2>Help & Tips</h2>
+    <input id="help-search" type="text" placeholder="Search tips…" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111;margin-bottom:10px">
+    <div id="help-list" style="flex-shrink:0;max-height:280px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);line-height:1.5">
+      ${HELP_TIPS.map((t,i) => `<div class="help-tip" data-idx="${i}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(192,86,33,0.08)">
+        <div style="font-weight:600;color:var(--pauta-text);margin-bottom:2px">${t.q}</div>
+        <div>${t.a}</div>
+      </div>`).join('')}
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+  `);
+  setTimeout(() => {
+    const inp = document.getElementById('help-search');
+    const list = document.getElementById('help-list');
+    if (!inp || !list) return;
+    inp.addEventListener('input', () => {
+      const q = inp.value.trim().toLowerCase();
+      list.querySelectorAll('.help-tip').forEach(el => {
+        const text = el.textContent.toLowerCase();
+        el.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+    inp.focus();
+  }, 50);
+}
+
 // ── Staff Text (free annotations) ────────────────────────────────
 function addStaffText() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
@@ -455,7 +498,7 @@ function addStaffText() {
                   letter-spacing:0.3px;margin-top:2px;display:block">Style</label>
     <div style="display:flex;gap:6px">
       <select id="st-style" style="flex:1;padding:7px;background:rgba(192,86,33,0.06);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:12px;
+        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
         -webkit-appearance:none">
         <option value="normal">Normal</option>
         <option value="italic">Italic</option>
@@ -463,7 +506,7 @@ function addStaffText() {
         <option value="bold-italic">Bold Italic</option>
       </select>
       <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(192,86,33,0.06);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:12px;
+        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
         -webkit-appearance:none">
         <option value="12" selected>12</option>
         <option value="13">13</option>
@@ -576,7 +619,7 @@ function renderLyrics() {
           el.setAttribute('x', nl.x);
           el.setAttribute('y', sl.bottomY + 32);
           el.setAttribute('text-anchor', 'middle');
-          el.setAttribute('font-family', lyr.font || "'Helvetica Neue',Helvetica,Arial,sans-serif");
+          el.setAttribute('font-family', lyr.font || 'var(--pauta-font-sans)');
           el.setAttribute('font-size', lyr.size || 11);
           el.setAttribute('font-weight', lyr.bold ? 'bold' : 'normal');
           el.setAttribute('font-style', lyr.italic ? 'italic' : 'normal');
@@ -597,7 +640,7 @@ function renderLyrics() {
           dash.setAttribute('x', (x1+x2)/2);
           dash.setAttribute('y', sl.bottomY + 32);
           dash.setAttribute('text-anchor','middle');
-          dash.setAttribute('font-family',"'Helvetica Neue',Helvetica,sans-serif");
+          dash.setAttribute('font-family','var(--pauta-font-sans)');
           dash.setAttribute('font-size', lyr.size||11);
           dash.setAttribute('fill','#555');
           dash.setAttribute('pointer-events','none');
@@ -630,10 +673,10 @@ function showMixer() {
   const metPct = Math.round((APP.metronomeVolume || 0.5) * 100);
   const partSliders = parts.map((p, i) => `
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-      <span style="flex:0 0 70px;font-size:11px;color:#4a5568;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+      <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
       <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
         data-action="setPartVolume" data-idx="${i}"
-        style="flex:1;height:4px;accent-color:#c05621;cursor:pointer"
+        style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer"
         aria-label="${p.name} volume">
       <span id="mix-part-${i}" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${Math.round((p.volume||1)*100)}</span>
     </div>`).join('');
@@ -642,17 +685,17 @@ function showMixer() {
     <h2>Mixer</h2>
     <div style="margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="flex:0 0 70px;font-size:11px;color:#4a5568">Master</span>
+        <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted)">Master</span>
         <input type="range" min="0" max="100" value="${masterPct}"
           data-action="setMasterVolume"
-          style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Master volume">
+          style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer" aria-label="Master volume">
         <span id="mix-master-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${masterPct}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="flex:0 0 70px;font-size:11px;color:#4a5568">Metronome</span>
+        <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted)">Metronome</span>
         <input type="range" min="0" max="100" value="${metPct}"
           data-action="setMetronomeVolume"
-          style="flex:1;height:4px;accent-color:#c05621;cursor:pointer" aria-label="Metronome volume">
+          style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer" aria-label="Metronome volume">
         <span id="mix-met-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${metPct}</span>
       </div>
     </div>
@@ -690,11 +733,11 @@ function showPickupDialog() {
     ${!isPickup ? `
       <div class="panel-section-label" style="margin:8px 0 4px">Pickup duration</div>
       <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px">
-        <select id="pu-num" style="background:rgba(192,86,33,0.06);color:#718096;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <select id="pu-num" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
           ${Array.from({length: maxPickup}, (_, i) => i + 1).map(n => `<option value="${n}">${n}</option>`).join('')}
         </select>
         <span style="color:rgba(74,85,104,0.40);font-size:18px">/</span>
-        <select id="pu-den" style="background:rgba(192,86,33,0.06);color:#718096;border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <select id="pu-den" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
           <option value="4">4</option>
           <option value="8">8</option>
         </select>
@@ -702,7 +745,7 @@ function showPickupDialog() {
       </div>
       <button class="modal-btn primary" data-action="setPickupMeasure">Set Pickup</button>
     ` : `
-      <button class="modal-btn secondary" data-action="removePickupMeasure" style="color:#e07060;border-color:rgba(224,112,96,0.35)">Remove Pickup</button>
+      <button class="modal-btn secondary" data-action="removePickupMeasure" style="color:var(--pauta-error);border-color:rgba(224,112,96,0.35)">Remove Pickup</button>
     `}
     <div class="modal-sep"></div>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -936,26 +979,26 @@ function showScaleGeneratorDialog() {
 
   makeModal(`
     <h2>Generate Scale / Arpeggio</h2>
-    <div style="font-size:12px;color:#4a5568;margin-bottom:12px">
+    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px">
       Creates a new score with the selected scale or arpeggio for the chosen instrument.
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div>
-        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Instrument</div>
+        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Instrument</div>
         <select id="sg-instr" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${instrOptions}</select>
       </div>
       <div>
-        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Type</div>
+        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Type</div>
         <select id="sg-type" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${scaleOptions}</select>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div>
-        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Key</div>
+        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Key</div>
         <select id="sg-ks" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${ksOptions.join('')}</select>
       </div>
       <div>
-        <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Octaves</div>
+        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Octaves</div>
         <select id="sg-octaves" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">
           <option value="1">1 octave</option>
           <option value="2" selected>2 octaves</option>
@@ -963,12 +1006,12 @@ function showScaleGeneratorDialog() {
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Starting octave</div>
+      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Starting octave</div>
       <div style="display:flex;align-items:center;gap:8px">
         <button class="modal-btn secondary" id="sg-oct-down" style="padding:2px 10px;font-size:14px">−</button>
-        <span id="sg-oct-display" style="font-size:16px;font-weight:600;min-width:30px;text-align:center;color:#c05621">4</span>
+        <span id="sg-oct-display" style="font-size:16px;font-weight:600;min-width:30px;text-align:center;color:var(--pauta-primary)">4</span>
         <button class="modal-btn secondary" id="sg-oct-up" style="padding:2px 10px;font-size:14px">+</button>
-        <span style="font-size:11px;color:#4a5568">(C<span id="sg-oct-sub">4</span> = middle C)</span>
+        <span style="font-size:11px;color:var(--pauta-text-muted)">(C<span id="sg-oct-sub">4</span> = middle C)</span>
       </div>
     </div>
     <button class="modal-btn primary" data-action="confirmGenerateScale">Generate</button>
@@ -1162,11 +1205,11 @@ function showTimeSigDialog() {
                 gap:0;margin:4px 0 8px">
       <div style="text-align:center;min-width:60px">
         <div id="ts-preview-num"
-             style="font-size:42px;font-weight:700;color:#2d3748;
-                    font-family:'Georgia',serif;line-height:1">${curNum}</div>
+             style="font-size:42px;font-weight:700;color:var(--pauta-text);
+                     font-family:var(--pauta-font-sans);line-height:1">${curNum}</div>
         <div id="ts-preview-den"
-             style="font-size:42px;font-weight:700;color:#2d3748;
-                    font-family:'Georgia',serif;line-height:1">${curDen}</div>
+             style="font-size:42px;font-weight:700;color:var(--pauta-text);
+                     font-family:var(--pauta-font-sans);line-height:1">${curDen}</div>
       </div>
       <div style="color:rgba(74,85,104,0.4);font-size:12px;margin-left:10px"
            id="ts-beat-label">
@@ -1178,7 +1221,7 @@ function showTimeSigDialog() {
 
     <label style="color:rgba(74,85,104,0.6);font-size:11px;
                   letter-spacing:0.3px;text-transform:uppercase">
-      Beats per measure: <b id="ts-num-val" style="color:#2d3748">${curNum}</b>
+      Beats per measure: <b id="ts-num-val" style="color:var(--pauta-text)">${curNum}</b>
     </label>
     <input type="range" id="ts-num" min="2" max="15" step="1" value="${curNum}"
            style="width:100%;margin:2px 0 8px"
@@ -1186,7 +1229,7 @@ function showTimeSigDialog() {
 
     <label style="color:rgba(74,85,104,0.6);font-size:11px;
                   letter-spacing:0.3px;text-transform:uppercase">
-      Beat unit: <b id="ts-den-val" style="color:#2d3748">${curDen} (${DEN_NAMES[curDen]})</b>
+      Beat unit: <b id="ts-den-val" style="color:var(--pauta-text)">${curDen} (${DEN_NAMES[curDen]})</b>
     </label>
     <input type="range" id="ts-den" min="0" max="3" step="1" value="${denIdx}"
            style="width:100%;margin:2px 0 8px"
@@ -1287,7 +1330,7 @@ function showKeySigDialog() {
     <h2>Key Signature</h2>
     <p class="dialog-hint">
       From measure ${APP.selectedMeasure + 1} onward · minor keys shown below</p>
-    <div class="picker-grid cols-4" style="max-height:60vh;overflow-y:auto">${btns}</div>
+    <div class="picker-grid cols-4" style="flex-shrink:0;max-height:60vh;overflow-y:auto">${btns}</div>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
@@ -1492,8 +1535,8 @@ function _renderNewScoreDialog() {
     <button data-action="selectNDFamily" data-family="${f}"
       style="padding:6px 10px;border-radius:8px;border:1px solid ${f===_ndFamily?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
              background:${f===_ndFamily?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
-             color:${f===_ndFamily?'#c05621':'#718096'};font-size:11px;font-weight:${f===_ndFamily?'700':'500'};
-             cursor:pointer;white-space:nowrap;font-family:'Helvetica Neue',Helvetica,sans-serif">
+             color:${f===_ndFamily?'var(--pauta-primary)':'var(--pauta-text-subtle)'};font-size:11px;font-weight:${f===_ndFamily?'700':'500'};
+             cursor:pointer;white-space:nowrap;font-family:var(--pauta-font-sans)">
       ${f}
     </button>`).join('');
 
@@ -1504,11 +1547,11 @@ function _renderNewScoreDialog() {
     return `
     <button data-action="selectNDInstr" data-name="${i.name}"
       class="nd-instr-btn${sel ? ' nd-sel' : ''}"
-      style="padding:8px 6px;border-radius:8px;border:1px solid ${sel ? 'rgba(192,86,33,0.55)' : 'rgba(192,86,33,0.18)'};
-             background:${sel ? 'rgba(192,86,33,0.12)' : 'rgba(192,86,33,0.04)'};color:${sel ? '#c05621' : '#4a5568'};font-size:11px;cursor:pointer;
-             text-align:left;font-family:'Helvetica Neue',Helvetica,sans-serif;
+      style="padding:8px 6px;border-radius:8px;border:1px solid ${sel ? 'rgba(192,86,33,0.55)' : 'rgba(192,86,33,0.28)'};
+             background:${sel ? 'rgba(192,86,33,0.12)' : 'rgba(192,86,33,0.06)'};color:${sel ? 'var(--pauta-primary)' : 'var(--pauta-text)'};font-size:11px;font-weight:500;cursor:pointer;
+             text-align:left;font-family:var(--pauta-font-sans);
              -webkit-tap-highlight-color:transparent">
-      ${i.name}${count ? ` <span class="nd-count" style="background:#c05621;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : ''}
+      ${i.name}${count ? ` <span class="nd-count" style="background:var(--pauta-primary);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : ''}
     </button>`;
   }).join('');
 
@@ -1531,7 +1574,7 @@ function _renderNewScoreDialog() {
   makeModal(`
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
       <h2 style="margin:0">New Score</h2>
-      <div style="opacity:0.3"><span style="color:#c05621;font-weight:700;font-size:16px">p</span><span style="color:#2d3748;font-weight:300;font-size:16px">auta</span></div>
+      <div style="opacity:0.3"><span style="color:var(--pauta-primary);font-weight:700;font-size:16px">p</span><span style="color:var(--pauta-text);font-weight:300;font-size:16px">auta</span></div>
     </div>
     <input id="nd-title" placeholder="Title" value="${prevTitle.replace(/"/g,'&quot;')}">
     <input id="nd-composer" placeholder="Composer (optional)" value="${prevComposer.replace(/"/g,'&quot;')}">
@@ -1545,11 +1588,11 @@ function _renderNewScoreDialog() {
           <div style="display:flex;align-items:center;justify-content:center;gap:2px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
               <div id="nd-ks-staff" style="line-height:0">${_ksMiniSVG(parseInt(prevKS))}</div>
-              <span id="nd-ks-label" style="font-size:10px;color:#c05621;font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
+              <span id="nd-ks-label" style="font-size:10px;color:var(--pauta-primary);font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-              <button id="nd-ks-next" data-action="ndKSAdj" data-delta="1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <button id="nd-ks-prev" data-action="ndKSAdj" data-delta="-1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button id="nd-ks-next" data-action="ndKSAdj" data-delta="1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <button id="nd-ks-prev" data-action="ndKSAdj" data-delta="-1" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
           <div id="nd-ks-accel" style="text-align:center;font-size:9px;color:rgba(74,85,104,0.50)"></div>
@@ -1560,15 +1603,15 @@ function _renderNewScoreDialog() {
           <input type="hidden" id="nd-ts-den" value="${initTSden}">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button data-action="ndTSNumAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <span id="nd-ts-num-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSnum}</span>
-              <button data-action="ndTSNumAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button data-action="ndTSNumAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <span id="nd-ts-num-label" style="font-size:24px;color:var(--pauta-primary);font-weight:700;font-family:var(--pauta-font-sans);line-height:1">${initTSnum}</span>
+              <button data-action="ndTSNumAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
             <span style="font-size:24px;color:rgba(74,85,104,0.40);font-weight:100;line-height:1">/</span>
             <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              <button data-action="ndTSDenAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
-              <span id="nd-ts-den-label" style="font-size:24px;color:#c05621;font-weight:700;font-family:Georgia,serif;line-height:1">${initTSden}</span>
-              <button data-action="ndTSDenAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:#718096;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+              <button data-action="ndTSDenAdj" data-delta="1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+              <span id="nd-ts-den-label" style="font-size:24px;color:var(--pauta-primary);font-weight:700;font-family:var(--pauta-font-sans);line-height:1">${initTSden}</span>
+              <button data-action="ndTSDenAdj" data-delta="-1" style="width:30px;height:22px;border-radius:50%;border:1px solid rgba(192,86,33,0.20);background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
             </div>
           </div>
         </div>
@@ -1578,14 +1621,14 @@ function _renderNewScoreDialog() {
     <!-- Pickup measure toggle -->
     <div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding:2px 4px">
       <input type="checkbox" id="nd-pickup" data-action="ndPickupToggle"
-        style="accent-color:#c05621;width:14px;height:14px;cursor:pointer" ${prevPickup ? 'checked' : ''}>
+        style="accent-color:var(--pauta-primary);width:14px;height:14px;cursor:pointer" ${prevPickup ? 'checked' : ''}>
       <label for="nd-pickup" style="color:var(--pal-label);font-size:10px;cursor:pointer">Pickup measure</label>
       <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:4px;margin-left:auto">
-        <select id="nd-pu-num" style="background:rgba(192,86,33,0.06);color:#4a5568;border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
+        <select id="nd-pu-num" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-muted);border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
           ${[1,2,3,4,5,6,7].map(v => `<option value="${v}" ${String(v) === prevPuNum ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
         <span style="color:rgba(74,85,104,0.40);font-size:14px">/</span>
-        <select id="nd-pu-den" style="background:rgba(192,86,33,0.06);color:#4a5568;border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
+        <select id="nd-pu-den" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-muted);border:1px solid rgba(192,86,33,0.25);border-radius:6px;padding:3px 5px;font-size:12px;outline:none">
           ${['4','8'].map(v => `<option value="${v}" ${v === prevPuDen ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
       </span>
@@ -1606,8 +1649,8 @@ function _renderNewScoreDialog() {
           <button data-action="ndSelectLevel" data-level="${lvl}"
             style="flex:1;padding:6px 4px;border-radius:8px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
                    background:${lvl===_ndLevel?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
-                   color:${lvl===_ndLevel?'#c05621':'#718096'};font-size:10px;font-weight:${lvl===_ndLevel?'700':'500'};
-                   cursor:pointer;font-family:'Helvetica Neue',Helvetica,sans-serif">
+                   color:${lvl===_ndLevel?'var(--pauta-primary)':'var(--pauta-text-subtle)'};font-size:10px;font-weight:${lvl===_ndLevel?'700':'500'};
+                   cursor:pointer;font-family:var(--pauta-font-sans)">
             <div style="font-weight:700;font-size:11px">${lvl}</div>
             <div style="font-size:9px;opacity:0.7">${_ll[lvl]}</div>
           </button>`
@@ -1625,8 +1668,7 @@ function _renderNewScoreDialog() {
 
     <!-- Instrument grid -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;
-                max-height:160px;overflow-y:auto;-webkit-overflow-scrolling:touch;
-                padding-right:2px">
+                flex-shrink:0">
       ${instrBtns}
     </div>
 
@@ -1822,12 +1864,12 @@ function showTitleDialog() {
     <input id="td-composer" value="${curComp.replace(/"/g,'&quot;')}" placeholder="Composer">
     <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Font</label>
-    <select id="td-font" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:13px;-webkit-appearance:none">
+    <select id="td-font" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
       ${fontOpts}
     </select>
     <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Size</label>
-    <select id="td-size" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:#718096;font-size:13px;-webkit-appearance:none">
+    <select id="td-size" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
       ${sizeOpts}
     </select>
     <button class="modal-btn primary" data-action="applyTitleDialog">Apply</button>
@@ -1877,7 +1919,7 @@ function makeModal(inner) {
   closeDropdown();
   const ov = document.createElement('div');
   ov.className = 'modal-overlay';
-  ov.innerHTML = `<div class="modal">${inner}</div>`;
+  ov.innerHTML = `<div class="pauta-modal modal">${inner}</div>`;
   document.body.appendChild(ov);
   ov.addEventListener('click', e => { if (e.target === ov) closeModal(); });
 }
@@ -2137,7 +2179,7 @@ function toggleDebugOverlay() {
 function bootApp() {
   if (typeof Vex === 'undefined' || typeof JSZip === 'undefined') {
     document.getElementById('loading').innerHTML =
-      '<p style="color:#e07060;padding:24px;text-align:center;font-size:14px">Could not load required libraries.<br><br>Please check your internet connection and reload the page.</p>';
+      '<p style="color:var(--pauta-error);padding:24px;text-align:center;font-size:14px">Could not load required libraries.<br><br>Please check your internet connection and reload the page.</p>';
     return;
   }
   VF = Vex.Flow;
@@ -2271,9 +2313,9 @@ function setLoadingMsg(msg) {
 function showLibError(msg) {
   document.getElementById('loading').innerHTML =
     `<div style="padding:28px;text-align:center;max-width:300px">
-       <div style="font-size:22px;margin-bottom:12px;color:#e07060">⚠</div>
-       <p style="color:#e07060;font-size:14px;line-height:1.6">${msg}</p>
-       <button data-action="reload" style="margin-top:18px;padding:10px 22px;background:#c05621;border:none;border-radius:10px;font-size:14px;cursor:pointer">Retry</button>
+       <div style="font-size:22px;margin-bottom:12px;color:var(--pauta-error)">⚠</div>
+       <p style="color:var(--pauta-error);font-size:14px;line-height:1.6">${msg}</p>
+       <button data-action="reload" style="margin-top:18px;padding:10px 22px;background:var(--pauta-primary);border:none;border-radius:10px;font-size:14px;cursor:pointer">Retry</button>
      </div>`;
 }
 

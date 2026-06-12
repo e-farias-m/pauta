@@ -21,7 +21,10 @@ const modules = [
   'ui.js',
 ];
 
-const original = readFileSync(join(__dirname, 'pauta.html'), 'utf8');
+let original = readFileSync(join(__dirname, 'pauta.html'), 'utf8');
+
+// Strip any previously injected #design-system blocks to avoid duplication
+original = original.replace(/<style id="design-system">[\s\S]*?<\/style>\n*/g, '');
 
 // Find the <script> tag position to split HTML head from JS bundle
 const scriptIdx = original.indexOf('<script>');

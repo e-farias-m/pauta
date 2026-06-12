@@ -177,14 +177,14 @@ function showExportDialog() {
   makeModal(`
     <h2>Export Audio</h2>
     <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Format</div>
+      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Format</div>
       <select id="export-format" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
         <option value="wav">WAV (lossless, large)</option>
         <option value="mp3">MP3 (compressed, smaller)</option>
       </select>
     </div>
     <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Tempo (BPM) — override</div>
+      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Tempo (BPM) — override</div>
       <input id="export-bpm" type="number" value="${APP.tempo}" min="20" max="400"
         style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
     </div>
@@ -423,7 +423,7 @@ function showExportPDFDialog() {
   makeModal(`
     <h2>Export Engraved PDF</h2>
     <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:#4a5568;margin-bottom:4px">Page size</div>
+      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Page size</div>
       <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
         <option value="a4">A4</option>
         <option value="letter">US Letter</option>
@@ -523,7 +523,7 @@ function showWelcomeModal() {
   if (seen) return;
   makeModal(`
     <h2>Welcome to Pauta</h2>
-    <div style="font-size:13px;color:#4a5568;line-height:1.5;margin-bottom:14px">
+    <div style="font-size:13px;color:var(--pauta-text-muted);line-height:1.5;margin-bottom:14px">
       <p>What would you like to do?</p>
     </div>
     <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:8px;width:100%">🎓 I'm a student — start exercises</button>
@@ -564,49 +564,6 @@ function switchRole(role) {
   localStorage.setItem('pauta_role', role);
   _updateDocTitle();
   showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
-}
-
-const HELP_TIPS = [
-  { q: 'How do I add a note?', a: 'Tap ✏️ Input, then tap a note name (C, D, E…) in the palette. The note is inserted at the selected measure.' },
-  { q: 'How do I change a note\'s pitch?', a: 'Select the note (tap it on the score), then tap a different note name in the palette.' },
-  { q: 'How do I add a rest?', a: 'Tap the rest button (𝄽) in the palette while in input mode, or press the 0 key.' },
-  { q: 'How do I play back the score?', a: 'Press Space or tap the ▶ button in the transport bar.' },
-  { q: 'How do I add a tie or slur?', a: 'Select the first note, tap Tie or Slur in the Lines panel, then select the end note.' },
-  { q: 'How do I transpose?', a: 'Score menu → Transpose, then choose the interval.' },
-  { q: 'How do I add lyrics?', a: 'Select a note and tap Lyric in the palette, or use the Lyrics panel.' },
-  { q: 'How do I use Practice Mode?', a: 'Tap the Practice button in the transport bar. Play each highlighted note on your MIDI keyboard or microphone.' },
-  { q: 'How do I export to PDF?', a: 'File → Export Engraved PDF. The score is rendered as a high-resolution image and saved as a PDF.' },
-  { q: 'How do assignments work?', a: 'Score → Create Assignment to hide notes for students. Share the .mscz file. Students open it, fill in answers, and send it back.' },
-  { q: 'What keyboard shortcuts are available?', a: 'Space = play/pause, 0 = rest, Arrow keys = move selection, Home = rewind, Delete = remove note.' },
-  { q: 'How do I add a chord?', a: 'Select a note, tap Chord mode (the chord icon), then tap additional note names to stack them.' },
-];
-
-function showHelpPanel() {
-  makeModal(`
-    <h2>Help & Tips</h2>
-    <input id="help-search" type="text" placeholder="Search tips…" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111;margin-bottom:10px">
-    <div id="help-list" style="max-height:280px;overflow-y:auto;font-size:12px;color:#4a5568;line-height:1.5">
-      ${HELP_TIPS.map((t,i) => `<div class="help-tip" data-idx="${i}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(192,86,33,0.08)">
-        <div style="font-weight:600;color:#2d3748;margin-bottom:2px">${t.q}</div>
-        <div>${t.a}</div>
-      </div>`).join('')}
-    </div>
-    <button class="modal-btn secondary" data-action="closeModal">Close</button>
-  `);
-  // Bind live search
-  setTimeout(() => {
-    const inp = document.getElementById('help-search');
-    const list = document.getElementById('help-list');
-    if (!inp || !list) return;
-    inp.addEventListener('input', () => {
-      const q = inp.value.trim().toLowerCase();
-      list.querySelectorAll('.help-tip').forEach(el => {
-        const text = el.textContent.toLowerCase();
-        el.style.display = text.includes(q) ? '' : 'none';
-      });
-    });
-    inp.focus();
-  }, 50);
 }
 
 function getAudioCtx() {
@@ -1192,7 +1149,7 @@ function updatePlayCursor(elapsedMs) {
       dot.setAttribute('cy', nl.y);
       dot.setAttribute('r', '6');
       dot.setAttribute('fill', 'rgba(192,86,33,0.45)');
-      dot.setAttribute('stroke', '#c05621');
+      dot.setAttribute('stroke', 'var(--pauta-primary)');
       dot.setAttribute('stroke-width', '1.2');
       dot.setAttribute('class', 'play-cursor');
       svg.appendChild(dot);
@@ -1206,456 +1163,7 @@ function clearPlayCursor() {
 
 // ── MIDI Hardware Input (removed — browser permission warning) ──
 
-// ── EVALUATOR: Pure assessment functions (no side effects) ─────
-// Takes target + student input, returns a diagnostic result object.
-// No APP reads, no UI calls — just data in, data out.
-const EVALUATOR = {
-  // Note name lookup helpers
-  _NOTE_NAMES: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
-  _FLAT_NAMES: ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'],
-
-  _noteName(midi) {
-    const pc = midi % 12;
-    const oct = Math.floor(midi / 12) - 1;
-    const useFlat = [1,3,6,8,10].includes(pc);
-    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc] + oct;
-  },
-
-  _pcName(pc) {
-    const useFlat = [1,3,6,8,10].includes(pc);
-    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc];
-  },
-
-  // Core: evaluate a single note attempt against a target
-  // target: { pitch: midi, extraPitches?: [{ pitch }] }
-  // student: { pitch: midi }
-  // Returns: { isPerfect, isCorrectPitchClass, assessment, message, detail }
-  evaluateNote(target, student) {
-    if (!target || !student || target.pitch == null || student.pitch == null) {
-      return { isPerfect: false, isCorrectPitchClass: false, assessment: 'INVALID', message: 'No note to evaluate', detail: null };
-    }
-
-    const targetPC = target.pitch % 12;
-    const studentPC = student.pitch % 12;
-    const targetOct = Math.floor(target.pitch / 12) - 1;
-    const studentOct = Math.floor(student.pitch / 12) - 1;
-    const extras = (target.extraPitches || []).map(ep => ep.pitch % 12);
-    const isCorrectPC = (targetPC === studentPC) || extras.includes(studentPC);
-    const isExactMatch = student.pitch === target.pitch || (target.extraPitches || []).some(ep => ep.pitch === student.pitch);
-
-    if (isExactMatch) {
-      return {
-        isPerfect: true,
-        isCorrectPitchClass: true,
-        assessment: 'CORRECT',
-        message: `✓ ${this._noteName(student.pitch)}`,
-        detail: null,
-      };
-    }
-
-    if (isCorrectPC) {
-      const displacement = studentOct - targetOct;
-      return {
-        isPerfect: false,
-        isCorrectPitchClass: true,
-        assessment: 'OCTAVE_DISPLACEMENT',
-        message: `Right note, wrong octave`,
-        detail: {
-          target: this._noteName(target.pitch),
-          student: this._noteName(student.pitch),
-          displacement,
-          hint: displacement > 0
-            ? `Go down ${displacement} octave${displacement > 1 ? 's' : ''}`
-            : `Go up ${Math.abs(displacement)} octave${Math.abs(displacement) > 1 ? 's' : ''}`,
-        },
-      };
-    }
-
-    // Check if it's a nearby note (semitone off)
-    const semitoneDiff = Math.abs(studentPC - targetPC);
-    const minDiff = Math.min(semitoneDiff, 12 - semitoneDiff);
-    if (minDiff === 1) {
-      const direction = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
-      return {
-        isPerfect: false,
-        isCorrectPitchClass: false,
-        assessment: 'NEAR_MISS',
-        message: `${direction === 'up' ? '↑' : '↓'} One semitone ${direction}`,
-        detail: {
-          target: this._pcName(targetPC),
-          student: this._pcName(studentPC),
-          direction,
-          hint: `The correct note is one semitone ${direction === 'up' ? 'down' : 'up'}`,
-        },
-      };
-    }
-
-    // Wrong note
-    return {
-      isPerfect: false,
-      isCorrectPitchClass: false,
-      assessment: 'WRONG_NOTE',
-      message: `Expected ${this._pcName(targetPC)}`,
-      detail: {
-        target: this._noteName(target.pitch),
-        student: this._noteName(student.pitch),
-        hint: `Try ${this._pcName(targetPC)}${targetOct}`,
-      },
-    };
-  },
-
-  // Evaluate a pitch class match (for exercises — octave-agnostic)
-  evaluatePitchClass(targetPC, studentPC) {
-    if (targetPC === studentPC) {
-      return { isCorrect: true, assessment: 'CORRECT', message: '✓' };
-    }
-    const diff = Math.abs(studentPC - targetPC);
-    const minDiff = Math.min(diff, 12 - diff);
-    if (minDiff === 1) {
-      const dir = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
-      return { isCorrect: false, assessment: 'NEAR_MISS', message: `One semitone ${dir}` };
-    }
-    return { isCorrect: false, assessment: 'WRONG_NOTE', message: `Expected ${this._pcName(targetPC)}` };
-  },
-
-  // Evaluate a rhythm attempt (beat positions vs expected)
-  // expected: array of beat positions (e.g. [0, 0.5, 1, 2])
-  // student: array of beat positions
-  // tolerance: allowed deviation in beats (default 0.15)
-  evaluateRhythm(expected, student, tolerance = 0.15) {
-    if (!expected.length) return { isPerfect: true, correct: 0, total: 0, misses: [], extras: [] };
-    const misses = [];
-    const matched = new Set();
-    expected.forEach(exp => {
-      const found = student.findIndex((s, i) => !matched.has(i) && Math.abs(s - exp) <= tolerance);
-      if (found >= 0) {
-        matched.add(found);
-      } else {
-        misses.push(exp);
-      }
-    });
-    const extras = student.filter((_, i) => !matched.has(i));
-    const correct = expected.length - misses.length;
-    return {
-      isPerfect: misses.length === 0 && extras.length === 0,
-      correct,
-      total: expected.length,
-      misses,
-      extras,
-      accuracy: Math.round((correct / expected.length) * 100),
-    };
-  },
-};
-
-// ── SESSION MANAGER: Adaptive difficulty & progression ──────────
-// Tracks session scores and adapts difficulty based on performance.
-// Provides review loops when performance is low, advances when high.
-
-const SESSION_MANAGER = {
-  _SESSION_KEY: 'pauta_session_history',
-  _MAX_HISTORY: 50,
-
-  // Load session history from localStorage
-  _loadHistory() {
-    try { return JSON.parse(localStorage.getItem(this._SESSION_KEY)) || []; }
-    catch(e) { return []; }
-  },
-
-  // Save session history to localStorage
-  _saveHistory(history) {
-    localStorage.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
-  },
-
-  // Record a completed session
-  recordSession(type, difficulty, score, total, time) {
-    const history = this._loadHistory();
-    history.push({
-      type, difficulty, score, total,
-      pct: Math.round((score / total) * 100),
-      time: Math.floor(time / 1000),
-      date: Date.now(),
-    });
-    this._saveHistory(history);
-    return this.getRecommendation(type);
-  },
-
-  // Get recommendation based on recent performance
-  getRecommendation(type) {
-    const history = this._loadHistory();
-    const relevant = history.filter(h => h.type === type).slice(-5);
-    if (relevant.length < 2) return { action: 'continue', reason: 'Need more data' };
-
-    const avgPct = relevant.reduce((s, h) => s + h.pct, 0) / relevant.length;
-    const lastPct = relevant[relevant.length - 1].pct;
-    const trend = relevant.length >= 3
-      ? (relevant[relevant.length - 1].pct + relevant[relevant.length - 2].pct) / 2
-        - (relevant[0].pct + relevant[1].pct) / 2
-      : 0;
-
-    if (avgPct >= 85 && trend >= 0) {
-      return { action: 'advance', reason: `Excellent (${Math.round(avgPct)}% avg)`, avgPct };
-    }
-    if (avgPct < 60 || (trend < -10 && lastPct < 70)) {
-      return { action: 'review', reason: `Needs practice (${Math.round(avgPct)}% avg)`, avgPct };
-    }
-    return { action: 'continue', reason: `Good progress (${Math.round(avgPct)}% avg)`, avgPct };
-  },
-
-  // Get difficulty adjustment based on session performance
-  adjustDifficulty(currentDifficulty, sessionPct) {
-    const levels = ['beginner', 'intermediate', 'advanced'];
-    const idx = levels.indexOf(currentDifficulty);
-
-    // Upgrade threshold
-    if (sessionPct >= 85 && idx < 2) {
-      return { difficulty: levels[idx + 1], reason: 'Upgrading difficulty' };
-    }
-    // Downgrade threshold
-    if (sessionPct < 50 && idx > 0) {
-      return { difficulty: levels[idx - 1], reason: 'Reviewing at easier level' };
-    }
-    return { difficulty: currentDifficulty, reason: 'Maintaining level' };
-  },
-
-  // Get session stats for display
-  getStats(type) {
-    const history = this._loadHistory();
-    const relevant = type ? history.filter(h => h.type === type) : history;
-    if (!relevant.length) return null;
-
-    const totalSessions = relevant.length;
-    const avgPct = Math.round(relevant.reduce((s, h) => s + h.pct, 0) / totalSessions);
-    const totalTime = relevant.reduce((s, h) => s + h.time, 0);
-    const bestPct = Math.max(...relevant.map(h => h.pct));
-    const currentStreak = this._getCurrentStreak(relevant);
-
-    return { totalSessions, avgPct, totalTime, bestPct, currentStreak };
-  },
-
-  // Calculate current streak of improving scores
-  _getCurrentStreak(history) {
-    if (history.length < 2) return 0;
-    let streak = 0;
-    for (let i = history.length - 1; i > 0; i--) {
-      if (history[i].pct >= history[i - 1].pct) streak++;
-      else break;
-    }
-    return streak;
-  },
-
-  // ── Level & Completion History Persistence ─────────────────────
-  _PROGRESS_KEY: 'pauta_level_progress',
-
-  _loadProgress() {
-    try { return JSON.parse(localStorage.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
-    catch(e) { return { level: 1, completionHistory: {}, bestScores: {} }; }
-  },
-
-  _saveProgress(progress) {
-    localStorage.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
-  },
-
-  // Get current level
-  getLevel() {
-    return this._loadProgress().level || 1;
-  },
-
-  // Set level
-  setLevel(level) {
-    const progress = this._loadProgress();
-    progress.level = level;
-    this._saveProgress(progress);
-  },
-
-  // Record exercise completion
-  recordCompletion(exerciseType, score, total) {
-    const progress = this._loadProgress();
-    const pct = Math.round((score / total) * 100);
-
-    if (!progress.completionHistory[exerciseType]) {
-      progress.completionHistory[exerciseType] = [];
-    }
-    progress.completionHistory[exerciseType].push({
-      score, total, pct,
-      date: Date.now(),
-    });
-
-    // Update best score
-    if (!progress.bestScores[exerciseType] || pct > progress.bestScores[exerciseType]) {
-      progress.bestScores[exerciseType] = pct;
-    }
-
-    this._saveProgress(progress);
-    return progress;
-  },
-
-  // Get completion history for an exercise type
-  getCompletionHistory(exerciseType) {
-    const progress = this._loadProgress();
-    return progress.completionHistory[exerciseType] || [];
-  },
-
-  // Get best score for an exercise type
-  getBestScore(exerciseType) {
-    const progress = this._loadProgress();
-    return progress.bestScores[exerciseType] || 0;
-  },
-
-  // Get all best scores
-  getAllBestScores() {
-    return this._loadProgress().bestScores || {};
-  },
-
-  // Check if user has mastered an exercise type (80%+ on 3+ sessions)
-  hasMastered(exerciseType) {
-    const history = this.getCompletionHistory(exerciseType);
-    if (history.length < 3) return false;
-    const recent = history.slice(-3);
-    return recent.every(h => h.pct >= 80);
-  },
-
-  // Get mastery status for all exercise types
-  getMasteryStatus() {
-    const types = Object.values(EXERCISE_TYPES);
-    const status = {};
-    types.forEach(type => {
-      status[type] = {
-        mastered: this.hasMastered(type),
-        bestScore: this.getBestScore(type),
-        sessions: this.getCompletionHistory(type).length,
-      };
-    });
-    return status;
-  },
-
-  // ── Audio Latency Calibration ──────────────────────────────────
-  // Measures the difference between user click and audio engine timing.
-  // Stores latencyOffset and applies it to rhythm evaluation.
-
-  _LATENCY_KEY: 'pauta_latency_offset',
-  _latencySamples: [],
-  _calibrationActive: false,
-
-  // Get stored latency offset (in milliseconds)
-  getLatencyOffset() {
-    try { return parseInt(localStorage.getItem(this._LATENCY_KEY)) || 0; }
-    catch(e) { return 0; }
-  },
-
-  // Save latency offset
-  _saveLatencyOffset(offset) {
-    localStorage.setItem(this._LATENCY_KEY, String(Math.round(offset)));
-  },
-
-  // Start calibration session
-  startCalibration() {
-    this._latencySamples = [];
-    this._calibrationActive = true;
-    return {
-      message: 'Tap the button in sync with the metronome beat',
-      beatsNeeded: 8,
-    };
-  },
-
-  // Record a calibration tap
-  // expectedTime: audioContext.currentTime when the beat should have occurred
-  // actualTime: audioContext.currentTime when the user tapped
-  recordCalibrationTap(expectedTime, actualTime) {
-    if (!this._calibrationActive) return null;
-
-    const offset = (actualTime - expectedTime) * 1000; // Convert to ms
-    this._latencySamples.push(offset);
-
-    // Need at least 4 samples
-    if (this._latencySamples.length < 4) {
-      return { samples: this._latencySamples.length, needed: 4 };
-    }
-
-    // Calculate median offset (robust against outliers)
-    const sorted = [...this._latencySamples].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)];
-
-    // Save if reasonable (within ±200ms)
-    if (Math.abs(median) <= 200) {
-      this._saveLatencyOffset(median);
-      this._calibrationActive = false;
-      return {
-        complete: true,
-        offset: Math.round(median),
-        message: `Calibrated: ${Math.round(median)}ms offset`,
-      };
-    }
-
-    // Invalid calibration
-    this._calibrationActive = false;
-    return {
-      complete: true,
-      offset: 0,
-      message: 'Calibration failed — offset too large. Using 0ms.',
-    };
-  },
-
-  // Apply latency offset to a timestamp
-  applyOffset(time) {
-    const offset = this.getLatencyOffset();
-    return time + (offset / 1000); // Convert ms to seconds
-  },
-
-  // Show calibration dialog
-  showCalibrationDialog() {
-    const result = this.startCalibration();
-    let tapCount = 0;
-    const totalBeats = result.beatsNeeded;
-
-    makeModal(`
-      <h2>Audio Latency Calibration</h2>
-      <p style="color:#4a5568;font-size:13px;margin-bottom:12px;text-align:center">
-        ${result.message}
-      </p>
-      <div style="text-align:center;margin-bottom:12px">
-        <div id="cal-beat-display" style="font-size:48px;font-weight:700;color:#c05621;margin-bottom:8px">0/${totalBeats}</div>
-        <div id="cal-tap-btn" style="width:80px;height:80px;border-radius:50%;background:#c05621;color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center">TAP</div>
-      </div>
-      <div id="cal-result" style="text-align:center;font-size:12px;color:#4a5568;min-height:20px"></div>
-      <button class="modal-btn secondary" data-action="closeModal" style="margin-top:8px">Cancel</button>
-    `);
-
-    // Start metronome-like beat indicator
-    let beatInterval = setInterval(() => {
-      const display = document.getElementById('cal-beat-display');
-      const btn = document.getElementById('cal-tap-btn');
-      if (!display || !btn) { clearInterval(beatInterval); return; }
-
-      tapCount++;
-      display.textContent = `${tapCount}/${totalBeats}`;
-      btn.style.background = '#22c55e';
-
-      setTimeout(() => { btn.style.background = '#c05621'; }, 100);
-
-      if (tapCount >= totalBeats) {
-        clearInterval(beatInterval);
-        const finalResult = this.recordCalibrationTap(0, 0);
-        const resultEl = document.getElementById('cal-result');
-        if (resultEl) {
-          resultEl.textContent = finalResult?.message || 'Calibration complete';
-          resultEl.style.color = '#22c55e';
-        }
-      }
-    }, 1000); // 1 beat per second = 60 BPM
-
-    // Handle tap button
-    setTimeout(() => {
-      const tapBtn = document.getElementById('cal-tap-btn');
-      if (tapBtn) {
-        tapBtn.addEventListener('click', () => {
-          const now = getAudioCtx().currentTime;
-          const offset = this.getLatencyOffset();
-          this.recordCalibrationTap(now - (offset / 1000), now);
-        });
-      }
-    }, 50);
-  },
-};
+// EVALUATOR and SESSION_MANAGER are defined in education.js
 
 // ── Practice Mode ───────────────────────────────────────────────
 // MIDI-gated playback: the student must play the correct note on
@@ -1790,16 +1298,16 @@ function _showPracticeFeedback(assessment, targetPitch) {
   let color, cls, label;
   switch (assessment.assessment) {
     case 'CORRECT':
-      color = '#22c55e'; cls = 'correct'; label = '✓';
+      color = 'var(--pauta-success)'; cls = 'correct'; label = '✓';
       break;
     case 'OCTAVE_DISPLACEMENT':
-      color = '#e6a817'; cls = 'octave'; label = '↕ octave';
+      color = 'var(--pauta-warning)'; cls = 'octave'; label = '↕ octave';
       break;
     case 'NEAR_MISS':
       color = '#f59e0b'; cls = 'near'; label = assessment.detail?.direction === 'up' ? '↑ semitone' : '↓ semitone';
       break;
     case 'WRONG_NOTE':
-      color = '#e06850'; cls = 'wrong'; label = '✗';
+      color = 'var(--pauta-primary-light)'; cls = 'wrong'; label = '✗';
       break;
     default:
       return;
@@ -1824,7 +1332,7 @@ function _showPracticeFeedback(assessment, targetPitch) {
   const text = _svgCreate('text', {
     x: nl.x, y: nl.y - 14,
     'text-anchor': 'middle',
-    'font-family': "'Helvetica Neue',Helvetica,Arial,sans-serif",
+    'font-family': 'var(--pauta-font-sans)',
     'font-size': 10, 'font-weight': 700,
     fill: color, opacity: 0.9,
     class: 'practice-feedback-circle',

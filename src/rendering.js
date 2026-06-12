@@ -116,7 +116,7 @@ function _advanceSystemY(system, sysY, siOffset, ns, contentPad) {
 
 // ── SVG Drawing Helpers ──────────────────────────────────────
 const _SVG_NS = 'http://www.w3.org/2000/svg';
-const _DEFAULT_FONT = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+const _DEFAULT_FONT = 'var(--pauta-font-sans)';
 
 function _svgCreate(tag, attrs, parent) {
   const el = document.createElementNS(_SVG_NS, tag);
@@ -246,7 +246,7 @@ function initScoreRenderer(container, cW, totalH, score) {
     el.setAttribute('x', x);
     el.setAttribute('y', y);
     el.setAttribute('text-anchor', anchor);
-    el.setAttribute('font-family', fontFamily || "'Helvetica Neue',Helvetica,Arial,sans-serif");
+    el.setAttribute('font-family', fontFamily || 'var(--pauta-font-sans)');
     el.setAttribute('font-size', fontSize);
     el.setAttribute('font-weight', weight);
     el.setAttribute('fill', '#111');
@@ -402,10 +402,10 @@ function _showRenderFailure(err) {
   const msg = err?.message || String(err);
   if (container) {
     container.innerHTML =
-      `<div style="padding:32px;text-align:center;color:#4a5568;max-width:360px;margin:0 auto">
+       `<div style="padding:32px;text-align:center;color:var(--pauta-text-muted);max-width:360px;margin:0 auto">
          <p style="font-size:15px;font-weight:600;margin-bottom:8px">Could not draw the score</p>
          <p style="font-size:13px;color:rgba(74,85,104,0.75);margin-bottom:16px;line-height:1.5">${escHtml(msg)}</p>
-         <button data-action="reload" style="padding:10px 20px;background:#c05621;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Reload Pauta</button>
+         <button data-action="reload" style="padding:10px 20px;background:var(--pauta-primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Reload Pauta</button>
        </div>`;
   }
   showToast('Score display error');
@@ -761,7 +761,7 @@ function _renderTheoryOverlay() {
     const note = getNoteByLayout(nl);
     if (!note || note.type === 'rest') continue;
     const deg = _getScaleDegree(note.pitch, ks);
-    svgText(svgEl, {x: nl.x, y: nl.y + 18, text: deg, fontSize: 10, fontWeight: '600', fill: '#c05621', anchor: 'middle', font: _DEFAULT_FONT});
+    svgText(svgEl, {x: nl.x, y: nl.y + 18, text: deg, fontSize: 10, fontWeight: '600', fill: 'var(--pauta-primary)', anchor: 'middle', font: _DEFAULT_FONT});
   }
   // Interval label when 2 notes selected
   if (APP.selectedNoteIdx >= 0 && APP.selStartIdx >= 0 && APP.selectedNoteIdx !== APP.selStartIdx) {
@@ -956,7 +956,7 @@ function _renderSelectionBody() {
     if (nl) {
       svgCircle(svgEl, {
         cx: nl.x, cy: nl.y, r: 6,
-        fill: 'rgba(192,86,33,0.45)', stroke: '#c05621', strokeWidth: 1.2, cls: 'sel-note'
+        fill: 'rgba(192,86,33,0.45)', stroke: 'var(--pauta-primary)', strokeWidth: 1.2, cls: 'sel-note'
       });
     }
   }
@@ -1163,7 +1163,7 @@ function renderMarkings(ctx) {
           el.setAttribute('y', refY - 8);
           el.setAttribute('text-anchor','middle');
           el.setAttribute('font-size','12');
-          el.setAttribute('font-family',"'Helvetica Neue',Helvetica,sans-serif");
+          el.setAttribute('font-family','var(--pauta-font-sans)');
           el.setAttribute('fill','#222');
           el.setAttribute('pointer-events','none');
           el.textContent = 'tr~';
@@ -1185,7 +1185,7 @@ function renderMarkings(ctx) {
       nameEl.setAttribute('x', sl.x + 2);
       nameEl.setAttribute('y', sl.y - 6);
       nameEl.setAttribute('text-anchor','start');
-      nameEl.setAttribute('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
+      nameEl.setAttribute('font-family','var(--pauta-font-sans)');
       nameEl.setAttribute('font-size','16');
       nameEl.setAttribute('font-weight','bold');
       nameEl.setAttribute('font-style','italic');
@@ -1199,7 +1199,7 @@ function renderMarkings(ctx) {
       bpmEl.setAttribute('x', sl.x + 4 + nameW);
       bpmEl.setAttribute('y', sl.y - 6);
       bpmEl.setAttribute('text-anchor','start');
-      bpmEl.setAttribute('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
+      bpmEl.setAttribute('font-family','var(--pauta-font-sans)');
       bpmEl.setAttribute('font-size','16');
       bpmEl.setAttribute('fill','#111');
       bpmEl.setAttribute('pointer-events','none');
@@ -1560,7 +1560,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
             if (isCorrect) {
               vfNote.setStyle({ fillStyle: '#4caf50', strokeStyle: '#388e3c' });
             } else {
-              vfNote.setStyle({ fillStyle: '#e07060', strokeStyle: '#c05040' });
+              vfNote.setStyle({ fillStyle: 'var(--pauta-error)', strokeStyle: '#c05040' });
             }
           }
         }
@@ -1651,7 +1651,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
 
       // Colour: selection → teal, voice 2 → coral, BW → colour+black stem, BR → normal+black stem
       if (isNoteSelected(mi, si, ni)) {
-        vfNote.setStyle({ fillStyle: '#c05621', strokeStyle: '#c05621' });
+        vfNote.setStyle({ fillStyle: 'var(--pauta-primary)', strokeStyle: 'var(--pauta-primary)' });
       } else if ((note.voice||1) === 2) {
         vfNote.setStyle({ fillStyle: '#f07860', strokeStyle: '#f07860' });
       } else if (isBW && note.type === 'note') {
@@ -1756,7 +1756,7 @@ function renderNavigationMarkers() {
       t.setAttribute('x', x); t.setAttribute('y', y);
       t.setAttribute('text-anchor','start');
       t.setAttribute('font-size','18'); t.setAttribute('fill','#111');
-      t.setAttribute('font-family','"Times New Roman",serif');
+      t.setAttribute('font-family','var(--pauta-font-sans)');
       t.setAttribute('pointer-events','none');
       t.textContent = '𝄋'; svgEl.appendChild(t);
     }
@@ -1765,7 +1765,7 @@ function renderNavigationMarkers() {
       t.setAttribute('x', x); t.setAttribute('y', y);
       t.setAttribute('text-anchor','start');
       t.setAttribute('font-size','18'); t.setAttribute('fill','#111');
-      t.setAttribute('font-family','"Times New Roman",serif');
+      t.setAttribute('font-family','var(--pauta-font-sans)');
       t.setAttribute('pointer-events','none');
       t.textContent = '𝄌'; svgEl.appendChild(t);
     }
@@ -1775,7 +1775,7 @@ function renderNavigationMarkers() {
       t.setAttribute('text-anchor','start');
       t.setAttribute('font-size','12'); t.setAttribute('font-weight','bold');
       t.setAttribute('font-style','italic');
-      t.setAttribute('font-family','"Times New Roman",serif');
+      t.setAttribute('font-family','var(--pauta-font-sans)');
       t.setAttribute('fill','#111'); t.setAttribute('pointer-events','none');
       t.textContent = 'Fine'; svgEl.appendChild(t);
     }
@@ -1789,7 +1789,7 @@ function renderNavigationMarkers() {
       t.setAttribute('text-anchor','start');
       t.setAttribute('font-size','11'); t.setAttribute('font-weight','bold');
       t.setAttribute('font-style','italic');
-      t.setAttribute('font-family','"Times New Roman",serif');
+      t.setAttribute('font-family','var(--pauta-font-sans)');
       t.setAttribute('fill','#111'); t.setAttribute('pointer-events','none');
       t.textContent = jmpLabel; svgEl.appendChild(t);
     }
@@ -2026,7 +2026,7 @@ function diagNoteName(parent, text, x, y, opts) {
   el.setAttribute('font-size', opts?.size || '9');
   el.setAttribute('font-weight', '700');
   el.setAttribute('fill', opts?.fill || '#555');
-  el.setAttribute('font-family', opts?.family || "'Helvetica Neue',Helvetica,sans-serif");
+  el.setAttribute('font-family', opts?.family || 'var(--pauta-font-sans)');
   if (opts?.flipY) el.setAttribute('transform', `translate(${x},${y}) scale(1,-1) translate(${-x},${-y})`);
   el.textContent = text;
   parent.appendChild(el);
@@ -2057,7 +2057,7 @@ function diagAltOverlay(parent, containerType, fingArr, altIndex, w, h, updateFn
   altText.setAttribute('text-anchor', 'end');
   altText.setAttribute('font-size', opts?.fontSize || '5');
   altText.setAttribute('fill', '#998a70');
-  altText.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+  altText.setAttribute('font-family', 'var(--pauta-font-sans)');
   if (opts?.flipY) altText.setAttribute('transform', `translate(${tx},${ty}) scale(1,-1) translate(${-tx},${-ty})`);
   altText.textContent = `\u21BB ${altIndex + 1}/${fingArr.length}`;
   parent.appendChild(altText);
@@ -2081,8 +2081,8 @@ function diagHalfPad(parent, cx, cy, r, isPlaying) {
   parent.appendChild(pad);
 }
 
-function diagActiveFill(isPlaying) { return isPlaying ? '#ff5a4a' : '#c05621'; }
-function diagActiveStroke(isPlaying) { return isPlaying ? '#e04030' : '#c05621'; }
+function diagActiveFill(isPlaying) { return isPlaying ? '#ff5a4a' : 'var(--pauta-primary)'; }
+function diagActiveStroke(isPlaying) { return isPlaying ? '#e04030' : 'var(--pauta-primary)'; }
 
 // ── Large Baroque Recorder Diagram ─────────────────────────────
 function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
@@ -2201,7 +2201,7 @@ function renderLargeRecorder(fingArr, altIndex = 0, noteName = '') {
   const covered = pf.covered;
   const halfHole = pf.halfHole;
 
-  const holeLabelStyle = 'font-family:"Helvetica Neue",Helvetica,sans-serif;font-size:3.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
+  const holeLabelStyle = 'font-family:var(--pauta-font-sans);font-size:3.5px;font-weight:600;fill:#7a5a30;text-anchor:middle;pointer-events:none';
 
   for (const [id, hx, hy, rx, isEllipse] of SVG_HOLES) {
     const idx = SVG_HOLES.indexOf(SVG_HOLES.find(h => h[0] === id));
@@ -2488,7 +2488,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     }
     const regLbl = document.createElementNS(ns, 'text');
     regLbl.setAttribute('x', rx); regLbl.setAttribute('y', ry + rR + 7);
-    regLbl.setAttribute('style', 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:7px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none');
+    regLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none');
     regLbl.textContent = type === 'clarinet' ? 'Reg' : 'Oct';
     svg.appendChild(regLbl);
   }
@@ -2498,7 +2498,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   const halfHole = pf.halfHole;
 
   const regionBounds = {};
-  const keyLabelStyle = 'font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:7px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none';
+  const keyLabelStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none';
 
   keys.forEach(([kx, ky, label, hand, isAux], i) => {
     const isP = pressed.has(i);
@@ -2689,7 +2689,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
       outer.setAttribute('cx', x); outer.setAttribute('cy', cy);
       outer.setAttribute('r', isActive ? 11 : 8);
       outer.setAttribute('fill', 'none');
-      outer.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
+      outer.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : 'var(--pauta-primary)') : '#d0c8b8');
       outer.setAttribute('stroke-width', isActive ? 2 : 1);
       svg.appendChild(outer);
 
@@ -2697,8 +2697,8 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
       const circle = document.createElementNS(ns, 'circle');
       circle.setAttribute('cx', x); circle.setAttribute('cy', cy);
       circle.setAttribute('r', isActive ? 9 : 6);
-      circle.setAttribute('fill', isActive ? (APP.playing ? '#ff5a4a' : '#c05621') : '#fff');
-      circle.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
+      circle.setAttribute('fill', isActive ? (APP.playing ? '#ff5a4a' : 'var(--pauta-primary)') : '#fff');
+      circle.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : 'var(--pauta-primary)') : '#d0c8b8');
       circle.setAttribute('stroke-width', isActive ? 2 : 1.5);
       svg.appendChild(circle);
 
@@ -2714,7 +2714,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
       num.setAttribute('font-size', isActive ? '10' : '9');
       num.setAttribute('font-weight', isActive ? '700' : '500');
       num.setAttribute('fill', isActive ? '#fff' : '#888');
-      num.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+      num.setAttribute('font-family', 'var(--pauta-font-sans)');
       num.textContent = String(i);
       svg.appendChild(num);
     }
@@ -2756,7 +2756,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
       outer.setAttribute('cx', startX); outer.setAttribute('cy', cy);
       outer.setAttribute('r', circleR + 2);
       outer.setAttribute('fill', 'none');
-      outer.setAttribute('stroke', isP ? (APP.playing ? '#ff5a4a' : '#c05621') : '#e0d8c8');
+      outer.setAttribute('stroke', isP ? (APP.playing ? '#ff5a4a' : 'var(--pauta-primary)') : '#e0d8c8');
       outer.setAttribute('stroke-width', isP ? 2 : 1);
       svg.appendChild(outer);
 
@@ -2764,8 +2764,8 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
       const circle = document.createElementNS(ns, 'circle');
       circle.setAttribute('cx', startX); circle.setAttribute('cy', cy);
       circle.setAttribute('r', circleR);
-      circle.setAttribute('fill', isP ? (APP.playing ? '#ff5a4a' : '#c05621') : '#fff');
-      circle.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : '#c05621') : '#d0c8b8');
+      circle.setAttribute('fill', isP ? (APP.playing ? '#ff5a4a' : 'var(--pauta-primary)') : '#fff');
+      circle.setAttribute('stroke', isP ? (APP.playing ? '#e04030' : 'var(--pauta-primary)') : '#d0c8b8');
       circle.setAttribute('stroke-width', 1.5);
       svg.appendChild(circle);
 
@@ -2793,7 +2793,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
       num.setAttribute('font-size', '12');
       num.setAttribute('font-weight', '700');
       num.setAttribute('fill', isP ? '#fff' : '#888');
-      num.setAttribute('font-family', "'Helvetica Neue',Helvetica,sans-serif");
+      num.setAttribute('font-family', 'var(--pauta-font-sans)');
       num.textContent = valveLabel;
       svg.appendChild(num);
     }

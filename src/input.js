@@ -949,7 +949,7 @@ function renderNoteLabels() {
     lbl.setAttribute('x', nl.x);
     lbl.setAttribute('y', staffBot + fontSize + Math.round(LAYOUT.STAVE_H * 0.16));
     lbl.setAttribute('text-anchor', 'middle');
-    lbl.setAttribute('font-family', "'Helvetica Neue',Helvetica,Arial,sans-serif");
+    lbl.setAttribute('font-family', 'var(--pauta-font-sans)');
     lbl.setAttribute('font-size', fontSize);
     lbl.setAttribute('font-weight', '700');
     lbl.setAttribute('fill', '#555');
@@ -1281,7 +1281,7 @@ function toggleChordMode() {
 function setVoice(v) {
   APP.curVoice = v;
   document.getElementById('btn-voice1').classList.toggle('active', v === 1);
-  document.getElementById('btn-voice2').classList.toggle('active-v2', v === 2);
+  document.getElementById('btn-voice2').classList.toggle('active', v === 2);
   showToast('Voice ' + v);
 }
 function setAcc(a) {

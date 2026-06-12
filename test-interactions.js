@@ -1,4 +1,7 @@
 import { Window } from 'happy-dom';
+import { readFileSync, readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const window = new Window();
 globalThis.window = window;
@@ -1203,6 +1206,127 @@ resetApp();
 APP.tupletPending = 3; APP.curTuplet = null;
 violations = _validateModeState();
 assert(violations.some(v => v.includes('tupletPending > 0 but no curTuplet')), 'tupletPending without curTuplet flagged');
+
+// ── 13. DESIGN SYSTEM REGRESSION GUARDS ─────────────────────────
+// These tests prevent bulk find-and-replace from breaking music notation
+// rendering (e.g., replacing Bravura with --pauta-font-sans)
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const srcDir = join(__dirname, 'src');
+
+// 13a. SMuFL PUA codepoints (U+E000–U+EFFF) must pair with Bravura, not --pauta-font-sans
+const files = readdirSync(srcDir).filter(f => f.endsWith('.js'));
+for (const f of files) {
+  const code = readFileSync(join(srcDir, f), 'utf8');
+  const lines = code.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Check for SMuFL codepoint (\\uE0xx or literal chars in PUA range)
+    if (/\\uE[0-9A-Fa-f]{3}/.test(line) || /[\uE000-\uEFFF]/.test(line)) {
+      // Extract the font-family used on that line (or nearby for multi-line)
+      const fontFamily = line.includes('font-family');
+      if (fontFamily) {
+        assert(
+          !line.includes('var(--pauta-font-sans)') && !line.includes('var(--pauta-font-mono)'),
+          `${f}:${i+1} — SMuFL codepoint uses CSS var instead of Bravura`
+        );
+      }
+    }
+  }
+}
+
+// 13b. Every JS file should have Bravura defined somewhere if it uses SMuFL
+const smuflFiles = ['ui.js', 'education.js'];
+for (const f of smuflFiles) {
+  const code = readFileSync(join(srcDir, f), 'utf8');
+  if (/\\uE[0-9A-Fa-f]{3}/.test(code) || /[\uE000-\uEFFF]/.test(code)) {
+    assert(
+      code.includes("Bravura"),
+      `${f} — uses SMuFL codepoints but missing Bravura font reference`
+    );
+  }
+}
+
+// ── 14. DEAD CODE AFTER `return;` GUARD ─────────────────────────
+// Detects code placed after a standalone `return;` (same/denther indent),
+// which is unreachable.  Catches IIFE bugs like:
+//   ;(function() { return; DEAD_CODE; })();
+for (const f of files) {
+  const code = readFileSync(join(srcDir, f), 'utf8');
+  const lines = code.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(\s*)return;\s*$/);
+    if (!m) continue;
+    const retIndent = m[1].length;
+    // Scan forward: any non-blank, non-comment line at >= retIndent
+    // before indentation drops below retIndent is dead code.
+    for (let j = i + 1; j < lines.length; j++) {
+      const line = lines[j];
+      const indent = line.search(/\S/);
+      if (indent === -1) continue;           // blank line
+      if (/^\s*\/[/*]/.test(line)) continue; // comment
+      if (line.trim() === '});' || line.trim() === '})();') { assert(false, `${f}:${i+1} — code after return; (line ${j+1}: ${line.trim()}) dead`); break; }
+      if (indent <= retIndent) {
+        // Closing the current scope
+        if (/^\s*[\}\)\]]/.test(line.trim())) break; // legitimate close
+        // Same indent and NOT a structural close → dead code
+        assert(
+          /^\s*[\}\)\]]/.test(line.trim()),
+          `${f}:${i+1} — code after return; on line ${j+1} (\`${line.trim()}\`) is unreachable`
+        );
+        break;
+      }
+      // indent > retIndent → still inside return's scope → dead
+      assert(false, `${f}:${i+1} — code after return; on line ${j+1} (\`${line.trim()}\`) is unreachable`);
+      break;
+    }
+  }
+}
+
+// ── 15. FLEX + OVERFLOW COLLAPSE GUARD ──────────────────────────
+// A child of `display:flex; flex-direction:column` with
+// `overflow-y:auto` / `overflow:auto` / `overflow:scroll` can
+// collapse to height:0 in Chrome/Safari.  Every inline style
+// using overflow must include flex-shrink:0 (unless the element
+// itself is a flex container or is nested inside a non-flex parent).
+const OVERFLOW_RE = /overflow(-y)?:\s*(auto|scroll)/;
+for (const f of files) {
+  const code = readFileSync(join(srcDir, f), 'utf8');
+  const lines = code.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!OVERFLOW_RE.test(line)) continue;
+    // Skip if the element itself is a flex container (safe)
+    if (/display:\s*flex/.test(line)) continue;
+    // Skip if flex-shrink:0 is present (already guarded)
+    if (/flex-shrink:\s*0/.test(line)) continue;
+    // Skip lines that are not inline styles
+    if (!line.includes('style="') && !line.includes("style='")) continue;
+    assert(
+      false,
+      `${f}:${i+1} — overflow-y:auto/overflow:auto in inline style may collapse in flex context; add flex-shrink:0 or remove overflow constraint`
+    );
+  }
+}
+
+// ── 16. CSS VARIABLE EXISTENCE GUARD ────────────────────────────
+// Every `var(--pauta-*)` referenced in JS must be defined in
+// src/design-system.css so that inline styles resolve correctly.
+const cssPath = join(srcDir, 'design-system.css');
+const cssCode = readFileSync(cssPath, 'utf8');
+const definedVars = new Set(cssCode.match(/--pauta-[a-z0-9-]+/g) || []);
+for (const f of files) {
+  const code = readFileSync(join(srcDir, f), 'utf8');
+  const used = code.match(/var\(--pauta-[a-z0-9-]+\)/g);
+  if (!used) continue;
+  for (const ref of used) {
+    const varName = ref.slice(4, -1);
+    assert(
+      definedVars.has(varName),
+      `${f} — references CSS variable \`${varName}\` which is not defined in src/design-system.css`
+    );
+  }
+}
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);
