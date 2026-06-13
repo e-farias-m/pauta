@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// build.js — Concatenates src/*.js modules into pauta.html
+// build.js — Concatenates src/*.js modules and CSS into pauta.html
 // Usage: node build.js
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -21,22 +21,35 @@ const modules = [
   'ui.js',
 ];
 
-let original = readFileSync(join(__dirname, 'pauta.html'), 'utf8');
+// Read the source template
+const templatePath = join(srcDir, 'index.html');
+if (!existsSync(templatePath)) {
+  console.error(`Template not found: ${templatePath}`);
+  process.exit(1);
+}
+let template = readFileSync(templatePath, 'utf8');
 
-// Strip any previously injected #design-system blocks to avoid duplication
-original = original.replace(/<style id="design-system">[\s\S]*?<\/style>\n*/g, '');
+// Read and concatenate CSS files
+const cssFiles = [
+  join(srcDir, 'styles', 'main.css'),
+  join(srcDir, 'design-system.css'),
+];
 
-// Find the <script> tag position to split HTML head from JS bundle
-const scriptIdx = original.indexOf('<script>');
-if (scriptIdx === -1) { console.error('No <script> tag found in pauta.html'); process.exit(1); }
-const htmlHead = original.slice(0, scriptIdx);
-const htmlTail = '</script>\n</body>\n</html>';
+let cssBundle = '';
+for (const cssFile of cssFiles) {
+  if (existsSync(cssFile)) {
+    const content = readFileSync(cssFile, 'utf8');
+    cssBundle += content + '\n';
+  }
+}
 
-// Inline design-system.css
-const dsCssPath = join(srcDir, 'design-system.css');
-const dsCss = existsSync(dsCssPath) ? readFileSync(dsCssPath, 'utf8') : '';
-const cssBlock = dsCss ? `\n<style id="design-system">\n${dsCss}\n</style>\n` : '';
+// Wrap CSS in style tag
+const cssBlock = cssBundle ? `\n<style>\n${cssBundle}\n</style>\n` : '';
 
+// Inject CSS
+template = template.replace('<!-- CSS_INJECT -->', cssBlock);
+
+// Concatenate JS modules
 let jsBundle = '';
 for (const mod of modules) {
   const modPath = join(srcDir, mod);
@@ -50,6 +63,13 @@ for (const mod of modules) {
   jsBundle += '\n';
 }
 
-const output = htmlHead + cssBlock + '\n<script>\n' + jsBundle + htmlTail;
-writeFileSync(join(__dirname, 'pauta.html'), output, 'utf8');
-console.log(`Built pauta.html — ${modules.length} modules, ${jsBundle.split('\n').length} JS lines`);
+// Wrap JS in script tag
+const jsBlock = `\n<script>\n${jsBundle}\n</script>\n`;
+
+// Inject JS
+template = template.replace('<!-- JS_INJECT -->', jsBlock);
+
+// Write output
+const outputPath = join(__dirname, 'pauta.html');
+writeFileSync(outputPath, template, 'utf8');
+console.log(`Built pauta.html — ${modules.length} modules, ${cssFiles.length} CSS files, ${jsBundle.split('\n').length} JS lines`);
