@@ -2318,6 +2318,19 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 const DEBUG = false;
 function debugLog(...args) { if (DEBUG) console.log(...args); }
 (function(){
+  // ── Event Bus ──────────────────────────────────────────────────
+  /** @type {{_listeners: Object<string, Function[]>}} */
+  const BUS = {
+    _listeners: {},
+    /** @param {string} event @param {Function} fn */
+    on(event, fn) { (this._listeners[event] ??= []).push(fn); },
+    /** @param {string} event @param {*} data */
+    emit(event, data) { (this._listeners[event] ?? []).forEach(fn => fn(data)); },
+    /** @param {string} event @param {Function} fn */
+    off(event, fn) { const arr = this._listeners[event]; if (arr) this._listeners[event] = arr.filter(f => f !== fn); },
+  };
+  // Make BUS available globally for modules that need it
+  window.BUS = BUS;
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
@@ -2782,8 +2795,16 @@ function togglePalette() {
 
 
 // ─── Module: theory.js ────────────────────────────────────
-// ── Pitch / Duration Helpers ─────────────────────────────────────
-const THEORY = {}; // Music theory & pitch helpers
+/**
+ * @namespace THEORY
+ * Music theory & pitch helpers.
+ * Provides: keySigName, midiToVexKey, midiAutoAcc, durBeats,
+ * findBestDuration, resolvedTimeSig, getKeyAccidentals,
+ * getResolvedKeySig, getResolvedClef, measureBeatsCapacity,
+ * beatsUsed, getMeasureActiveAccidentals, isWholeRestPlaceholder,
+ * beatsToBestRestDuration.
+ */
+const THEORY = {};
 const NOTE_NAMES   = ['c','d','e','f','g','a','b'];
 const CHROMATIC    = [0,2,4,5,7,9,11];
 const PC_TO_DIA    = [0,0,1,1,2,3,3,4,4,5,5,6]; // chromatic pc -> diatonic index
@@ -3749,6 +3770,8 @@ function commitChange(mutator, opts = {}) {
     if (render) renderScore();
     if (toast) showToast(toast);
     if (undo) _autosaveNow();
+    // Emit score change event for subscribers
+    if (window.BUS) window.BUS.emit('score:changed', { score: APP.score });
     return true;
   } catch (err) {
     // Roll back: restore pre-mutation score and remove any spurious undo entry
@@ -9155,8 +9178,16 @@ function _evaluateAssignment(asgn) {
 
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 5c: Exercise Engine
+/**
+ * @namespace EXERCISE
+ * Exercise engine: generators, session management, scoring, and UI.
+ * Provides: generateExercise, startExerciseSession, endExerciseSession,
+ * nextExercise, retryExercise, skipExercise, checkExerciseAnswer,
+ * showExerciseDialog, selectExerciseDifficulty, and all _present* / _gen*
+ * generator functions.
+ */
 const EXERCISE = {};
-// ═══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
 // A self-contained practice system with generated exercises,
 // real-time feedback, hints, and progress tracking.
 
@@ -9794,8 +9825,6 @@ const SCALE_CURRICULUM = [
   // Stage 6: Advanced scales
   { stage: 6, name: 'Advanced Scales', scales: ['blues', 'whole_tone'], tonics: [60, 62, 64, 65, 67, 69, 72] },
 ];
-
-const SCALE_KEYS = Object.keys(SCALE_PATTERNS);
 
 // Scale mastery tracking
 const SCALE_MASTERY_KEY = 'pauta_scale_mastery';

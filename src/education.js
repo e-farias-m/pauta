@@ -263,7 +263,7 @@ function _evaluateAssignment(asgn) {
  * Exercise engine: generators, session management, scoring, and UI.
  * Provides: generateExercise, startExerciseSession, endExerciseSession,
  * nextExercise, retryExercise, skipExercise, checkExerciseAnswer,
- * showExerciseDialog, selectExerciseDifficulty, and all _present*/_gen*
+ * showExerciseDialog, selectExerciseDifficulty, and all _present* / _gen*
  * generator functions.
  */
 const EXERCISE = {};
@@ -905,8 +905,6 @@ const SCALE_CURRICULUM = [
   // Stage 6: Advanced scales
   { stage: 6, name: 'Advanced Scales', scales: ['blues', 'whole_tone'], tonics: [60, 62, 64, 65, 67, 69, 72] },
 ];
-
-const SCALE_KEYS = Object.keys(SCALE_PATTERNS);
 
 // Scale mastery tracking
 const SCALE_MASTERY_KEY = 'pauta_scale_mastery';
