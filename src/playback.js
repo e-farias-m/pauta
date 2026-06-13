@@ -1181,6 +1181,18 @@ function _startPracticeMode() {
   APP.practiceWaiting = true;
   stopPlayback();
 
+  // Init session stats
+  APP._practiceStats = {
+    correct: 0,
+    incorrect: 0,
+    octaveDisplacement: 0,
+    nearMiss: 0,
+    startTime: Date.now(),
+    lastNoteTime: null,
+    streak: 0,
+    maxStreak: 0
+  };
+
   // Start at the beginning of the selected staff
   APP.selectedMeasure = 0;
   APP.selectedNoteIdx = -1;
@@ -1193,6 +1205,7 @@ function _startPracticeMode() {
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.add('active');
 
+  _updatePracticeStatusBar(true);
   _startPracticePitchDetection();
 }
 
@@ -1204,6 +1217,8 @@ function _stopPracticeMode() {
   if (btn) btn.classList.remove('active');
   showToast('Practice mode OFF');
   _stopPracticePitchDetection();
+  _updatePracticeStatusBar(false);
+  _showPracticeResults();
 }
 
 // Advance to the next non-rest note on the selected staff.
@@ -1262,6 +1277,29 @@ function _checkPracticeNote(incomingPitch) {
 
   // Visual feedback on the score
   _showPracticeFeedback(assessment, note.pitch);
+
+  // Update session stats
+  const s = APP._practiceStats;
+  if (s) {
+    s.lastNoteTime = Date.now();
+    if (assessment.assessment === 'CORRECT') {
+      s.correct++;
+      s.streak++;
+      s.maxStreak = Math.max(s.maxStreak, s.streak);
+    } else if (assessment.assessment === 'OCTAVE_DISPLACEMENT') {
+      s.octaveDisplacement++;
+      s.incorrect++;
+      s.streak = 0;
+    } else if (assessment.assessment === 'NEAR_MISS') {
+      s.nearMiss++;
+      s.incorrect++;
+      s.streak = 0;
+    } else {
+      s.incorrect++;
+      s.streak = 0;
+    }
+    _renderPracticeStats();
+  }
 
   if (assessment.isPerfect || assessment.isCorrectPitchClass) {
     // Correct (or correct pitch class, wrong octave) — advance
@@ -1461,4 +1499,54 @@ function _updatePracticeMicLevel(level) {
     bar.style.width = Math.round(level * 100) + '%';
     bar.style.background = level > 0.7 ? 'var(--pauta-success)' : level > 0.3 ? 'var(--pauta-warning)' : 'var(--pauta-primary)';
   }
+}
+
+function _updatePracticeStatusBar(active) {
+  const el = document.getElementById('st-practice');
+  const statsEl = document.getElementById('st-practice-stats');
+  if (!el || !statsEl) return;
+  if (active) {
+    el.style.display = 'inline-flex';
+    el.style.alignItems = 'center';
+    el.style.gap = '4px';
+    _renderPracticeStats();
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function _renderPracticeStats() {
+  const stats = APP._practiceStats;
+  if (!stats) return;
+  const total = stats.correct + stats.incorrect;
+  const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+  const elapsed = Math.round((Date.now() - stats.startTime) / 1000);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+  const streak = stats.streak > 0 ? ` 🔥${stats.streak}` : '';
+  document.getElementById('st-practice-stats').textContent = 
+    `${stats.correct}/${total} (${accuracy}%) ${mm}:${ss}${streak}`;
+}
+
+function _showPracticeResults() {
+  const stats = APP._practiceStats;
+  if (!stats) return;
+  const total = stats.correct + stats.incorrect;
+  const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+  const elapsed = Math.round((Date.now() - stats.startTime) / 1000);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+
+  const details = [
+    `✅ Correct: ${stats.correct}`,
+    `❌ Incorrect: ${stats.incorrect}`,
+    `↕ Octave: ${stats.octaveDisplacement}`,
+    `↗↘ Near miss: ${stats.nearMiss}`,
+    `🔥 Max streak: ${stats.maxStreak}`,
+    `⏱ Time: ${mm}:${ss}`,
+    `📊 Accuracy: ${accuracy}%`
+  ].join('\n');
+
+  showToast(`Practice complete! ${accuracy}% accuracy (${stats.correct}/${total})`, 5000);
+  setTimeout(() => alert(`Practice Session Complete\n\n${details}`), 100);
 }
