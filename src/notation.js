@@ -468,6 +468,8 @@ function commitChange(mutator, opts = {}) {
     if (render) renderScore();
     if (toast) showToast(toast);
     if (undo) _autosaveNow();
+    // Emit score change event for subscribers
+    if (window.BUS) window.BUS.emit('score:changed', { score: APP.score });
     return true;
   } catch (err) {
     // Roll back: restore pre-mutation score and remove any spurious undo entry

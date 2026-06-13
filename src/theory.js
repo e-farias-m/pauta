@@ -1,5 +1,13 @@
-// ── Pitch / Duration Helpers ─────────────────────────────────────
-const THEORY = {}; // Music theory & pitch helpers
+/**
+ * @namespace THEORY
+ * Music theory & pitch helpers.
+ * Provides: keySigName, midiToVexKey, midiAutoAcc, durBeats,
+ * findBestDuration, resolvedTimeSig, getKeyAccidentals,
+ * getResolvedKeySig, getResolvedClef, measureBeatsCapacity,
+ * beatsUsed, getMeasureActiveAccidentals, isWholeRestPlaceholder,
+ * beatsToBestRestDuration.
+ */
+const THEORY = {};
 const NOTE_NAMES   = ['c','d','e','f','g','a','b'];
 const CHROMATIC    = [0,2,4,5,7,9,11];
 const PC_TO_DIA    = [0,0,1,1,2,3,3,4,4,5,5,6]; // chromatic pc -> diatonic index

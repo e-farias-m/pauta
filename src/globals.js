@@ -1,6 +1,19 @@
 const DEBUG = false;
 function debugLog(...args) { if (DEBUG) console.log(...args); }
 (function(){
+  // ── Event Bus ──────────────────────────────────────────────────
+  /** @type {{_listeners: Object<string, Function[]>}} */
+  const BUS = {
+    _listeners: {},
+    /** @param {string} event @param {Function} fn */
+    on(event, fn) { (this._listeners[event] ??= []).push(fn); },
+    /** @param {string} event @param {*} data */
+    emit(event, data) { (this._listeners[event] ?? []).forEach(fn => fn(data)); },
+    /** @param {string} event @param {Function} fn */
+    off(event, fn) { const arr = this._listeners[event]; if (arr) this._listeners[event] = arr.filter(f => f !== fn); },
+  };
+  // Make BUS available globally for modules that need it
+  window.BUS = BUS;
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback

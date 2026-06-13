@@ -258,8 +258,16 @@ function _evaluateAssignment(asgn) {
 
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 5c: Exercise Engine
+/**
+ * @namespace EXERCISE
+ * Exercise engine: generators, session management, scoring, and UI.
+ * Provides: generateExercise, startExerciseSession, endExerciseSession,
+ * nextExercise, retryExercise, skipExercise, checkExerciseAnswer,
+ * showExerciseDialog, selectExerciseDifficulty, and all _present*/_gen*
+ * generator functions.
+ */
 const EXERCISE = {};
-// ═══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
 // A self-contained practice system with generated exercises,
 // real-time feedback, hints, and progress tracking.
 
