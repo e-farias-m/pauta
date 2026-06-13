@@ -1794,6 +1794,8 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
 
 
+
+
 <style id="design-system">
 /* ═══════════════════════════════════════════════════════════════════
    Pauta Design System
@@ -15233,15 +15235,11 @@ function clearPlayCursor() {
   APP._lastPlayKey = '';
 }
 
-// ── MIDI Hardware Input (removed — browser permission warning) ──
-
-// EVALUATOR and SESSION_MANAGER are defined in education.js
-
 // ── Practice Mode ───────────────────────────────────────────────
-// MIDI-gated playback: the student must play the correct note on
-// a connected MIDI device before the score advances to the next note.
-// Rests are skipped automatically. The current selection highlight
-// shows the target note.
+// Microphone-gated playback: the student must play/sing the correct note
+// before the score advances to the next note. Rests are skipped automatically.
+// The current selection highlight shows the target note.
+// Audio pitch detection uses autocorrelation on microphone input.
 
 function togglePracticeMode() {
   if (APP.practiceMode) {
@@ -15268,6 +15266,8 @@ function _startPracticeMode() {
   showToast('Practice mode ON — play each highlighted note');
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.add('active');
+
+  _startPracticePitchDetection();
 }
 
 function _stopPracticeMode() {
@@ -15277,6 +15277,7 @@ function _stopPracticeMode() {
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.remove('active');
   showToast('Practice mode OFF');
+  _stopPracticePitchDetection();
 }
 
 // Advance to the next non-rest note on the selected staff.
@@ -15416,6 +15417,91 @@ function _showPracticeFeedback(assessment, targetPitch) {
     circle?.remove();
     text?.remove();
   }, 1000);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Microphone Pitch Detection (for Practice Mode)
+// ════════════════════════════════════════════════════════════════════
+
+let _pitchDetectRAF = null;
+let _pitchAnalyser = null;
+let _pitchMediaStream = null;
+let _pitchDetectCallback = null;
+let _pitchBuf = null;
+
+function startPitchDetection(callback) {
+  if (_pitchDetectRAF) return; // already running
+  _pitchDetectCallback = callback;
+
+  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false } })
+    .then(stream => {
+      _pitchMediaStream = stream;
+      const ctx = getAudioCtx();
+      const source = ctx.createMediaStreamSource(stream);
+      _pitchAnalyser = ctx.createAnalyser();
+      _pitchAnalyser.fftSize = 2048;
+      _pitchAnalyser.smoothingTimeConstant = 0.3;
+      source.connect(_pitchAnalyser);
+      _pitchBuf = new Float32Array(_pitchAnalyser.fftSize);
+      _pitchDetectLoop();
+    })
+    .catch(err => {
+      console.warn('Microphone access denied:', err);
+      showToast('Microphone access required for pitch detection');
+    });
+}
+
+function stopPitchDetection() {
+  if (_pitchDetectRAF) {
+    cancelAnimationFrame(_pitchDetectRAF);
+    _pitchDetectRAF = null;
+  }
+  if (_pitchMediaStream) {
+    _pitchMediaStream.getTracks().forEach(t => t.stop());
+    _pitchMediaStream = null;
+  }
+  _pitchAnalyser = null;
+  _pitchDetectCallback = null;
+  _pitchBuf = null;
+}
+
+function _pitchDetectLoop() {
+  if (!_pitchAnalyser || !_pitchBuf) return;
+  _pitchAnalyser.getFloatTimeDomainData(_pitchBuf);
+  const pitch = _autocorrelatePitch(_pitchBuf, getAudioCtx().sampleRate);
+  if (pitch && _pitchDetectCallback) {
+    const midi = Math.round(69 + 12 * Math.log2(pitch / 440));
+    if (midi >= 24 && midi <= 108) _pitchDetectCallback(midi);
+  }
+  _pitchDetectRAF = requestAnimationFrame(_pitchDetectLoop);
+}
+
+// Autocorrelation pitch detection (time domain) — accurate for monophonic audio
+function _autocorrelatePitch(buf, sampleRate) {
+  const len = buf.length;
+  let bestR = 0, bestLag = 0;
+  // Search range: ~65Hz (C2) to ~1000Hz (C6)
+  const minLag = Math.floor(sampleRate / 1000);
+  const maxLag = Math.floor(sampleRate / 65);
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let sum = 0;
+    for (let i = 0; i < len - lag; i++) sum += buf[i] * buf[i + lag];
+    const r = sum / (len - lag);
+    if (r > bestR) { bestR = r; bestLag = lag; }
+  }
+  if (bestR < 0.3) return null; // confidence threshold
+  return sampleRate / bestLag;
+}
+
+// Integrate with practice mode
+function _startPracticePitchDetection() {
+  startPitchDetection(midi => {
+    if (APP.practiceMode && APP.practiceWaiting) _checkPracticeNote(midi);
+  });
+}
+
+function _stopPracticePitchDetection() {
+  stopPitchDetection();
 }
 
 
