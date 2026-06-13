@@ -1207,6 +1207,7 @@ function _startPracticeMode() {
 
   _updatePracticeStatusBar(true);
   _startPracticePitchDetection();
+  _startPracticeMetronome();
 }
 
 function _stopPracticeMode() {
@@ -1217,8 +1218,40 @@ function _stopPracticeMode() {
   if (btn) btn.classList.remove('active');
   showToast('Practice mode OFF');
   _stopPracticePitchDetection();
+  _stopPracticeMetronome();
   _updatePracticeStatusBar(false);
   _showPracticeResults();
+}
+
+let _practiceMetronomeInterval = null;
+
+function _startPracticeMetronome() {
+  if (!APP.practiceMetronome) return;
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  
+  const tempo = APP.practiceTempo || 80;
+  const beatDur = 60 / tempo;
+  let nextBeat = ctx.currentTime + 0.05; // start slightly in future
+  
+  _practiceMetronomeInterval = setInterval(() => {
+    if (!APP.practiceMode || !APP.practiceMetronome) {
+      clearInterval(_practiceMetronomeInterval);
+      _practiceMetronomeInterval = null;
+      return;
+    }
+    const time = nextBeat;
+    const accent = true; // first beat of each measure would be accent, but we don't track measure position
+    scheduleMetronomeClick(getAudioCtx(), time, true);
+    nextBeat += 60 / (APP.practiceTempo || 80);
+  }, 100); // check frequently
+}
+
+function _stopPracticeMetronome() {
+  if (_practiceMetronomeInterval) {
+    clearInterval(_practiceMetronomeInterval);
+    _practiceMetronomeInterval = null;
+  }
 }
 
 // Advance to the next non-rest note on the selected staff.

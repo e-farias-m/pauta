@@ -1147,11 +1147,17 @@ function showPracticeSettingsMenu(btn) {
   const tempo = APP.practiceTempo || 80;
   const metronome = APP.practiceMetronome ? 'ON' : 'OFF';
   const loopEnabled = APP.practiceLoop ? 'ON' : 'OFF';
+  const loopStart = APP.practiceLoopStart || 0;
+  const loopEnd = APP.practiceLoopEnd || 0;
   const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
     {label: `Tempo: ${tempo} BPM`, fn: () => { APP.practiceTempo = Math.max(40, Math.min(200, tempo + 10)); showPracticeSettingsMenu(btn); }},
     {label: `Metronome: ${metronome}`, fn: () => { APP.practiceMetronome = !APP.practiceMetronome; showPracticeSettingsMenu(btn); }},
     {label: `Loop Range: ${loopEnabled}`, fn: () => { APP.practiceLoop = !APP.practiceLoop; showPracticeSettingsMenu(btn); }},
+    ...(APP.practiceLoop ? [
+      {label: `Loop Start: Measure ${loopStart + 1}`, fn: () => { APP.practiceLoopStart = Math.max(0, Math.min((APP.score?.parts[0]?.staves[0]?.measures?.length || 1) - 1, loopStart + 1)); showPracticeSettingsMenu(btn); }},
+      {label: `Loop End: Measure ${loopEnd + 1}`, fn: () => { APP.practiceLoopEnd = Math.max(0, Math.min((APP.score?.parts[0]?.staves[0]?.measures?.length || 1) - 1, loopEnd + 1)); showPracticeSettingsMenu(btn); }},
+    ] : []),
     {label: `Transpose: ${transposition >= 0 ? '+' : ''}${transposition} semitones`, fn: () => { APP.practiceTranspose = Math.max(-12, Math.min(12, transposition + 1)); showPracticeSettingsMenu(btn); }},
     {sep:true},
     {label: '⬅ Back', fn: () => showPracticeMenu(btn)},
