@@ -1232,6 +1232,13 @@ function _practiceAdvance() {
     return false;
   }
 
+  // Clear previous feedback
+  const container = document.getElementById('score-svg');
+  if (container) {
+    const svg = container.querySelector('svg');
+    if (svg) svg.querySelectorAll('.practice-feedback-circle').forEach(el => el.remove());
+  }
+
   let mi = APP.selectedMeasure;
   let ni = APP.selectedNoteIdx + 1;
 
@@ -1376,11 +1383,7 @@ function _showPracticeFeedback(assessment, targetPitch) {
   }, svg);
   text.textContent = label;
 
-  // Auto-fade after 1 second
-  setTimeout(() => {
-    circle?.remove();
-    text?.remove();
-  }, 1000);
+  // Persist until next note (cleared in _practiceAdvance)
 }
 
 // ════════════════════════════════════════════════════════════════════
