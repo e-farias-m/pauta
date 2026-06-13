@@ -1095,7 +1095,28 @@ function showLearnMenu(btn) {
 
 function showPracticeMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
+  const sens = Math.round((APP.practiceSensitivity || 0.3) * 100);
   showDropdown(btn, [
+    // Practice mode toggle
+    {label:practiceLabel, fn:togglePracticeMode},
+    {sep:true},
+    // Mic level indicator (only when practice mode is active)
+    ...(APP.practiceMode ? [{
+      label: `Mic Level: <div id="practice-mic-level" style="display:inline-block;width:80px;height:6px;background:var(--pauta-primary);border-radius:3px;vertical-align:middle;margin-left:8px"></div>`,
+      fn: () => {},
+      danger: false,
+      disabled: true
+    }, {sep:true}] : []),
+    // Sensitivity slider
+    {
+      label: `Sensitivity: ${sens}%`,
+      fn: () => {
+        const newSens = Math.max(10, Math.min(50, sens + 10));
+        APP.practiceSensitivity = newSens / 100;
+        showPracticeMenu(btn); // refresh
+      }
+    },
+    {sep:true},
     // Rhythm category
     {label:'🥁 Rhythm Workout…', fn:showRhythmWorkoutDialog},
     {label:'𝅘𝅥𝅮 Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
@@ -1109,9 +1130,6 @@ function showPracticeMenu(btn) {
     {sep:true},
     // Ear Training category
     {label:'🎼 Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
-    {sep:true},
-    // Practice mode toggle
-    {label:practiceLabel, fn:togglePracticeMode},
   ]);
 }
 

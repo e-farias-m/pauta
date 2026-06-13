@@ -1353,11 +1353,17 @@ let _pitchDetectRAF = null;
 let _pitchAnalyser = null;
 let _pitchMediaStream = null;
 let _pitchDetectCallback = null;
+let _pitchLevelCallback = null;
 let _pitchBuf = null;
+let _pitchFreqBuf = null;
 
-function startPitchDetection(callback) {
+// Practice mode sensitivity (0.1–0.5, lower = more sensitive)
+APP.practiceSensitivity = 0.3;
+
+function startPitchDetection(pitchCallback, levelCallback) {
   if (_pitchDetectRAF) return; // already running
-  _pitchDetectCallback = callback;
+  _pitchDetectCallback = pitchCallback;
+  _pitchLevelCallback = levelCallback;
 
   navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false } })
     .then(stream => {
@@ -1369,6 +1375,7 @@ function startPitchDetection(callback) {
       _pitchAnalyser.smoothingTimeConstant = 0.3;
       source.connect(_pitchAnalyser);
       _pitchBuf = new Float32Array(_pitchAnalyser.fftSize);
+      _pitchFreqBuf = new Float32Array(_pitchAnalyser.frequencyBinCount);
       _pitchDetectLoop();
     })
     .catch(err => {
@@ -1388,17 +1395,33 @@ function stopPitchDetection() {
   }
   _pitchAnalyser = null;
   _pitchDetectCallback = null;
+  _pitchLevelCallback = null;
   _pitchBuf = null;
+  _pitchFreqBuf = null;
 }
 
 function _pitchDetectLoop() {
   if (!_pitchAnalyser || !_pitchBuf) return;
+
+  // Time-domain for pitch detection
   _pitchAnalyser.getFloatTimeDomainData(_pitchBuf);
   const pitch = _autocorrelatePitch(_pitchBuf, getAudioCtx().sampleRate);
   if (pitch && _pitchDetectCallback) {
     const midi = Math.round(69 + 12 * Math.log2(pitch / 440));
     if (midi >= 24 && midi <= 108) _pitchDetectCallback(midi);
   }
+
+  // Frequency-domain for mic level (RMS)
+  if (_pitchLevelCallback && _pitchFreqBuf) {
+    _pitchAnalyser.getFloatFrequencyData(_pitchFreqBuf);
+    let sum = 0;
+    for (let i = 0; i < _pitchFreqBuf.length; i++) sum += Math.pow(10, _pitchFreqBuf[i] / 10);
+    const rmsDb = 10 * Math.log10(sum / _pitchFreqBuf.length);
+    // Normalize: -60dB (silence) to 0dB (loud) → 0.0 to 1.0
+    const level = Math.max(0, Math.min(1, (rmsDb + 60) / 60));
+    _pitchLevelCallback(level);
+  }
+
   _pitchDetectRAF = requestAnimationFrame(_pitchDetectLoop);
 }
 
@@ -1415,17 +1438,27 @@ function _autocorrelatePitch(buf, sampleRate) {
     const r = sum / (len - lag);
     if (r > bestR) { bestR = r; bestLag = lag; }
   }
-  if (bestR < 0.3) return null; // confidence threshold
+  if (bestR < (APP.practiceSensitivity || 0.3)) return null; // confidence threshold
   return sampleRate / bestLag;
 }
 
 // Integrate with practice mode
 function _startPracticePitchDetection() {
-  startPitchDetection(midi => {
-    if (APP.practiceMode && APP.practiceWaiting) _checkPracticeNote(midi);
-  });
+  startPitchDetection(
+    midi => { if (APP.practiceMode && APP.practiceWaiting) _checkPracticeNote(midi); },
+    level => { _updatePracticeMicLevel(level); }
+  );
 }
 
 function _stopPracticePitchDetection() {
   stopPitchDetection();
+  _updatePracticeMicLevel(0);
+}
+
+function _updatePracticeMicLevel(level) {
+  const bar = document.getElementById('practice-mic-level');
+  if (bar) {
+    bar.style.width = Math.round(level * 100) + '%';
+    bar.style.background = level > 0.7 ? 'var(--pauta-success)' : level > 0.3 ? 'var(--pauta-warning)' : 'var(--pauta-primary)';
+  }
 }
