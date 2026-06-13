@@ -1096,6 +1096,10 @@ function showLearnMenu(btn) {
 function showPracticeMenu(btn) {
   const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
   const sens = Math.round((APP.practiceSensitivity || 0.3) * 100);
+  const tempo = APP.practiceTempo || 80;
+  const metronome = APP.practiceMetronome ? 'ON' : 'OFF';
+  const loopEnabled = APP.practiceLoop ? 'ON' : 'OFF';
+  const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
     // Practice mode toggle
     {label:practiceLabel, fn:togglePracticeMode},
@@ -1113,8 +1117,14 @@ function showPracticeMenu(btn) {
       fn: () => {
         const newSens = Math.max(10, Math.min(50, sens + 10));
         APP.practiceSensitivity = newSens / 100;
-        showPracticeMenu(btn); // refresh
+        showPracticeMenu(btn);
       }
+    },
+    {sep:true},
+    // Settings submenu
+    {
+      label: `⚙ Settings  (♩=${tempo}  Metronome:${metronome}  Loop:${loopEnabled}  Transpose:${transposition >= 0 ? '+' : ''}${transposition})`,
+      fn: showPracticeSettingsMenu
     },
     {sep:true},
     // Rhythm category
@@ -1130,6 +1140,21 @@ function showPracticeMenu(btn) {
     {sep:true},
     // Ear Training category
     {label:'🎼 Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
+  ]);
+}
+
+function showPracticeSettingsMenu(btn) {
+  const tempo = APP.practiceTempo || 80;
+  const metronome = APP.practiceMetronome ? 'ON' : 'OFF';
+  const loopEnabled = APP.practiceLoop ? 'ON' : 'OFF';
+  const transposition = APP.practiceTranspose || 0;
+  showDropdown(btn, [
+    {label: `Tempo: ${tempo} BPM`, fn: () => { APP.practiceTempo = Math.max(40, Math.min(200, tempo + 10)); showPracticeSettingsMenu(btn); }},
+    {label: `Metronome: ${metronome}`, fn: () => { APP.practiceMetronome = !APP.practiceMetronome; showPracticeSettingsMenu(btn); }},
+    {label: `Loop Range: ${loopEnabled}`, fn: () => { APP.practiceLoop = !APP.practiceLoop; showPracticeSettingsMenu(btn); }},
+    {label: `Transpose: ${transposition >= 0 ? '+' : ''}${transposition} semitones`, fn: () => { APP.practiceTranspose = Math.max(-12, Math.min(12, transposition + 1)); showPracticeSettingsMenu(btn); }},
+    {sep:true},
+    {label: '⬅ Back', fn: () => showPracticeMenu(btn)},
   ]);
 }
 
