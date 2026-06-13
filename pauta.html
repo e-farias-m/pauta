@@ -1810,6 +1810,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
 
 
+
 <style id="design-system">
 /* ═══════════════════════════════════════════════════════════════════
    Pauta Design System
@@ -9775,6 +9776,90 @@ const SCALE_LABELS = {
 };
 
 const SCALE_KEYS = Object.keys(SCALE_PATTERNS);
+
+// Progressive scale curriculum - defines unlock order
+const SCALE_CURRICULUM = [
+  // Stage 1: Foundations (beginner)
+  { stage: 1, name: 'Foundations', scales: ['major', 'natural_minor'], tonics: [60, 65, 67, 72] }, // C, F, G, C
+  // Stage 2: Pentatonics
+  { stage: 2, name: 'Pentatonic Scales', scales: ['pentatonic_major', 'pentatonic_minor'], tonics: [60, 62, 64, 65, 67, 69, 72] },
+  // Stage 3: Minor variations
+  { stage: 3, name: 'Minor Variations', scales: ['harmonic_minor', 'melodic_minor_up'], tonics: [60, 62, 64, 65, 67, 69, 72] },
+  // Stage 4: Modes (major modes)
+  { stage: 4, name: 'Major Modes', scales: ['dorian', 'mixolydian', 'lydian'], tonics: [60, 62, 64, 65, 67, 69, 72] },
+  // Stage 5: Minor modes & exotic
+  { stage: 5, name: 'Minor Modes & Exotic', scales: ['phrygian', 'pentatonic_major', 'pentatonic_minor'], tonics: [60, 62, 64, 65, 67, 69, 72] },
+  // Stage 6: Advanced scales
+  { stage: 6, name: 'Advanced Scales', scales: ['blues', 'whole_tone'], tonics: [60, 62, 64, 65, 67, 69, 72] },
+];
+
+const SCALE_KEYS = Object.keys(SCALE_PATTERNS);
+
+// Scale mastery tracking
+const SCALE_MASTERY_KEY = 'pauta_scale_mastery';
+function _loadScaleMastery() {
+  try { return JSON.parse(localStorage.getItem(SCALE_MASTERY_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+function _saveScaleMastery(mastery) {
+  localStorage.setItem(SCALE_MASTERY_KEY, JSON.stringify(mastery));
+}
+function _getScaleMastery(scaleType, tonic) {
+  const mastery = _loadScaleMastery();
+  const key = `${scaleType}:${tonic}`;
+  return mastery[key] || { correct: 0, total: 0, streak: 0, mastered: false };
+}
+function _recordScaleResult(scaleType, tonic, correct) {
+  const mastery = _loadScaleMastery();
+  const key = `${scaleType}:${tonic}`;
+  if (!mastery[key]) mastery[key] = { correct: 0, total: 0, streak: 0, mastered: false };
+  mastery[key].total++;
+  if (correct) {
+    mastery[key].correct++;
+    mastery[key].streak++;
+    if (mastery[key].streak >= 3 && mastery[key].correct >= 5) mastery[key].mastered = true;
+  } else {
+    mastery[key].streak = 0;
+  }
+  _saveScaleMastery(mastery);
+}
+
+function _getUnlockedScales() {
+  const mastery = _loadScaleMastery();
+  const unlocked = new Set(['major', 'natural_minor']); // Always unlocked
+  
+  // Check each curriculum stage
+  for (const stage of SCALE_CURRICULUM) {
+    const stageMastered = stage.scales.every(scaleType => 
+      stage.tonics.every(tonic => {
+        const key = `${scaleType}:${tonic}`;
+        return mastery[key]?.mastered === true;
+      })
+    );
+    if (stageMastered) {
+      stage.scales.forEach(s => unlocked.add(s));
+    } else {
+      break; // Stop at first unmastered stage
+    }
+  }
+  return unlocked;
+}
+
+function _getAvailableScaleTypes() {
+  return _getUnlockedScales();
+}
+
+function _getAvailableTonicsForScale(scaleType) {
+  const mastery = _loadScaleMastery();
+  const available = [];
+  // All standard tonics C4-C5
+  for (let tonic = 60; tonic <= 72; tonic++) {
+    const key = `${scaleType}:${tonic}`;
+    const m = mastery[key] || { correct: 0, total: 0 };
+    if (m.total < 3 || !m.mastered) available.push(tonic);
+  }
+  return available.length > 0 ? available : [60, 65, 67, 72];
+}
 const CHROMATIC_NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const FLAT_NAMES = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 
@@ -9810,27 +9895,28 @@ function _tonicToKeySig(tonicMidi, scaleType) {
 
 function _genScaleId(difficulty) {
   const kitRange = _kitExerciseRange();
-  const minTonic = kitRange ? Math.max(kitRange.min, 60) : 60;  // C4
-  const maxTonic = kitRange ? Math.min(kitRange.max, 72) : 72;  // C5
+  const minTonic = kitRange ? Math.max(kitRange.min, 60) : 60;
+  const maxTonic = kitRange ? Math.min(kitRange.max, 72) : 72;
 
-  let pool;
-  if (difficulty === 0) {
-    pool = ['major', 'natural_minor', 'pentatonic_major', 'pentatonic_minor'];
-  } else if (difficulty === 1) {
-    pool = ['major', 'natural_minor', 'harmonic_minor', 'melodic_minor_up', 'dorian', 'mixolydian', 'pentatonic_major', 'pentatonic_minor'];
-  } else {
-    pool = SCALE_KEYS;
-  }
+  // Use progressive unlocked scales instead of difficulty-based pools
+  const unlockedScales = Array.from(_getAvailableScaleTypes());
+  const scaleType = unlockedScales[Math.floor(Math.random() * unlockedScales.length)];
+  
+  // Get tonics that need practice for this scale type
+  const availableTonics = _getAvailableTonicsForScale(scaleType);
+  // Filter to kit range
+  const validTonics = availableTonics.filter(t => t >= 60 && t <= 72);
+  const tonicPool = validTonics.length > 0 ? validTonics : [60, 65, 67, 72];
+  const tonic = tonicPool[Math.floor(Math.random() * tonicPool.length)];
 
-  const scaleType = pool[Math.floor(Math.random() * pool.length)];
-  const tonic = minTonic + Math.floor(Math.random() * (maxTonic - minTonic + 1));
   const intervals = SCALE_PATTERNS[scaleType];
-  const notes = intervals.map(i => tonic + i);
+  // Include the octave tonic (interval 12) as the final note of the scale
+  const notes = intervals.map(i => tonic + i).concat(tonic + 12);
   const keySig = _tonicToKeySig(tonic, scaleType);
 
   return {
     type: EXERCISE_TYPES.SCALE_ID,
-    difficulty: DIFF_NAMES[difficulty] || 'beginner',
+    difficulty: DIFF_NAMES[0] || 'beginner',
     target: { scaleType, tonic, notes, keySig },
     answer: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType],
     answerMajor: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType],

@@ -1272,10 +1272,25 @@ function _practiceAdvance() {
     if (svg) svg.querySelectorAll('.practice-feedback-circle').forEach(el => el.remove());
   }
 
-  let mi = APP.selectedMeasure;
-  let ni = APP.selectedNoteIdx + 1;
+  const loopEnabled = APP.practiceLoop;
+  const loopStart = APP.practiceLoopStart || 0;
+  const loopEnd = APP.practiceLoopEnd || (stave.measures.length - 1);
+
+  let mi = loopEnabled ? loopStart : 0;
+  let ni = (loopEnabled && APP.selectedMeasure === loopStart) ? -1 : (APP.selectedNoteIdx + 1);
 
   while (true) {
+    if (mi >= stave.measures.length) {
+      if (loopEnabled) {
+        mi = loopStart;
+        ni = -1;
+        continue;
+      } else {
+        _stopPracticeMode();
+        showToast('Practice complete!');
+        return false;
+      }
+    }
     const measure = stave.measures[mi];
     if (!measure || ni >= measure.notes.length) {
       mi++;
@@ -1309,10 +1324,14 @@ function _checkPracticeNote(incomingPitch) {
   const note = measure?.notes[APP.selectedNoteIdx];
   if (!note || note.type !== 'note') { _practiceAdvance(); return; }
 
+  // Apply transposition to incoming pitch (user plays in transposed key)
+  const transpose = APP.practiceTranspose || 0;
+  const adjustedPitch = incomingPitch - transpose;
+
   // Pure evaluation — no APP reads, no UI calls
   const assessment = EVALUATOR.evaluateNote(
     { pitch: note.pitch, extraPitches: note.extraPitches },
-    { pitch: incomingPitch }
+    { pitch: adjustedPitch }
   );
 
   // Visual feedback on the score
