@@ -8,6 +8,82 @@
  * renderChordSymbols, renderLyrics, _autosaveNow.
  */
 const UI = {};
+
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // ── Keyboard Shortcuts ───────────────────────────────────────────
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if ((e.metaKey||e.ctrlKey) && e.key==='z') { e.preventDefault(); AUDIO.undo(); return; }
+    if (e.shiftKey && e.key==='Z')             { e.preventDefault(); AUDIO.undo(); return; }
+    if ((e.metaKey||e.ctrlKey) && e.key==='y') { e.preventDefault(); AUDIO.redo(); return; }
+    if (e.shiftKey && e.key==='Y')             { e.preventDefault(); AUDIO.redo(); return; }
+    if ((e.metaKey||e.ctrlKey) && e.key==='s') { e.preventDefault(); saveMSCZ(); return; }
+    if ((e.metaKey||e.ctrlKey) && e.key==='c') { e.preventDefault(); copySelection(); return; }
+    if ((e.metaKey||e.ctrlKey) && e.key==='v') { e.preventDefault(); pasteClipboard(); return; }
+    if ((e.metaKey||e.ctrlKey) && e.key==='x') { e.preventDefault(); cutSelection(); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
+    if (e.key === ' ') { e.preventDefault(); AUDIO.togglePlayback(); return; }
+    if (e.key === 'Enter') { e.preventDefault(); toggleInputMode(); return; }
+    if (e.key === 'i' || e.key === 'I') { toggleInputMode(); return; }
+    if (e.key === 'ArrowUp'    && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(1);  return; }
+    if (e.key === 'ArrowDown'  && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(-1); return; }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); AUDIO.navigateStaff(-1); return; }
+    if (e.key === 'ArrowDown')  { e.preventDefault(); AUDIO.navigateStaff(1);  return; }
+    if (e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); AUDIO.navigateNote(1,true);  return; }
+    if (e.key === 'ArrowLeft'  && e.shiftKey) { e.preventDefault(); AUDIO.navigateNote(-1,true); return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); AUDIO.navigateNote(1,false);     return; }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); AUDIO.navigateNote(-1,false);    return; }
+    if ((e.metaKey||e.ctrlKey) && e.key === 'a') { e.preventDefault(); selectAllNotes(); return; }
+    if (e.key === '.') { e.preventDefault(); toggleDot(); return; }
+    if (e.key === 't' || e.key === 'T') { toggleTuplet(3,2); return; }
+    if (e.key === 'm' || e.key === 'M') { toggleMeasureNumbers(); return; }
+    const durMap = {'1':'w','2':'h','3':'q','4':'8','5':'16','6':'32','7':'64'};
+    if (durMap[e.key]) selectDur(durMap[e.key]);
+    if (APP.practiceMode) {
+      if (e.key === '#' || (e.shiftKey && e.key === '3')) { setAcc('#'); return; }
+      if (e.key === 'b' && !e.shiftKey) { /* 'b' is a note name, skip */ }
+      else if (e.key === 'b' && e.shiftKey) { setAcc('b'); return; }
+      if (e.key === 'n' || e.key === 'N') { setAcc('n'); return; }
+    }
+    const noteKeys = {c:'C',d:'D',e:'E',f:'F',g:'G',a:'A',b:'B'};
+    if ((APP.inputMode || APP.practiceMode) && noteKeys[e.key.toLowerCase()]) insertNoteByName(noteKeys[e.key.toLowerCase()]);
+    if (e.key === '0') { e.preventDefault(); insertRest(); }
+    if (e.key === '`' || e.key === '~') { e.preventDefault(); toggleDebugOverlay(); }
+  }, { capture: true });
+
+  // ── Resize ────────────────────────────────────────────────────────
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeT);
+    _resizeT = setTimeout(renderScore, 220);
+  });
+
+  // ── Action delegation (click/input/change) ────────────────────────
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    const fn = _ACTION_MAP[action];
+    if (fn) { fn(e); return; }
+  });
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.tagName !== 'INPUT' || el.type !== 'range' || !el.dataset.action) return;
+    const fn = _ACTION_MAP[el.dataset.action];
+    if (fn) fn(e);
+  });
+  document.getElementById('score-title')?.addEventListener('dblclick', showTitleDialog);
+  document.getElementById('tempo-slider')?.addEventListener('input', e => updateTempo(e.target.value));
+  document.getElementById('tempo-input')?.addEventListener('change', e => updateTempo(e.target.value));
+  document.getElementById('search-input')?.addEventListener('input', e => filterSearchPanels(e.target.value));
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el.tagName !== 'INPUT' || el.type !== 'number' || !el.dataset.action) return;
+    const fn = _ACTION_MAP[el.dataset.action];
+    if (fn) fn(e);
+  });
+}
+
 function toggleLyricStyle(style) {
   if (style === 'bold') {
     APP.lyricBold = !APP.lyricBold;
@@ -2100,55 +2176,6 @@ function _checkAndOfferRestore(onDecline) {
 }
 
 
-// ── Keyboard Shortcuts ───────────────────────────────────────────
-window.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
-  if ((e.metaKey||e.ctrlKey) && e.key==='z') { e.preventDefault(); AUDIO.undo(); return; }
-  if (e.shiftKey && e.key==='Z')             { e.preventDefault(); AUDIO.undo(); return; }
-  if ((e.metaKey||e.ctrlKey) && e.key==='y') { e.preventDefault(); AUDIO.redo(); return; }
-  if (e.shiftKey && e.key==='Y')             { e.preventDefault(); AUDIO.redo(); return; }
-  if ((e.metaKey||e.ctrlKey) && e.key==='s') { e.preventDefault(); saveMSCZ(); return; }
-  if ((e.metaKey||e.ctrlKey) && e.key==='c') { e.preventDefault(); copySelection(); return; }
-  if ((e.metaKey||e.ctrlKey) && e.key==='v') { e.preventDefault(); pasteClipboard(); return; }
-  if ((e.metaKey||e.ctrlKey) && e.key==='x') { e.preventDefault(); cutSelection(); return; }
-  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
-  if (e.key === ' ') { e.preventDefault(); AUDIO.togglePlayback(); return; }
-  if (e.key === 'Enter') { e.preventDefault(); toggleInputMode(); return; }
-  if (e.key === 'i' || e.key === 'I') { toggleInputMode(); return; }
-  if (e.key === 'ArrowUp'    && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(1);  return; }
-  if (e.key === 'ArrowDown'  && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(-1); return; }
-  if (e.key === 'ArrowUp')    { e.preventDefault(); AUDIO.navigateStaff(-1); return; }
-  if (e.key === 'ArrowDown')  { e.preventDefault(); AUDIO.navigateStaff(1);  return; }
-  if (e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); AUDIO.navigateNote(1,true);  return; }
-  if (e.key === 'ArrowLeft'  && e.shiftKey) { e.preventDefault(); AUDIO.navigateNote(-1,true); return; }
-  if (e.key === 'ArrowRight') { e.preventDefault(); AUDIO.navigateNote(1,false);     return; }
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); AUDIO.navigateNote(-1,false);    return; }
-  if ((e.metaKey||e.ctrlKey) && e.key === 'a') { e.preventDefault(); selectAllNotes(); return; }
-  if (e.key === '.') { e.preventDefault(); toggleDot(); return; }
-  if (e.key === 't' || e.key === 'T') { toggleTuplet(3,2); return; }
-  if (e.key === 'm' || e.key === 'M') { toggleMeasureNumbers(); return; }
-  const durMap = {'1':'w','2':'h','3':'q','4':'8','5':'16','6':'32','7':'64'};
-  if (durMap[e.key]) selectDur(durMap[e.key]);
-  // Practice mode: allow accidental toggling via keyboard
-  if (APP.practiceMode) {
-    if (e.key === '#' || (e.shiftKey && e.key === '3')) { setAcc('#'); return; }
-    if (e.key === 'b' && !e.shiftKey) { /* 'b' is a note name, skip */ }
-    else if (e.key === 'b' && e.shiftKey) { setAcc('b'); return; }
-    if (e.key === 'n' || e.key === 'N') { setAcc('n'); return; }
-  }
-  const noteKeys = {c:'C',d:'D',e:'E',f:'F',g:'G',a:'A',b:'B'};
-  if ((APP.inputMode || APP.practiceMode) && noteKeys[e.key.toLowerCase()]) insertNoteByName(noteKeys[e.key.toLowerCase()]);
-  if (e.key === '0') { e.preventDefault(); insertRest(); }
-  if (e.key === '`' || e.key === '~') { e.preventDefault(); toggleDebugOverlay(); }
-}, { capture: true });
-
-// ── Resize ────────────────────────────────────────────────────────
-let _resizeT = null;
-window.addEventListener('resize', () => {
-  clearTimeout(_resizeT);
-  _resizeT = setTimeout(renderScore, 220);
-});
-
 // ── Boot ──────────────────────────────────────────────────────────
 
 // ── Print ────────────────────────────────────────────────────────
@@ -2279,6 +2306,9 @@ function bootApp() {
   // Start autosave loop (runs every 30 s + on tab close)
   _startAutosave();
   _runBootSelfCheck();
+
+  // Wire up all static DOM listeners (keyboard, resize, action delegation)
+  initListeners();
 
   // Offer to restore any autosaved score; opens New Score dialog if none found
   _checkAndOfferRestore(showNewScoreDialog);
@@ -2663,35 +2693,6 @@ _registerAction('selectNDInstr', (e) => {
     createBtn.style.opacity = total === 0 ? '0.5' : '1';
     createBtn.style.pointerEvents = total === 0 ? 'none' : 'auto';
   }
-});
-
-// Single delegated click handler for all [data-action] elements
-document.addEventListener('click', (e) => {
-  const target = e.target.closest('[data-action]');
-  if (!target) return;
-  const action = target.dataset.action;
-  const fn = _ACTION_MAP[action];
-  if (fn) { fn(e); return; }
-});
-// Delegated input handler for range sliders with data-action
-document.addEventListener('input', (e) => {
-  const el = e.target;
-  if (el.tagName !== 'INPUT' || el.type !== 'range' || !el.dataset.action) return;
-  const fn = _ACTION_MAP[el.dataset.action];
-  if (fn) fn(e);
-});
-
-// ── Inline handler cleanup: bind via addEventListener instead of window exports ──
-document.getElementById('score-title')?.addEventListener('dblclick', showTitleDialog);
-document.getElementById('tempo-slider')?.addEventListener('input', e => updateTempo(e.target.value));
-document.getElementById('tempo-input')?.addEventListener('change', e => updateTempo(e.target.value));
-document.getElementById('search-input')?.addEventListener('input', e => filterSearchPanels(e.target.value));
-// ── Change delegation for number inputs (measures/BPM fields) ──
-document.addEventListener('change', (e) => {
-  const el = e.target;
-  if (el.tagName !== 'INPUT' || el.type !== 'number' || !el.dataset.action) return;
-  const fn = _ACTION_MAP[el.dataset.action];
-  if (fn) fn(e);
 });
 
 // ── UI Component Helpers (design-system aligned) ─────────────────────

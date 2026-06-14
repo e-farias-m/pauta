@@ -6,6 +6,12 @@
  * parseMSCX, parseMusicXML, exportMSCX, exportMSCXFromScore.
  */
 const SCORE = {};
+
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // Notation is pure data model — no DOM listeners.
+}
+
 function createScore(opts={}) {
   const ts         = opts.ts          || {num:4,den:4};
   const ks         = opts.ks          || 0;

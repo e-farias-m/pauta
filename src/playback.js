@@ -8,6 +8,14 @@
  * startLearnerOnboarding, startComposerOnboarding, closeWelcome,
  * switchRole, togglePlayback, rewindPlayback, toggleCountIn,
  * setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
+
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // Playback audio context created on first user gesture.
+  // No static DOM listeners needed at boot.
+}
+
+// ── Note Navigation ───────────────────────────────────────────────
  * stopPlayback, _checkPracticeNote, _updateDocTitle.
  */
 const AUDIO = {};

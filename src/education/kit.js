@@ -3,6 +3,12 @@
 //          diagnostic, composition tools, recorder exercises
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // Kit attaches listeners to dynamically created elements only.
+  // No static DOM listeners needed.
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 5b: Assignments
 // ═══════════════════════════════════════════════════════════════════
@@ -1421,7 +1427,8 @@ function _hideDiagBar() {
    showStarterAssignmentsDialog, showClefSelectionDialog, generateStarterAssignmentWithClef,
    showStarterPreviewDialog, confirmStarterDownload, previewStarterScore,
    _genScaleAssignment, _genRhythmAssignment,
-  _genMelodyDictAssignment, _exportMSCZ, _exportMSCZBatch, _downloadBlob
+   _genMelodyDictAssignment, _exportMSCZ, _exportMSCZBatch, _downloadBlob,
+   initListeners
 ].forEach(fn => { EXERCISE[fn.name] = fn; });
 
 function showTransposeDialog() {

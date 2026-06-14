@@ -1,4 +1,11 @@
 // ── Hit Testing / Input ──────────────────────────────────────────
+
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // Input attaches listeners to score SVG dynamically after render.
+  // No static DOM listeners needed at boot.
+}
+
 function getEventXY(e) {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl) return null;

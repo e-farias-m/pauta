@@ -7,6 +7,13 @@
  * updateBrassDiagram, _runBootSelfCheck.
  */
 const RENDER = {};
+
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // Rendering attaches listeners dynamically via SVG overlays.
+  // No static DOM listeners needed.
+}
+
 // Natural pixel width for a single note/rest of given duration
 function noteNaturalWidth(dur, dots) {
   const noteScale = APP.continuousView ? 1 : 0.7;

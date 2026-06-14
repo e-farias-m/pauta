@@ -3,6 +3,12 @@
 //              UI, rhythm worksheet, rhythm workout, main dialog
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // Session attaches listeners to dynamically created elements only.
+  // No static DOM listeners needed.
+}
+
 // ── Exercise Session Manager ────────────────────────────────────
 // ── Exercise Session Manager ────────────────────────────────────
 function startExerciseSession(type, difficulty) {

@@ -3,6 +3,12 @@
 //                 EVALUATOR, SESSION_MANAGER
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Static listeners (called once at boot) ──────────────────────
+function initListeners() {
+  // Exercises attaches listeners to dynamically created elements only.
+  // No static DOM listeners needed.
+}
+
 // ── Transposition ─────────────────────────────────────────────────
 // ── Transposition ─────────────────────────────────────────────────
 // Chromatic semitones for each diatonic step (ascending) in a major scale:
