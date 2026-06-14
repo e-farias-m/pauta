@@ -61,22 +61,22 @@ function navigateNote(direction, extend) {
       if (extend) APP.selStartIdx = -1;
     }
   }
-  renderSelection();
-  scrollToSelectedMeasure();
+  RENDER.renderSelection();
+  RENDER.scrollToSelectedMeasure();
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (n) {
     const label = n.type === 'rest'
       ? `Rest (${VEX_TO_MSCX[n.duration]||n.duration})`
       : `${NOTE_NAMES[PC_TO_DIA[n.pitch%12]].toUpperCase()}${Math.floor(n.pitch/12)-1}`;
-    showToast(label);
+    UI.showToast(label);
   }
 }
 function insertMeasure() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   const prevM = mi > 0 ? APP.score.parts[0].staves[0].measures[mi - 1] : null;
-  const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [mkRest('w')] };
-  commitChange(score => {
+  const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [SCORE.mkRest('w')] };
+  SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 0, JSON.parse(JSON.stringify(m)))));
     shiftMeasureRefs(score, mi, 'insert');
     APP.selectedNoteIdx = -1;
@@ -84,9 +84,9 @@ function insertMeasure() {
   _auditAnnotationsAfterEdit(APP.score, 'insertMeasure', mi);
 }
 function addMeasure() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  commitChange(score => {
-    score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
+  SCORE.commitChange(score => {
+    score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
   }, { toast: 'Measure added' });
   _auditAnnotationsAfterEdit(APP.score, 'addMeasure', APP.score.parts[0]?.staves[0]?.measures?.length - 1);
 }
@@ -97,9 +97,9 @@ function navigateStaff(dir) {
   if (next < 0 || next >= nStaves) return;
   APP.selectedStaff = next;
   APP.selectedNoteIdx = -1;
-  renderSelection();
-  scrollToSelectedMeasure();
-  showToast('Staff ' + (APP.selectedStaff + 1));
+  RENDER.renderSelection();
+  RENDER.scrollToSelectedMeasure();
+  UI.showToast('Staff ' + (APP.selectedStaff + 1));
 }
 
 // ── Undo/Redo ────────────────────────────────────────────────────
@@ -164,29 +164,29 @@ function pushUndo() {
   if (APP.undoStack.length > 60) APP.undoStack.shift();
 }
 function undo() {
-  if (!APP.undoStack.length) { showToast('Nothing to undo'); return; }
+  if (!APP.undoStack.length) { UI.showToast('Nothing to undo'); return; }
   APP.redoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   const entry = APP.undoStack.pop();
   APP.score = entry.score;
   _restoreUIState(entry.ui);
   APP._lastUndoFP = _scoreFingerprint(APP.score);
   _checkInvariants(APP.score);
-  renderScore(); showToast('Undo');
+  RENDER.renderScore(); UI.showToast('Undo');
 }
 function redo() {
-  if (!APP.redoStack.length) { showToast('Nothing to redo'); return; }
+  if (!APP.redoStack.length) { UI.showToast('Nothing to redo'); return; }
   APP.undoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
   const entry = APP.redoStack.pop();
   APP.score = entry.score;
   _restoreUIState(entry.ui);
   APP._lastUndoFP = _scoreFingerprint(APP.score);
   _checkInvariants(APP.score);
-  renderScore(); showToast('Redo');
+  RENDER.renderScore(); UI.showToast('Redo');
 }
 
 // ── Audio Export ──────────────────────────────────────────────────
 function showExportDialog() {
-  makeModal(`
+  UI.makeModal(`
     <h2>Export Audio</h2>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Format</div>
@@ -211,7 +211,7 @@ function showExportDialog() {
 function confirmExportAudio() {
   const format = document.getElementById('export-format')?.value || 'wav';
   const bpm    = parseInt(document.getElementById('export-bpm')?.value) || APP.tempo;
-  closeModal();
+  UI.closeModal();
   _renderAudio(format, bpm);
 }
 
@@ -297,19 +297,19 @@ function _renderAudio(format, bpm) {
     });
   });
 
-  showToast('Rendering audio…');
+  UI.showToast('Rendering audio…');
   offline.startRendering().then(buffer => {
-    const safe = safeName(APP.score.title);
+    const safe = UI.safeName(APP.score.title);
     if (format === 'mp3') {
       _exportMP3(buffer, safe);
     } else {
       const wav = audioBufferToWav(buffer);
-      dlBlob(wav, `${safe}.wav`);
-      showToast('Audio exported');
+      UI.dlBlob(wav, `${safe}.wav`);
+      UI.showToast('Audio exported');
     }
   }).catch(err => {
     console.error(err);
-    showToast('Export failed: ' + err.message);
+    UI.showToast('Export failed: ' + err.message);
   });
 }
 
@@ -319,7 +319,7 @@ function _exportMP3(buffer, name) {
     _encodeMP3(buffer, name);
     return;
   }
-  showToast('Loading MP3 encoder…');
+  UI.showToast('Loading MP3 encoder…');
   const urls = [
     'https://unpkg.com/lamejs@1.2.1/lame.min.js',
     'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js',
@@ -327,13 +327,13 @@ function _exportMP3(buffer, name) {
   async function tryLoad() {
     for (const url of urls) {
       try {
-        await loadScript(url);
+        await UI.loadScript(url);
         if (typeof lamejs !== 'undefined') { _encodeMP3(buffer, name); return; }
       } catch(e) { /* try next */ }
     }
-    showToast('Could not load MP3 encoder. Exporting WAV instead.');
+    UI.showToast('Could not load MP3 encoder. Exporting WAV instead.');
     const wav = audioBufferToWav(buffer);
-    dlBlob(wav, `${name}.wav`);
+    UI.dlBlob(wav, `${name}.wav`);
   }
   tryLoad();
 }
@@ -381,13 +381,13 @@ function _encodeMP3(buffer, name) {
     if (flushBuf.length > 0) mp3Data.push(flushBuf);
 
     const blob = new Blob(mp3Data, { type: 'audio/mpeg' });
-    dlBlob(blob, `${name}.mp3`);
-    showToast('MP3 exported');
+    UI.dlBlob(blob, `${name}.mp3`);
+    UI.showToast('MP3 exported');
   } catch (err) {
     console.error(err);
-    showToast('MP3 export failed, falling back to WAV: ' + err.message);
+    UI.showToast('MP3 export failed, falling back to WAV: ' + err.message);
     const wav = audioBufferToWav(buffer);
-    dlBlob(wav, `${name}.wav`);
+    UI.dlBlob(wav, `${name}.wav`);
   }
 }
 
@@ -432,7 +432,7 @@ function audioBufferToWav(buffer) {
 
 // ── PDF Export ────────────────────────────────────────────────────
 function showExportPDFDialog() {
-  makeModal(`
+  UI.makeModal(`
     <h2>Export Engraved PDF</h2>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Page size</div>
@@ -451,7 +451,7 @@ function showExportPDFDialog() {
 
 function confirmExportPDF() {
   const size = document.getElementById('pdf-page-size')?.value || 'a4';
-  closeModal();
+  UI.closeModal();
   _exportPDF(size);
 }
 
@@ -466,27 +466,27 @@ async function _exportPDF(pageSize) {
       'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'
     ]
   };
-  showToast('Loading PDF libraries…');
+  UI.showToast('Loading PDF libraries…');
   try {
     for (const url of urls.html2canvas) {
-      try { await loadScript(url); break; } catch(e) { /* try next */ }
+      try { await UI.loadScript(url); break; } catch(e) { /* try next */ }
     }
     for (const url of urls.jspdf) {
-      try { await loadScript(url); break; } catch(e) { /* try next */ }
+      try { await UI.loadScript(url); break; } catch(e) { /* try next */ }
     }
   } catch(e) {
-    showToast('Could not load PDF libraries');
+    UI.showToast('Could not load PDF libraries');
     return;
   }
   if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined' || !jspdf.jsPDF) {
-    showToast('PDF libraries failed to load');
+    UI.showToast('PDF libraries failed to load');
     return;
   }
-  showToast('Rendering score…');
+  UI.showToast('Rendering score…');
   const container = document.getElementById('score-svg');
-  if (!container) { showToast('No score to export'); return; }
+  if (!container) { UI.showToast('No score to export'); return; }
   // Hide diagrams for clean print
-  positionAllDiagrams(0);
+  RENDER.positionAllDiagrams(0);
   const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
   const imgData = canvas.toDataURL('image/png');
   const { jsPDF } = jspdf;
@@ -524,16 +524,16 @@ async function _exportPDF(pageSize) {
       pageNum++;
     }
   }
-  const safe = safeName(APP.score?.title || 'score');
+  const safe = UI.safeName(APP.score?.title || 'score');
   doc.save(`${safe}.pdf`);
-  showToast('PDF exported');
+  UI.showToast('PDF exported');
 }
 
 // ── Help & Onboarding ─────────────────────────────────────────────
 function showWelcomeModal() {
   const seen = localStorage.getItem('pauta_welcome_seen');
   if (seen) return;
-  makeModal(`
+  UI.makeModal(`
     <h2>Welcome to Pauta</h2>
     <div style="font-size:13px;color:var(--pauta-text-muted);line-height:1.5;margin-bottom:14px">
       <p>What would you like to do?</p>
@@ -551,7 +551,7 @@ function startLearnerOnboarding() {
   localStorage.setItem('pauta_welcome_seen', '1');
   localStorage.setItem('pauta_role', 'student');
   _updateDocTitle();
-  closeModal();
+  UI.closeModal();
   setTimeout(() => showExerciseDialog(), 300);
 }
 
@@ -559,12 +559,12 @@ function startComposerOnboarding() {
   localStorage.setItem('pauta_welcome_seen', '1');
   localStorage.setItem('pauta_role', 'teacher');
   _updateDocTitle();
-  closeModal();
+  UI.closeModal();
 }
 
 function closeWelcome() {
   localStorage.setItem('pauta_welcome_seen', '1');
-  closeModal();
+  UI.closeModal();
 }
 
 function _updateDocTitle() {
@@ -575,7 +575,7 @@ function _updateDocTitle() {
 function switchRole(role) {
   localStorage.setItem('pauta_role', role);
   _updateDocTitle();
-  showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
+  UI.showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
 }
 
 function getAudioCtx() {
@@ -635,8 +635,8 @@ function rewindPlayback() {
   if (scoreArea) scoreArea.scrollTop = 0;
   const scoreSvg = document.getElementById('score-svg');
   if (scoreSvg) scoreSvg.scrollLeft = 0;
-  renderSelection();
-  showToast('Rewound to start');
+  RENDER.renderSelection();
+  UI.showToast('Rewound to start');
 }
 
 // Per-instrument sound profiles — richer harmonics, smoother envelopes
@@ -794,7 +794,7 @@ function toggleCountIn() {
   APP.countIn = !APP.countIn;
   const btn = document.getElementById('btn-countin');
   if (btn) btn.classList.toggle('active', APP.countIn);
-  showToast(APP.countIn ? 'Count-in on (4 clicks)' : 'Count-in off');
+  UI.showToast(APP.countIn ? 'Count-in on (4 clicks)' : 'Count-in off');
 }
 
 function setMetronomeSubdivision(val) {
@@ -805,7 +805,7 @@ function setMetronomeSubdivision(val) {
     _stopStandaloneMetronome();
     _startStandaloneMetronome();
   }
-  showToast('Metronome: ' + val);
+  UI.showToast('Metronome: ' + val);
 }
 
 function toggleMetronome() {
@@ -836,7 +836,7 @@ function toggleMetronome() {
     _stopStandaloneMetronome();
     APP._metBeat = 0;
   }
-  showToast(APP.metronome ? 'Metronome on' : 'Metronome off');
+  UI.showToast(APP.metronome ? 'Metronome on' : 'Metronome off');
 }
 
 function _getSubdivisionInfo() {
@@ -1035,7 +1035,7 @@ function startPlayback() {
           // Keep a small gap so the scroll feels responsive but smooth
           if (Math.abs(diff) > 1) {
             cont.scrollLeft = cur + diff * 0.22;
-            positionAllDiagrams();
+            RENDER.positionAllDiagrams();
           }
         }
         APP._playScrollRAF = requestAnimationFrame(scrollTick);
@@ -1122,9 +1122,9 @@ function _updatePlaybackDiagrams(elapsedMs) {
         APP.selectedMeasure = active.mi;
         APP.selectedNoteIdx = active.ni;
         APP.selectedStaff = si;
-        if (instr.recorder) updateRecorderDiagram();
-        else if (instr.woodwind) updateWoodwindDiagram();
-        else if (instr.brass) updateBrassDiagram();
+        if (instr.recorder) RENDER.updateRecorderDiagram();
+        else if (instr.woodwind) RENDER.updateWoodwindDiagram();
+        else if (instr.brass) RENDER.updateBrassDiagram();
       }
     }
     gsi += part.staves.length;
@@ -1146,7 +1146,7 @@ function updatePlayCursor(elapsedMs) {
     APP.selectedMeasure = active[0].mi;
     APP.selectedNoteIdx = active[0].ni;
     // In continuous view, auto-scroll handles the scrolling during playback
-    if (!APP.continuousView) scrollToSelectedMeasure();
+    if (!APP.continuousView) RENDER.scrollToSelectedMeasure();
   }
   if (key === APP._lastPlayKey) return;
   APP._lastPlayKey = key;
@@ -1188,7 +1188,7 @@ function togglePracticeMode() {
 }
 
 function _startPracticeMode() {
-  if (!APP.score) { showToast('Open or create a score first'); return; }
+  if (!APP.score) { UI.showToast('Open or create a score first'); return; }
   APP.practiceMode = true;
   APP.practiceWaiting = true;
   stopPlayback();
@@ -1213,7 +1213,7 @@ function _startPracticeMode() {
   const ok = _practiceAdvance();
   if (!ok) { APP.practiceMode = false; return; }
 
-  showToast('Practice mode ON — play each highlighted note');
+  UI.showToast('Practice mode ON — play each highlighted note');
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.add('active');
 
@@ -1228,7 +1228,7 @@ function _stopPracticeMode() {
   APP._practiceTargetPitch = null;
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.remove('active');
-  showToast('Practice mode OFF');
+  UI.showToast('Practice mode OFF');
   _stopPracticePitchDetection();
   _stopPracticeMetronome();
   _updatePracticeStatusBar(false);
@@ -1273,7 +1273,7 @@ function _practiceAdvance() {
   const stave = getStaveBySI(APP.selectedStaff);
   if (!stave || !stave.measures.length) {
     _stopPracticeMode();
-    showToast('Practice complete!');
+    UI.showToast('Practice complete!');
     return false;
   }
 
@@ -1299,7 +1299,7 @@ function _practiceAdvance() {
         continue;
       } else {
         _stopPracticeMode();
-        showToast('Practice complete!');
+        UI.showToast('Practice complete!');
         return false;
       }
     }
@@ -1309,7 +1309,7 @@ function _practiceAdvance() {
       ni = 0;
       if (mi >= stave.measures.length) {
         _stopPracticeMode();
-        showToast('Practice complete!');
+        UI.showToast('Practice complete!');
         return false;
       }
       continue;
@@ -1319,7 +1319,7 @@ function _practiceAdvance() {
       APP.selectedMeasure = mi;
       APP.selectedNoteIdx = ni;
       APP._practiceTargetPitch = note.pitch;
-      renderScore();
+      RENDER.renderScore();
       APP.practiceWaiting = true;
       return true;
     }
@@ -1380,7 +1380,7 @@ function _checkPracticeNote(incomingPitch) {
     _practiceAdvance();
   } else {
     // Wrong note — show diagnostic feedback
-    showToast(assessment.message + (assessment.detail?.hint ? ` — ${assessment.detail.hint}` : ''), 1500);
+    UI.showToast(assessment.message + (assessment.detail?.hint ? ` — ${assessment.detail.hint}` : ''), 1500);
   }
 }
 
@@ -1485,7 +1485,7 @@ function startPitchDetection(pitchCallback, levelCallback) {
     })
     .catch(err => {
       console.warn('Microphone access denied:', err);
-      showToast('Microphone access required for pitch detection');
+      UI.showToast('Microphone access required for pitch detection');
     });
 }
 
@@ -1614,7 +1614,7 @@ function _showPracticeResults() {
     `📊 Accuracy: ${accuracy}%`
   ].join('\n');
 
-  showToast(`Practice complete! ${accuracy}% accuracy (${stats.correct}/${total})`, 5000);
+  UI.showToast(`Practice complete! ${accuracy}% accuracy (${stats.correct}/${total})`, 5000);
   setTimeout(() => alert(`Practice Session Complete\n\n${details}`), 100);
 }
 

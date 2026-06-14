@@ -369,22 +369,22 @@ const KIT_CONFIGS = {
 
 function applyKit(kitName, level) {
   const kit = KIT_CONFIGS[kitName];
-  if (!kit) { showToast('Unknown teaching kit: ' + kitName); return; }
-  if (!kit.instruments[level]) { showToast('Unknown level: ' + level); return; }
+  if (!kit) { UI.showToast('Unknown teaching kit: ' + kitName); return; }
+  if (!kit.instruments[level]) { UI.showToast('Unknown level: ' + level); return; }
   APP.teachingKit = kitName;
   APP.teachingKitLevel = level;
   // Optionally sync the UI profile to the kit's suggestion
   const suggested = kit.suggestedProfile[level];
   if (suggested && UI_PROFILES[suggested]) applyUIProfile(suggested);
   try { localStorage.setItem('pauta_kit', kitName); localStorage.setItem('pauta_kit_level', level); } catch(e) { console.warn('[Pauta]', e.message); }
-  showToast(`${kit.name} — ${level}`);
+  UI.showToast(`${kit.name} — ${level}`);
 }
 
 function clearKit() {
   APP.teachingKit = null;
   APP.teachingKitLevel = 'advanced';
   try { localStorage.removeItem('pauta_kit'); localStorage.removeItem('pauta_kit_level'); } catch(e) { console.warn('[Pauta]', e.message); }
-  showToast('General Music mode');
+  UI.showToast('General Music mode');
 }
 
 function _kitInstrumentList(level) {
@@ -464,7 +464,7 @@ function applyUIProfile(profileName) {
   } else {
     msg = profileName.charAt(0).toUpperCase() + profileName.slice(1) + ' profile (no change)';
   }
-  showToast(msg, changes.length ? 2500 : 1200);
+  UI.showToast(msg, changes.length ? 2500 : 1200);
 
   // Store preference
   try { localStorage.setItem('pauta_ui_profile', profileName); } catch(e) { console.warn('[Pauta]', e.message); }

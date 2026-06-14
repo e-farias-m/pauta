@@ -193,7 +193,7 @@ function packSystems(staves, allM, nM, ns, viewScale, container) {
   const FIRST_EXTRA_GLOBAL = Math.round(156 * viewScale);
   const FIRST_EXTRA_SYS    = Math.round(108 * viewScale);
   const mNatW = Array.from({length: nM}, (_, mi) =>
-    measureContentWidth(staves[0].measures[mi]?.notes || [mkRest('w')])
+    measureContentWidth(staves[0].measures[mi]?.notes || [SCORE.mkRest('w')])
   );
   for (let mi = 0; mi < nM; mi++) {
     if (allM[mi]?.pickup) {
@@ -412,11 +412,11 @@ function _showRenderFailure(err) {
     container.innerHTML =
        `<div style="padding:32px;text-align:center;color:var(--pauta-text-muted);max-width:360px;margin:0 auto">
          <p style="font-size:15px;font-weight:600;margin-bottom:8px">Could not draw the score</p>
-         <p style="font-size:13px;color:rgba(74,85,104,0.75);margin-bottom:16px;line-height:1.5">${escHtml(msg)}</p>
+         <p style="font-size:13px;color:rgba(74,85,104,0.75);margin-bottom:16px;line-height:1.5">${UI.escHtml(msg)}</p>
          <button data-action="reload" style="padding:10px 20px;background:var(--pauta-primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Reload Pauta</button>
        </div>`;
   }
-  showToast('Score display error');
+  UI.showToast('Score display error');
 }
 
 function _runBootSelfCheck() {
@@ -424,15 +424,15 @@ function _runBootSelfCheck() {
   let ok = true;
 
   // ── Score validation ────────────────────────────────────────────
-  const sample = createScore({ title: 'Self-check', instruments: ['Piano', 'Soprano Recorder'] });
-  const check = validateScore(repairScore(sample));
+  const sample = SCORE.createScore({ title: 'Self-check', instruments: ['Piano', 'Soprano Recorder'] });
+  const check = SCORE.validateScore(SCORE.repairScore(sample));
   if (!check.ok) { console.warn('[Pauta] boot self-check failed:', check.issues); ok = false; }
   else debugLog('[Pauta] boot self-check score validation passed');
 
   // ── MSCX round-trip ─────────────────────────────────────────────
   try {
-    const xml = exportMSCXFromScore(sample);
-    const reparsed = parseMSCX(xml);
+    const xml = SCORE.exportMSCXFromScore(sample);
+    const reparsed = SCORE.parseMSCX(xml);
     if (reparsed.parts.length !== sample.parts.length) {
       console.warn('[Pauta] self-check MSCX round-trip part count mismatch'); ok = false;
     }
@@ -456,7 +456,7 @@ function _runBootSelfCheck() {
     </measure>
   </part>
 </score-partwise>`;
-    const mxScore = parseMusicXML(mxml);
+    const mxScore = SCORE.parseMusicXML(mxml);
     if (!mxScore.parts.length || !mxScore.parts[0].staves[0].measures.length) {
       console.warn('[Pauta] self-check MusicXML import produced empty score'); ok = false;
     } else {
@@ -569,7 +569,7 @@ function _renderSystems(rc) {
     sysY = _advanceSystemY(system, sysY, siOffset, ns, 6);
   });
 
-  updateStatusBar();
+  UI.updateStatusBar();
   updateOctaveDisplay();
 }
 
@@ -832,10 +832,10 @@ function getNoteByLayout(nl) {
 function _renderScoreAnnotations(rc) {
   const { ctx } = rc;
   renderMarkings(ctx);
-  renderRehearsalMarks();
-  renderStaffTexts();
-  renderChordSymbols();
-  renderLyrics();
+  UI.renderRehearsalMarks();
+  UI.renderStaffTexts();
+  UI.renderChordSymbols();
+  UI.renderLyrics();
   renderNavigationMarkers();
   renderLyricClickHandlers();
   renderBWNoteheads();
@@ -972,7 +972,7 @@ function _renderSelectionBody() {
   updateRecorderDiagram();
   updateWoodwindDiagram();
   updateBrassDiagram();
-  updateStatusBar();
+  UI.updateStatusBar();
   positionAllDiagrams();
 }
 

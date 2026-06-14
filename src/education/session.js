@@ -82,7 +82,7 @@ function _showSessionIntro(type, difficulty) {
 
   const diffLabel = difficulty === 'beginner' ? 'Beginner' : difficulty === 'intermediate' ? 'Intermediate' : 'Advanced';
 
-  makeModal(`
+  UI.makeModal(`
     <div class="pauta-modal">
       <div class="pauta-modal-header">
         <h2 class="pauta-modal-title">${intro.title}</h2>
@@ -172,7 +172,7 @@ function endExerciseSession() {
     </div>`;
   }
 
-  makeModal(`
+  UI.makeModal(`
     <h2>Session Complete</h2>
     <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
       <div style="font-size:32px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">${pct}%</div>
@@ -232,12 +232,12 @@ function endExerciseSession() {
 }
 
 function closeModalExercise() {
-  closeModal();
-  renderScore();
+  UI.closeModal();
+  RENDER.renderScore();
 }
 
 function restartExerciseSession() {
-  closeModal();
+  UI.closeModal();
   const s = APP.exerciseSession;
   const savedType = s?.type;
   const savedDiff = s?.difficulty;
@@ -246,9 +246,9 @@ function restartExerciseSession() {
 }
 
 function reviewExerciseSession() {
-  closeModal();
+  UI.closeModal();
   const s = APP.exerciseSession;
-  if (!s || !s.completed.length) { showToast('No exercises to review'); return; }
+  if (!s || !s.completed.length) { UI.showToast('No exercises to review'); return; }
 
   let reviewIndex = 0;
   const completed = s.completed;
@@ -304,7 +304,7 @@ function reviewExerciseSession() {
     const correctAns = c.correctAnswer || c.questionLabel;
     const hint = c.hint;
 
-    makeModal(`
+    UI.makeModal(`
       <h2>Review: ${typeLabel} (${idx + 1}/${completed.length})</h2>
       <div style="margin-bottom:12px;padding:12px;background:rgba(192,86,33,0.05);border-radius:8px">
         <div style="font-weight:600;margin-bottom:6px">Question</div>
@@ -313,15 +313,15 @@ function reviewExerciseSession() {
       <div style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;flex-wrap:wrap">
         <div style="padding:8px 16px;background:${isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(255,96,96,0.1)'};border-radius:8px;border:1px solid ${isCorrect ? 'var(--pauta-success)' : '#ff6060'}">
           <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</div>
-          <div style="font-size:16px;font-weight:700;color:${isCorrect ? 'var(--pauta-success)' : '#c05421'}">${escHtml(userAns)}</div>
+          <div style="font-size:16px;font-weight:700;color:${isCorrect ? 'var(--pauta-success)' : '#c05421'}">${UI.escHtml(userAns)}</div>
         </div>
         ${!isCorrect ? `
         <div style="padding:8px 16px;background:rgba(34,197,94,0.1);border-radius:8px;border:1px solid var(--pauta-success)">
           <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">Correct Answer</div>
-          <div style="font-size:16px;font-weight:700;color:var(--pauta-success)">${escHtml(correctAns)}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--pauta-success)">${UI.escHtml(correctAns)}</div>
         </div>` : ''}
       </div>
-      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">💡 ${escHtml(hint)}</div>` : ''}
+      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">💡 ${UI.escHtml(hint)}</div>` : ''}
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         ${idx > 0 ? `<button class="modal-btn secondary" data-action="reviewPrev">← Previous</button>` : ''}
         ${idx < completed.length - 1 ? `<button class="modal-btn primary" data-action="reviewNext">Next →</button>` : `<button class="modal-btn primary" data-action="closeModal">Done</button>`}
@@ -332,8 +332,8 @@ function reviewExerciseSession() {
 
   // Register one-time handlers for review navigation
   const origRegister = window._registerAction;
-  window._registerAction('reviewPrev', () => { closeModal(); showReview(reviewIndex - 1); });
-  window._registerAction('reviewNext', () => { closeModal(); showReview(reviewIndex + 1); });
+  window._registerAction('reviewPrev', () => { UI.closeModal(); showReview(reviewIndex - 1); });
+  window._registerAction('reviewNext', () => { UI.closeModal(); showReview(reviewIndex + 1); });
 
   showReview(0);
 }
@@ -687,11 +687,11 @@ function _handleNoteChoice(answer, correctPitch, container) {
 
 function _presentNoteConstruct(ex) {
   const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Note Construction', instruments: [instr], ts: {num:4,den:4}, ks: 0});
-  score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
-  showToast('Click on the staff to place the note!');
+  const score = SCORE.createScore({title: 'Note Construction', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  score.parts[0].staves[0].measures[0].notes = [SCORE.mkRest('w')];
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
+  UI.showToast('Click on the staff to place the note!');
   setTimeout(() => _attachNoteConstructClickHandler(), 100);
 }
 
@@ -805,7 +805,7 @@ function _checkNoteConstructAnswer(pitch) {
   if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
     const newDiff = DIFF_NAMES[diffIdx + 1];
     s.difficulty = newDiff;
-    showToast(`📈 Leveling up to ${newDiff}!`);
+    UI.showToast(`📈 Leveling up to ${newDiff}!`);
     s.completed.push({
       type: 'difficulty_change',
       answer: newDiff,
@@ -820,7 +820,7 @@ function _checkNoteConstructAnswer(pitch) {
     if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
       const newDiff = DIFF_NAMES[diffIdx - 1];
       s.difficulty = newDiff;
-      showToast(`📉 Easing to ${newDiff}`);
+      UI.showToast(`📉 Easing to ${newDiff}`);
       s.completed.push({
         type: 'difficulty_change',
         answer: newDiff,
@@ -867,13 +867,13 @@ function _checkNoteConstructAnswer(pitch) {
 
 function _presentIntervalId(ex) {
   const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Interval Training', instruments: [instr], ts: {num:4,den:4}, ks: 0});
+  const score = SCORE.createScore({title: 'Interval Training', instruments: [instr], ts: {num:4,den:4}, ks: 0});
   score.parts[0].staves[0].measures[0].notes = [
-    mkNote(ex.target.bottom, 'q', 0, midiAutoAcc(ex.target.bottom)),
-    mkNote(ex.target.top, 'q', 0, midiAutoAcc(ex.target.top)),
+    SCORE.mkNote(ex.target.bottom, 'q', 0, midiAutoAcc(ex.target.bottom)),
+    SCORE.mkNote(ex.target.top, 'q', 0, midiAutoAcc(ex.target.top)),
   ];
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
   _showMCGrid(_generateIntervalOptions(ex.answer), ex.answer, _handleIntervalChoice, 'Name this interval');
 }
 
@@ -909,28 +909,28 @@ function _handleIntervalChoice(answer, correctAnswer, container) {
 }
 
 function _presentRhythmRead(ex) {
-  const score = createScore({title: 'Rhythm Reading', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
-  const notes = ex.target.durations.map(d => mkNote(60, d));
+  const score = SCORE.createScore({title: 'Rhythm Reading', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
+  const notes = ex.target.durations.map(d => SCORE.mkNote(60, d));
   score.parts[0].staves[0].measures[0].notes = notes;
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
-  showToast('Tap ▶ to hear, then clap/tap it back');
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
+  UI.showToast('Tap ▶ to hear, then clap/tap it back');
 }
 
 function _presentRhythmWorksheet(ex) {
   const mx = ex.target.measures;
-  const score = createScore({title: 'Rhythm Dictation', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
+  const score = SCORE.createScore({title: 'Rhythm Dictation', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
   for (let m = 0; m < mx; m++) {
     stave.measures.push({
       timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
       keySig: m === 0 ? 0 : null, lineBreak: (m > 0 && m % 4 === 0),
-      notes: [mkRest('w')],
+      notes: [SCORE.mkRest('w')],
     });
   }
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
   _renderRhythmBeatGrid(ex);
 }
 
@@ -938,7 +938,7 @@ function _presentMelodyDict(ex) {
   // Phase 1: blank score with key signature — student hears but does NOT see the melody
   const instr = _kitDefaultInstrument();
   const ks = ex.target.keySig || 0;
-  const blankScore = createScore({title: 'Melody Dictation', instruments: [instr], ts: {num:4,den:4}, ks: ks});
+  const blankScore = SCORE.createScore({title: 'Melody Dictation', instruments: [instr], ts: {num:4,den:4}, ks: ks});
   
   // Fill with whole-measure rests so the score has structure but no pitches
   const totalBeats = ex.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
@@ -947,11 +947,11 @@ function _presentMelodyDict(ex) {
   for (let i = 0; i < measureCount; i++) {
     blankScore.parts[0].staves[0].measures.push({
       timeSigNum: i === 0 ? 4 : null, timeSigDen: i === 0 ? 4 : null,
-      keySig: i === 0 ? ks : null, lineBreak: false, notes: [mkRest('w')]
+      keySig: i === 0 ? ks : null, lineBreak: false, notes: [SCORE.mkRest('w')]
     });
   }
-  adoptScore(blankScore, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
+  SCORE.adoptScore(blankScore, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
 
   // Store target for playback-only (not rendered)
   const s = APP.exerciseSession;
@@ -1088,7 +1088,7 @@ function _playDictationMelody() {
     scheduleNote(ctx, n.pitch, t, dur * 0.88, oscType, 1);
     t += dur;
   }
-  showToast('Playing melody…');
+  UI.showToast('Playing melody…');
 }
 
 function _startDictationNotate() {
@@ -1098,7 +1098,7 @@ function _startDictationNotate() {
   if (s) s._dictationPhase = 'notate';
   // Show a floating submit bar
   _showDictationCheckBar();
-  showToast('Enter the notes you heard (tap palette or use MIDI/mic)');
+  UI.showToast('Enter the notes you heard (tap palette or use MIDI/mic)');
 }
 
 function _showDictationCheckBar() {
@@ -1171,7 +1171,7 @@ function _checkDictationAnswer() {
     `<span style="color:var(--pauta-primary-light)">✗ Note ${c.idx+1}: got ${c.placed}, expected ${c.expected}</span>`
   )).join('<br>');
 
-  makeModal(`
+  UI.makeModal(`
     <h2>${pct === 100 ? '✓ Perfect!' : 'Not quite'}</h2>
     <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--pauta-primary)">${pct}%</div>
@@ -1185,7 +1185,7 @@ function _checkDictationAnswer() {
 }
 
 function retryDictation() {
-  closeModal();
+  UI.closeModal();
   const s = APP.exerciseSession;
   if (!s) return;
   // Reset the dictation to listen phase
@@ -1200,10 +1200,10 @@ function retryDictation() {
 
 function _presentKeySigId(ex) {
   const instr = _kitDefaultInstrument();
-  const score = createScore({title: 'Key Signature ID', instruments: [instr], ts: {num:4,den:4}, ks: ex.target.keySig});
-  score.parts[0].staves[0].measures[0].notes = [mkRest('w')];
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
+  const score = SCORE.createScore({title: 'Key Signature ID', instruments: [instr], ts: {num:4,den:4}, ks: ex.target.keySig});
+  score.parts[0].staves[0].measures[0].notes = [SCORE.mkRest('w')];
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
   _showMCGrid(_generateKeySigOptions(ex), ex.answer, _handleKeySigChoice, ex.askMinor ? 'Name this minor key' : 'Name this major key');
 }
 
@@ -1245,7 +1245,7 @@ function _presentScaleId(ex) {
   const { tonic, notes, scaleType, keySig } = ex.target;
   const instr = _kitDefaultInstrument();
   const ks = keySig ?? _tonicToKeySig(tonic, scaleType);
-  const score = createScore({title: 'Scale Gym', instruments: [instr], ts: {num:4,den:4}, ks});
+  const score = SCORE.createScore({title: 'Scale Gym', instruments: [instr], ts: {num:4,den:4}, ks});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
   const notesPerMeasure = 4;
@@ -1254,14 +1254,14 @@ function _presentScaleId(ex) {
     stave.measures.push({
       timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
       keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0,
-      notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p, ks))),
+      notes: slice.map(p => SCORE.mkNote(p, 'q', 0, midiAutoAcc(p, ks))),
     });
   }
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
   _showMCGrid(_generateScaleOptions(ex), ex.answer, _handleScaleChoice, 'Name this scale');
   setTimeout(() => {
-    showToast('🎧 Listen to the scale, then name it!');
+    UI.showToast('🎧 Listen to the scale, then name it!');
     startPlayback();
   }, 300);
 }
@@ -1370,7 +1370,7 @@ function checkExerciseAnswer(userAnswer) {
   if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
     const newDiff = DIFF_NAMES[diffIdx + 1];
     s.difficulty = newDiff;
-    showToast(`📈 Leveling up to ${newDiff}!`);
+    UI.showToast(`📈 Leveling up to ${newDiff}!`);
     s.completed.push({
       type: 'difficulty_change',
       answer: newDiff,
@@ -1385,7 +1385,7 @@ function checkExerciseAnswer(userAnswer) {
     if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
       const newDiff = DIFF_NAMES[diffIdx - 1];
       s.difficulty = newDiff;
-      showToast(`📉 Easing to ${newDiff}`);
+      UI.showToast(`📉 Easing to ${newDiff}`);
       s.completed.push({
         type: 'difficulty_change',
         answer: newDiff,
@@ -1443,7 +1443,7 @@ function _showSuccessBanner(msg, opts = {}) {
   const el = document.createElement('div');
   el.id = 'exercise-success-banner';
   el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:2000;background:linear-gradient(135deg,var(--pauta-success),#16a34a);color:#fff;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(34,197,94,0.35);opacity:0;transition:opacity 0.25s ease, transform 0.25s ease;pointer-events:none;white-space:nowrap;font-family:var(--pauta-font-sans);text-align:center';
-  el.innerHTML = `<div>${escHtml(msg)}</div>${correctAnswer ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">Answer: ${escHtml(correctAnswer)}</div>` : ''}${milestone ? `<div style="font-size:13px;margin-top:3px;color:#bbf7d0">${milestone}</div>` : ''}`;
+  el.innerHTML = `<div>${UI.escHtml(msg)}</div>${correctAnswer ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">Answer: ${UI.escHtml(correctAnswer)}</div>` : ''}${milestone ? `<div style="font-size:13px;margin-top:3px;color:#bbf7d0">${milestone}</div>` : ''}`;
   document.body.appendChild(el);
   requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)'; });
 
@@ -1505,11 +1505,11 @@ function _showExerciseFeedback(ex, userAnswer) {
   if (existing) existing.remove();
 
   const correctLabel = ex.answerLabel || ex.answer;
-  const hintText = escHtml(ex.hint || '');
+  const hintText = UI.escHtml(ex.hint || '');
 
   const extraNote = (ex.type === EXERCISE_TYPES.KEY_SIG_ID)
-    ? (ex.askMinor ? ` (also ${escHtml(ex.answerMajor)})`
-                  : ` (also ${escHtml(ex.answerMinor)})`)
+    ? (ex.askMinor ? ` (also ${UI.escHtml(ex.answerMajor)})`
+                  : ` (also ${UI.escHtml(ex.answerMinor)})`)
     : '';
 
   const bar = document.createElement('div');
@@ -1520,9 +1520,9 @@ function _showExerciseFeedback(ex, userAnswer) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-weight:700;color:#b45309;font-size:14px">Not quite</span>
         <div style="display:flex;gap:6px;align-items:center;font-size:12px">
-          <span style="background:rgba(239,68,68,0.1);padding:2px 8px;border-radius:4px;color:#dc2626">You: <b>${escHtml(userAnswer)}</b></span>
+          <span style="background:rgba(239,68,68,0.1);padding:2px 8px;border-radius:4px;color:#dc2626">You: <b>${UI.escHtml(userAnswer)}</b></span>
           <span style="color:rgba(74,85,104,0.4)">→</span>
-          <span style="background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:4px;color:#16a34a">Correct: <b>${escHtml(correctLabel)}</b>${extraNote}</span>
+          <span style="background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:4px;color:#16a34a">Correct: <b>${UI.escHtml(correctLabel)}</b>${extraNote}</span>
         </div>
       </div>
       ${hintText ? `
@@ -1548,7 +1548,7 @@ function _showExerciseFeedback(ex, userAnswer) {
 }
 
 function nextExercise() {
-  closeModal();
+  UI.closeModal();
   _hideExerciseFeedback();
   const s = APP.exerciseSession;
   if (!s) return;
@@ -1565,7 +1565,7 @@ function skipExercise() {
 }
 
 function retryExercise() {
-  closeModal();
+  UI.closeModal();
   _hideExerciseFeedback();
   const s = APP.exerciseSession;
   if (!s || !s.current) return;
@@ -1732,7 +1732,7 @@ function _playRhythmDictation(ex) {
   const s = APP.exerciseSession;
   if (!s) return;
   const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
-  if (s.playsLeft !== undefined && s.playsLeft <= 0) { showToast('No plays remaining'); return; }
+  if (s.playsLeft !== undefined && s.playsLeft <= 0) { UI.showToast('No plays remaining'); return; }
 
   const ctx = getAudioCtx();
   const bpm = APP.tempo || 100;
@@ -1812,11 +1812,11 @@ function checkRhythmWorksheet() {
 }
 
 function showRhythmWorksheetDialog() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   const diffs = ['beginner', 'intermediate', 'advanced'];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
 
-  makeModal(`
+  UI.makeModal(`
     <h2>Rhythm Dictation</h2>
     <p class="dialog-hint">8 measures of 4/4 — quarter notes and rests only.
     Press Play to hear the rhythm, then mark each beat in the grid.</p>
@@ -1841,7 +1841,7 @@ function showRhythmWorksheetDialog() {
     const genBtn = document.getElementById('rg-generate-btn');
     if (genBtn) genBtn.addEventListener('click', () => {
       const diff = APP.exerciseDifficulty || 'beginner';
-      closeModal();
+      UI.closeModal();
       _startRhythmWorksheet(diff);
     });
   }, 50);
@@ -1863,7 +1863,7 @@ function _startRhythmWorksheet(difficulty) {
 
 // ── Main Exercise Dialog ───────────────────────────────────────
 function showExerciseDialog() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
 
   const results = _loadResults();
   const byType = {};
@@ -1905,7 +1905,7 @@ function showExerciseDialog() {
   const totalSessions = results.length;
   const overallPct = results.length > 0 ? Math.round(results.reduce((s,r) => s + r.pct, 0) / results.length) : 0;
 
-  makeModal(`
+  UI.makeModal(`
     <div class="pauta-modal">
       <div class="pauta-modal-header">
         <h2 class="pauta-modal-title">Practice Gym</h2>
@@ -2079,7 +2079,7 @@ function showRhythmWorkoutDialog() {
 
   const activeSet = new Set(s.noteGroups.map(g => g.dur + (g.rest ? 'r' : '') + (g.dots || 0)));
 
-  makeModal(`
+  UI.makeModal(`
     <h2>🥁 Rhythm Workout</h2>
     <div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0;max-height:60vh;overflow-y:auto">
       <div>
@@ -2172,7 +2172,7 @@ function _rwHandleAction(action, el) {
     return true;
   }
   if (action === 'rwStart') {
-    closeModal();
+    UI.closeModal();
     startExerciseSession(EXERCISE_TYPES.RHYTHM_WORKOUT, 'beginner');
     return true;
   }
@@ -2198,7 +2198,7 @@ function _genRhythmWorkout() {
 
 function _presentRhythmWorkout(ex) {
   const { timeSig: ts, notes, tempo } = ex.target;
-  const score = createScore({
+  const score = SCORE.createScore({
     title: 'Rhythm Workout',
     instruments: ['Percussion'],
     ts: { num: ts.num, den: ts.den },
@@ -2207,15 +2207,15 @@ function _presentRhythmWorkout(ex) {
 
   // Build notes array
   const vfNotes = notes.map(n => {
-    if (n.rest) return mkRest(n.duration, n.dots);
-    return mkNote(60, n.duration, n.dots);
+    if (n.rest) return SCORE.mkRest(n.duration, n.dots);
+    return SCORE.mkNote(60, n.duration, n.dots);
   });
 
   score.parts[0].staves[0].measures[0].notes = vfNotes;
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
-  renderScore();
-  showToast(`🥁 ${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
+  RENDER.renderScore();
+  UI.showToast(`🥁 ${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
 }
 
 function _checkRhythmWorkoutAnswer(userAnswer) {

@@ -12,9 +12,9 @@ const DIA_SEMITONES = [0,2,4,5,7,9,11]; // C D E F G A B
 // Transpose the entire score (all parts, all staves) by a number of semitones.
 // diaSteps is the diatonic shift (for accidental book-keeping, +/- integer).
 function transposeScore(semitones) {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (!semitones) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts.forEach(part => {
       part.staves.forEach(stave => {
         stave.measures.forEach(m => {
@@ -239,7 +239,7 @@ function _recordCurriculumExercise(gradeId, exerciseIdx, pct) {
 }
 
 function showCurriculumDialog() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
 
   const progress = _loadCurriculumProgress();
   const results = _loadResults();
@@ -284,7 +284,7 @@ function showCurriculumDialog() {
     </div>`;
   }).join('');
 
-  makeModal(`
+  UI.makeModal(`
     <h2>📚 Curriculum</h2>
     <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
       Structured learning path · ${totalSessions} total sessions completed
@@ -298,7 +298,7 @@ function showCurriculumDialog() {
 
 function startCurriculumGrade(gradeId, exerciseIdx) {
   const grade = CURRICULUM.find(g => g.id === gradeId);
-  if (!grade || !_isCurriculumUnlocked(grade)) { showToast('Grade not yet unlocked'); return; }
+  if (!grade || !_isCurriculumUnlocked(grade)) { UI.showToast('Grade not yet unlocked'); return; }
   const exercise = grade.exercises[exerciseIdx];
   if (!exercise) return;
 
@@ -356,7 +356,7 @@ function recommendDifficulty(exerciseType) {
   // Upgrade: 3 consecutive sessions > 85%
   if (lastThreeAvg >= 85 && currentDiff < 2) {
     const newDiff = DIFF_NAMES[currentDiff + 1];
-    showToast(`📈 Great performance! Moving to ${newDiff}`);
+    UI.showToast(`📈 Great performance! Moving to ${newDiff}`);
     APP.exerciseDifficulty = newDiff;
     return newDiff;
   }
@@ -364,7 +364,7 @@ function recommendDifficulty(exerciseType) {
   // Downgrade: 3 consecutive sessions < 50%
   if (lastThreeAvg < 50 && currentDiff > 0) {
     const newDiff = DIFF_NAMES[currentDiff - 1];
-    showToast(`📉 Let's try ${newDiff} for now`);
+    UI.showToast(`📉 Let's try ${newDiff} for now`);
     APP.exerciseDifficulty = newDiff;
     return newDiff;
   }
@@ -1183,7 +1183,7 @@ const SESSION_MANAGER = {
     let tapCount = 0;
     const totalBeats = result.beatsNeeded;
 
-    makeModal(`
+    UI.makeModal(`
       <h2>Audio Latency Calibration</h2>
       <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px;text-align:center">
         ${result.message}

@@ -159,7 +159,7 @@ function commitLyric(mi, si, ni, rawText, separator) {
   const n    = getMeasureBySI(si, mi)?.notes[ni];
   if (!n) return;
 
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (!text) {
       delete n.lyric;
     } else {
@@ -192,7 +192,7 @@ function commitLyric(mi, si, ni, rawText, separator) {
       APP.selectedMeasure = nextMi;
       APP.selectedStaff   = nextSi;
       APP.selectedNoteIdx = nextNiActual;
-      renderScore();
+      RENDER.renderScore();
       // Brief delay to let render complete before opening editor
       setTimeout(() => openInlineLyricEditor(nextMi, nextSi, nextNiActual), 80);
     }
@@ -203,7 +203,7 @@ function clearLyric() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  commitChange(score => { delete n.lyric; }, { toast: 'Lyric removed' });
+  SCORE.commitChange(score => { delete n.lyric; }, { toast: 'Lyric removed' });
 }
 
 function saveLyric() {
@@ -336,7 +336,7 @@ function commitChord(mi, si, ni, rawText) {
   const text = rawText.trim();
   const n    = getMeasureBySI(si, mi)?.notes[ni];
   if (!n) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     n.chordSymbol = text || null;
   }, { toast: text ? `Chord: ${text}` : 'Chord symbol removed' });
 }
@@ -356,7 +356,7 @@ function clearChordSymbol() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     delete n.chordSymbol;
   }, { toast: 'Chord symbol removed' });
 }
@@ -381,7 +381,7 @@ function _nextRehearsalLabel(type) {
 function addRehearsalMark(type) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const label = _nextRehearsalLabel(type);
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (!score.rehearsalMarks) score.rehearsalMarks = [];
     score.rehearsalMarks = score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
     score.rehearsalMarks.push({mi: APP.selectedMeasure, label});
@@ -408,7 +408,7 @@ function saveRehearsalMark() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const label = document.getElementById('rm-input')?.value.trim();
   if (!label) { closeModal(); return; }
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (!score.rehearsalMarks) score.rehearsalMarks = [];
     score.rehearsalMarks = score.rehearsalMarks.filter(r => r.mi !== APP.selectedMeasure);
     score.rehearsalMarks.push({mi: APP.selectedMeasure, label});
@@ -417,7 +417,7 @@ function saveRehearsalMark() {
 
 function clearRehearsalMark() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.rehearsalMarks = (score.rehearsalMarks || []).filter(r => r.mi !== APP.selectedMeasure);
   }, { toast: 'Rehearsal mark removed' });
 }
@@ -535,7 +535,7 @@ function saveStaffText() {
   const text  = document.getElementById('st-input')?.value.trim();
   const style = document.getElementById('st-style')?.value || 'normal';
   const size  = parseInt(document.getElementById('st-size')?.value) || 12;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (!score.staffTexts) score.staffTexts = [];
 
     if (APP.selectedNoteIdx >= 0) {
@@ -553,7 +553,7 @@ function saveStaffText() {
 
 function clearStaffText() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (APP.selectedNoteIdx >= 0) {
       const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
       if (n) { delete n.staffText; delete n.staffTextStyle; delete n.staffTextSize; }
@@ -717,14 +717,14 @@ function showMixer() {
 function togglePartMute(partIdx) {
   const part = APP.score?.parts[partIdx];
   if (!part) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts[partIdx].muted = !score.parts[partIdx].muted;
   }, { toast: `${part.name} ${!part.muted ? 'muted' : 'unmuted'}` });
 }
 function setPartVolume(partIdx, val) {
   const part = APP.score?.parts[partIdx];
   if (!part) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts[partIdx].volume = Math.max(0, Math.min(1, val / 100));
   });
 }
@@ -770,23 +770,23 @@ function setPickupMeasure() {
   const puBeat = num * (4 / den);
   const bestRest = beatsToBestRestDuration(puBeat);
   const restDur = bestRest ? bestRest.dur : 'q';
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
       const m = s.measures[0];
       m.pickup = {num, den};
       m.timeSigNum = ts.num;
       m.timeSigDen = ts.den;
-      m.notes = [mkRest(restDur)];
+      m.notes = [SCORE.mkRest(restDur)];
     }));
     while (score.parts[0].staves[0].measures.length < 2) {
-      score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+      score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
     }
   }, { toast: `Pickup ${num}/${den} set` });
 }
 
 function removePickupMeasure() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
       delete s.measures[0].pickup;
     }));
@@ -841,8 +841,8 @@ function showViewMenu(btn) {
     {label:`${APP.showTheoryOverlay?'✓':'○'} 🎼 Theory Overlay`, fn:toggleTheoryOverlay},
     {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
     {sep:true},
-    {label:`${role==='student'?'✓':'○'} 🎓 Student Mode`, fn:() => switchRole('student')},
-    {label:`${role==='teacher'?'✓':'○'} 🎼 Teacher Mode`, fn:() => switchRole('teacher')},
+    {label:`${role==='student'?'✓':'○'} 🎓 Student Mode`, fn:() => AUDIO.switchRole('student')},
+    {label:`${role==='teacher'?'✓':'○'} 🎼 Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
     {sep:true},
     {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
   ];
@@ -1060,7 +1060,7 @@ function confirmGenerateScale() {
   if (!notes.length) { showToast('No notes generated — check range'); return; }
 
   const instr = instrByName(instrName);
-  const score = createScore({ title: `${scaleTonicName(ks, type)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instrName], ks, ts: {num: notes.length <= 8 ? 4 : 4, den: 4} });
+  const score = SCORE.createScore({ title: `${scaleTonicName(ks, type)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: [instrName], ks, ts: {num: notes.length <= 8 ? 4 : 4, den: 4} });
   const stave = score.parts[0].staves[0];
 
   const beatsPerMeasure = 4;
@@ -1073,7 +1073,7 @@ function confirmGenerateScale() {
     if (notes.length > 14) dur = '8';
     else if (notes.length > 8) dur = 'q';
 
-    measureNotes.push(mkNote(n.pitch, dur, 0, n.accidental, 1));
+    measureNotes.push(SCORE.mkNote(n.pitch, dur, 0, n.accidental, 1));
     beats += durBeats(dur, 0, null);
 
     if (beats >= beatsPerMeasure - 0.001 || measureNotes.length >= notes.length) {
@@ -1088,9 +1088,9 @@ function confirmGenerateScale() {
     }
   }
 
-  adoptScore(score, { clearHistory: true });
+  SCORE.adoptScore(score, { clearHistory: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
-  renderScore();
+  RENDER.renderScore();
   showToast(`Generated: ${scaleTonicName(ks, type)} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`);
 }
 
@@ -1237,8 +1237,8 @@ function showAddInstrumentDialog() {
 
 function confirmAddInstrument() {
   const instrName = document.getElementById('ai-instr-select')?.value || 'Piano';
-  commitChange(score => {
-    addInstrumentToScore(score, instrName);
+  SCORE.commitChange(score => {
+    SCORE.addInstrumentToScore(score, instrName);
   }, { toast: `${instrName} added` });
 }
 
@@ -1330,7 +1330,7 @@ function tsApplyFromSliders() {
 function applyTimeSig(num, den) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts[0].staves.forEach(stave => {
       const m = stave.measures[mi];
       if (!m) return;
@@ -1397,7 +1397,7 @@ function applyKeySig(ks) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   const info = ALL_KEY_SIGS.find(k => k.ks === ks);
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts[0].staves.forEach(stave => {
       const m = stave.measures[mi];
       if (m) m.keySig = ks;
@@ -1457,15 +1457,15 @@ function loadScoreFromXML(xmlStr, filename) {
   try {
     // Detect format: MusicXML has <score-partwise> root, MSCX has <museScore>
     const isMusicXML = xmlStr.includes('<score-partwise') || xmlStr.includes('<score-timewise');
-    const raw = isMusicXML ? parseMusicXML(xmlStr) : parseMSCX(xmlStr);
-    adoptScore(raw);
+    const raw = isMusicXML ? SCORE.parseMusicXML(xmlStr) : SCORE.parseMSCX(xmlStr);
+    SCORE.adoptScore(raw);
     APP.selectedMeasure = 0;
     APP.selectedStaff   = 0;
     APP.selectedNoteIdx = -1;
     if (APP.score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = APP.score.showMeasureNumbers;
     if (APP.score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = APP.score.showMultiMeasureRests;
     document.getElementById('score-title').textContent = APP.score.title || 'Untitled Score';
-    renderScore();
+    RENDER.renderScore();
     showToast('Loaded: ' + APP.score.title);
   } catch(err) {
     console.error(err);
@@ -1474,7 +1474,7 @@ function loadScoreFromXML(xmlStr, filename) {
 }
 
 async function saveMSCZ() {
-  const xml  = exportMSCX();
+  const xml  = SCORE.exportMSCX();
   const safe = safeName(APP.score.title);
   const zip  = new JSZip();
   zip.file(`${safe}.mscx`, xml);
@@ -1483,7 +1483,7 @@ async function saveMSCZ() {
   showToast('Saved .mscz');
 }
 function saveMSCX() {
-  const xml  = exportMSCX();
+  const xml  = SCORE.exportMSCX();
   const safe = safeName(APP.score.title);
   dlBlob(new Blob([xml], {type:'text/xml'}), `${safe}.mscx`);
   showToast('Saved .mscx');
@@ -1837,10 +1837,10 @@ function createNewScore() {
     const puNum     = pickup ? (parseInt(document.getElementById('nd-pu-num')?.value) || 1) : 0;
     const puDen     = pickup ? (parseInt(document.getElementById('nd-pu-den')?.value) || 4) : 0;
 
-    const raw = createScore({title, composer, ts, ks, instruments:instrNames});
+    const raw = SCORE.createScore({title, composer, ts, ks, instruments:instrNames});
 
     for (let i = 0; i < 3; i++) {
-      raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+      raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
     }
     if (pickup && puNum > 0 && puNum < tsNum) {
       const puBeat = puNum * (4 / puDen);
@@ -1851,11 +1851,11 @@ function createNewScore() {
         m.pickup = {num: puNum, den: puDen};
         m.timeSigNum = tsNum;
         m.timeSigDen = tsDen;
-        m.notes = [mkRest(restDur)];
+        m.notes = [SCORE.mkRest(restDur)];
       }));
     }
 
-    adoptScore(raw, { clearHistory: true });
+    SCORE.adoptScore(raw, { clearHistory: true });
     const selectedFamilies = new Set(instrNames.map(n => INSTRUMENTS.find(i => i.name === n)?.family).filter(Boolean));
     let kitToApply = null;
     for (const fam of selectedFamilies) {
@@ -1872,7 +1872,7 @@ function createNewScore() {
     document.getElementById('score-title').textContent = title;
     closeModal();
     requestAnimationFrame(() => {
-      try { renderScore(); } catch(e) {
+      try { RENDER.renderScore(); } catch(e) {
         showLibError('Notation engine error: ' + e.message + '<br>Please reload.');
       }
       document.getElementById('score-area').focus({ preventScroll: true });
@@ -1929,7 +1929,7 @@ function applyTitleDialog() {
   const comp  = document.getElementById('td-composer').value.trim();
   const font  = document.getElementById('td-font').value;
   const size  = parseInt(document.getElementById('td-size').value) || 22;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.title    = title;
     score.composer = comp;
     score.titleFont = font;
@@ -1951,7 +1951,7 @@ function showScoreInfo() {
 function applyScoreInfo() {
   const title    = document.getElementById('si-title').value;
   const composer = document.getElementById('si-composer').value;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.title    = title;
     score.composer = composer;
   });
@@ -2062,12 +2062,12 @@ function restoreAutosave() {
   const raw = localStorage.getItem(AUTOSAVE_KEY);
   if (!raw) return;
   try {
-    adoptScore(JSON.parse(raw), { clearHistory: true });
+    SCORE.adoptScore(JSON.parse(raw), { clearHistory: true });
     const titleEl = document.getElementById('score-title');
     if (titleEl) titleEl.textContent = APP.score.title || 'Untitled Score';
     APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
     closeModal();
-    renderScore();
+    RENDER.renderScore();
     showToast('Score restored from autosave ✓');
   } catch(e) {
     showToast('Could not restore autosave');
@@ -2101,26 +2101,26 @@ function _checkAndOfferRestore(onDecline) {
 // ── Keyboard Shortcuts ───────────────────────────────────────────
 window.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
-  if ((e.metaKey||e.ctrlKey) && e.key==='z') { e.preventDefault(); undo(); return; }
-  if (e.shiftKey && e.key==='Z')             { e.preventDefault(); undo(); return; }
-  if ((e.metaKey||e.ctrlKey) && e.key==='y') { e.preventDefault(); redo(); return; }
-  if (e.shiftKey && e.key==='Y')             { e.preventDefault(); redo(); return; }
+  if ((e.metaKey||e.ctrlKey) && e.key==='z') { e.preventDefault(); AUDIO.undo(); return; }
+  if (e.shiftKey && e.key==='Z')             { e.preventDefault(); AUDIO.undo(); return; }
+  if ((e.metaKey||e.ctrlKey) && e.key==='y') { e.preventDefault(); AUDIO.redo(); return; }
+  if (e.shiftKey && e.key==='Y')             { e.preventDefault(); AUDIO.redo(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='s') { e.preventDefault(); saveMSCZ(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='c') { e.preventDefault(); copySelection(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='v') { e.preventDefault(); pasteClipboard(); return; }
   if ((e.metaKey||e.ctrlKey) && e.key==='x') { e.preventDefault(); cutSelection(); return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
-  if (e.key === ' ') { e.preventDefault(); togglePlayback(); return; }
+  if (e.key === ' ') { e.preventDefault(); AUDIO.togglePlayback(); return; }
   if (e.key === 'Enter') { e.preventDefault(); toggleInputMode(); return; }
   if (e.key === 'i' || e.key === 'I') { toggleInputMode(); return; }
   if (e.key === 'ArrowUp'    && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(1);  return; }
   if (e.key === 'ArrowDown'  && (APP.inputMode || APP.selectedNoteIdx >= 0)) { e.preventDefault(); changeOctave(-1); return; }
-  if (e.key === 'ArrowUp')    { e.preventDefault(); navigateStaff(-1); return; }
-  if (e.key === 'ArrowDown')  { e.preventDefault(); navigateStaff(1);  return; }
-  if (e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); navigateNote(1,true);  return; }
-  if (e.key === 'ArrowLeft'  && e.shiftKey) { e.preventDefault(); navigateNote(-1,true); return; }
-  if (e.key === 'ArrowRight') { e.preventDefault(); navigateNote(1,false);     return; }
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); navigateNote(-1,false);    return; }
+  if (e.key === 'ArrowUp')    { e.preventDefault(); AUDIO.navigateStaff(-1); return; }
+  if (e.key === 'ArrowDown')  { e.preventDefault(); AUDIO.navigateStaff(1);  return; }
+  if (e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); AUDIO.navigateNote(1,true);  return; }
+  if (e.key === 'ArrowLeft'  && e.shiftKey) { e.preventDefault(); AUDIO.navigateNote(-1,true); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); AUDIO.navigateNote(1,false);     return; }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); AUDIO.navigateNote(-1,false);    return; }
   if ((e.metaKey||e.ctrlKey) && e.key === 'a') { e.preventDefault(); selectAllNotes(); return; }
   if (e.key === '.') { e.preventDefault(); toggleDot(); return; }
   if (e.key === 't' || e.key === 'T') { toggleTuplet(3,2); return; }
@@ -2154,7 +2154,7 @@ function printScore() {
   closeLyricEditor();
   closeModal();
   if (_activePanel) togglePanel(_activePanel);
-  positionAllDiagrams(0);
+  RENDER.positionAllDiagrams(0);
   setTimeout(() => window.print(), 120);
 }
 
@@ -2233,7 +2233,7 @@ function bootApp() {
 
   // Create a minimal blank score so renderScore never runs on null,
   // but don't render it — show the New Score dialog immediately instead.
-  APP.score = createScore();
+  APP.score = SCORE.createScore();
 
   // iPad → continuous view by default; desktop → page view
   const isIPad = /iPad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -2268,7 +2268,7 @@ function bootApp() {
   } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Restore role and set document title
-  _updateDocTitle();
+  AUDIO._updateDocTitle();
 
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
@@ -2282,7 +2282,7 @@ function bootApp() {
   _checkAndOfferRestore(showNewScoreDialog);
 
   // Show welcome modal on first launch
-  setTimeout(() => showWelcomeModal(), 600);
+  setTimeout(() => AUDIO.showWelcomeModal(), 600);
 
   // Double-tap on title for touch devices (set up once)
   let _titleTapT = 0;
@@ -2451,14 +2451,14 @@ _registerAction('clearSlur', () => clearSlur());
 _registerAction('clearStaffText', () => clearStaffText());
 _registerAction('clearTie', () => clearTie());
 _registerAction('closeModal', () => closeModal());
-_registerAction('confirmExportAudio', () => confirmExportAudio());
+_registerAction('confirmExportAudio', () => AUDIO.confirmExportAudio());
 _registerAction('confirmGenerateScale', () => confirmGenerateScale());
-_registerAction('confirmExportPDF', () => confirmExportPDF());
+_registerAction('confirmExportPDF', () => AUDIO.confirmExportPDF());
 _registerAction('showHelpPanel', () => showHelpPanel());
-_registerAction('closeWelcome', () => closeWelcome());
-_registerAction('startLearnerOnboarding', () => startLearnerOnboarding());
-_registerAction('startComposerOnboarding', () => startComposerOnboarding());
-_registerAction('switchRole', (e) => { const role = e.target.closest('[data-role]')?.dataset.role; if (role) switchRole(role); });
+_registerAction('closeWelcome', () => AUDIO.closeWelcome());
+_registerAction('startLearnerOnboarding', () => AUDIO.startLearnerOnboarding());
+_registerAction('startComposerOnboarding', () => AUDIO.startComposerOnboarding());
+_registerAction('switchRole', (e) => { const role = e.target.closest('[data-role]')?.dataset.role; if (role) AUDIO.switchRole(role); });
 _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
 _registerAction('showRecorderExercises', () => showRecorderExercises());
 _registerAction('showNewScoreDialog', () => { closeModal(); showNewScoreDialog(); });
@@ -2468,8 +2468,8 @@ _registerAction('deleteMeasure', () => deleteMeasure());
 _registerAction('editChordSymbol', () => editChordSymbol());
 _registerAction('editLyric', () => editLyric());
 _registerAction('editRehearsalMark', () => editRehearsalMark());
-_registerAction('addMeasure', () => addMeasure());
-_registerAction('insertMeasure', () => insertMeasure());
+_registerAction('addMeasure', () => AUDIO.addMeasure());
+_registerAction('insertMeasure', () => AUDIO.insertMeasure());
 _registerAction('insertNoteByName', (e) => insertNoteByName(e.target.closest('[data-name]')?.dataset.name));
 _registerAction('insertRest', () => insertRest());
 _registerAction('ndKSAdj', (e) => ndKSAdj(parseInt(e.target.closest('[data-delta]')?.dataset.delta)));
@@ -2479,7 +2479,7 @@ _registerAction('ndPickupToggle', () => ndPickupToggle());
 _registerAction('ndPickupSync', () => ndPickupSync());
 _registerAction('printScore', () => printScore());
 _registerAction('removePickupMeasure', () => removePickupMeasure());
-_registerAction('rewindPlayback', () => rewindPlayback());
+_registerAction('rewindPlayback', () => AUDIO.rewindPlayback());
 _registerAction('saveChordSymbol', () => saveChordSymbol());
 _registerAction('saveRehearsalMark', () => saveRehearsalMark());
 _registerAction('saveStaffText', () => saveStaffText());
@@ -2505,17 +2505,17 @@ _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
 _registerAction('startAssignment', (e) => startAssignment(e.target.closest('[data-id]')?.dataset.id));
-_registerAction('stopPlayback', () => stopPlayback());
+_registerAction('stopPlayback', () => AUDIO.stopPlayback());
 _registerAction('toggleChordMode', () => toggleChordMode());
 _registerAction('toggleContinuousView', () => toggleContinuousView());
-_registerAction('toggleCountIn', () => toggleCountIn());
+_registerAction('toggleCountIn', () => AUDIO.toggleCountIn());
 _registerAction('toggleDot', () => toggleDot());
 _registerAction('toggleInputMode', () => toggleInputMode());
 _registerAction('toggleLineBreak', () => toggleLineBreak());
 _registerAction('toggleLyricStyle', (e) => toggleLyricStyle(e.target.closest('[data-style]')?.dataset.style));
-_registerAction('toggleMetronome', () => toggleMetronome());
+_registerAction('toggleMetronome', () => AUDIO.toggleMetronome());
 _registerAction('togglePalette', () => togglePalette());
-_registerAction('setMetronomeSubdivision', (e) => setMetronomeSubdivision(e.target.value));
+_registerAction('setMetronomeSubdivision', (e) => AUDIO.setMetronomeSubdivision(e.target.value));
 _registerAction('toggleNoteLabels', () => toggleNoteLabels());
 _registerAction('toggleHighContrast', () => toggleHighContrast());
 _registerAction('confirmCreateAssignment', () => confirmCreateAssignment());
@@ -2597,8 +2597,8 @@ _registerAction('restartExerciseSession', () => restartExerciseSession());
   _registerAction('calibrateLatency', () => SESSION_MANAGER.showCalibrationDialog());
   _registerAction('togglePanel', (e) => togglePanel(e.target.closest('[data-panel]')?.dataset.panel));
 _registerAction('togglePartMute', (e) => togglePartMute(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
-_registerAction('togglePlayback', () => togglePlayback());
-_registerAction('togglePracticeMode', () => togglePracticeMode());
+_registerAction('togglePlayback', () => AUDIO.togglePlayback());
+_registerAction('togglePracticeMode', () => AUDIO.togglePracticeMode());
 _registerAction('toggleTempoDisplay', () => toggleTempoDisplay());
 _registerAction('toggleTuplet', (e) => toggleTuplet(parseInt(e.target.closest('[data-num]')?.dataset.num), parseInt(e.target.closest('[data-den]')?.dataset.den)));
 _registerAction('transposeScore', (e) => { transposeScore(parseInt(e.target.closest('[data-semitones]')?.dataset.semitones)); closeModal(); });

@@ -15,7 +15,7 @@ function showAssignmentDialog() {
   const selected = APP.selectedMeasure;
   const start = Math.max(0, Math.min(selected, measureCount - 1));
   const end = Math.min(measureCount - 1, start + 3);
-  makeModal(`
+  UI.makeModal(`
     <h2>Create Assignment</h2>
     <div style="margin-bottom:10px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Title</div>
@@ -62,9 +62,9 @@ function confirmCreateAssignment() {
   const hintFirst = document.getElementById('asgn-hint-first')?.checked ?? true;
   const maxM = APP.score?.parts?.[0]?.staves?.[0]?.measures?.length || 1;
   if (isNaN(startMi) || isNaN(endMi) || startMi < 0 || endMi < startMi || endMi >= maxM) {
-    showToast('Invalid measure range'); return;
+    UI.showToast('Invalid measure range'); return;
   }
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (!score.assignments) score.assignments = [];
     const id = 'a' + (Date.now() % 1000000);
     score.assignments.push({
@@ -75,12 +75,12 @@ function confirmCreateAssignment() {
       createdAt: Date.now()
     });
   }, { toast: 'Assignment created: ' + title });
-  closeModal();
+  UI.closeModal();
 }
 
 function startAssignment(id) {
   const asgn = APP.score?.assignments?.find(a => a.id === id);
-  if (!asgn) { showToast('Assignment not found'); return; }
+  if (!asgn) { UI.showToast('Assignment not found'); return; }
   APP.assignmentMode = true;
   APP.currentAssignment = asgn;
   _validateModeState();
@@ -98,8 +98,8 @@ function startAssignment(id) {
   } catch(e) { console.warn('[Pauta]', e.message); }
   // Hide palettes that aren't needed in student mode
   _setAssignmentUI(true);
-  showToast('Assignment started: ' + asgn.title);
-  renderScore();
+  UI.showToast('Assignment started: ' + asgn.title);
+  RENDER.renderScore();
 }
 
 function exitAssignmentMode() {
@@ -107,8 +107,8 @@ function exitAssignmentMode() {
   APP.currentAssignment = null;
   _validateModeState();
   _setAssignmentUI(false);
-  showToast('Exited assignment mode');
-  renderScore();
+  UI.showToast('Exited assignment mode');
+  RENDER.renderScore();
 }
 
 function _setAssignmentUI(enabled) {
@@ -125,7 +125,7 @@ function submitAssignment() {
   const asgn = APP.currentAssignment;
   if (!asgn) return;
   const results = _evaluateAssignment(asgn);
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (!score.studentAnswers) score.studentAnswers = {};
     score.studentAnswers[asgn.id] = {
       submitted: true,
@@ -140,7 +140,7 @@ function checkAssignmentAnswers() {
   const asgn = APP.currentAssignment;
   if (!asgn) return;
   const results = _evaluateAssignment(asgn);
-  makeModal(`
+  UI.makeModal(`
     <h2>Check Answers — ${asgn.title}</h2>
     <div style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:12px">
       <b>${results.correct}</b> / ${results.total} correct
@@ -260,7 +260,7 @@ function _loadResults() {
 
 function showStudentProgress() {
   const results = _loadResults();
-  if (!results.length) { showToast('No exercise results yet. Complete an exercise first!'); return; }
+  if (!results.length) { UI.showToast('No exercise results yet. Complete an exercise first!'); return; }
 
   // Group by type
   const byType = {};
@@ -446,7 +446,7 @@ function showStudentProgress() {
   const timeStr = totalTime >= 3600 ? `${Math.floor(totalTime/3600)}h ${Math.floor((totalTime%3600)/60)}m`
     : totalTime >= 60 ? `${Math.floor(totalTime/60)}m ${totalTime%60}s` : `${totalTime}s`;
 
-  makeModal(`
+  UI.makeModal(`
     <h2>📊 My Progress</h2>
     <div style="text-align:center;margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px">
@@ -502,18 +502,18 @@ function showStudentProgress() {
 
 function exportProgress() {
   const results = _loadResults();
-  if (!results.length) { showToast('Nothing to export'); closeModal(); return; }
+  if (!results.length) { UI.showToast('Nothing to export'); UI.closeModal(); return; }
   const data = { version: 1, exportedAt: new Date().toISOString(), results };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `pauta-progress-${Date.now()}.json`; a.click();
   URL.revokeObjectURL(url);
-  showToast('Report exported');
+  UI.showToast('Report exported');
 }
 
 function importProgress() {
-  closeModal();
+  UI.closeModal();
   const input = document.createElement('input');
   input.type = 'file'; input.accept = '.json';
   input.addEventListener('change', e => {
@@ -523,15 +523,15 @@ function importProgress() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target.result);
-        if (!Array.isArray(data.results)) { showToast('Invalid report format'); return; }
+        if (!Array.isArray(data.results)) { UI.showToast('Invalid report format'); return; }
         const imported = _loadImported();
         const name = prompt('Student name for this report:', 'Student');
-        if (!name) { showToast('Import cancelled'); return; }
+        if (!name) { UI.showToast('Import cancelled'); return; }
         imported[name] = (imported[name] || []).concat(data.results);
         localStorage.setItem(IMPORTED_KEY, JSON.stringify(imported));
-        showToast(`Imported ${data.results.length} results for ${name}`);
+        UI.showToast(`Imported ${data.results.length} results for ${name}`);
         showTeacherDashboard();
-      } catch(e) { showToast('Could not read file: ' + e.message); }
+      } catch(e) { UI.showToast('Could not read file: ' + e.message); }
     };
     reader.readAsText(file);
   });
@@ -546,15 +546,15 @@ function _loadImported() {
 function clearProgress() {
   if (!confirm('Delete all your exercise results?')) return;
   localStorage.removeItem(RESULTS_KEY);
-  closeModal();
-  showToast('Results cleared');
+  UI.closeModal();
+  UI.showToast('Results cleared');
 }
 
 function showTeacherDashboard() {
   const imported = _loadImported();
   const studentNames = Object.keys(imported);
   if (!studentNames.length) {
-    makeModal(`
+    UI.makeModal(`
       <h2>👩‍🏫 Teacher Dashboard</h2>
       <p style="color:var(--pauta-text-muted);font-size:13px;text-align:center;margin:12px 0">
         No imported reports yet.<br>
@@ -585,7 +585,7 @@ function showTeacherDashboard() {
 
     return `<div style="border:1px solid rgba(192,86,33,0.15);border-radius:6px;padding:8px 10px;margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-weight:600;color:var(--pauta-text);font-size:13px">${escHtml(name)}</span>
+        <span style="font-weight:600;color:var(--pauta-text);font-size:13px">${UI.escHtml(name)}</span>
         <span style="font-size:13px;color:var(--pauta-primary);font-weight:700">${avg}%</span>
       </div>
       <div style="font-size:11px;color:rgba(74,85,104,0.6)">
@@ -595,7 +595,7 @@ function showTeacherDashboard() {
     </div>`;
   }).join('');
 
-  makeModal(`
+  UI.makeModal(`
     <h2>👩‍🏫 Teacher Dashboard</h2>
     <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">
       ${studentNames.length} student(s) · ${imported[studentNames[0]]?.length || 0} total submissions
@@ -612,8 +612,8 @@ function showTeacherDashboard() {
 function clearAllImported() {
   if (!confirm('Delete all imported student reports?')) return;
   localStorage.removeItem(IMPORTED_KEY);
-  closeModal();
-  showToast('Imported data cleared');
+  UI.closeModal();
+  UI.showToast('Imported data cleared');
 }
 
 // ── Starter Assignments ─────────────────────────────────────────
@@ -633,8 +633,8 @@ const STARTER_TEMPLATES = [
 ];
 
 function showStarterAssignmentsDialog() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
-  makeModal(`
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
+  UI.makeModal(`
     <h2>📋 Starter Assignments</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:10px">
       Download ready-made exercise files (.mscx) for your students.
@@ -668,7 +668,7 @@ function _saveCustomExercises(exercises) {
 }
 
 function showExerciseBuilderDialog() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
 
   const existing = _loadCustomExercises();
 
@@ -695,7 +695,7 @@ function showExerciseBuilderDialog() {
         ${existing.map((ex, idx) => `
           <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(192,86,33,0.03);border-radius:6px;margin-bottom:4px">
             <div style="flex:1">
-              <div style="font-weight:600;font-size:12px;color:var(--pauta-text)">${escHtml(ex.name)}</div>
+              <div style="font-weight:600;font-size:12px;color:var(--pauta-text)">${UI.escHtml(ex.name)}</div>
               <div style="font-size:10px;color:rgba(74,85,104,0.6)">${ex.exercises.length} exercises · ${ex.difficulty}</div>
             </div>
             <button class="modal-btn secondary" data-action="exportCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px">📤</button>
@@ -706,7 +706,7 @@ function showExerciseBuilderDialog() {
     </div>
   ` : '';
 
-  makeModal(`
+  UI.makeModal(`
     <h2>🛠 Exercise Builder</h2>
     ${existingHtml}
     <div style="margin-bottom:12px">
@@ -751,31 +751,31 @@ function showExerciseBuilderDialog() {
     const exportBtn = document.getElementById('exb-export');
     if (saveBtn) saveBtn.addEventListener('click', () => {
       const name = document.getElementById('exb-name')?.value?.trim();
-      if (!name) { showToast('Enter a name for the set'); return; }
+      if (!name) { UI.showToast('Enter a name for the set'); return; }
       const difficulty = document.getElementById('exb-diff')?.value || 'beginner';
       const count = parseInt(document.getElementById('exb-count')?.value || '10');
       const types = Array.from(document.querySelectorAll('.exb-type-check:checked')).map(cb => cb.value);
-      if (!types.length) { showToast('Select at least one exercise type'); return; }
+      if (!types.length) { UI.showToast('Select at least one exercise type'); return; }
       const customEx = { name, difficulty, count, types, exercises: types.map(t => ({ type: t, count: Math.ceil(count / types.length) })) };
       const all = _loadCustomExercises();
       all.push(customEx);
       _saveCustomExercises(all);
-      showToast(`"${name}" saved`);
-      closeModal();
+      UI.showToast(`"${name}" saved`);
+      UI.closeModal();
     });
     if (exportBtn) exportBtn.addEventListener('click', () => {
       const name = document.getElementById('exb-name')?.value?.trim() || 'Custom Exercise Set';
       const difficulty = document.getElementById('exb-diff')?.value || 'beginner';
       const count = parseInt(document.getElementById('exb-count')?.value || '10');
       const types = Array.from(document.querySelectorAll('.exb-type-check:checked')).map(cb => cb.value);
-      if (!types.length) { showToast('Select at least one exercise type'); return; }
+      if (!types.length) { UI.showToast('Select at least one exercise type'); return; }
       const data = { version: 1, name, difficulty, count, types, exercises: types.map(t => ({ type: t, count: Math.ceil(count / types.length) })) };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `pauta-exercise-set-${Date.now()}.json`; a.click();
       URL.revokeObjectURL(url);
-      showToast('Exercise set exported');
+      UI.showToast('Exercise set exported');
     });
   }, 50);
 }
@@ -785,7 +785,7 @@ function deleteCustomExercise(idx) {
   if (!confirm(`Delete "${all[idx]?.name}"?`)) return;
   all.splice(idx, 1);
   _saveCustomExercises(all);
-  closeModal();
+  UI.closeModal();
   showExerciseBuilderDialog();
 }
 
@@ -798,11 +798,11 @@ function exportCustomExercise(idx) {
   const a = document.createElement('a');
   a.href = url; a.download = `pauta-exercise-${ex.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.json`; a.click();
   URL.revokeObjectURL(url);
-  showToast('Exercise set exported');
+  UI.showToast('Exercise set exported');
 }
 
 function importCustomExercise() {
-  closeModal();
+  UI.closeModal();
   const input = document.createElement('input');
   input.type = 'file'; input.accept = '.json';
   input.addEventListener('change', e => {
@@ -812,13 +812,13 @@ function importCustomExercise() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target.result);
-        if (!data.name || !data.exercises) { showToast('Invalid exercise set format'); return; }
+        if (!data.name || !data.exercises) { UI.showToast('Invalid exercise set format'); return; }
         const all = _loadCustomExercises();
         all.push(data);
         _saveCustomExercises(all);
-        showToast(`Imported "${data.name}"`);
+        UI.showToast(`Imported "${data.name}"`);
         showExerciseBuilderDialog();
-      } catch(e) { showToast('Could not read file: ' + e.message); }
+      } catch(e) { UI.showToast('Could not read file: ' + e.message); }
     };
     reader.readAsText(file);
   });
@@ -836,10 +836,10 @@ function _genScaleAssignment(type, octaves) {
     const scale = generateScale(ks, type, octaves, 4);
     if (!scale.length) return;
     const tonic = scaleTonicName(ks, type);
-    const score = createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
+    const score = SCORE.createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
-    const notes = scale.map((n, i) => mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
+    const notes = scale.map((n, i) => SCORE.mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
     const measuresNeeded = Math.ceil(notes.length / 4);
     for (let m = 0; m < measuresNeeded; m++) {
       const slice = notes.slice(m*4, m*4+4);
@@ -857,12 +857,12 @@ function _genRhythmAssignment(difficulty) {
   const exercises = [];
   for (let i = 0; i < 5; i++) {
     const ws = _genRhythmWorksheet({ beginner:0, intermediate:1, advanced:2 }[difficulty]);
-    const score = createScore({ title: `Rhythm Dictation ${i+1}`, instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0 });
+    const score = SCORE.createScore({ title: `Rhythm Dictation ${i+1}`, instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0 });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     for (let m = 0; m < 8; m++) {
       const slice = ws.target.beats.slice(m*4, m*4+4);
-      const notes = slice.map((b, bi) => b === 'q' ? mkNote(48, 'q', bi === 0 ? 0 : null) : mkRest('q'));
+      const notes = slice.map((b, bi) => b === 'q' ? SCORE.mkNote(48, 'q', bi === 0 ? 0 : null) : SCORE.mkRest('q'));
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
         keySig: m === 0 ? 0 : null, lineBreak: m > 0 && m % 4 === 0, notes
@@ -921,7 +921,7 @@ function _genMelodyDictAssignment() {
   for (let i = 0; i < 5; i++) {
     const md = _genMelodyDictLow(1);
     const targetKeySig = md.target.keySig;
-    const score = createScore({ title: `Melody Dictation ${i+1}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: targetKeySig });
+    const score = SCORE.createScore({ title: `Melody Dictation ${i+1}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: targetKeySig });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const totalBeats = md.target.notes.reduce((s, n) => s + durBeats(n.duration, 0, null), 0);
@@ -929,7 +929,7 @@ function _genMelodyDictAssignment() {
     for (let m = 0; m < measureCount; m++) {
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-        keySig: m === 0 ? targetKeySig : null, lineBreak: m > 0 && m % 4 === 0, notes: [mkRest('w')]
+        keySig: m === 0 ? targetKeySig : null, lineBreak: m > 0 && m % 4 === 0, notes: [SCORE.mkRest('w')]
       });
     }
     exercises.push({ title: `Melody Dictation ${i+1}`, score, answerKey: md.target.notes.map(n => n.pitch).join(',') });
@@ -946,7 +946,7 @@ function _genScaleIdAssignment() {
     const intervals = SCALE_PATTERNS[scaleType];
     const notes = intervals.map(idx => tonic + idx);
     const ks = _tonicToKeySig(tonic, scaleType);
-    const score = createScore({ title: `Scale ID ${i+1}: ${_scaleNoteName(tonic)} ${SCALE_LABELS[scaleType]}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
+    const score = SCORE.createScore({ title: `Scale ID ${i+1}: ${_scaleNoteName(tonic)} ${SCALE_LABELS[scaleType]}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const notesPerMeasure = 4;
@@ -955,7 +955,7 @@ function _genScaleIdAssignment() {
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
         keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0,
-        notes: slice.map(p => mkNote(p, 'q', 0, midiAutoAcc(p, ks))),
+        notes: slice.map(p => SCORE.mkNote(p, 'q', 0, midiAutoAcc(p, ks))),
       });
     }
     exercises.push({ title: `Scale ID ${i+1}`, score, answerKey: _scaleNoteName(tonic) + ' ' + SCALE_LABELS[scaleType] });
@@ -978,11 +978,11 @@ function _applyClefToScore(score, clef) {
 }
 
 function showClefSelectionDialog(templateId) {
-  closeModal();
+  UI.closeModal();
   const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
-  if (!tpl) { showToast('Template not found'); return; }
+  if (!tpl) { UI.showToast('Template not found'); return; }
   window._pendingStarterTemplate = templateId;
-  makeModal(`
+  UI.makeModal(`
     <h2>Choose Clef</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:16px">
       Select the clef for this assignment:
@@ -1012,13 +1012,13 @@ function showClefSelectionDialog(templateId) {
 }
 
 function generateStarterAssignmentWithClef(templateId, clef) {
-  closeModal();
+  UI.closeModal();
   const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
-  if (!tpl) { showToast('Template not found'); return; }
+  if (!tpl) { UI.showToast('Template not found'); return; }
   try {
-    showToast('Generating: ' + tpl.label);
+    UI.showToast('Generating: ' + tpl.label);
     const exercises = tpl.fn();
-    if (!exercises || !exercises.length) { showToast('No exercises generated'); return; }
+    if (!exercises || !exercises.length) { UI.showToast('No exercises generated'); return; }
     // Apply clef to all generated scores
     exercises.forEach(ex => {
       if (ex.score) _applyClefToScore(ex.score, clef);
@@ -1026,7 +1026,7 @@ function generateStarterAssignmentWithClef(templateId, clef) {
     // Show preview dialog instead of auto-downloading
     showStarterPreviewDialog(exercises, tpl.label);
   } catch(e) {
-    showToast('Error: ' + e.message);
+    UI.showToast('Error: ' + e.message);
     console.error('generateStarterAssignmentWithClef error:', e);
   }
 }
@@ -1034,15 +1034,15 @@ function generateStarterAssignmentWithClef(templateId, clef) {
 function showStarterPreviewDialog(exercises, label) {
   const count = exercises.length;
   const fileLabel = count === 1 ? exercises[0].title : label;
-  makeModal(`
-    <h2>📋 ${escHtml(label)}</h2>
+  UI.makeModal(`
+    <h2>📋 ${UI.escHtml(label)}</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px">
       ${count} exercise${count > 1 ? 's' : ''} generated with the selected clef.
     </p>
     <div style="flex-shrink:0;max-height:200px;overflow-y:auto;margin-bottom:16px;font-size:12px;color:var(--pauta-text-muted)">
       ${exercises.map((ex, i) => `
         <div style="padding:6px 8px;background:rgba(192,86,33,0.03);border-radius:6px;margin-bottom:4px">
-          <div style="font-weight:600;color:var(--pauta-text)">${escHtml(ex.title)}</div>
+          <div style="font-weight:600;color:var(--pauta-text)">${UI.escHtml(ex.title)}</div>
           ${ex.answerKey ? `<div style="font-size:10px;color:rgba(74,85,104,0.6)">Answer key included</div>` : ''}
         </div>
       `).join('')}
@@ -1059,7 +1059,7 @@ function showStarterPreviewDialog(exercises, label) {
 }
 
 function confirmStarterDownload() {
-  closeModal();
+  UI.closeModal();
   const exercises = window._pendingStarterExercises;
   const label = window._pendingStarterLabel;
   if (!exercises || !exercises.length) return;
@@ -1072,16 +1072,16 @@ function confirmStarterDownload() {
 }
 
 function previewStarterScore() {
-  closeModal();
+  UI.closeModal();
   const exercises = window._pendingStarterExercises;
   if (!exercises || !exercises.length) return;
   if (exercises.length === 1) {
     const { score } = exercises[0];
-    adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
-    renderScore();
-    showToast('Previewing: ' + exercises[0].title);
+    SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+    RENDER.renderScore();
+    UI.showToast('Previewing: ' + exercises[0].title);
   } else {
-    const combined = createScore({ title: window._pendingStarterLabel, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
+    const combined = SCORE.createScore({ title: window._pendingStarterLabel, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
     combined.parts[0].staves[0].measures = [];
     exercises.forEach((ex, idx) => {
       ex.score.parts[0].staves[0].measures.forEach((m, mi) => {
@@ -1089,31 +1089,31 @@ function previewStarterScore() {
         if (mi === 0 && idx === 0) newM.timeSigNum = 4;
         combined.parts[0].staves[0].measures.push(newM);
       });
-      if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [mkRest('w')] });
+      if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [SCORE.mkRest('w')] });
     });
     // Apply the clef from the first exercise to the combined score
     const firstClef = exercises[0].score.parts[0].staves[0].clef || 'treble';
     _applyClefToScore(combined, firstClef);
-    adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
-    renderScore();
-    showToast('Previewing: ' + window._pendingStarterLabel);
+    SCORE.adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
+    RENDER.renderScore();
+    UI.showToast('Previewing: ' + window._pendingStarterLabel);
   }
 }
 
 function _exportMSCZ(score, answerKey, filename) {
-  const mscx = exportMSCXFromScore(score);
+  const mscx = SCORE.exportMSCXFromScore(score);
   if (answerKey) {
     score.answerKey = answerKey;
-    const mscxWithKey = exportMSCXFromScore(score);
+    const mscxWithKey = SCORE.exportMSCXFromScore(score);
     _downloadBlob(new Blob([mscxWithKey], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
   } else {
     _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
   }
-  showToast('Downloaded: ' + filename + '.mscx');
+  UI.showToast('Downloaded: ' + filename + '.mscx');
 }
 
 function _exportMSCZBatch(exercises, label) {
-  const combined = createScore({ title: label, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
+  const combined = SCORE.createScore({ title: label, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks: 0 });
   combined.parts[0].staves[0].measures = [];
   exercises.forEach((ex, idx) => {
     ex.score.parts[0].staves[0].measures.forEach((m, mi) => {
@@ -1121,15 +1121,15 @@ function _exportMSCZBatch(exercises, label) {
       if (mi === 0 && idx === 0) newM.timeSigNum = 4;
       combined.parts[0].staves[0].measures.push(newM);
     });
-    if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [mkRest('w')] });
+    if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [SCORE.mkRest('w')] });
   });
   const firstClef = exercises[0].score.parts[0].staves[0].clef || 'treble';
   _applyClefToScore(combined, firstClef);
-  adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
-  renderScore();
-  const mscx = exportMSCXFromScore(combined);
+  SCORE.adoptScore(combined, { clearHistory: true, skipAssignmentPrompt: true });
+  RENDER.renderScore();
+  const mscx = SCORE.exportMSCXFromScore(combined);
   _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), label + '.mscx');
-  showToast('Downloaded: ' + label + '.mscx');
+  UI.showToast('Downloaded: ' + label + '.mscx');
 }
 
 function _downloadBlob(blob, filename) {
@@ -1154,8 +1154,8 @@ const DIAG_PLACEMENTS = [
 ];
 
 function showDiagnosticDialog() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
-  makeModal(`
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
+  UI.makeModal(`
     <h2>🧪 Diagnostic Assessment</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;text-align:center;line-height:1.6;margin:8px 0">
       A quick 5-minute placement test covering<Br>
@@ -1169,7 +1169,7 @@ function showDiagnosticDialog() {
   `);
   setTimeout(() => {
     const btn = document.getElementById('diag-start-btn');
-    if (btn) btn.addEventListener('click', () => { closeModal(); _startDiagnostic(); });
+    if (btn) btn.addEventListener('click', () => { UI.closeModal(); _startDiagnostic(); });
   }, 50);
 }
 
@@ -1265,7 +1265,7 @@ function _answerDiag(userAnswer) {
     _showSuccessBanner('✓ Correct!');
     setTimeout(() => { _hideSuccessBanner(); _presentDiagQuestion(); }, 800);
   } else {
-    showToast('Not quite — answer: ' + q.ex.answer);
+    UI.showToast('Not quite — answer: ' + q.ex.answer);
     setTimeout(() => _presentDiagQuestion(), 1000);
   }
 }
@@ -1315,7 +1315,7 @@ function _finishDiagnostic() {
   _setExerciseUI(false);
   _validateModeState();
 
-  makeModal(`
+  UI.makeModal(`
     <h2>🧪 Assessment Complete</h2>
     <div style="text-align:center;margin-bottom:10px">
       <div style="font-size:38px;font-weight:700;color:var(--pauta-primary)">${pct}%</div>
@@ -1334,12 +1334,12 @@ function _finishDiagnostic() {
   setTimeout(() => {
     const applyBtn = document.getElementById('diag-apply-profile');
     if (applyBtn) applyBtn.addEventListener('click', () => {
-      closeModal();
+      UI.closeModal();
       const kitLevel = placement.label.toLowerCase();
       applyKit(APP.teachingKit || 'recorder', kitLevel);
       applyUIProfile(placement.profile);
-      showToast('Profile set to: ' + placement.label);
-      renderScore();
+      UI.showToast('Profile set to: ' + placement.label);
+      RENDER.renderScore();
     });
   }, 50);
 
@@ -1377,7 +1377,7 @@ function _diagSubmit() {
   const inp = document.getElementById('diag-answer');
   if (!inp) return;
   const val = inp.value.trim();
-  if (!val) { showToast('Type your answer first'); return; }
+  if (!val) { UI.showToast('Type your answer first'); return; }
   inp.value = '';
   _answerDiag(val);
 }
@@ -1425,7 +1425,7 @@ function _hideDiagBar() {
 ].forEach(fn => { EXERCISE[fn.name] = fn; });
 
 function showTransposeDialog() {
-  makeModal(`
+  UI.makeModal(`
     <h2>Transpose</h2>
     <p class="dialog-hint">Shifts the entire score chromatically</p>
     <div class="panel-section-label" style="margin:0 0 6px">Semitones</div>
@@ -1494,8 +1494,8 @@ function _restorePalette() {
 // ── Rhythm Composer ──────────────────────────────────────────────
 
 function showRhythmComposer() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
-  makeModal(`
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
+  UI.makeModal(`
     <h2 style="font-size:15px;margin-bottom:6px">🥁 Rhythm Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Time:</span>
@@ -1519,7 +1519,7 @@ function startRhythmComposer() {
   const [num, den] = tsEl.value.split('/').map(Number);
   const measures = msEl ? Math.max(1, parseInt(msEl.value) || 4) : 4;
 
-  const score = createScore({ title: 'Rhythm Composition', instruments: ['Piano'], ts: {num,den}, ks: 0 });
+  const score = SCORE.createScore({ title: 'Rhythm Composition', instruments: ['Piano'], ts: {num,den}, ks: 0 });
   score.parts[0].name = 'Rhythm';
   score.parts[0].instrument = 'Rhythm';
   score.parts[0].osc = 'noise';
@@ -1531,19 +1531,19 @@ function startRhythmComposer() {
   // Grow to required measures
   while (stave.measures.length < measures) {
     const ref = stave.measures[0];
-    stave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [mkRest('w')] });
+    stave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [SCORE.mkRest('w')] });
   }
 
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   APP.inputMode = true;
   APP.curOctave = 5;
   document.getElementById('btn-input')?.classList.add('active');
-  renderScore();
+  RENDER.renderScore();
 
-  closeModal();
+  UI.closeModal();
   _enterRhythmMode();
-  showToast('Tap note durations & click staff to add notes. 𝄽 to exit.');
+  UI.showToast('Tap note durations & click staff to add notes. 𝄽 to exit.');
 }
 
 function _enterRhythmMode() {
@@ -1634,13 +1634,13 @@ function _enterRhythmMode() {
 // ── Melody Composer ──────────────────────────────────────────────
 
 function showMelodyComposer() {
-  if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   const KEY_NAMES = ['C♭','G♭','D♭','A♭','E♭','B♭','F','C','G','D','A','E','B','F♯','C♯'];
   const ksOpts = [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7].map(v =>
     `<option value="${v}" ${v===0?'selected':''}>${KEY_NAMES[v+7]||'C'}</option>`
   ).join('');
 
-  makeModal(`
+  UI.makeModal(`
     <h2 style="font-size:15px;margin-bottom:6px">🎵 Melody Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Key:</span>
@@ -1670,22 +1670,22 @@ function startMelodyComposer() {
   const [num, den] = tsEl.value.split('/').map(Number);
   const measures = msEl ? Math.max(1, parseInt(msEl.value) || 4) : 4;
 
-  const score = createScore({ title: 'Melody Composition', instruments: ['Piano'], ts: {num,den}, ks });
+  const score = SCORE.createScore({ title: 'Melody Composition', instruments: ['Piano'], ts: {num,den}, ks });
   const stave = score.parts[0].staves[0];
   while (stave.measures.length < measures) {
-    stave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [mkRest('w')] });
+    stave.measures.push({ timeSigNum: null, timeSigDen: null, keySig: null, lineBreak: false, notes: [SCORE.mkRest('w')] });
   }
 
-  adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
+  SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   APP.inputMode = true;
   APP.curOctave = 4;
   document.getElementById('btn-input')?.classList.add('active');
-  renderScore();
+  RENDER.renderScore();
 
-  closeModal();
+  UI.closeModal();
   _enterMelodyMode(ks);
-  showToast('🎵 Tap a scale degree, then click staff to place notes. ✕ to exit.');
+  UI.showToast('🎵 Tap a scale degree, then click staff to place notes. ✕ to exit.');
 }
 
 function _enterMelodyMode(ks) {
@@ -1739,7 +1739,7 @@ function exitCompositionMode() {
   _restorePalette();
   APP.inputMode = false;
   document.getElementById('btn-input')?.classList.remove('active');
-  showToast('Composition mode exited');
+  UI.showToast('Composition mode exited');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1802,8 +1802,8 @@ const RECORDER_EXERCISES = {
 
 function loadRecorderExercise(key) {
   const ex = RECORDER_EXERCISES[key];
-  if (!ex) { showToast('Exercise not found'); return; }
-  const score = createScore({title: ex.title, instruments: ['Soprano Recorder'], ts: ex.ts, ks: 0});
+  if (!ex) { UI.showToast('Exercise not found'); return; }
+  const score = SCORE.createScore({title: ex.title, instruments: ['Soprano Recorder'], ts: ex.ts, ks: 0});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
 
@@ -1811,7 +1811,7 @@ function loadRecorderExercise(key) {
   let measureNotes = [], beats = 0;
 
   for (const n of ex.notes) {
-    measureNotes.push(mkNote(n.pitch, n.dur));
+    measureNotes.push(SCORE.mkNote(n.pitch, n.dur));
     beats += durBeats(n.dur, 0, null);
     if (beats >= beatsPerMeasure - 0.001) {
       stave.measures.push({
@@ -1830,10 +1830,10 @@ function loadRecorderExercise(key) {
     });
   }
 
-  adoptScore(score, { clearHistory: true });
+  SCORE.adoptScore(score, { clearHistory: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
-  renderScore();
-  showToast('Loaded: ' + ex.title);
+  RENDER.renderScore();
+  UI.showToast('Loaded: ' + ex.title);
 }
 
 function showRecorderExercises() {
@@ -1845,7 +1845,7 @@ function showRecorderExercises() {
     </button>
   `).join('');
 
-  makeModal(`
+  UI.makeModal(`
     <h2>Recorder Exercises</h2>
     <p class="dialog-hint">Built-in songs with automatic fingerings. Great for classroom practice.</p>
     ${exercises}

@@ -191,7 +191,7 @@ function adoptScore(raw, opts = {}) {
     setTimeout(() => {
       const pending = score.assignments.filter(a => !score.studentAnswers?.[a.id]?.submitted);
       if (pending.length) {
-        makeModal(`
+        UI.makeModal(`
           <h2>📚 Assignment Detected</h2>
           <div style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:12px">
             This score contains ${pending.length} assignment${pending.length > 1 ? 's' : ''}.
@@ -465,7 +465,7 @@ function commitChange(mutator, opts = {}) {
   // Snapshot before any mutation so we can roll back fully on error
   const preSnapshot = _cloneScore(APP.score);
   const preStackLen = APP.undoStack.length;
-  if (undo) pushUndo();
+  if (undo) AUDIO.pushUndo();
   try {
     mutator(APP.score);
     APP.score = repairScore(APP.score);
@@ -473,9 +473,9 @@ function commitChange(mutator, opts = {}) {
     if (!check.ok) throw new Error(check.fatal || 'Score validation failed');
     _checkInvariants(APP.score);
     APP._lastUndoFP = _scoreFingerprint(APP.score);
-    if (render) renderScore();
-    if (toast) showToast(toast);
-    if (undo) _autosaveNow();
+    if (render) RENDER.renderScore();
+    if (toast) UI.showToast(toast);
+    if (undo) UI._autosaveNow();
     // Emit score change event for subscribers
     if (window.BUS) window.BUS.emit('score:changed', { score: APP.score });
     return true;
@@ -484,7 +484,7 @@ function commitChange(mutator, opts = {}) {
     APP.score = preSnapshot;
     if (APP.undoStack.length > preStackLen) APP.undoStack.pop();
     console.error('[Pauta] commitChange failed:', err);
-    showToast('Could not apply change');
+    UI.showToast('Could not apply change');
     return false;
   }
 }

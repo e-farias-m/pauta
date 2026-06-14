@@ -290,8 +290,8 @@ function handleScoreTap(e) {
       APP.selectedStaff   = bestNote.si;
       APP.selectedNoteIdx = bestNote.ni;
       APP.selStartIdx = -1;
-      renderSelection();
-      scrollToSelectedMeasure();
+      RENDER.renderSelection();
+      RENDER.scrollToSelectedMeasure();
       const _stave = getStaveBySI(bestNote.si);
       const n = _stave?.measures[bestNote.mi]?.notes[bestNote.ni];
       if (n) {
@@ -300,7 +300,7 @@ function handleScoreTap(e) {
           ? `Rest (${VEX_TO_MSCX[n.duration]||n.duration})`
           : isPercLabel ? (DRUM_FULL_NAMES[n.pitch] || `Drum ${n.pitch}`)
           : `${NOTE_NAMES[PC_TO_DIA[n.pitch%12]].toUpperCase()}${Math.floor(n.pitch/12)-1}`;
-        showToast(label + ' selected');
+        UI.showToast(label + ' selected');
       }
       return;
     }
@@ -319,7 +319,7 @@ function handleScoreTap(e) {
     const dist   = Math.abs(y - mid) + (xMatch ? 0 : 1000);
     if (dist < bestDist2) { bestDist2 = dist; hit = layout; }
   }
-  if (!hit) { APP.selectedNoteIdx = -1; renderSelection(); return; }
+  if (!hit) { APP.selectedNoteIdx = -1; RENDER.renderSelection(); return; }
 
   APP.selectedMeasure = hit.mi;
   APP.selectedStaff   = hit.si;
@@ -355,16 +355,16 @@ function handleScoreTap(e) {
     const n = getMeasureBySI(hit.si, hit.mi)?.notes[APP.selectedNoteIdx];
     if (n && n.type === 'note') {
       const newPitch = yToPitchAccurate(y, hit);
-      commitChange(score => {
+      SCORE.commitChange(score => {
         n.pitch = newPitch;
         n.accidental = DIATONIC_PCS.has(newPitch % 12) ? null : (getResolvedKeySig(hit.mi, hit.si) < 0 ? 'b' : '#');
       });
-      scrollToSelectedMeasure();
+      RENDER.scrollToSelectedMeasure();
     }
   } else {
     APP.selectedNoteIdx = -1;
-    showToast(`Measure ${hit.mi + 1} selected`);
-    renderSelection();
+    UI.showToast(`Measure ${hit.mi + 1} selected`);
+    RENDER.renderSelection();
   }
 }
 
@@ -393,7 +393,7 @@ function insertNote(mi, si, pitch) {
         if (na && ((ks2 < 0 && na === 'b') || (ks2 > 0 && na === '#'))) keyCovers2 = na;
       }
       const ea  = APP.curAcc || (DIATONIC_PCS.has(pc2) ? (ka2 ? 'n' : null) : (keyCovers2 ? null : (ks2 < 0 ? 'b' : '#')));
-      commitChange(score => {
+      SCORE.commitChange(score => {
         if (!targetNote.extraPitches) targetNote.extraPitches = [];
         targetNote.extraPitches.push({pitch: preferred, accidental: ea});
       }, { toast: 'Added ' + NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase() + ' to chord' });
@@ -469,8 +469,8 @@ function insertNote(mi, si, pitch) {
   if (newBeats > remaining + 0.001) {
     const nextMi = mi + 1;
     if (nextMi >= APP.score.parts[0].staves[0].measures.length) {
-      commitChange(score => {
-        score.parts.forEach(p => p.staves.forEach(s => s.measures.push(emptyMeasure())));
+      SCORE.commitChange(score => {
+        score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
       }, { toast: 'New measure added automatically' });
     }
 
@@ -493,14 +493,14 @@ function insertNote(mi, si, pitch) {
       return;
     }
 
-    commitChange(score => {
+    SCORE.commitChange(score => {
       const m = getMeasureBySI(si, mi);
       const ph2 = m.notes.findIndex(
         n => n.type==='rest' && n.duration==='w' && (n.voice||1)===APP.curVoice
       );
       const partialEntry = APP.curRest
-        ? mkRest(partial.dur, partial.dots, APP.curVoice)
-        : mkNote(pitch, partial.dur, partial.dots, displayAcc, APP.curVoice);
+        ? SCORE.mkRest(partial.dur, partial.dots, APP.curVoice)
+        : SCORE.mkNote(pitch, partial.dur, partial.dots, displayAcc, APP.curVoice);
       if (!APP.curRest) partialEntry.tieToNext = true;
       if (ph2 >= 0) {
         m.notes.splice(ph2, 1, partialEntry);
@@ -522,11 +522,11 @@ function insertNote(mi, si, pitch) {
   return;
   }
 
-  commitChange(score => {
+  SCORE.commitChange(score => {
     const m = getMeasureBySI(si, mi);
     const entry = APP.curRest
-      ? mkRest(APP.curDur, APP.curDot ? 1 : 0, APP.curVoice)
-      : mkNote(pitch, APP.curDur, APP.curDot ? 1 : 0, displayAcc, APP.curVoice);
+      ? SCORE.mkRest(APP.curDur, APP.curDot ? 1 : 0, APP.curVoice)
+      : SCORE.mkNote(pitch, APP.curDur, APP.curDot ? 1 : 0, displayAcc, APP.curVoice);
 
     if (APP.curTuplet && !APP.curRest) {
       if (APP.tupletPending <= 0) APP.tupletPending = APP.curTuplet.num;
@@ -558,17 +558,17 @@ function insertNote(mi, si, pitch) {
     APP.selectedNoteIdx = m.notes.indexOf(entry);
   });
 
-  scrollToSelectedMeasure();
+  RENDER.scrollToSelectedMeasure();
 
   const isPerc = getStaveBySI(si)?.clef === 'percussion';
   if (isPerc) {
-    showToast(APP.curRest ? 'Rest inserted' : `${DRUM_FULL_NAMES[pitch] || 'Drum ' + pitch} (V${APP.curVoice})`);
+    UI.showToast(APP.curRest ? 'Rest inserted' : `${DRUM_FULL_NAMES[pitch] || 'Drum ' + pitch} (V${APP.curVoice})`);
   } else {
     const pc2     = pitch % 12;
     const name    = NOTE_NAMES[PC_TO_DIA[pc2]].toUpperCase();
     const oct     = Math.floor(pitch / 12) - 1;
     const accLbl  = displayAcc==='#'?'♯':displayAcc==='b'?'♭':displayAcc==='n'?'♮':'';
-    showToast(APP.curRest ? 'Rest inserted' : `${name}${accLbl}${oct} (V${APP.curVoice})`);
+    UI.showToast(APP.curRest ? 'Rest inserted' : `${name}${accLbl}${oct} (V${APP.curVoice})`);
   }
 }
 
@@ -603,7 +603,7 @@ const DRUM_KEY_MAP = { C:36, D:38, E:42, F:49, G:45, A:56, B:39 };
 const NOTE_PAL_LABELS = { C:'C', D:'D', E:'E', F:'F', G:'G', A:'A', B:'B' };
 
 function insertNoteByName(name) {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   // Practice mode: palette input validates against target note
   if (APP.practiceMode && APP.practiceWaiting) {
     let pc = NAME_TO_PC[name];
@@ -614,7 +614,7 @@ function insertNoteByName(name) {
     const note = measure?.notes[APP.selectedNoteIdx];
     const targetOct = note ? Math.floor(note.pitch / 12) - 1 : 4;
     const midi = targetOct * 12 + pc + 12;
-    _checkPracticeNote(midi);
+    AUDIO._checkPracticeNote(midi);
     return;
   }
   const canEnter = APP.inputMode || (APP.chordMode && APP.selectedNoteIdx >= 0);
@@ -644,12 +644,12 @@ function insertNoteByName(name) {
     if (APP.selectedNoteIdx >= 0 && _isInAssignmentRange(APP.selectedMeasure)) {
       changePitchOfSelected(name);
     } else {
-      showToast('Select a note inside the assignment range');
+      UI.showToast('Select a note inside the assignment range');
     }
     return;
   }
   if (!canEnter) {
-    showToast('Tap ✏️ Input, or select a note to change its pitch');
+    UI.showToast('Tap ✏️ Input, or select a note to change its pitch');
     return;
   }
 
@@ -740,9 +740,9 @@ function insertNoteByName(name) {
 }
 
 function insertRest() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (!APP.inputMode) {
-    showToast('Tap ✏️ Input first to enter note-input mode');
+    UI.showToast('Tap ✏️ Input first to enter note-input mode');
     return;
   }
   APP.curRest = true;
@@ -757,7 +757,7 @@ function shiftNoteOctave(direction) {
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n || n.type === 'rest') return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     n.pitch = Math.max(12, Math.min(120, n.pitch + direction));
     if (n.extraPitches) {
       n.extraPitches.forEach(ep => {
@@ -776,7 +776,7 @@ function changePitchOfSelected(name) {
     n.type = 'note';
     n.pitch = 60; // placeholder, will be set below
   } else if (n.type === 'rest') {
-    showToast('Select a note (not a rest) to change pitch'); return;
+    UI.showToast('Select a note (not a rest) to change pitch'); return;
   }
 
   let pc = NAME_TO_PC[name];
@@ -796,7 +796,7 @@ function changePitchOfSelected(name) {
 
   const mi  = APP.selectedMeasure;
   const si  = APP.selectedStaff;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     n.pitch = newPitch;
     const ks  = getResolvedKeySig(mi, si);
     const kMap = getKeyAccidentals(ks);
@@ -847,8 +847,8 @@ function _storeAssignmentAnswer(mi, ni, answer) {
       ok = false; msg = 'Wrong pitch — try again';
     }
   }
-  showToast(msg, ok ? 800 : 1500);
-  renderScore();
+  UI.showToast(msg, ok ? 800 : 1500);
+  RENDER.renderScore();
 }
 
 function changeOctave(delta) {
@@ -857,7 +857,7 @@ function changeOctave(delta) {
   } else {
     APP.curOctave = Math.max(0, Math.min(8, APP.curOctave + delta));
     updateOctaveDisplay();
-    showToast('Octave ' + APP.curOctave);
+    UI.showToast('Octave ' + APP.curOctave);
   }
 }
 
@@ -920,15 +920,15 @@ function toggleNoteLabels() {
     APP.showNoteLabels = false;
   }
   updateNoteLabelsButton();
-  renderScore();
-  showToast(!APP.showNoteLabels ? 'Labels off' : APP.noteLabelMode === 'solfege' ? 'Solfège on' : 'Letter names on');
+  RENDER.renderScore();
+  UI.showToast(!APP.showNoteLabels ? 'Labels off' : APP.noteLabelMode === 'solfege' ? 'Solfège on' : 'Letter names on');
 }
 
 function toggleHighContrast() {
   document.body.classList.toggle('high-contrast');
   const on = document.body.classList.contains('high-contrast');
-  showToast(on ? 'High contrast on' : 'High contrast off');
-  renderScore();
+  UI.showToast(on ? 'High contrast on' : 'High contrast off');
+  RENDER.renderScore();
 }
 
 function renderNoteLabels() {
@@ -1056,29 +1056,29 @@ const ARTIC_SYMBOLS = {
 };
 
 function applyArticulation(type) {
-  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { UI.showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-  if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
-  commitChange(score => {
+  if (!n || n.type === 'rest') { UI.showToast('Select a note (not a rest)'); return; }
+  SCORE.commitChange(score => {
     n.articulation = (n.articulation === type || !type) ? null : type;
   }, { toast: n.articulation ? ARTIC_SYMBOLS[n.articulation] + ' ' + n.articulation : 'Articulation removed' });
 }
 
 // ── Fingering ─────────────────────────────────────────────────────
 function applyFingering(f) {
-  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { UI.showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-  if (!n || n.type === 'rest') { showToast('Select a note (not a rest)'); return; }
-  commitChange(score => {
+  if (!n || n.type === 'rest') { UI.showToast('Select a note (not a rest)'); return; }
+  SCORE.commitChange(score => {
     n.fingering = (!f || n.fingering === f) ? null : f;
   }, { toast: n.fingering ? `Fingering ${n.fingering}` : 'Fingering removed' });
 }
 
 // ── Barlines ─────────────────────────────────────────────────────
 function applyBarline(type) {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
       const m = s.measures[mi];
       if (m) m.barline = type;
@@ -1088,9 +1088,9 @@ function applyBarline(type) {
 
 // ── Clef Changes ─────────────────────────────────────────────────
 function applyClefChange(clef) {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  commitChange(score => {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
+  if (APP.selectedMeasure < 0) { UI.showToast('Select a measure first'); return; }
+  SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
       const m = s.measures[APP.selectedMeasure];
       if (m) m.clef = clef;
@@ -1100,9 +1100,9 @@ function applyClefChange(clef) {
 
 // ── Navigation Markers (segno, coda, Fine, D.C., D.S.) ────────────
 function applyMarker(type) {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  commitChange(score => {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
+  if (APP.selectedMeasure < 0) { UI.showToast('Select a measure first'); return; }
+  SCORE.commitChange(score => {
     score.parts[0].staves.forEach(s => {
       const m = s.measures[APP.selectedMeasure];
       if (m) {
@@ -1113,9 +1113,9 @@ function applyMarker(type) {
 }
 
 function clearMarker() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  if (APP.selectedMeasure < 0) { showToast('Select a measure first'); return; }
-  commitChange(score => {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
+  if (APP.selectedMeasure < 0) { UI.showToast('Select a measure first'); return; }
+  SCORE.commitChange(score => {
     score.parts[0].staves.forEach(s => {
       const m = s.measures[APP.selectedMeasure];
       if (m) { delete m.segno; delete m.coda; delete m.fine; delete m.dc; delete m.ds; }
@@ -1124,33 +1124,33 @@ function clearMarker() {
 }
 
 function clearTie() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
+  if (APP.selectedNoteIdx < 0) { UI.showToast('Select a note first'); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)?.notes[APP.selectedNoteIdx];
-  if (!n || !n.tieToNext) { showToast('Selected note has no tie'); return; }
-  commitChange(score => {
+  if (!n || !n.tieToNext) { UI.showToast('Selected note has no tie'); return; }
+  SCORE.commitChange(score => {
     const note = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure, score)?.notes[APP.selectedNoteIdx];
     if (note) delete note.tieToNext;
   }, { toast: 'Tie removed' });
 }
 
 function clearSlur() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  if (APP.selectedNoteIdx < 0) { showToast('Select a note first'); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
+  if (APP.selectedNoteIdx < 0) { UI.showToast('Select a note first'); return; }
   const si = APP.selectedStaff;
   const mi = APP.selectedMeasure;
   const ni = APP.selectedNoteIdx;
   const score = APP.score;
-  if (!score || !score.slurs) { showToast('No slurs in score'); return; }
+  if (!score || !score.slurs) { UI.showToast('No slurs in score'); return; }
   const before = score.slurs.length;
-  commitChange(sc => {
+  SCORE.commitChange(sc => {
     if (!sc.slurs) return;
     sc.slurs = sc.slurs.filter(s =>
       !(s.si === si && s.startMi === mi && s.startNi === ni) &&
       !(s.si === si && s.endMi === mi && s.endNi === ni)
     );
   }, { toast: 'Slur removed' });
-  if (score.slurs.length === before) showToast('Selected note is not inside a slur');
+  if (score.slurs.length === before) UI.showToast('Selected note is not inside a slur');
 }
 
 // ── Tempo ─────────────────────────────────────────────────────────
@@ -1161,27 +1161,27 @@ function toggleTempoDisplay() {
     btn.textContent = APP.showTempoOnScore ? '✓ Show on score' : '○ Show on score';
     btn.classList.toggle('active', APP.showTempoOnScore);
   }
-  renderScore();
+  RENDER.renderScore();
 }
 
 function applyTempo(name, bpm) {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts[0].staves[0].measures[mi].tempo = {name, bpm};
   });
   APP.tempo = bpm;
   document.getElementById('tempo-slider').value = Math.min(240, Math.max(40, bpm));
   document.getElementById('tempo-val').textContent = bpm;
-  showToast(name + ' ♩=' + bpm);
+  UI.showToast(name + ' ♩=' + bpm);
 }
 
 function applyDynamic(dyn) {
-  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ require: ['selectedNote'], forbid: ['exercise', 'assignment'] }); } catch(e) { UI.showToast(e.message); return; }
   const n = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure)
               ?.notes[APP.selectedNoteIdx];
   if (!n) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     n.dynamic = (n.dynamic === dyn) ? null : dyn;
   }, { toast: n.dynamic ? dyn : 'Dynamic removed' });
 }
@@ -1189,7 +1189,7 @@ function applyDynamic(dyn) {
 // ── Slurs / Ties / Hairpins ───────────────────────────────────────
 function startMarking(type) {
   if (APP.selectedNoteIdx < 0) {
-    showToast('Select the first note, then tap the marking');
+    UI.showToast('Select the first note, then tap the marking');
     return;
   }
   // If already in this marking mode, cancel
@@ -1198,7 +1198,7 @@ function startMarking(type) {
     APP.markingStart = null;
     document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
       .forEach(b => b.classList.remove('active'));
-    showToast('Cancelled');
+    UI.showToast('Cancelled');
     _validateModeState();
     return;
   }
@@ -1217,19 +1217,19 @@ function startMarking(type) {
     .forEach(b => b.classList.remove('active'));
   document.getElementById('btn-' + type)?.classList.add('active');
   const labels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
-  showToast(`${labels[type]}: now select the END note`);
+  UI.showToast(`${labels[type]}: now select the END note`);
   _validateModeState();
 }
 
 function completeMarking(endMi, endSi, endNi) {
   const {markingMode: type, markingStart: s} = APP;
   // Validate: end must be same staff, after start
-  if (endSi !== s.si) { showToast('Markings must be on the same staff'); return; }
+  if (endSi !== s.si) { UI.showToast('Markings must be on the same staff'); return; }
   if (endMi < s.mi || (endMi === s.mi && endNi <= s.ni)) {
-    showToast('End note must come after start note'); return;
+    UI.showToast('End note must come after start note'); return;
   }
 
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (!score.slurs)    score.slurs    = [];
     if (!score.hairpins) score.hairpins = [];
 
@@ -1271,9 +1271,9 @@ function toggleChordMode() {
   }
   document.getElementById('btn-chord').classList.toggle('active', APP.chordMode);
   if (APP.chordMode) {
-    showToast('Chord mode — select a note, then tap note names to stack');
+    UI.showToast('Chord mode — select a note, then tap note names to stack');
   } else {
-    showToast('Chord mode off');
+    UI.showToast('Chord mode off');
   }
   _validateModeState();
 }
@@ -1282,7 +1282,7 @@ function setVoice(v) {
   APP.curVoice = v;
   document.getElementById('btn-voice1').classList.toggle('active', v === 1);
   document.getElementById('btn-voice2').classList.toggle('active', v === 2);
-  showToast('Voice ' + v);
+  UI.showToast('Voice ' + v);
 }
 function setAcc(a) {
   APP.curAcc = APP.curAcc === a ? null : a;
@@ -1299,14 +1299,14 @@ function toggleTuplet(num, den) {
     APP.curTuplet    = null;
     APP.tupletPending = 0;
     document.getElementById('btn-triplet')?.classList.remove('active');
-    showToast('Tuplet off');
+    UI.showToast('Tuplet off');
     return;
   }
   APP.curTuplet     = {num, den};
   APP.tupletPending = num;      // first group starts immediately
   document.getElementById('btn-triplet')?.classList.toggle('active', num === 3);
   const label = num === 3 ? 'Triplet' : `${num}:${den} tuplet`;
-  showToast(`${label} mode — enter ${num} notes`);
+  UI.showToast(`${label} mode — enter ${num} notes`);
 }
 
 
@@ -1325,18 +1325,18 @@ function toggleInputMode() {
   document.getElementById('st-mode').textContent = APP.inputMode ? 'Note input' : 'Select';
   document.getElementById('note-row').style.opacity = APP.inputMode ? '1' : '0.4';
   if (APP.inputMode) {
-    showToast('1 — Tap a measure  2 — Tap a note name (C–B)');
+    UI.showToast('1 — Tap a measure  2 — Tap a note name (C–B)');
   } else {
-    showToast('Select mode');
+    UI.showToast('Select mode');
   }
   _validateModeState();
 }
 function deleteSelected() {
   if (APP.selectedNoteIdx < 0) return;
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const m = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
   if (!m) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (APP.selStartIdx >= 0) {
       const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
       const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
@@ -1345,7 +1345,7 @@ function deleteSelected() {
     } else {
       m.notes.splice(APP.selectedNoteIdx, 1);
     }
-    if (!m.notes.length) m.notes.push(mkRest('w'));
+    if (!m.notes.length) m.notes.push(SCORE.mkRest('w'));
     APP.selectedNoteIdx = -1;
   }, { toast: 'Deleted' });
 }
@@ -1354,18 +1354,18 @@ function copySelection() {
   const mi = APP.selectedMeasure;
   const si = APP.selectedStaff;
   const m = getMeasureBySI(si, mi);
-  if (!m) { showToast('Nothing to copy'); return; }
+  if (!m) { UI.showToast('Nothing to copy'); return; }
   if (APP.selStartIdx >= 0) {
     const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
     const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
     APP.clipboard = { type: 'notes', data: JSON.parse(JSON.stringify(m.notes.slice(lo, hi + 1))) };
-    showToast((hi - lo + 1) + ' notes copied');
+    UI.showToast((hi - lo + 1) + ' notes copied');
   } else if (APP.selectedNoteIdx >= 0 && m.notes[APP.selectedNoteIdx]) {
     APP.clipboard = { type: 'note', data: JSON.parse(JSON.stringify(m.notes[APP.selectedNoteIdx])) };
-    showToast('Note copied');
+    UI.showToast('Note copied');
   } else {
     APP.clipboard = { type: 'measure', data: JSON.parse(JSON.stringify(m)) };
-    showToast('Measure copied');
+    UI.showToast('Measure copied');
   }
 }
 
@@ -1376,7 +1376,7 @@ function cutSelection() {
   const si = APP.selectedStaff;
   const m = getMeasureBySI(si, mi);
   if (!m) return;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (APP.selStartIdx >= 0) {
       const lo = Math.min(APP.selStartIdx, APP.selectedNoteIdx);
       const hi = Math.max(APP.selStartIdx, APP.selectedNoteIdx);
@@ -1385,18 +1385,18 @@ function cutSelection() {
     } else if (APP.selectedNoteIdx >= 0) {
       m.notes.splice(APP.selectedNoteIdx, 1);
     } else return;
-    if (!m.notes.length) m.notes.push(mkRest('w'));
+    if (!m.notes.length) m.notes.push(SCORE.mkRest('w'));
     APP.selectedNoteIdx = -1;
   });
 }
 
 function pasteClipboard() {
-  if (!APP.clipboard) { showToast('Nothing to paste'); return; }
+  if (!APP.clipboard) { UI.showToast('Nothing to paste'); return; }
   const clipType = APP.clipboard.type;
   const clipData = JSON.parse(JSON.stringify(APP.clipboard.data));
   const mi = APP.selectedMeasure;
   const si = APP.selectedStaff;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     if (clipType === 'note') {
       const m = getMeasureBySI(si, mi);
       if (!m) return;
@@ -1429,17 +1429,17 @@ function selectAllNotes() {
   if (!m || !m.notes.length) return;
   APP.selStartIdx = 0;
   APP.selectedNoteIdx = m.notes.length - 1;
-  renderSelection();
-  showToast(`Selected ${m.notes.length} notes`);
+  RENDER.renderSelection();
+  UI.showToast(`Selected ${m.notes.length} notes`);
 }
 
 // ── Delete Measure ────────────────────────────────────────────────
 function deleteMeasure() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const nM = APP.score.parts[0].staves[0].measures.length;
-  if (nM <= 1) { showToast('Cannot delete the only measure'); return; }
+  if (nM <= 1) { UI.showToast('Cannot delete the only measure'); return; }
   const mi = APP.selectedMeasure;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 1)));
     shiftMeasureRefs(score, mi, 'delete');
   }, { toast: 'Measure deleted' });
@@ -1449,12 +1449,12 @@ function deleteMeasure() {
 }
 
 function toggleLineBreak() {
-  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   const measure = APP.score.parts[0].staves[0].measures[mi];
   if (!measure) return;
   const newVal = !measure.lineBreak;
-  commitChange(score => {
+  SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves[0].measures[mi].lineBreak = newVal);
   }, { toast: newVal ? '⏎ Line break' : 'Line break removed' });
 }
@@ -1462,32 +1462,32 @@ function toggleLineBreak() {
 function toggleContinuousView() {
   APP.continuousView = !APP.continuousView;
   document.getElementById('btn-continuous').classList.toggle('active', APP.continuousView);
-  renderScore();
-  showToast(APP.continuousView ? 'Continuous view' : 'Page view');
+  RENDER.renderScore();
+  UI.showToast(APP.continuousView ? 'Continuous view' : 'Page view');
 }
 
 function toggleMeasureNumbers() {
   APP.showMeasureNumbers = !APP.showMeasureNumbers;
-  renderScore();
-  showToast(APP.showMeasureNumbers ? 'Measure numbers shown on every bar' : 'Measure numbers at system start only');
+  RENDER.renderScore();
+  UI.showToast(APP.showMeasureNumbers ? 'Measure numbers shown on every bar' : 'Measure numbers at system start only');
 }
 
 function toggleMultiMeasureRests() {
   APP.showMultiMeasureRests = !APP.showMultiMeasureRests;
-  renderScore();
-  showToast(APP.showMultiMeasureRests ? 'Multi-measure rests enabled' : 'Multi-measure rests disabled');
+  RENDER.renderScore();
+  UI.showToast(APP.showMultiMeasureRests ? 'Multi-measure rests enabled' : 'Multi-measure rests disabled');
 }
 
 function toggleTheoryOverlay() {
   APP.showTheoryOverlay = !APP.showTheoryOverlay;
-  renderScore();
-  showToast(APP.showTheoryOverlay ? 'Theory overlay on' : 'Theory overlay off');
+  RENDER.renderScore();
+  UI.showToast(APP.showTheoryOverlay ? 'Theory overlay on' : 'Theory overlay off');
 }
 
 function toggleRhythmCounting() {
   APP.showRhythmCounting = !APP.showRhythmCounting;
-  renderScore();
-  showToast(APP.showRhythmCounting ? 'Rhythm counting on' : 'Rhythm counting off');
+  RENDER.renderScore();
+  UI.showToast(APP.showRhythmCounting ? 'Rhythm counting on' : 'Rhythm counting off');
 }
 
 // ── Zoom ──────────────────────────────────────────────────────────
