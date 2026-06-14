@@ -15,7 +15,7 @@ fi
 PAUTA_MTIME=$(stat -f %m "$PAUTA" 2>/dev/null || echo 0)
 
 NEWEST_SRC_MTIME=0
-for f in src/*.js; do
+for f in src/*.js src/education/*.js; do
   [ -f "$f" ] || continue
   SRC_MTIME=$(stat -f %m "$f" 2>/dev/null || echo 0)
   [ "$SRC_MTIME" -gt "$NEWEST_SRC_MTIME" ] && NEWEST_SRC_MTIME=$SRC_MTIME

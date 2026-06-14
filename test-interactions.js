@@ -1236,7 +1236,7 @@ for (const f of files) {
 }
 
 // 13b. Every JS file should have Bravura defined somewhere if it uses SMuFL
-const smuflFiles = ['ui.js', 'education.js'];
+const smuflFiles = ['ui.js', 'education/session.js'];
 for (const f of smuflFiles) {
   const code = readFileSync(join(srcDir, f), 'utf8');
   if (/\\uE[0-9A-Fa-f]{3}/.test(code) || /[\uE000-\uEFFF]/.test(code)) {

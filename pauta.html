@@ -8917,7 +8917,13 @@ document.getElementById('score-canvas-container').addEventListener('gestureend',
 
 // ── Transposition ─────────────────────────────────────────────────
 
-// ─── Module: education.js ────────────────────────────────────
+// ─── Module: education/exercises.js ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// exercises.js — Exercise types, generators, curriculum, scales,
+//                 EVALUATOR, SESSION_MANAGER
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Transposition ─────────────────────────────────────────────────
 // ── Transposition ─────────────────────────────────────────────────
 // Chromatic semitones for each diatonic step (ascending) in a major scale:
 // Used to figure out how many semitones correspond to a diatonic interval.
@@ -8954,226 +8960,6 @@ function transposeScore(semitones) {
     });
   }, { toast: `Transposed ${semitones > 0 ? '+' : ''}${semitones} semitone${Math.abs(semitones)===1?'':'s'}` });
   _auditAnnotationsAfterEdit(APP.score, 'transpose', semitones);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// MODULE 5b: Assignments
-// ═══════════════════════════════════════════════════════════════════
-
-function showAssignmentDialog() {
-  const measureCount = APP.score?.parts?.[0]?.staves?.[0]?.measures?.length || 1;
-  const selected = APP.selectedMeasure;
-  const start = Math.max(0, Math.min(selected, measureCount - 1));
-  const end = Math.min(measureCount - 1, start + 3);
-  makeModal(`
-    <h2>Create Assignment</h2>
-    <div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Title</div>
-      <input id="asgn-title" type="text" value="Exercise ${(APP.score?.assignments?.length || 0) + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Start measure</div>
-        <input id="asgn-start" type="number" min="1" max="${measureCount}" value="${start + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
-      </div>
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">End measure</div>
-        <input id="asgn-end" type="number" min="1" max="${measureCount}" value="${end + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
-      </div>
-    </div>
-    <div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Hide from student</div>
-      <select id="asgn-hidden" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
-        <option value="pitch">Pitches (student enters note names / MIDI)</option>
-        <option value="duration">Rhythm (student enters durations)</option>
-        <option value="pitch+duration">Pitches + Rhythm</option>
-        <option value="lyric">Lyrics</option>
-        <option value="chordSymbol">Chord Symbols</option>
-      </select>
-    </div>
-    <div style="margin-bottom:10px">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--pauta-text-muted);cursor:pointer">
-        <input type="checkbox" id="asgn-hint-first" checked> Show first note as hint
-      </label>
-    </div>
-    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
-      The assignment is saved inside the score file. Share the .mscz with students.
-    </div>
-    <button class="modal-btn primary" data-action="confirmCreateAssignment">Create</button>
-    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
-  `);
-}
-
-function confirmCreateAssignment() {
-  const title = document.getElementById('asgn-title')?.value?.trim() || 'Untitled';
-  const startMi = parseInt(document.getElementById('asgn-start')?.value) - 1;
-  const endMi   = parseInt(document.getElementById('asgn-end')?.value) - 1;
-  const hidden  = document.getElementById('asgn-hidden')?.value || 'pitch';
-  const hintFirst = document.getElementById('asgn-hint-first')?.checked ?? true;
-  const maxM = APP.score?.parts?.[0]?.staves?.[0]?.measures?.length || 1;
-  if (isNaN(startMi) || isNaN(endMi) || startMi < 0 || endMi < startMi || endMi >= maxM) {
-    showToast('Invalid measure range'); return;
-  }
-  commitChange(score => {
-    if (!score.assignments) score.assignments = [];
-    const id = 'a' + (Date.now() % 1000000);
-    score.assignments.push({
-      id, title,
-      range: { startMi, endMi },
-      hidden: hidden.split('+'),
-      hints: { showFirstNote: hintFirst },
-      createdAt: Date.now()
-    });
-  }, { toast: 'Assignment created: ' + title });
-  closeModal();
-}
-
-function startAssignment(id) {
-  const asgn = APP.score?.assignments?.find(a => a.id === id);
-  if (!asgn) { showToast('Assignment not found'); return; }
-  APP.assignmentMode = true;
-  APP.currentAssignment = asgn;
-  _validateModeState();
-  // Try to restore unsaved answers from localStorage
-  try {
-    const saved = localStorage.getItem(`pauta_answers_${id}`);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (!APP.score.studentAnswers) APP.score.studentAnswers = {};
-      // Only restore if not already submitted in the score file
-      if (!APP.score.studentAnswers[id]?.submitted) {
-        APP.score.studentAnswers[id] = parsed;
-      }
-    }
-  } catch(e) { console.warn('[Pauta]', e.message); }
-  // Hide palettes that aren't needed in student mode
-  _setAssignmentUI(true);
-  showToast('Assignment started: ' + asgn.title);
-  renderScore();
-}
-
-function exitAssignmentMode() {
-  APP.assignmentMode = false;
-  APP.currentAssignment = null;
-  _validateModeState();
-  _setAssignmentUI(false);
-  showToast('Exited assignment mode');
-  renderScore();
-}
-
-function _setAssignmentUI(enabled) {
-  document.body.classList.toggle('assignment-mode', enabled);
-  // Disable/enable tool palettes
-  const panels = ['panel-notes','panel-accidentals','panel-durations','panel-dynamics','panel-lines'];
-  panels.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.pointerEvents = enabled ? 'none' : '';
-  });
-}
-
-function submitAssignment() {
-  const asgn = APP.currentAssignment;
-  if (!asgn) return;
-  const results = _evaluateAssignment(asgn);
-  commitChange(score => {
-    if (!score.studentAnswers) score.studentAnswers = {};
-    score.studentAnswers[asgn.id] = {
-      submitted: true,
-      timestamp: Date.now(),
-      results
-    };
-  }, { toast: `Submitted! Score: ${results.correct}/${results.total}` });
-  exitAssignmentMode();
-}
-
-function checkAssignmentAnswers() {
-  const asgn = APP.currentAssignment;
-  if (!asgn) return;
-  const results = _evaluateAssignment(asgn);
-  makeModal(`
-    <h2>Check Answers — ${asgn.title}</h2>
-    <div style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:12px">
-      <b>${results.correct}</b> / ${results.total} correct
-      ${results.incorrect > 0 ? `<br><span style="color:var(--pauta-error)">${results.incorrect} incorrect</span>` : ''}
-      ${results.partial > 0 ? `<br><span style="color:#d4a017">${results.partial} partial (enharmonic)</span>` : ''}
-    </div>
-    <div style="flex-shrink:0;max-height:200px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px">
-      ${results.details.map(d => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
-        <span style="width:16px;text-align:center;font-size:14px">${d.ok?'🟢':'🔴'}</span>
-        Measure ${d.mi+1}, note ${d.ni+1}: ${d.msg}
-      </div>`).join('')}
-    </div>
-    <button class="modal-btn secondary" data-action="closeModal">Close</button>
-  `);
-}
-
-function _evaluateAssignment(asgn) {
-  const answers = APP.score?.studentAnswers?.[asgn.id];
-  const hiddenSet = new Set(asgn.hidden || ['pitch']);
-  const details = [];
-  let correct = 0, incorrect = 0, partial = 0, total = 0;
-
-  for (let mi = asgn.range.startMi; mi <= asgn.range.endMi; mi++) {
-    const measures = APP.score.parts.map(p => p.staves[0].measures[mi]).filter(Boolean);
-    measures.forEach(m => {
-      m.notes.forEach((note, ni) => {
-        if (note.type !== 'note') return;
-        total++;
-        const answer = answers?.notes?.[mi]?.[ni];
-        let ok = true, msg = '';
-
-        if (hiddenSet.has('pitch') || hiddenSet.has('duration')) {
-          // Check pitch
-          if (hiddenSet.has('pitch')) {
-            if (!answer || answer.pitch == null) {
-              ok = false; msg = 'No pitch entered';
-            } else if (answer.pitch === note.pitch) {
-              msg = 'Pitch correct';
-            } else if ((answer.pitch % 12) === (note.pitch % 12)) {
-              ok = false; partial++; msg = `Pitch enharmonic (${answer.pitch} vs ${note.pitch})`; return;
-            } else {
-              ok = false; msg = `Pitch wrong (${answer.pitch} vs ${note.pitch})`;
-            }
-          }
-          // Check duration
-          if (ok && hiddenSet.has('duration')) {
-            const targetDur = durBeats(note.duration, note.dots, note.tuplet);
-            const ansDur = answer ? durBeats(answer.duration, answer.dots, answer.tuplet) : 0;
-            if (!answer || Math.abs(ansDur - targetDur) > 0.001) {
-              ok = false; msg = msg ? msg + ', duration wrong' : 'Duration wrong';
-            } else {
-              msg = msg ? msg + ', duration correct' : 'Duration correct';
-            }
-          }
-        }
-
-        if (hiddenSet.has('lyric') && note.lyric?.text) {
-          if (!answer || !answer.lyric) {
-            ok = false; msg = 'No lyric entered';
-          } else if (answer.lyric.trim().toLowerCase() !== note.lyric.text.trim().toLowerCase()) {
-            ok = false; msg = `Lyric wrong (${answer.lyric} vs ${note.lyric.text})`;
-          } else {
-            msg = 'Lyric correct';
-          }
-        }
-
-        if (hiddenSet.has('chordSymbol') && note.chordSymbol) {
-          if (!answer || !answer.chordSymbol) {
-            ok = false; msg = 'No chord symbol entered';
-          } else if (answer.chordSymbol.trim().toLowerCase() !== note.chordSymbol.trim().toLowerCase()) {
-            ok = false; msg = `Chord symbol wrong`;
-          } else {
-            msg = 'Chord symbol correct';
-          }
-        }
-
-        if (ok) correct++;
-        else if (!msg.includes('enharmonic')) incorrect++;
-        details.push({ mi, ni, ok, msg });
-      });
-    });
-  }
-  return { correct, incorrect, partial, total, details };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -9955,6 +9741,424 @@ function _genScaleId(difficulty) {
   };
 }
 
+
+// ═══════════════════════════════════════════════════════════════════
+// EVALUATOR — moved from playback.js (belongs with exercise logic)
+// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// EVALUATOR — moved from playback.js (belongs with exercise logic)
+// ═══════════════════════════════════════════════════════════════════
+
+const EVALUATOR = {
+  _NOTE_NAMES: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
+  _FLAT_NAMES: ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'],
+
+  _noteName(midi) {
+    const pc = midi % 12;
+    const oct = Math.floor(midi / 12) - 1;
+    const useFlat = [1,3,6,8,10].includes(pc);
+    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc] + oct;
+  },
+
+  _pcName(pc) {
+    const useFlat = [1,3,6,8,10].includes(pc);
+    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc];
+  },
+
+  evaluateNote(target, student) {
+    if (!target || !student || target.pitch == null || student.pitch == null) {
+      return { isPerfect: false, isCorrectPitchClass: false, assessment: 'INVALID', message: 'No note to evaluate', detail: null };
+    }
+
+    const targetPC = target.pitch % 12;
+    const studentPC = student.pitch % 12;
+    const targetOct = Math.floor(target.pitch / 12) - 1;
+    const studentOct = Math.floor(student.pitch / 12) - 1;
+    const extras = (target.extraPitches || []).map(ep => ep.pitch % 12);
+    const isCorrectPC = (targetPC === studentPC) || extras.includes(studentPC);
+    const isExactMatch = student.pitch === target.pitch || (target.extraPitches || []).some(ep => ep.pitch === student.pitch);
+
+    if (isExactMatch) {
+      return {
+        isPerfect: true,
+        isCorrectPitchClass: true,
+        assessment: 'CORRECT',
+        message: `✓ ${this._noteName(student.pitch)}`,
+        detail: null,
+      };
+    }
+
+    if (isCorrectPC) {
+      const displacement = studentOct - targetOct;
+      return {
+        isPerfect: false,
+        isCorrectPitchClass: true,
+        assessment: 'OCTAVE_DISPLACEMENT',
+        message: `Right note, wrong octave`,
+        detail: {
+          target: this._noteName(target.pitch),
+          student: this._noteName(student.pitch),
+          displacement,
+          hint: displacement > 0
+            ? `Go down ${displacement} octave${displacement > 1 ? 's' : ''}`
+            : `Go up ${Math.abs(displacement)} octave${Math.abs(displacement) > 1 ? 's' : ''}`,
+        },
+      };
+    }
+
+    const semitoneDiff = Math.abs(studentPC - targetPC);
+    const minDiff = Math.min(semitoneDiff, 12 - semitoneDiff);
+    if (minDiff === 1) {
+      const direction = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
+      return {
+        isPerfect: false,
+        isCorrectPitchClass: false,
+        assessment: 'NEAR_MISS',
+        message: `${direction === 'up' ? '↑' : '↓'} One semitone ${direction}`,
+        detail: {
+          target: this._pcName(targetPC),
+          student: this._pcName(studentPC),
+          direction,
+          hint: `The correct note is one semitone ${direction === 'up' ? 'down' : 'up'}`,
+        },
+      };
+    }
+
+    return {
+      isPerfect: false,
+      isCorrectPitchClass: false,
+      assessment: 'WRONG_NOTE',
+      message: `Expected ${this._pcName(targetPC)}`,
+      detail: {
+        target: this._noteName(target.pitch),
+        student: this._noteName(student.pitch),
+        hint: `Try ${this._pcName(targetPC)}${targetOct}`,
+      },
+    };
+  },
+
+  evaluatePitchClass(targetPC, studentPC) {
+    if (targetPC === studentPC) {
+      return { isCorrect: true, assessment: 'CORRECT', message: '✓' };
+    }
+    const diff = Math.abs(studentPC - targetPC);
+    const minDiff = Math.min(diff, 12 - diff);
+    if (minDiff === 1) {
+      const dir = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
+      return { isCorrect: false, assessment: 'NEAR_MISS', message: `One semitone ${dir}` };
+    }
+    return { isCorrect: false, assessment: 'WRONG_NOTE', message: `Expected ${this._pcName(targetPC)}` };
+  },
+
+  evaluateRhythm(expected, student, tolerance = 0.15) {
+    if (!expected.length) return { isPerfect: true, correct: 0, total: 0, misses: [], extras: [] };
+    const misses = [];
+    const matched = new Set();
+    expected.forEach(exp => {
+      const found = student.findIndex((s, i) => !matched.has(i) && Math.abs(s - exp) <= tolerance);
+      if (found >= 0) {
+        matched.add(found);
+      } else {
+        misses.push(exp);
+      }
+    });
+    const extras = student.filter((_, i) => !matched.has(i));
+    const correct = expected.length - misses.length;
+    return {
+      isPerfect: misses.length === 0 && extras.length === 0,
+      correct,
+      total: expected.length,
+      misses,
+      extras,
+      accuracy: Math.round((correct / expected.length) * 100),
+    };
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// SESSION MANAGER — moved from playback.js (belongs with exercise logic)
+// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// SESSION MANAGER — moved from playback.js (belongs with exercise logic)
+// ═══════════════════════════════════════════════════════════════════
+
+const SESSION_MANAGER = {
+  _SESSION_KEY: 'pauta_session_history',
+  _MAX_HISTORY: 50,
+
+  _loadHistory() {
+    try { return JSON.parse(localStorage.getItem(this._SESSION_KEY)) || []; }
+    catch(e) { return []; }
+  },
+
+  _saveHistory(history) {
+    localStorage.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
+  },
+
+  recordSession(type, difficulty, score, total, time) {
+    const history = this._loadHistory();
+    history.push({
+      type, difficulty, score, total,
+      pct: Math.round((score / total) * 100),
+      time: Math.floor(time / 1000),
+      date: Date.now(),
+    });
+    this._saveHistory(history);
+    return this.getRecommendation(type);
+  },
+
+  getRecommendation(type) {
+    const history = this._loadHistory();
+    const relevant = history.filter(h => h.type === type).slice(-5);
+    if (relevant.length < 2) return { action: 'continue', reason: 'Need more data' };
+
+    const avgPct = relevant.reduce((s, h) => s + h.pct, 0) / relevant.length;
+    const lastPct = relevant[relevant.length - 1].pct;
+    const trend = relevant.length >= 3
+      ? (relevant[relevant.length - 1].pct + relevant[relevant.length - 2].pct) / 2
+        - (relevant[0].pct + relevant[1].pct) / 2
+      : 0;
+
+    if (avgPct >= 85 && trend >= 0) {
+      return { action: 'advance', reason: `Excellent (${Math.round(avgPct)}% avg)`, avgPct };
+    }
+    if (avgPct < 60 || (trend < -10 && lastPct < 70)) {
+      return { action: 'review', reason: `Needs practice (${Math.round(avgPct)}% avg)`, avgPct };
+    }
+    return { action: 'continue', reason: `Good progress (${Math.round(avgPct)}% avg)`, avgPct };
+  },
+
+  adjustDifficulty(currentDifficulty, sessionPct) {
+    const levels = ['beginner', 'intermediate', 'advanced'];
+    const idx = levels.indexOf(currentDifficulty);
+
+    if (sessionPct >= 85 && idx < 2) {
+      return { difficulty: levels[idx + 1], reason: 'Upgrading difficulty' };
+    }
+    if (sessionPct < 50 && idx > 0) {
+      return { difficulty: levels[idx - 1], reason: 'Reviewing at easier level' };
+    }
+    return { difficulty: currentDifficulty, reason: 'Maintaining level' };
+  },
+
+  getStats(type) {
+    const history = this._loadHistory();
+    const relevant = type ? history.filter(h => h.type === type) : history;
+    if (!relevant.length) return null;
+
+    const totalSessions = relevant.length;
+    const avgPct = Math.round(relevant.reduce((s, h) => s + h.pct, 0) / totalSessions);
+    const totalTime = relevant.reduce((s, h) => s + h.time, 0);
+    const bestPct = Math.max(...relevant.map(h => h.pct));
+    const currentStreak = this._getCurrentStreak(relevant);
+
+    return { totalSessions, avgPct, totalTime, bestPct, currentStreak };
+  },
+
+  _getCurrentStreak(history) {
+    if (history.length < 2) return 0;
+    let streak = 0;
+    for (let i = history.length - 1; i > 0; i--) {
+      if (history[i].pct >= history[i - 1].pct) streak++;
+      else break;
+    }
+    return streak;
+  },
+
+  _PROGRESS_KEY: 'pauta_level_progress',
+
+  _loadProgress() {
+    try { return JSON.parse(localStorage.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
+    catch(e) { return { level: 1, completionHistory: {}, bestScores: {} }; }
+  },
+
+  _saveProgress(progress) {
+    localStorage.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
+  },
+
+  getLevel() {
+    return this._loadProgress().level || 1;
+  },
+
+  setLevel(level) {
+    const progress = this._loadProgress();
+    progress.level = level;
+    this._saveProgress(progress);
+  },
+
+  recordCompletion(exerciseType, score, total) {
+    const progress = this._loadProgress();
+    const pct = Math.round((score / total) * 100);
+
+    if (!progress.completionHistory[exerciseType]) {
+      progress.completionHistory[exerciseType] = [];
+    }
+    progress.completionHistory[exerciseType].push({
+      score, total, pct,
+      date: Date.now(),
+    });
+
+    if (!progress.bestScores[exerciseType] || pct > progress.bestScores[exerciseType]) {
+      progress.bestScores[exerciseType] = pct;
+    }
+
+    this._saveProgress(progress);
+    return progress;
+  },
+
+  getCompletionHistory(exerciseType) {
+    const progress = this._loadProgress();
+    return progress.completionHistory[exerciseType] || [];
+  },
+
+  getBestScore(exerciseType) {
+    const progress = this._loadProgress();
+    return progress.bestScores[exerciseType] || 0;
+  },
+
+  getAllBestScores() {
+    return this._loadProgress().bestScores || {};
+  },
+
+  hasMastered(exerciseType) {
+    const history = this.getCompletionHistory(exerciseType);
+    if (history.length < 3) return false;
+    const recent = history.slice(-3);
+    return recent.every(h => h.pct >= 80);
+  },
+
+  getMasteryStatus() {
+    const types = Object.values(EXERCISE_TYPES);
+    const status = {};
+    types.forEach(type => {
+      status[type] = {
+        mastered: this.hasMastered(type),
+        bestScore: this.getBestScore(type),
+        sessions: this.getCompletionHistory(type).length,
+      };
+    });
+    return status;
+  },
+
+  _LATENCY_KEY: 'pauta_latency_offset',
+  _latencySamples: [],
+  _calibrationActive: false,
+
+  getLatencyOffset() {
+    try { return parseInt(localStorage.getItem(this._LATENCY_KEY)) || 0; }
+    catch(e) { return 0; }
+  },
+
+  _saveLatencyOffset(offset) {
+    localStorage.setItem(this._LATENCY_KEY, String(Math.round(offset)));
+  },
+
+  startCalibration() {
+    this._latencySamples = [];
+    this._calibrationActive = true;
+    return {
+      message: 'Tap the button in sync with the metronome beat',
+      beatsNeeded: 8,
+    };
+  },
+
+  recordCalibrationTap(expectedTime, actualTime) {
+    if (!this._calibrationActive) return null;
+
+    const offset = (actualTime - expectedTime) * 1000;
+    this._latencySamples.push(offset);
+
+    if (this._latencySamples.length < 4) {
+      return { samples: this._latencySamples.length, needed: 4 };
+    }
+
+    const sorted = [...this._latencySamples].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+
+    if (Math.abs(median) <= 200) {
+      this._saveLatencyOffset(median);
+      this._calibrationActive = false;
+      return {
+        complete: true,
+        offset: Math.round(median),
+        message: `Calibrated: ${Math.round(median)}ms offset`,
+      };
+    }
+
+    this._calibrationActive = false;
+    return {
+      complete: true,
+      offset: 0,
+      message: 'Calibration failed — offset too large. Using 0ms.',
+    };
+  },
+
+  applyOffset(time) {
+    const offset = this.getLatencyOffset();
+    return time + (offset / 1000);
+  },
+
+  showCalibrationDialog() {
+    const result = this.startCalibration();
+    let tapCount = 0;
+    const totalBeats = result.beatsNeeded;
+
+    makeModal(`
+      <h2>Audio Latency Calibration</h2>
+      <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px;text-align:center">
+        ${result.message}
+      </p>
+      <div style="text-align:center;margin-bottom:12px">
+        <div id="cal-beat-display" style="font-size:48px;font-weight:700;color:var(--pauta-primary);margin-bottom:8px">0/${totalBeats}</div>
+        <div id="cal-tap-btn" style="width:80px;height:80px;border-radius:50%;background:var(--pauta-primary);color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center">TAP</div>
+      </div>
+      <div id="cal-result" style="text-align:center;font-size:12px;color:var(--pauta-text-muted);min-height:20px"></div>
+      <button class="modal-btn secondary" data-action="closeModal" style="margin-top:8px">Cancel</button>
+    `);
+
+    let beatInterval = setInterval(() => {
+      const display = document.getElementById('cal-beat-display');
+      const btn = document.getElementById('cal-tap-btn');
+      if (!display || !btn) { clearInterval(beatInterval); return; }
+
+      tapCount++;
+      display.textContent = `${tapCount}/${totalBeats}`;
+      btn.style.background = 'var(--pauta-success)';
+
+      setTimeout(() => { btn.style.background = 'var(--pauta-primary)'; }, 100);
+
+      if (tapCount >= totalBeats) {
+        clearInterval(beatInterval);
+        const finalResult = this.recordCalibrationTap(0, 0);
+        const resultEl = document.getElementById('cal-result');
+        if (resultEl) {
+          resultEl.textContent = finalResult?.message || 'Calibration complete';
+          resultEl.style.color = 'var(--pauta-success)';
+        }
+      }
+    }, 1000);
+
+    setTimeout(() => {
+      const tapBtn = document.getElementById('cal-tap-btn');
+      if (tapBtn) {
+        tapBtn.addEventListener('click', () => {
+          const now = getAudioCtx().currentTime;
+          const offset = this.getLatencyOffset();
+          this.recordCalibrationTap(now - (offset / 1000), now);
+        });
+      }
+    }, 50);
+  },
+};
+
+
+// ─── Module: education/session.js ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// session.js — Session lifecycle, presenters, answer checking,
+//              UI, rhythm worksheet, rhythm workout, main dialog
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Exercise Session Manager ────────────────────────────────────
 // ── Exercise Session Manager ────────────────────────────────────
 function startExerciseSession(type, difficulty) {
   // Adaptive difficulty: if 'auto', start at beginner and let the adaptive engine handle it
@@ -10289,6 +10493,8 @@ function reviewExerciseSession() {
   showReview(0);
 }
 
+
+// ── Exercise Presenters ─────────────────────────────────────────
 function _presentExercise(ex) {
   switch (ex.type) {
     case EXERCISE_TYPES.NOTE_ID:
@@ -11526,6 +11732,8 @@ function _hideExerciseFeedback() {
   if (fb) fb.remove();
 }
 
+
+// ── Exercise UI ─────────────────────────────────────────────────
 // ── Exercise UI ─────────────────────────────────────────────────
 function _updateScoreDisplay() {
   const el = document.getElementById('exercise-score');
@@ -11601,6 +11809,7 @@ function _setExerciseUI(enabled) {
   if (!enabled && exitEl) exitEl.remove();
 }
 
+// ── Rhythm Worksheet ──────────────────────────────────────────
 // ── Rhythm Worksheet ──────────────────────────────────────────
 function _renderRhythmBeatGrid(ex) {
   const existing = document.getElementById('rhythm-beat-grid');
@@ -11807,6 +12016,7 @@ function _startRhythmWorksheet(difficulty) {
   _validateModeState();
 }
 
+// ── Main Exercise Dialog ───────────────────────────────────────
 function showExerciseDialog() {
   if (APP.exerciseMode) { showToast('Finish your current exercise first'); return; }
 
@@ -11918,37 +12128,10 @@ function selectExerciseDifficulty(diff) {
   showExerciseDialog();
 }
 
-// ── Student Progress Analytics ─────────────────────────────────
-const RESULTS_KEY = 'pauta_exercise_results';
-const IMPORTED_KEY = 'pauta_imported_reports';
-const TYPE_LABELS = {
-  note_id: 'Note Drills', interval_id: 'Interval Training', rhythm_read: 'Rhythm Reading',
-  melody_dictation: 'Ear Training', key_sig_id: 'Key Sig Drills', rhythm_worksheet: 'Rhythm Dictation',
-  scale_id: 'Scale Gym', rhythm_workout: 'Rhythm Workout',
-};
 
-function _saveExerciseResult(session) {
-  if (!session || session.totalCount === 0) return;
-  const results = _loadResults();
-  results.push({
-    type: session.type,
-    difficulty: session.difficulty,
-    date: Date.now(),
-    correct: session.correctCount,
-    total: session.totalCount,
-    pct: Math.round((session.correctCount / session.totalCount) * 100),
-    streak: session.streak,
-    maxStreak: session.maxStreak,
-    time: Math.floor((Date.now() - session.startedAt) / 1000),
-  });
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
-}
-
-function _loadResults() {
-  try { return JSON.parse(localStorage.getItem(RESULTS_KEY)) || []; }
-  catch(e) { return []; }
-}
-
+// ═══════════════════════════════════════════════════════════════════
+// Random Rhythm Workout — inspired by rhythmrandomizer.com
+// ═══════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════
 // Random Rhythm Workout — inspired by rhythmrandomizer.com
 // ═══════════════════════════════════════════════════════════════════
@@ -12208,6 +12391,268 @@ function _checkRhythmWorkoutAnswer(userAnswer) {
     s.current = _genRhythmWorkout();
     _presentRhythmWorkout(s.current);
   }, 1500);
+}
+
+
+// ─── Module: education/kit.js ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// kit.js — Assignments, progress, teacher, templates, builder,
+//          diagnostic, composition tools, recorder exercises
+// ═══════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 5b: Assignments
+// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 5b: Assignments
+// ═══════════════════════════════════════════════════════════════════
+
+function showAssignmentDialog() {
+  const measureCount = APP.score?.parts?.[0]?.staves?.[0]?.measures?.length || 1;
+  const selected = APP.selectedMeasure;
+  const start = Math.max(0, Math.min(selected, measureCount - 1));
+  const end = Math.min(measureCount - 1, start + 3);
+  makeModal(`
+    <h2>Create Assignment</h2>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Title</div>
+      <input id="asgn-title" type="text" value="Exercise ${(APP.score?.assignments?.length || 0) + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Start measure</div>
+        <input id="asgn-start" type="number" min="1" max="${measureCount}" value="${start + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">End measure</div>
+        <input id="asgn-end" type="number" min="1" max="${measureCount}" value="${end + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Hide from student</div>
+      <select id="asgn-hidden" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+        <option value="pitch">Pitches (student enters note names / MIDI)</option>
+        <option value="duration">Rhythm (student enters durations)</option>
+        <option value="pitch+duration">Pitches + Rhythm</option>
+        <option value="lyric">Lyrics</option>
+        <option value="chordSymbol">Chord Symbols</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--pauta-text-muted);cursor:pointer">
+        <input type="checkbox" id="asgn-hint-first" checked> Show first note as hint
+      </label>
+    </div>
+    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+      The assignment is saved inside the score file. Share the .mscz with students.
+    </div>
+    <button class="modal-btn primary" data-action="confirmCreateAssignment">Create</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
+}
+
+function confirmCreateAssignment() {
+  const title = document.getElementById('asgn-title')?.value?.trim() || 'Untitled';
+  const startMi = parseInt(document.getElementById('asgn-start')?.value) - 1;
+  const endMi   = parseInt(document.getElementById('asgn-end')?.value) - 1;
+  const hidden  = document.getElementById('asgn-hidden')?.value || 'pitch';
+  const hintFirst = document.getElementById('asgn-hint-first')?.checked ?? true;
+  const maxM = APP.score?.parts?.[0]?.staves?.[0]?.measures?.length || 1;
+  if (isNaN(startMi) || isNaN(endMi) || startMi < 0 || endMi < startMi || endMi >= maxM) {
+    showToast('Invalid measure range'); return;
+  }
+  commitChange(score => {
+    if (!score.assignments) score.assignments = [];
+    const id = 'a' + (Date.now() % 1000000);
+    score.assignments.push({
+      id, title,
+      range: { startMi, endMi },
+      hidden: hidden.split('+'),
+      hints: { showFirstNote: hintFirst },
+      createdAt: Date.now()
+    });
+  }, { toast: 'Assignment created: ' + title });
+  closeModal();
+}
+
+function startAssignment(id) {
+  const asgn = APP.score?.assignments?.find(a => a.id === id);
+  if (!asgn) { showToast('Assignment not found'); return; }
+  APP.assignmentMode = true;
+  APP.currentAssignment = asgn;
+  _validateModeState();
+  // Try to restore unsaved answers from localStorage
+  try {
+    const saved = localStorage.getItem(`pauta_answers_${id}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (!APP.score.studentAnswers) APP.score.studentAnswers = {};
+      // Only restore if not already submitted in the score file
+      if (!APP.score.studentAnswers[id]?.submitted) {
+        APP.score.studentAnswers[id] = parsed;
+      }
+    }
+  } catch(e) { console.warn('[Pauta]', e.message); }
+  // Hide palettes that aren't needed in student mode
+  _setAssignmentUI(true);
+  showToast('Assignment started: ' + asgn.title);
+  renderScore();
+}
+
+function exitAssignmentMode() {
+  APP.assignmentMode = false;
+  APP.currentAssignment = null;
+  _validateModeState();
+  _setAssignmentUI(false);
+  showToast('Exited assignment mode');
+  renderScore();
+}
+
+function _setAssignmentUI(enabled) {
+  document.body.classList.toggle('assignment-mode', enabled);
+  // Disable/enable tool palettes
+  const panels = ['panel-notes','panel-accidentals','panel-durations','panel-dynamics','panel-lines'];
+  panels.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.pointerEvents = enabled ? 'none' : '';
+  });
+}
+
+function submitAssignment() {
+  const asgn = APP.currentAssignment;
+  if (!asgn) return;
+  const results = _evaluateAssignment(asgn);
+  commitChange(score => {
+    if (!score.studentAnswers) score.studentAnswers = {};
+    score.studentAnswers[asgn.id] = {
+      submitted: true,
+      timestamp: Date.now(),
+      results
+    };
+  }, { toast: `Submitted! Score: ${results.correct}/${results.total}` });
+  exitAssignmentMode();
+}
+
+function checkAssignmentAnswers() {
+  const asgn = APP.currentAssignment;
+  if (!asgn) return;
+  const results = _evaluateAssignment(asgn);
+  makeModal(`
+    <h2>Check Answers — ${asgn.title}</h2>
+    <div style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:12px">
+      <b>${results.correct}</b> / ${results.total} correct
+      ${results.incorrect > 0 ? `<br><span style="color:var(--pauta-error)">${results.incorrect} incorrect</span>` : ''}
+      ${results.partial > 0 ? `<br><span style="color:#d4a017">${results.partial} partial (enharmonic)</span>` : ''}
+    </div>
+    <div style="flex-shrink:0;max-height:200px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px">
+      ${results.details.map(d => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <span style="width:16px;text-align:center;font-size:14px">${d.ok?'🟢':'🔴'}</span>
+        Measure ${d.mi+1}, note ${d.ni+1}: ${d.msg}
+      </div>`).join('')}
+    </div>
+    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+  `);
+}
+
+function _evaluateAssignment(asgn) {
+  const answers = APP.score?.studentAnswers?.[asgn.id];
+  const hiddenSet = new Set(asgn.hidden || ['pitch']);
+  const details = [];
+  let correct = 0, incorrect = 0, partial = 0, total = 0;
+
+  for (let mi = asgn.range.startMi; mi <= asgn.range.endMi; mi++) {
+    const measures = APP.score.parts.map(p => p.staves[0].measures[mi]).filter(Boolean);
+    measures.forEach(m => {
+      m.notes.forEach((note, ni) => {
+        if (note.type !== 'note') return;
+        total++;
+        const answer = answers?.notes?.[mi]?.[ni];
+        let ok = true, msg = '';
+
+        if (hiddenSet.has('pitch') || hiddenSet.has('duration')) {
+          // Check pitch
+          if (hiddenSet.has('pitch')) {
+            if (!answer || answer.pitch == null) {
+              ok = false; msg = 'No pitch entered';
+            } else if (answer.pitch === note.pitch) {
+              msg = 'Pitch correct';
+            } else if ((answer.pitch % 12) === (note.pitch % 12)) {
+              ok = false; partial++; msg = `Pitch enharmonic (${answer.pitch} vs ${note.pitch})`; return;
+            } else {
+              ok = false; msg = `Pitch wrong (${answer.pitch} vs ${note.pitch})`;
+            }
+          }
+          // Check duration
+          if (ok && hiddenSet.has('duration')) {
+            const targetDur = durBeats(note.duration, note.dots, note.tuplet);
+            const ansDur = answer ? durBeats(answer.duration, answer.dots, answer.tuplet) : 0;
+            if (!answer || Math.abs(ansDur - targetDur) > 0.001) {
+              ok = false; msg = msg ? msg + ', duration wrong' : 'Duration wrong';
+            } else {
+              msg = msg ? msg + ', duration correct' : 'Duration correct';
+            }
+          }
+        }
+
+        if (hiddenSet.has('lyric') && note.lyric?.text) {
+          if (!answer || !answer.lyric) {
+            ok = false; msg = 'No lyric entered';
+          } else if (answer.lyric.trim().toLowerCase() !== note.lyric.text.trim().toLowerCase()) {
+            ok = false; msg = `Lyric wrong (${answer.lyric} vs ${note.lyric.text})`;
+          } else {
+            msg = 'Lyric correct';
+          }
+        }
+
+        if (hiddenSet.has('chordSymbol') && note.chordSymbol) {
+          if (!answer || !answer.chordSymbol) {
+            ok = false; msg = 'No chord symbol entered';
+          } else if (answer.chordSymbol.trim().toLowerCase() !== note.chordSymbol.trim().toLowerCase()) {
+            ok = false; msg = `Chord symbol wrong`;
+          } else {
+            msg = 'Chord symbol correct';
+          }
+        }
+
+        if (ok) correct++;
+        else if (!msg.includes('enharmonic')) incorrect++;
+        details.push({ mi, ni, ok, msg });
+      });
+    });
+  }
+  return { correct, incorrect, partial, total, details };
+}
+
+// ── Student Progress Analytics ─────────────────────────────────
+// ── Student Progress Analytics ─────────────────────────────────
+const RESULTS_KEY = 'pauta_exercise_results';
+const IMPORTED_KEY = 'pauta_imported_reports';
+const TYPE_LABELS = {
+  note_id: 'Note Drills', interval_id: 'Interval Training', rhythm_read: 'Rhythm Reading',
+  melody_dictation: 'Ear Training', key_sig_id: 'Key Sig Drills', rhythm_worksheet: 'Rhythm Dictation',
+  scale_id: 'Scale Gym', rhythm_workout: 'Rhythm Workout',
+};
+
+function _saveExerciseResult(session) {
+  if (!session || session.totalCount === 0) return;
+  const results = _loadResults();
+  results.push({
+    type: session.type,
+    difficulty: session.difficulty,
+    date: Date.now(),
+    correct: session.correctCount,
+    total: session.totalCount,
+    pct: Math.round((session.correctCount / session.totalCount) * 100),
+    streak: session.streak,
+    maxStreak: session.maxStreak,
+    time: Math.floor((Date.now() - session.startedAt) / 1000),
+  });
+  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+}
+
+function _loadResults() {
+  try { return JSON.parse(localStorage.getItem(RESULTS_KEY)) || []; }
+  catch(e) { return []; }
 }
 
 function showStudentProgress() {
@@ -12568,6 +13013,7 @@ function clearAllImported() {
   showToast('Imported data cleared');
 }
 
+// ── Starter Assignments ─────────────────────────────────────────
 // ── Starter Assignments ─────────────────────────────────────────
 const STARTER_TEMPLATES = [
   { id: 'scale-major',      label: 'Major Scale (1 octave)',    desc: 'C, G, D, A, E, B, F',     fn: () => _genScaleAssignment('major', 1) },
@@ -13091,6 +13537,7 @@ function _downloadBlob(blob, filename) {
 }
 
 // ── Diagnostic Assessment ──────────────────────────────────────
+// ── Diagnostic Assessment ──────────────────────────────────────
 const DIAG_CONFIG = {
   note:     { count: 5, difficulty: 0, label: 'Note ID' },
   interval: { count: 5, difficulty: 1, label: 'Intervals' },
@@ -13355,6 +13802,7 @@ function _hideDiagBar() {
 }
 
 // ── Assign exercise functions to EXERCISE namespace ────────────
+// ── Assign exercise functions to EXERCISE namespace ────────────
 [generateExercise, startExerciseSession, endExerciseSession, nextExercise, retryExercise, skipExercise,
  checkExerciseAnswer, showExerciseDialog, selectExerciseDifficulty,
  _presentNoteId, _presentIntervalId, _presentRhythmRead, _presentMelodyDict, _presentKeySigId,
@@ -13397,6 +13845,9 @@ function showTransposeDialog() {
   `);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MODULE 6: Composition Tools — inline palette
+// ═══════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 6: Composition Tools — inline palette
 // ═══════════════════════════════════════════════════════════════════
@@ -13689,408 +14140,8 @@ function exitCompositionMode() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// EVALUATOR — moved from playback.js (belongs with exercise logic)
+// RECORDER EXERCISES — moved from notation.js (belongs with education)
 // ═══════════════════════════════════════════════════════════════════
-
-const EVALUATOR = {
-  _NOTE_NAMES: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
-  _FLAT_NAMES: ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'],
-
-  _noteName(midi) {
-    const pc = midi % 12;
-    const oct = Math.floor(midi / 12) - 1;
-    const useFlat = [1,3,6,8,10].includes(pc);
-    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc] + oct;
-  },
-
-  _pcName(pc) {
-    const useFlat = [1,3,6,8,10].includes(pc);
-    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc];
-  },
-
-  evaluateNote(target, student) {
-    if (!target || !student || target.pitch == null || student.pitch == null) {
-      return { isPerfect: false, isCorrectPitchClass: false, assessment: 'INVALID', message: 'No note to evaluate', detail: null };
-    }
-
-    const targetPC = target.pitch % 12;
-    const studentPC = student.pitch % 12;
-    const targetOct = Math.floor(target.pitch / 12) - 1;
-    const studentOct = Math.floor(student.pitch / 12) - 1;
-    const extras = (target.extraPitches || []).map(ep => ep.pitch % 12);
-    const isCorrectPC = (targetPC === studentPC) || extras.includes(studentPC);
-    const isExactMatch = student.pitch === target.pitch || (target.extraPitches || []).some(ep => ep.pitch === student.pitch);
-
-    if (isExactMatch) {
-      return {
-        isPerfect: true,
-        isCorrectPitchClass: true,
-        assessment: 'CORRECT',
-        message: `✓ ${this._noteName(student.pitch)}`,
-        detail: null,
-      };
-    }
-
-    if (isCorrectPC) {
-      const displacement = studentOct - targetOct;
-      return {
-        isPerfect: false,
-        isCorrectPitchClass: true,
-        assessment: 'OCTAVE_DISPLACEMENT',
-        message: `Right note, wrong octave`,
-        detail: {
-          target: this._noteName(target.pitch),
-          student: this._noteName(student.pitch),
-          displacement,
-          hint: displacement > 0
-            ? `Go down ${displacement} octave${displacement > 1 ? 's' : ''}`
-            : `Go up ${Math.abs(displacement)} octave${Math.abs(displacement) > 1 ? 's' : ''}`,
-        },
-      };
-    }
-
-    const semitoneDiff = Math.abs(studentPC - targetPC);
-    const minDiff = Math.min(semitoneDiff, 12 - semitoneDiff);
-    if (minDiff === 1) {
-      const direction = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
-      return {
-        isPerfect: false,
-        isCorrectPitchClass: false,
-        assessment: 'NEAR_MISS',
-        message: `${direction === 'up' ? '↑' : '↓'} One semitone ${direction}`,
-        detail: {
-          target: this._pcName(targetPC),
-          student: this._pcName(studentPC),
-          direction,
-          hint: `The correct note is one semitone ${direction === 'up' ? 'down' : 'up'}`,
-        },
-      };
-    }
-
-    return {
-      isPerfect: false,
-      isCorrectPitchClass: false,
-      assessment: 'WRONG_NOTE',
-      message: `Expected ${this._pcName(targetPC)}`,
-      detail: {
-        target: this._noteName(target.pitch),
-        student: this._noteName(student.pitch),
-        hint: `Try ${this._pcName(targetPC)}${targetOct}`,
-      },
-    };
-  },
-
-  evaluatePitchClass(targetPC, studentPC) {
-    if (targetPC === studentPC) {
-      return { isCorrect: true, assessment: 'CORRECT', message: '✓' };
-    }
-    const diff = Math.abs(studentPC - targetPC);
-    const minDiff = Math.min(diff, 12 - diff);
-    if (minDiff === 1) {
-      const dir = ((studentPC - targetPC + 12) % 12) <= 6 ? 'up' : 'down';
-      return { isCorrect: false, assessment: 'NEAR_MISS', message: `One semitone ${dir}` };
-    }
-    return { isCorrect: false, assessment: 'WRONG_NOTE', message: `Expected ${this._pcName(targetPC)}` };
-  },
-
-  evaluateRhythm(expected, student, tolerance = 0.15) {
-    if (!expected.length) return { isPerfect: true, correct: 0, total: 0, misses: [], extras: [] };
-    const misses = [];
-    const matched = new Set();
-    expected.forEach(exp => {
-      const found = student.findIndex((s, i) => !matched.has(i) && Math.abs(s - exp) <= tolerance);
-      if (found >= 0) {
-        matched.add(found);
-      } else {
-        misses.push(exp);
-      }
-    });
-    const extras = student.filter((_, i) => !matched.has(i));
-    const correct = expected.length - misses.length;
-    return {
-      isPerfect: misses.length === 0 && extras.length === 0,
-      correct,
-      total: expected.length,
-      misses,
-      extras,
-      accuracy: Math.round((correct / expected.length) * 100),
-    };
-  },
-};
-
-// ═══════════════════════════════════════════════════════════════════
-// SESSION MANAGER — moved from playback.js (belongs with exercise logic)
-// ═══════════════════════════════════════════════════════════════════
-
-const SESSION_MANAGER = {
-  _SESSION_KEY: 'pauta_session_history',
-  _MAX_HISTORY: 50,
-
-  _loadHistory() {
-    try { return JSON.parse(localStorage.getItem(this._SESSION_KEY)) || []; }
-    catch(e) { return []; }
-  },
-
-  _saveHistory(history) {
-    localStorage.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
-  },
-
-  recordSession(type, difficulty, score, total, time) {
-    const history = this._loadHistory();
-    history.push({
-      type, difficulty, score, total,
-      pct: Math.round((score / total) * 100),
-      time: Math.floor(time / 1000),
-      date: Date.now(),
-    });
-    this._saveHistory(history);
-    return this.getRecommendation(type);
-  },
-
-  getRecommendation(type) {
-    const history = this._loadHistory();
-    const relevant = history.filter(h => h.type === type).slice(-5);
-    if (relevant.length < 2) return { action: 'continue', reason: 'Need more data' };
-
-    const avgPct = relevant.reduce((s, h) => s + h.pct, 0) / relevant.length;
-    const lastPct = relevant[relevant.length - 1].pct;
-    const trend = relevant.length >= 3
-      ? (relevant[relevant.length - 1].pct + relevant[relevant.length - 2].pct) / 2
-        - (relevant[0].pct + relevant[1].pct) / 2
-      : 0;
-
-    if (avgPct >= 85 && trend >= 0) {
-      return { action: 'advance', reason: `Excellent (${Math.round(avgPct)}% avg)`, avgPct };
-    }
-    if (avgPct < 60 || (trend < -10 && lastPct < 70)) {
-      return { action: 'review', reason: `Needs practice (${Math.round(avgPct)}% avg)`, avgPct };
-    }
-    return { action: 'continue', reason: `Good progress (${Math.round(avgPct)}% avg)`, avgPct };
-  },
-
-  adjustDifficulty(currentDifficulty, sessionPct) {
-    const levels = ['beginner', 'intermediate', 'advanced'];
-    const idx = levels.indexOf(currentDifficulty);
-
-    if (sessionPct >= 85 && idx < 2) {
-      return { difficulty: levels[idx + 1], reason: 'Upgrading difficulty' };
-    }
-    if (sessionPct < 50 && idx > 0) {
-      return { difficulty: levels[idx - 1], reason: 'Reviewing at easier level' };
-    }
-    return { difficulty: currentDifficulty, reason: 'Maintaining level' };
-  },
-
-  getStats(type) {
-    const history = this._loadHistory();
-    const relevant = type ? history.filter(h => h.type === type) : history;
-    if (!relevant.length) return null;
-
-    const totalSessions = relevant.length;
-    const avgPct = Math.round(relevant.reduce((s, h) => s + h.pct, 0) / totalSessions);
-    const totalTime = relevant.reduce((s, h) => s + h.time, 0);
-    const bestPct = Math.max(...relevant.map(h => h.pct));
-    const currentStreak = this._getCurrentStreak(relevant);
-
-    return { totalSessions, avgPct, totalTime, bestPct, currentStreak };
-  },
-
-  _getCurrentStreak(history) {
-    if (history.length < 2) return 0;
-    let streak = 0;
-    for (let i = history.length - 1; i > 0; i--) {
-      if (history[i].pct >= history[i - 1].pct) streak++;
-      else break;
-    }
-    return streak;
-  },
-
-  _PROGRESS_KEY: 'pauta_level_progress',
-
-  _loadProgress() {
-    try { return JSON.parse(localStorage.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
-    catch(e) { return { level: 1, completionHistory: {}, bestScores: {} }; }
-  },
-
-  _saveProgress(progress) {
-    localStorage.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
-  },
-
-  getLevel() {
-    return this._loadProgress().level || 1;
-  },
-
-  setLevel(level) {
-    const progress = this._loadProgress();
-    progress.level = level;
-    this._saveProgress(progress);
-  },
-
-  recordCompletion(exerciseType, score, total) {
-    const progress = this._loadProgress();
-    const pct = Math.round((score / total) * 100);
-
-    if (!progress.completionHistory[exerciseType]) {
-      progress.completionHistory[exerciseType] = [];
-    }
-    progress.completionHistory[exerciseType].push({
-      score, total, pct,
-      date: Date.now(),
-    });
-
-    if (!progress.bestScores[exerciseType] || pct > progress.bestScores[exerciseType]) {
-      progress.bestScores[exerciseType] = pct;
-    }
-
-    this._saveProgress(progress);
-    return progress;
-  },
-
-  getCompletionHistory(exerciseType) {
-    const progress = this._loadProgress();
-    return progress.completionHistory[exerciseType] || [];
-  },
-
-  getBestScore(exerciseType) {
-    const progress = this._loadProgress();
-    return progress.bestScores[exerciseType] || 0;
-  },
-
-  getAllBestScores() {
-    return this._loadProgress().bestScores || {};
-  },
-
-  hasMastered(exerciseType) {
-    const history = this.getCompletionHistory(exerciseType);
-    if (history.length < 3) return false;
-    const recent = history.slice(-3);
-    return recent.every(h => h.pct >= 80);
-  },
-
-  getMasteryStatus() {
-    const types = Object.values(EXERCISE_TYPES);
-    const status = {};
-    types.forEach(type => {
-      status[type] = {
-        mastered: this.hasMastered(type),
-        bestScore: this.getBestScore(type),
-        sessions: this.getCompletionHistory(type).length,
-      };
-    });
-    return status;
-  },
-
-  _LATENCY_KEY: 'pauta_latency_offset',
-  _latencySamples: [],
-  _calibrationActive: false,
-
-  getLatencyOffset() {
-    try { return parseInt(localStorage.getItem(this._LATENCY_KEY)) || 0; }
-    catch(e) { return 0; }
-  },
-
-  _saveLatencyOffset(offset) {
-    localStorage.setItem(this._LATENCY_KEY, String(Math.round(offset)));
-  },
-
-  startCalibration() {
-    this._latencySamples = [];
-    this._calibrationActive = true;
-    return {
-      message: 'Tap the button in sync with the metronome beat',
-      beatsNeeded: 8,
-    };
-  },
-
-  recordCalibrationTap(expectedTime, actualTime) {
-    if (!this._calibrationActive) return null;
-
-    const offset = (actualTime - expectedTime) * 1000;
-    this._latencySamples.push(offset);
-
-    if (this._latencySamples.length < 4) {
-      return { samples: this._latencySamples.length, needed: 4 };
-    }
-
-    const sorted = [...this._latencySamples].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)];
-
-    if (Math.abs(median) <= 200) {
-      this._saveLatencyOffset(median);
-      this._calibrationActive = false;
-      return {
-        complete: true,
-        offset: Math.round(median),
-        message: `Calibrated: ${Math.round(median)}ms offset`,
-      };
-    }
-
-    this._calibrationActive = false;
-    return {
-      complete: true,
-      offset: 0,
-      message: 'Calibration failed — offset too large. Using 0ms.',
-    };
-  },
-
-  applyOffset(time) {
-    const offset = this.getLatencyOffset();
-    return time + (offset / 1000);
-  },
-
-  showCalibrationDialog() {
-    const result = this.startCalibration();
-    let tapCount = 0;
-    const totalBeats = result.beatsNeeded;
-
-    makeModal(`
-      <h2>Audio Latency Calibration</h2>
-      <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px;text-align:center">
-        ${result.message}
-      </p>
-      <div style="text-align:center;margin-bottom:12px">
-        <div id="cal-beat-display" style="font-size:48px;font-weight:700;color:var(--pauta-primary);margin-bottom:8px">0/${totalBeats}</div>
-        <div id="cal-tap-btn" style="width:80px;height:80px;border-radius:50%;background:var(--pauta-primary);color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center">TAP</div>
-      </div>
-      <div id="cal-result" style="text-align:center;font-size:12px;color:var(--pauta-text-muted);min-height:20px"></div>
-      <button class="modal-btn secondary" data-action="closeModal" style="margin-top:8px">Cancel</button>
-    `);
-
-    let beatInterval = setInterval(() => {
-      const display = document.getElementById('cal-beat-display');
-      const btn = document.getElementById('cal-tap-btn');
-      if (!display || !btn) { clearInterval(beatInterval); return; }
-
-      tapCount++;
-      display.textContent = `${tapCount}/${totalBeats}`;
-      btn.style.background = 'var(--pauta-success)';
-
-      setTimeout(() => { btn.style.background = 'var(--pauta-primary)'; }, 100);
-
-      if (tapCount >= totalBeats) {
-        clearInterval(beatInterval);
-        const finalResult = this.recordCalibrationTap(0, 0);
-        const resultEl = document.getElementById('cal-result');
-        if (resultEl) {
-          resultEl.textContent = finalResult?.message || 'Calibration complete';
-          resultEl.style.color = 'var(--pauta-success)';
-        }
-      }
-    }, 1000);
-
-    setTimeout(() => {
-      const tapBtn = document.getElementById('cal-tap-btn');
-      if (tapBtn) {
-        tapBtn.addEventListener('click', () => {
-          const now = getAudioCtx().currentTime;
-          const offset = this.getLatencyOffset();
-          this.recordCalibrationTap(now - (offset / 1000), now);
-        });
-      }
-    }, 50);
-  },
-};
-
 // ═══════════════════════════════════════════════════════════════════
 // RECORDER EXERCISES — moved from notation.js (belongs with education)
 // ═══════════════════════════════════════════════════════════════════

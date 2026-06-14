@@ -16,7 +16,9 @@ const modules = [
   'notation.js',
   'rendering.js',
   'input.js',
-  'education.js',
+  'education/exercises.js',
+  'education/session.js',
+  'education/kit.js',
   'playback.js',
   'ui.js',
 ];
