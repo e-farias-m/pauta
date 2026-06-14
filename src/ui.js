@@ -1,4 +1,13 @@
 // ── Lyrics ────────────────────────────────────────────────────────
+/**
+ * @namespace UI
+ * UI helpers: modals, toasts, status bar, palette, export dialogs.
+ * Provides: showToast, makeModal, closeModal, safeName, dlBlob,
+ * escHtml, loadScript, updateStatusBar, togglePalette, updatePalette,
+ * toggleInspector, updateInspector, renderRehearsalMarks, renderStaffTexts,
+ * renderChordSymbols, renderLyrics, _autosaveNow.
+ */
+const UI = {};
 function toggleLyricStyle(style) {
   if (style === 'bold') {
     APP.lyricBold = !APP.lyricBold;
@@ -2774,4 +2783,12 @@ function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
   const countHtml = count ? `<span class="nd-count" style="background:var(--pauta-primary);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : '';
   return `<button${actionAttr} data-name="${name}" class="nd-instr-btn${selClass}">${name}${countHtml}</button>`;
 }
+
+// ── Assign UI functions to UI namespace ─────────
+[showToast, makeModal, closeModal, safeName, dlBlob, escHtml, loadScript,
+ updateStatusBar, togglePalette, updatePalette, toggleInspector,
+ updateInspector, renderRehearsalMarks, renderStaffTexts,
+ renderChordSymbols, renderLyrics, _autosaveNow
+].forEach(fn => { UI[fn.name] = fn; });
+window.UI = UI;
 })();

@@ -2340,24 +2340,27 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 //
 //  ARCHITECTURE MAP (single-file, top → bottom)
 //  ─────────────────────────────────────────────────────
-//  1. APP state            — global UI + session state (line 1618)
-//  2. Score model          — createScore, repair, validate, MSCX I/O (~line 1694)
+//  1. APP state            — global UI + session state
+//  2. Score model          — createScore, repair, validate, MSCX I/O
+//     └> SCORE namespace   — score model public API
 //     └> THEORY namespace  — pitch/duration/key helpers
-//  3. Rendering            — VexFlow layout, SVG overlays (~line 3560)
-//     └> RENDER namespace  — drawing helpers, layout constants
-//  4. Input / controls     — touch, keyboard, palette, panels (~line 6664)
-//  5. Audio / playback     — MIDI, mic, practice mode (~line 9241)
-//     └> AUDIO namespace   — Web Audio helpers
-//  6. Exercise engine      — generators, session, scoring (~line 8564)
+//  3. Rendering            — VexFlow layout, SVG overlays
+//     └> RENDER namespace  — rendering public API
+//  4. Input / controls     — touch, keyboard, palette, panels
+//  5. Audio / playback     — MIDI, mic, practice mode
+//     └> AUDIO namespace   — playback/undo/export public API
+//  6. Exercise engine      — generators, session, scoring
 //     └> EXERCISE namespace
-//  7. File / boot          — load, save, autosave, boot (~line 11816)
+//  7. File / boot          — load, save, autosave, boot
+//     └> UI namespace      — UI helpers, modals, status bar
 //
 //  Rule: mutate score only through commitChange() so undo, repair,
 //  validate, render, and autosave stay in sync.
 //
-//  Namespace pattern: each module defines a const (THEORY, RENDER,
-//  AUDIO, EXERCISE) and assigns its functions to it after declaration.
-//  Existing global call sites continue to work via window references.
+//  Namespace pattern: each module defines a const (SCORE, THEORY,
+//  RENDER, AUDIO, EXERCISE, UI) and assigns its public functions
+//  to it after declaration. Cross-module calls use NS.fn() when
+//  convenient; existing bare call sites continue to work.
 // ================================================================
 // ================================================================
 
@@ -3300,6 +3303,14 @@ function isLargeStaveSI(si) {
 /** @param {{ts?:{num:number,den:number}, ks?:number, instruments?:string[], title?:string, composer?:string}} opts @returns {Score} */
 
 // ─── Module: notation.js ────────────────────────────────────
+/**
+ * @namespace SCORE
+ * Score model: create, mutate, repair, validate, MSCX I/O.
+ * Provides: createScore, addInstrumentToScore, mkNote, mkRest,
+ * emptyMeasure, repairScore, validateScore, adoptScore, commitChange,
+ * parseMSCX, parseMusicXML, exportMSCX, exportMSCXFromScore.
+ */
+const SCORE = {};
 function createScore(opts={}) {
   const ts         = opts.ts          || {num:4,den:4};
   const ks         = opts.ks          || 0;
@@ -4576,9 +4587,24 @@ function exportMSCXFromScore(s) {
   return x;
 }
 
+// ── Assign notation functions to SCORE namespace ─────────
+[createScore, addInstrumentToScore, mkNote, mkRest, emptyMeasure, repairScore,
+ validateScore, adoptScore, commitChange, parseMSCX, parseMusicXML,
+ exportMSCX, exportMSCXFromScore
+].forEach(fn => { SCORE[fn.name] = fn; });
+}
+
 
 // ─── Module: rendering.js ────────────────────────────────────
 // ── Spacing helpers ───────────────────────────────────────────────
+/**
+ * @namespace RENDER
+ * VexFlow rendering, layout, SVG overlays, recorder diagrams.
+ * Provides: renderScore, scrollToSelectedMeasure, renderSelection,
+ * positionAllDiagrams, updateRecorderDiagram, updateWoodwindDiagram,
+ * updateBrassDiagram, _runBootSelfCheck.
+ */
+const RENDER = {};
 // Natural pixel width for a single note/rest of given duration
 function noteNaturalWidth(dur, dots) {
   const noteScale = APP.continuousView ? 1 : 0.7;
@@ -7388,6 +7414,12 @@ function noteLetter(n, ks) {
   }
   return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
 }
+
+// ── Assign rendering functions to RENDER namespace ─────────
+[renderScore, scrollToSelectedMeasure, renderSelection,
+ positionAllDiagrams, updateRecorderDiagram, updateWoodwindDiagram,
+ updateBrassDiagram, _runBootSelfCheck
+].forEach(fn => { RENDER[fn.name] = fn; });
 
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 5: Input & Controls
@@ -14255,6 +14287,18 @@ function showRecorderExercises() {
 
 // ─── Module: playback.js ────────────────────────────────────
 // ── Note Navigation ───────────────────────────────────────────────
+/**
+ * @namespace AUDIO
+ * Audio playback, note navigation, undo/redo, export, welcome.
+ * Provides: navigateNote, insertMeasure, addMeasure, navigateStaff,
+ * pushUndo, undo, redo, showExportDialog, confirmExportAudio,
+ * showExportPDFDialog, confirmExportPDF, showWelcomeModal,
+ * startLearnerOnboarding, startComposerOnboarding, closeWelcome,
+ * switchRole, togglePlayback, rewindPlayback, toggleCountIn,
+ * setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
+ * stopPlayback, _checkPracticeNote, _updateDocTitle.
+ */
+const AUDIO = {};
 // Arrow Left/Right move the selection through notes in the score.
 // Arrow Up/Down are already used for octave; we keep that but also handle
 // Shift+Arrow for navigating across measures.
@@ -15862,9 +15906,28 @@ function _showPracticeResults() {
   setTimeout(() => alert(`Practice Session Complete\n\n${details}`), 100);
 }
 
+// ── Assign playback functions to AUDIO namespace ─────────
+[navigateNote, insertMeasure, addMeasure, navigateStaff,
+ pushUndo, undo, redo, showExportDialog, confirmExportAudio,
+ showExportPDFDialog, confirmExportPDF, showWelcomeModal,
+ startLearnerOnboarding, startComposerOnboarding, closeWelcome,
+ switchRole, togglePlayback, rewindPlayback, toggleCountIn,
+ setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
+ stopPlayback, _checkPracticeNote, _updateDocTitle
+].forEach(fn => { AUDIO[fn.name] = fn; });
+
 
 // ─── Module: ui.js ────────────────────────────────────
 // ── Lyrics ────────────────────────────────────────────────────────
+/**
+ * @namespace UI
+ * UI helpers: modals, toasts, status bar, palette, export dialogs.
+ * Provides: showToast, makeModal, closeModal, safeName, dlBlob,
+ * escHtml, loadScript, updateStatusBar, togglePalette, updatePalette,
+ * toggleInspector, updateInspector, renderRehearsalMarks, renderStaffTexts,
+ * renderChordSymbols, renderLyrics, _autosaveNow.
+ */
+const UI = {};
 function toggleLyricStyle(style) {
   if (style === 'bold') {
     APP.lyricBold = !APP.lyricBold;
@@ -18640,6 +18703,14 @@ function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
   const countHtml = count ? `<span class="nd-count" style="background:var(--pauta-primary);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">${count}</span>` : '';
   return `<button${actionAttr} data-name="${name}" class="nd-instr-btn${selClass}">${name}${countHtml}</button>`;
 }
+
+// ── Assign UI functions to UI namespace ─────────
+[showToast, makeModal, closeModal, safeName, dlBlob, escHtml, loadScript,
+ updateStatusBar, togglePalette, updatePalette, toggleInspector,
+ updateInspector, renderRehearsalMarks, renderStaffTexts,
+ renderChordSymbols, renderLyrics, _autosaveNow
+].forEach(fn => { UI[fn.name] = fn; });
+window.UI = UI;
 })();
 
 

@@ -1,4 +1,16 @@
 // ── Note Navigation ───────────────────────────────────────────────
+/**
+ * @namespace AUDIO
+ * Audio playback, note navigation, undo/redo, export, welcome.
+ * Provides: navigateNote, insertMeasure, addMeasure, navigateStaff,
+ * pushUndo, undo, redo, showExportDialog, confirmExportAudio,
+ * showExportPDFDialog, confirmExportPDF, showWelcomeModal,
+ * startLearnerOnboarding, startComposerOnboarding, closeWelcome,
+ * switchRole, togglePlayback, rewindPlayback, toggleCountIn,
+ * setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
+ * stopPlayback, _checkPracticeNote, _updateDocTitle.
+ */
+const AUDIO = {};
 // Arrow Left/Right move the selection through notes in the score.
 // Arrow Up/Down are already used for octave; we keep that but also handle
 // Shift+Arrow for navigating across measures.
@@ -1605,3 +1617,13 @@ function _showPracticeResults() {
   showToast(`Practice complete! ${accuracy}% accuracy (${stats.correct}/${total})`, 5000);
   setTimeout(() => alert(`Practice Session Complete\n\n${details}`), 100);
 }
+
+// ── Assign playback functions to AUDIO namespace ─────────
+[navigateNote, insertMeasure, addMeasure, navigateStaff,
+ pushUndo, undo, redo, showExportDialog, confirmExportAudio,
+ showExportPDFDialog, confirmExportPDF, showWelcomeModal,
+ startLearnerOnboarding, startComposerOnboarding, closeWelcome,
+ switchRole, togglePlayback, rewindPlayback, toggleCountIn,
+ setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
+ stopPlayback, _checkPracticeNote, _updateDocTitle
+].forEach(fn => { AUDIO[fn.name] = fn; });

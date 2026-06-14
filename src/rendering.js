@@ -1,4 +1,12 @@
 // ── Spacing helpers ───────────────────────────────────────────────
+/**
+ * @namespace RENDER
+ * VexFlow rendering, layout, SVG overlays, recorder diagrams.
+ * Provides: renderScore, scrollToSelectedMeasure, renderSelection,
+ * positionAllDiagrams, updateRecorderDiagram, updateWoodwindDiagram,
+ * updateBrassDiagram, _runBootSelfCheck.
+ */
+const RENDER = {};
 // Natural pixel width for a single note/rest of given duration
 function noteNaturalWidth(dur, dots) {
   const noteScale = APP.continuousView ? 1 : 0.7;
@@ -2808,6 +2816,12 @@ function noteLetter(n, ks) {
   }
   return NOTE_NAMES[PC_TO_DIA[pc]].toUpperCase();
 }
+
+// ── Assign rendering functions to RENDER namespace ─────────
+[renderScore, scrollToSelectedMeasure, renderSelection,
+ positionAllDiagrams, updateRecorderDiagram, updateWoodwindDiagram,
+ updateBrassDiagram, _runBootSelfCheck
+].forEach(fn => { RENDER[fn.name] = fn; });
 
 // ═══════════════════════════════════════════════════════════════════
 // MODULE 5: Input & Controls

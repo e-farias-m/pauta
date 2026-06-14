@@ -23,24 +23,27 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 //
 //  ARCHITECTURE MAP (single-file, top → bottom)
 //  ─────────────────────────────────────────────────────
-//  1. APP state            — global UI + session state (line 1618)
-//  2. Score model          — createScore, repair, validate, MSCX I/O (~line 1694)
+//  1. APP state            — global UI + session state
+//  2. Score model          — createScore, repair, validate, MSCX I/O
+//     └> SCORE namespace   — score model public API
 //     └> THEORY namespace  — pitch/duration/key helpers
-//  3. Rendering            — VexFlow layout, SVG overlays (~line 3560)
-//     └> RENDER namespace  — drawing helpers, layout constants
-//  4. Input / controls     — touch, keyboard, palette, panels (~line 6664)
-//  5. Audio / playback     — MIDI, mic, practice mode (~line 9241)
-//     └> AUDIO namespace   — Web Audio helpers
-//  6. Exercise engine      — generators, session, scoring (~line 8564)
+//  3. Rendering            — VexFlow layout, SVG overlays
+//     └> RENDER namespace  — rendering public API
+//  4. Input / controls     — touch, keyboard, palette, panels
+//  5. Audio / playback     — MIDI, mic, practice mode
+//     └> AUDIO namespace   — playback/undo/export public API
+//  6. Exercise engine      — generators, session, scoring
 //     └> EXERCISE namespace
-//  7. File / boot          — load, save, autosave, boot (~line 11816)
+//  7. File / boot          — load, save, autosave, boot
+//     └> UI namespace      — UI helpers, modals, status bar
 //
 //  Rule: mutate score only through commitChange() so undo, repair,
 //  validate, render, and autosave stay in sync.
 //
-//  Namespace pattern: each module defines a const (THEORY, RENDER,
-//  AUDIO, EXERCISE) and assigns its functions to it after declaration.
-//  Existing global call sites continue to work via window references.
+//  Namespace pattern: each module defines a const (SCORE, THEORY,
+//  RENDER, AUDIO, EXERCISE, UI) and assigns its public functions
+//  to it after declaration. Cross-module calls use NS.fn() when
+//  convenient; existing bare call sites continue to work.
 // ================================================================
 // ================================================================
 

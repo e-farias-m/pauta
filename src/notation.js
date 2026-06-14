@@ -1,3 +1,11 @@
+/**
+ * @namespace SCORE
+ * Score model: create, mutate, repair, validate, MSCX I/O.
+ * Provides: createScore, addInstrumentToScore, mkNote, mkRest,
+ * emptyMeasure, repairScore, validateScore, adoptScore, commitChange,
+ * parseMSCX, parseMusicXML, exportMSCX, exportMSCXFromScore.
+ */
+const SCORE = {};
 function createScore(opts={}) {
   const ts         = opts.ts          || {num:4,den:4};
   const ks         = opts.ks          || 0;
@@ -1272,4 +1280,11 @@ function exportMSCXFromScore(s) {
 
   x += '  </Score>\n</museScore>';
   return x;
+}
+
+// ── Assign notation functions to SCORE namespace ─────────
+[createScore, addInstrumentToScore, mkNote, mkRest, emptyMeasure, repairScore,
+ validateScore, adoptScore, commitChange, parseMSCX, parseMusicXML,
+ exportMSCX, exportMSCXFromScore
+].forEach(fn => { SCORE[fn.name] = fn; });
 }
