@@ -569,7 +569,6 @@ function _renderSystems(rc) {
     sysY = _advanceSystemY(system, sysY, siOffset, ns, 6);
   });
 
-  UI.updateStatusBar();
   updateOctaveDisplay();
 }
 

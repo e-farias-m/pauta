@@ -2023,6 +2023,8 @@ function updateStatusBar() {
   const m  = getMeasureBySI(APP.selectedStaff, APP.selectedMeasure);
   document.getElementById('st-key').textContent = keySigName(m?.keySig || 0);
 }
+// Subscribe to score:changed so status bar stays current after mutations
+if (window.BUS) BUS.on('score:changed', updateStatusBar);
 
 // ── Toast ─────────────────────────────────────────────────────────
 let _toastT = null;
