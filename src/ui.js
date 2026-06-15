@@ -53,6 +53,7 @@ function initListeners() {
   }, { capture: true });
 
   // ── Resize ────────────────────────────────────────────────────────
+  let _resizeT = null;
   window.addEventListener('resize', () => {
     clearTimeout(_resizeT);
     _resizeT = setTimeout(renderScore, 220);
