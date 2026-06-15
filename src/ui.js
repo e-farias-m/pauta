@@ -1635,33 +1635,29 @@ const KEY_SIG_DATA = [
 function _ksMiniSVG(ks) {
   const isSharps = ks > 0;
   const count = Math.abs(ks);
-  // Treble-clef staff: lineSpacing=12, topLine=12, bottomLine=60.
-  //   line_5(F5)=12  sp4(E5)=18  line_4(D5)=24  sp3(C5)=30
-  //   line_3(B4)=36  sp2(A4)=42  line_2(G4)=48  sp1(F4)=54  line_1(E4)=60
-  // Uses Bravura font (SMuFL) for proper music notation glyphs.
-  // SMuFL codepoints: sharp=U+E262, flat=U+E260, trebleClef=U+E050.
-  const sharpYs = [8, 26, 2, 20, 38, 14, 32];   // F♯,C♯,G♯,D♯,A♯,E♯,B♯
-  const flatYs  = [32, 14, 38, 20, 44, 26, 50];   // B♭,E♭,A♭,D♭,G♭,C♭,F♭
+  // Fixed width SVG (no expansion with accidentals)
+  const fixedWidth = 120;
+  const startX = 44;
+  const spacing = count > 5 ? 10 : 14; // compress spacing for many accidentals
+  const sharpYs = [8, 26, 2, 20, 38, 14, 32];
+  const flatYs  = [32, 14, 38, 20, 44, 26, 50];
   const ys = isSharps ? sharpYs : flatYs;
   const accChar = isSharps ? '\uE262' : '\uE260';
   const fg = '#888';
-  const startX = 44;
 
   let accSVG = '';
   for (let i = 0; i < count; i++) {
-    const x = startX + i * 16;
+    const x = startX + i * spacing;
     accSVG += `<text x="${x}" y="${ys[i]}" alignment-baseline="middle" font-size="26" font-family="Bravura,serif" fill="${fg}" text-anchor="middle">${accChar}</text>`;
   }
 
-  const lineEnd = startX + Math.max(count, 1) * 16 + 16;
   let lines = '';
   for (let i = 0; i < 5; i++) {
     const ly = 12 + i * 12;
-    lines += `<line x1="8" y1="${ly}" x2="${lineEnd}" y2="${ly}" stroke="#aaa" stroke-width="1"/>`;
+    lines += `<line x1="8" y1="${ly}" x2="${fixedWidth - 8}" y2="${ly}" stroke="#aaa" stroke-width="1"/>`;
   }
 
-  const width = lineEnd + 8;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="76" viewBox="0 0 ${width} 76">` +
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${fixedWidth}" height="76" viewBox="0 0 ${fixedWidth} 76">` +
     `<text x="10" y="42" alignment-baseline="middle" font-size="36" font-family="Bravura,serif" fill="#999">\uE050</text>` +
     lines + accSVG + `</svg>`;
 }
@@ -1781,28 +1777,31 @@ function _renderNewScoreDialog(restoreScroll) {
         <input type="hidden" id="nd-ts-num" value="${initTSnum}">
         <input type="hidden" id="nd-ts-den" value="${initTSden}">
         <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Time</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:4px">
-          <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
             ${iconBtn('▲', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
-            <span id="nd-ts-num-label" style="font-size:18px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSnum}</span>
+            <span id="nd-ts-num-label" style="font-size:22px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSnum}</span>
             ${iconBtn('▼', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
           </div>
-          <span style="font-size:18px;color:rgba(74,85,104,0.30);font-weight:100">/</span>
-          <div style="display:flex;flex-direction:column;align-items:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;position:relative">
+            <span style="font-size:22px;color:rgba(74,85,104,0.30);font-weight:100;line-height:1">—</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);top:-2px;height:1px;width:24px;background:rgba(74,85,104,0.30)"></span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
             ${iconBtn('▲', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
-            <span id="nd-ts-den-label" style="font-size:18px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSden}</span>
+            <span id="nd-ts-den-label" style="font-size:22px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSden}</span>
             ${iconBtn('▼', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
           </div>
         </div>
       </div>
       \x3C!-- Pickup --\x3E
-      <div style="flex:0 0 auto;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="flex:0 0 72px;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
         <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Pickup</div>
         ${checkbox({id: 'nd-pickup', label: '', checked: prevPickup, action: 'ndPickupToggle'})}
-        <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:2px;margin-top:2px">
-          ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum})}
+        <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:1px;margin-top:2px">
+          ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum, style: 'width:40px'})}
           <span style="color:rgba(74,85,104,0.30);font-size:11px">/</span>
-          ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen})}
+          ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen, style: 'width:36px'})}
         </span>
       </div>
     </div>
@@ -2823,12 +2822,13 @@ function input({id, placeholder = '', value = '', type = 'text', label = '', req
   return `${labelHtml}<input class="pauta-input${classAttr}" id="${id}" type="${type}" placeholder="${placeholder}" value="${value}"${actionAttr} ${required ? 'required' : ''}>`;
 }
 
-function select({id, options = [], value = '', label = '', action = '', className = ''} = {}) {
+function select({id, options = [], value = '', label = '', action = '', className = '', style = ''} = {}) {
   const labelHtml = label ? `<label class="pauta-label" for="${id}">${label}</label>` : '';
   const actionAttr = action ? ` data-action="${action}"` : '';
   const classAttr = className ? ` ${className}` : '';
+  const styleAttr = style ? ` style="${style}"` : '';
   const optsHtml = options.map(o => `<option value="${o.value}" ${o.value === value ? 'selected' : ''}>${o.label}</option>`).join('');
-  return `${labelHtml}<select class="pauta-select${classAttr}" id="${id}"${actionAttr}>${optsHtml}</select>`;
+  return `${labelHtml}<select class="pauta-select${classAttr}" id="${id}"${actionAttr}${styleAttr}>${optsHtml}</select>`;
 }
 
 function checkbox({id, label = '', checked = false, action = '', className = ''} = {}) {
