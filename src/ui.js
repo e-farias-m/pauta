@@ -1744,69 +1744,69 @@ function _renderNewScoreDialog(restoreScroll) {
   const prevPuDen   = document.getElementById('nd-pu-den')?.value   || '4';
 
   makeModal(`
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
       <h2 style="margin:0">New Score</h2>
       <div style="opacity:0.3"><span style="color:var(--pauta-primary);font-weight:700;font-size:16px">p</span><span style="color:var(--pauta-text);font-weight:300;font-size:16px">auta</span></div>
     </div>
-    ${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}
-    ${input({id: 'nd-composer', placeholder: 'Composer (optional)', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}
 
-    <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
-      ${sectionLabel('Key &amp; Time Signature')}
-      <div style="display:flex;gap:4px;align-items:stretch">
-        <!-- Key Signature -->
-        <div style="flex:1;background:rgba(255,255,255,0.03);border-radius:8px;padding:4px 2px">
-          <input type="hidden" id="nd-ks" value="${prevKS}">
-          <div style="display:flex;align-items:center;justify-content:center;gap:2px">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
-              <div id="nd-ks-staff" style="line-height:0">${_ksMiniSVG(parseInt(prevKS))}</div>
-              <span id="nd-ks-label" style="font-size:10px;color:var(--pauta-primary);font-weight:600;white-space:nowrap">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'} · ${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.minor ?? 'Am'}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-              ${iconBtn('▲', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', id: 'nd-ks-next', dataAttrs: {delta: 1}})}
-              ${iconBtn('▼', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', id: 'nd-ks-prev', dataAttrs: {delta: -1}})}
-            </div>
+    <!-- Quick Start -->
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+      <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">🎹 Piano</button>
+      <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Treble</button>
+      <button class="pauta-pill" data-action="ndQuickStart" data-preset="bass">𝄢 Bass</button>
+      <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;margin-left:4px">or pick below</span>
+    </div>
+
+    <!-- Title + Composer on one row -->
+    <div style="display:flex;gap:6px;margin-bottom:4px">
+      <div style="flex:2">${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}</div>
+      <div style="flex:1">${input({id: 'nd-composer', placeholder: 'Composer', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}</div>
+    </div>
+
+    <!-- Key + Time + Pickup in one compact row -->
+    <div style="display:flex;gap:4px;align-items:stretch;margin-bottom:4px">
+      <!-- Key Signature -->
+      <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
+        <input type="hidden" id="nd-ks" value="${prevKS}">
+        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Key</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+          ${iconBtn('▼', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
+          <div style="min-width:40px">
+            <div id="nd-ks-staff" style="line-height:0">${_ksMiniSVG(parseInt(prevKS))}</div>
+            <span id="nd-ks-label" style="font-size:9px;color:var(--pauta-primary);font-weight:600">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'}</span>
           </div>
-          <div id="nd-ks-accel" style="text-align:center;font-size:9px;color:rgba(74,85,104,0.50)"></div>
+          ${iconBtn('▲', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
         </div>
-        <!-- Time Signature -->
-        <div style="flex:1;background:rgba(255,255,255,0.03);border-radius:8px;padding:4px 2px;display:flex;align-items:center;justify-content:center">
-          <input type="hidden" id="nd-ts-num" value="${initTSnum}">
-          <input type="hidden" id="nd-ts-den" value="${initTSden}">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              ${iconBtn('▲', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-num-up', dataAttrs: {delta: 1}})}
-              <span id="nd-ts-num-label" style="font-size:24px;color:var(--pauta-primary);font-weight:700;font-family:var(--pauta-font-sans);line-height:1">${initTSnum}</span>
-              ${iconBtn('▼', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-num-down', dataAttrs: {delta: -1}})}
-            </div>
-            <span style="font-size:24px;color:rgba(74,85,104,0.40);font-weight:100;line-height:1">/</span>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
-              ${iconBtn('▲', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-den-up', dataAttrs: {delta: 1}})}
-              <span id="nd-ts-den-label" style="font-size:24px;color:var(--pauta-primary);font-weight:700;font-family:var(--pauta-font-sans);line-height:1">${initTSden}</span>
-              ${iconBtn('▼', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', id: 'nd-ts-den-down', dataAttrs: {delta: -1}})}
-            </div>
+        <div id="nd-ks-accel" style="font-size:8px;color:rgba(74,85,104,0.40)"></div>
+      </div>
+      <!-- Time Signature -->
+      <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
+        <input type="hidden" id="nd-ts-num" value="${initTSnum}">
+        <input type="hidden" id="nd-ts-den" value="${initTSden}">
+        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Time</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            ${iconBtn('▲', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
+            <span id="nd-ts-num-label" style="font-size:18px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSnum}</span>
+            ${iconBtn('▼', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
+          </div>
+          <span style="font-size:18px;color:rgba(74,85,104,0.30);font-weight:100">/</span>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            ${iconBtn('▲', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
+            <span id="nd-ts-den-label" style="font-size:18px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSden}</span>
+            ${iconBtn('▼', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Pickup measure toggle -->
-    <div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding:2px 4px">
-      ${checkbox({id: 'nd-pickup', label: 'Pickup measure', checked: prevPickup, action: 'ndPickupToggle'})}
-      <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:4px;margin-left:auto">
-        ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum})}
-        <span style="color:rgba(74,85,104,0.40);font-size:14px">/</span>
-        ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen})}
-      </span>
-    </div>
-
-    <!-- Quick Start -->
-    <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
-      ${sectionLabel('Quick Start')}
-      <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">🎹 Piano</button>
-        <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Solo Treble</button>
-        <button class="pauta-pill" data-action="ndQuickStart" data-preset="bass">𝄢 Solo Bass</button>
+      <!-- Pickup -->
+      <div style="flex:0 0 auto;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Pickup</div>
+        ${checkbox({id: 'nd-pickup', label: '', checked: prevPickup, action: 'ndPickupToggle'})}
+        <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:2px;margin-top:2px">
+          ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum})}
+          <span style="color:rgba(74,85,104,0.30);font-size:11px">/</span>
+          ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen})}
+        </span>
       </div>
     </div>
 
@@ -1818,36 +1818,31 @@ function _renderNewScoreDialog(restoreScroll) {
       };
       const _ll = _levelLabels[FAMILY_KIT_MAP[_ndFamily]] || { beginner:'', intermediate:'', advanced:'' };
       return `
-    <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
-      ${sectionLabel(`Level — ${_kitName}`)}
-      <div style="display:flex;gap:4px">
-          ${['beginner','intermediate','advanced'].map(lvl => `
-          <button data-action="ndSelectLevel" data-level="${lvl}"
-            style="flex:1;padding:6px 4px;border-radius:8px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
-                   background:${lvl===_ndLevel?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
-                   color:${lvl===_ndLevel?'var(--pauta-primary)':'var(--pauta-text-subtle)'};font-size:10px;font-weight:${lvl===_ndLevel?'700':'500'};
-                   cursor:pointer;font-family:var(--pauta-font-sans)">
-            <div style="font-weight:700;font-size:11px">${lvl}</div>
-            <div style="font-size:9px;opacity:0.7">${_ll[lvl]}</div>
-          </button>`
-        ).join('')}
-      </div>
+    <div style="display:flex;gap:4px;margin-bottom:4px">
+      <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;white-space:nowrap">${_kitName}</span>
+      ${['beginner','intermediate','advanced'].map(lvl => `
+        <button data-action="ndSelectLevel" data-level="${lvl}"
+          style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
+                 background:${lvl===_ndLevel?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
+                 color:${lvl===_ndLevel?'var(--pauta-primary)':'var(--pauta-text-subtle)'};font-size:10px;font-weight:${lvl===_ndLevel?'700':'500'};
+                 cursor:pointer;font-family:var(--pauta-font-sans)">
+          ${lvl}
+        </button>`
+      ).join('')}
     </div>`; })() : ''}
 
-    ${sectionLabel('Instruments')} <span id="nd-instr-count" style="font-weight:400">(0)</span>
-
-    <!-- Family tabs -->
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
+    <!-- Instruments -->
+    <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+      ${sectionLabel('Instruments')} <span id="nd-instr-count" style="font-weight:400">(0)</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">
       ${famBtns}
     </div>
-
-    <!-- Instrument grid -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;
-                flex-shrink:0">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:140px;overflow-y:auto;flex-shrink:0">
       ${instrBtns}
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:10px">
+    <div style="display:flex;gap:6px;margin-top:8px">
       ${btn(createLabel, {variant: 'primary', block: true, disabled: totalSelected === 0, action: 'createNewScore'})}
       ${btn('Cancel', {variant: 'secondary', block: true, action: 'closeModal'})}
     </div>
