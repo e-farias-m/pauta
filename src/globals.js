@@ -17,7 +17,7 @@ function debugLog(...args) { if (DEBUG) console.log(...args); }
 // ================================================================
 //  Pauta — MuseScore-compatible notation editor for iPadOS
 //  Supports: .mscz / .mscx open + save, note input, playback
-//  v0.19.0 — Invariant checks, annotation audit, mode guards,
+//  v0.28.0 — Invariant checks, annotation audit, mode guards,
 //            debug overlay, JSDoc types, scale generator
 // ================================================================
 //
