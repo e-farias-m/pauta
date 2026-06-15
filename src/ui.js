@@ -899,8 +899,6 @@ function showScoreMenu(btn) {
   ];
   showDropdown(btn, items);
 }
-  showDropdown(btn, items);
-}
 
 function showViewMenu(btn) {
   const items = [
@@ -1748,7 +1746,7 @@ function _renderNewScoreDialog(restoreScroll) {
       <div style="opacity:0.3"><span style="color:var(--pauta-primary);font-weight:700;font-size:16px">p</span><span style="color:var(--pauta-text);font-weight:300;font-size:16px">auta</span></div>
     </div>
 
-    <!-- Quick Start -->
+    \x3C!-- Quick Start --\x3E
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">🎹 Piano</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Treble</button>
@@ -1756,15 +1754,15 @@ function _renderNewScoreDialog(restoreScroll) {
       <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;margin-left:4px">or pick below</span>
     </div>
 
-    <!-- Title + Composer on one row -->
+    \x3C!-- Title + Composer on one row --\x3E
     <div style="display:flex;gap:6px;margin-bottom:4px">
       <div style="flex:2">${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}</div>
       <div style="flex:1">${input({id: 'nd-composer', placeholder: 'Composer', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}</div>
     </div>
 
-    <!-- Key + Time + Pickup in one compact row -->
+    \x3C!-- Key + Time + Pickup in one compact row --\x3E
     <div style="display:flex;gap:4px;align-items:stretch;margin-bottom:4px">
-      <!-- Key Signature -->
+      \x3C!-- Key Signature --\x3E
       <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
         <input type="hidden" id="nd-ks" value="${prevKS}">
         <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Key</div>
@@ -1778,7 +1776,7 @@ function _renderNewScoreDialog(restoreScroll) {
         </div>
         <div id="nd-ks-accel" style="font-size:8px;color:rgba(74,85,104,0.40)"></div>
       </div>
-      <!-- Time Signature -->
+      \x3C!-- Time Signature --\x3E
       <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
         <input type="hidden" id="nd-ts-num" value="${initTSnum}">
         <input type="hidden" id="nd-ts-den" value="${initTSden}">
@@ -1797,7 +1795,7 @@ function _renderNewScoreDialog(restoreScroll) {
           </div>
         </div>
       </div>
-      <!-- Pickup -->
+      \x3C!-- Pickup --\x3E
       <div style="flex:0 0 auto;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
         <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Pickup</div>
         ${checkbox({id: 'nd-pickup', label: '', checked: prevPickup, action: 'ndPickupToggle'})}
@@ -1830,7 +1828,7 @@ function _renderNewScoreDialog(restoreScroll) {
       ).join('')}
     </div>`; })() : ''}
 
-    <!-- Instruments -->
+    \x3C!-- Instruments --\x3E
     <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
       ${sectionLabel('Instruments')} <span id="nd-instr-count" style="font-weight:400">(0)</span>
     </div>

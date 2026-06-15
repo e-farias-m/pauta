@@ -1563,7 +1563,7 @@ function _enterRhythmMode() {
   if (!body) return;
 
   body.innerHTML = `
-    <!-- Rhythm row: durations -->
+    \x3C!-- Rhythm row: durations --\x3E
     <div class="palette-row" id="rc-dur-row">
       <button class="pal-btn" data-action="selectDur" data-dur="w">
         <span class="pal-sym">
@@ -1630,7 +1630,7 @@ function _enterRhythmMode() {
         <span class="pal-lbl">Exit</span>
       </button>
     </div>
-    <!-- Rhythm note row -->
+    \x3C!-- Rhythm note row --\x3E
     <div class="palette-row" style="gap:6px">
       <button class="pal-btn note-key" data-action="insertNoteByName" data-name="C"><span class="pal-sym pal-sym-key" style="font-size:13px">＋ Note</span></button>
       <span style="font-size:10px;color:rgba(74,85,104,0.5)">Add note to staff</span>
@@ -1718,7 +1718,7 @@ function _enterMelodyMode(ks) {
   ).join('');
 
   body.innerHTML = `
-    <!-- Melody duration row -->
+    \x3C!-- Melody duration row --\x3E
     <div class="palette-row">
       <button class="pal-btn" data-action="selectDur" data-dur="q"><span class="pal-sym" style="font-size:16px;font-family:var(--pauta-font-sans)">♩</span><span class="pal-lbl">Quarter</span></button>
       <button class="pal-btn" data-action="selectDur" data-dur="h"><span class="pal-sym" style="font-size:16px;font-family:var(--pauta-font-sans)">𝅘𝅥</span><span class="pal-lbl">Half</span></button>
@@ -1731,7 +1731,7 @@ function _enterMelodyMode(ks) {
       <button class="pal-btn" data-action="insertRest"><span class="pal-sym" style="font-size:14px;font-family:var(--pauta-font-sans)">𝄽</span><span class="pal-lbl">Rest</span></button>
       <button class="pal-btn" style="background:rgba(192,86,33,0.1)" data-action="exitCompositionMode"><span class="pal-sym" style="font-size:12px">✕</span><span class="pal-lbl">Exit</span></button>
     </div>
-    <!-- Scale-degree note names -->
+    \x3C!-- Scale-degree note names --\x3E
     <div class="palette-row">${noteBtns}</div>
     <div style="display:flex;align-items:center;padding:2px 6px 4px;gap:8px">
       <span id="oct-display" class="oct-display">Octave ${APP.curOctave}</span>
