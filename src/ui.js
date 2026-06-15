@@ -3,8 +3,8 @@
  * @namespace UI
  * UI helpers: modals, toasts, status bar, palette, export dialogs.
  * Provides: showToast, makeModal, closeModal, safeName, dlBlob,
- * escHtml, loadScript, updateStatusBar, togglePalette, updatePalette,
- * toggleInspector, updateInspector, renderRehearsalMarks, renderStaffTexts,
+ * escHtml, loadScript, updateStatusBar, togglePalette, toggleInspector,
+ * updateInspector, renderRehearsalMarks, renderStaffTexts,
  * renderChordSymbols, renderLyrics, _autosaveNow.
  */
 const UI = {};
@@ -2792,8 +2792,8 @@ function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
 }
 
 // ── Assign UI functions to UI namespace ─────────
-[showToast, makeModal, closeModal, safeName, dlBlob, escHtml, loadScript,
- updateStatusBar, togglePalette, updatePalette, toggleInspector,
+ [showToast, makeModal, closeModal, safeName, dlBlob, escHtml, loadScript,
+ updateStatusBar, togglePalette, toggleInspector,
  updateInspector, renderRehearsalMarks, renderStaffTexts,
  renderChordSymbols, renderLyrics, _autosaveNow
 ].forEach(fn => { UI[fn.name] = fn; });
