@@ -1293,4 +1293,3 @@ function exportMSCXFromScore(s) {
  validateScore, adoptScore, commitChange, parseMSCX, parseMusicXML,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });
-}
