@@ -1694,13 +1694,6 @@ function showNewScoreDialog() {
   _ndLevel = APP.teachingKitLevel || 'advanced';
   _renderNewScoreDialog();
 }
-_registerAction('ndConfirmNew', () => {
-  UI.closeModal();
-  _ndFamily = 'Recorder';
-  _ndSelectedInstruments = new Map();
-  _ndLevel = APP.teachingKitLevel || 'advanced';
-  _renderNewScoreDialog();
-});
 
 function _renderNewScoreDialog(restoreScroll) {
   const famOrder = ['Recorder','Brass','Woodwinds','Voice'];
@@ -2564,6 +2557,13 @@ const _ACTION_MAP = {};
 function _registerAction(name, fn) { _ACTION_MAP[name] = fn; }
 
 // Register all actions that were previously inline onclick
+_registerAction('ndConfirmNew', () => {
+  UI.closeModal();
+  _ndFamily = 'Recorder';
+  _ndSelectedInstruments = new Map();
+  _ndLevel = APP.teachingKitLevel || 'advanced';
+  _renderNewScoreDialog();
+});
 _registerAction('addRehearsalMark', (e) => addRehearsalMark(e.target.closest('[data-type]')?.dataset.type));
 _registerAction('addStaffText', () => addStaffText());
 _registerAction('applyArticulation', (e) => applyArticulation(e.target.closest('[data-type]')?.dataset.type));
