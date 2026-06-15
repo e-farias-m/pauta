@@ -19,7 +19,7 @@
 
 <!-- Top Bar -->
 <div id="topbar">
-  <button class="btn-top" data-action="showNewScoreDialog" title="New score" style="font-size:18px;font-weight:300;padding:8px 10px">+</button>
+  <button class="btn-top" data-action="showNewScoreDialog" title="New score" style="padding:8px 12px;gap:4px"><span style="font-size:16px;font-weight:300">+</span><span style="font-size:11px">New</span></button>
   <button class="btn-top" data-action="showFileMenu" title="Open, save, export scores">
     <svg width="14" height="14" viewBox="0 0 20 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 2 L9 2 L11 4 L18 4 C18.5523 4 19 4.44772 19 5 L19 16 C19 16.5523 18.5523 17 18 17 L2 17 C1.44772 17 1 16.5523 1 16 L1 3 C1 2.44772 1.44772 2 2 2 Z"/>
@@ -553,7 +553,7 @@ body            { background:var(--bg-body); }
 .pal-btn        { background:var(--pal-btn-bg); border-color:var(--pal-btn-border); color:var(--text-panel); }
 .pal-btn.active { background:var(--accent-bg); border-color:var(--accent-border); color:var(--accent); }
 .pal-label      { color:var(--pal-label); }
-.pal-lbl        { color:var(--text-panel); opacity:0.75; }
+.pal-lbl        { color:var(--text-panel); opacity:0.85; }
 #side-tabs      { background:var(--bg-sidebar-glass); border-color:var(--border-mid); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); }
 .side-tab       { color:var(--text-panel); }
 .side-tab.active{ color:var(--accent); background:var(--accent-bg); }
@@ -6734,6 +6734,14 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
   const R = 14.0;            // all circles
   const DY = 44;             // vertical spacing
   const Y0 = -80;            // top row y (higher on page)
+
+  // "Fingering" label
+  const titleEl = document.createElementNS(ns, 'text');
+  titleEl.setAttribute('x', '11'); titleEl.setAttribute('y', '-130');
+  titleEl.setAttribute('text-anchor', 'middle');
+  titleEl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#888;pointer-events:none');
+  titleEl.textContent = 'Fingering';
+  inner.appendChild(titleEl);
 
   const SVG_HOLES = [
     [ 'T',  CX_L, Y0,          ],
@@ -16523,7 +16531,7 @@ const HELP_TIPS = [
   { q: 'How do I add lyrics?', a: 'Select a note and tap Lyric in the palette, or use the Lyrics panel.' },
   { q: 'How do I use Practice Mode?', a: 'Tap the Practice button in the transport bar. Play each highlighted note on your MIDI keyboard or microphone.' },
   { q: 'How do I export to PDF?', a: 'File → Export Engraved PDF. The score is rendered as a high-resolution image and saved as a PDF.' },
-  { q: 'How do assignments work?', a: 'Score → Create Assignment to hide notes for students. Share the .mscz file. Students open it, fill in answers, and send it back.' },
+  { q: 'How do assignments work?', a: 'Teach → Create Assignment to hide notes for students. Share the .mscz file. Students open it, fill in answers, and send it back.' },
   { q: 'What keyboard shortcuts are available?', a: 'Space = play/pause, 0 = rest, Arrow keys = move selection, Home = rewind, Delete = remove note.' },
   { q: 'How do I add a chord?', a: 'Select a note, tap Chord mode (the chord icon), then tap additional note names to stack them.' },
 ];
@@ -16869,37 +16877,32 @@ function removePickupMeasure() {
 // ── Edit Menu ─────────────────────────────────────────────────────
 function showEditMenu(btn) {
   showDropdown(btn, [
-    {label:'↩ Undo',  fn:undo},
-    {label:'↪ Redo',  fn:redo},
+    {label:'Undo',  fn:undo},
+    {label:'Redo',  fn:redo},
     {sep:true},
-    {label:'✂ Cut',   fn:cutSelection},
-    {label:'📋 Copy',  fn:copySelection},
-    {label:'📌 Paste', fn:pasteClipboard},
+    {label:'Cut',   fn:cutSelection},
+    {label:'Copy',  fn:copySelection},
+    {label:'Paste', fn:pasteClipboard},
   ]);
 }
 
 function showScoreMenu(btn) {
   const mi = APP.selectedMeasure + 1;
   const items = [
-    {label:'𝄴 Time Signature', fn:showTimeSigDialog},
-    {label:'♭♯ Key Signature', fn:showKeySigDialog},
-    {label:'↕ Transpose…', fn:showTransposeDialog},
-    {label:'➕ Add Instrument', fn:showMixer},
+    {label:'Time Signature', fn:showTimeSigDialog},
+    {label:'Key Signature', fn:showKeySigDialog},
+    {label:'Transpose…', fn:showTransposeDialog},
+    {label:'Add Instrument', fn:showMixer},
     {sep:true},
-    {label:'𝄻 Pickup Measure', fn:showPickupDialog},
+    {label:'Pickup Measure', fn:showPickupDialog},
     {sep:true},
-    {label:`🗑 Delete Measure ${mi}`, fn:deleteMeasure, danger:true},
+    {label:`Delete Measure ${mi}`, fn:deleteMeasure, danger:true},
     {sep:true},
-    {label:'➕ Add Measure at End', fn:addMeasure},
-    {label:'ℹ️ Score Info', fn:showScoreInfo},
+    {label:'Add Measure at End', fn:addMeasure},
+    {label:'Score Info', fn:showScoreInfo},
   ];
-  // Show assignment items if assignments exist in the score
-  const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
-  if (hasAssignments || APP.assignmentMode) {
-    items.splice(5, 0, {sep:true}, {label:'📝 Assignment', fn:showAssignmentSubmenu});
-  } else {
-    items.splice(5, 0, {sep:true}, {label:'📝 Create Assignment', fn:showAssignmentDialog});
-  }
+  showDropdown(btn, items);
+}
   showDropdown(btn, items);
 }
 
@@ -17165,31 +17168,28 @@ function confirmGenerateScale() {
 
 function showLearnMenu(btn) {
   showDropdown(btn, [
-    {label:'📚 Curriculum', fn:showCurriculumDialog},
-    {label:'🎵 Recorder Exercises', fn:showRecorderExercises},
-    {label:'🎼 Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
+    {label:'Curriculum', fn:showCurriculumDialog},
+    {label:'Recorder Exercises', fn:showRecorderExercises},
+    {label:'Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
   ]);
 }
 
 function showPracticeMenu(btn) {
-  const practiceLabel = APP.practiceMode ? '⏹ Stop Practice' : '🎯 Practice Mode';
+  const practiceLabel = APP.practiceMode ? 'Stop Practice' : 'Practice Mode';
   const sens = Math.round((APP.practiceSensitivity || 0.3) * 100);
   const tempo = APP.practiceTempo || 80;
   const metronome = APP.practiceMetronome ? 'ON' : 'OFF';
   const loopEnabled = APP.practiceLoop ? 'ON' : 'OFF';
   const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
-    // Practice mode toggle
     {label:practiceLabel, fn:togglePracticeMode},
     {sep:true},
-    // Mic level indicator (only when practice mode is active)
     ...(APP.practiceMode ? [{
       label: `Mic Level: <div id="practice-mic-level" style="display:inline-block;width:80px;height:6px;background:var(--pauta-primary);border-radius:3px;vertical-align:middle;margin-left:8px"></div>`,
       fn: () => {},
       danger: false,
       disabled: true
     }, {sep:true}] : []),
-    // Sensitivity slider
     {
       label: `Sensitivity: ${sens}%`,
       fn: () => {
@@ -17199,25 +17199,21 @@ function showPracticeMenu(btn) {
       }
     },
     {sep:true},
-    // Settings submenu
     {
-      label: `⚙ Settings  (♩=${tempo}  Metronome:${metronome}  Loop:${loopEnabled}  Transpose:${transposition >= 0 ? '+' : ''}${transposition})`,
+      label: `Settings  (Tempo=${tempo}  Metronome=${metronome}  Loop=${loopEnabled}  Transpose=${transposition >= 0 ? '+' : ''}${transposition})`,
       fn: showPracticeSettingsMenu
     },
     {sep:true},
-    // Rhythm category
-    {label:'🥁 Rhythm Workout…', fn:showRhythmWorkoutDialog},
-    {label:'𝅘𝅥𝅮 Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
-    {label:'🔊 Rhythm Dictation', fn:showRhythmWorksheetDialog},
+    {label:'Rhythm Workout…', fn:showRhythmWorkoutDialog},
+    {label:'Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
+    {label:'Rhythm Dictation', fn:showRhythmWorksheetDialog},
     {sep:true},
-    // Pitch & Theory category
-    {label:'🎵 Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
-    {label:'↔ Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
-    {label:'♭♯ Key Sig Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
-    {label:'🎹 Scale Gym', fn:() => startExerciseSession('scale_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'Key Sig Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
+    {label:'Scale Gym', fn:() => startExerciseSession('scale_id', APP.exerciseDifficulty || 'beginner')},
     {sep:true},
-    // Ear Training category
-    {label:'🎼 Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
+    {label:'Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
   ]);
 }
 
@@ -17289,22 +17285,33 @@ function showPracticeSettingsMenu(btn) {
 
 function showTeachMenu(btn) {
   const role = localStorage.getItem('pauta_role') || 'teacher';
+  const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
-    {label:`${role==='student'?'✓':'○'} 🎓 Student Mode`, fn:() => AUDIO.switchRole('student')},
-    {label:`${role==='teacher'?'✓':'○'} 🎼 Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
+    // Mode
+    {label:`${role==='student'?'✓':'○'} Student Mode`, fn:() => AUDIO.switchRole('student')},
+    {label:`${role==='teacher'?'✓':'○'} Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
     {sep:true},
-    {label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog},
-    {label:'🛠 Exercise Builder…', fn:showExerciseBuilderDialog},
-    {label:'📥 Import Exercise Set', fn:importCustomExercise},
+    // Create content
+    {label:'Starter Assignments', fn:showStarterAssignmentsDialog},
+    ...(hasAssignments || APP.assignmentMode
+      ? [{label:'Assignment', fn:showAssignmentSubmenu}]
+      : [{label:'Create Assignment', fn:showAssignmentDialog}]),
+    {label:'Exercise Builder', fn:showExerciseBuilderDialog},
+    {label:'Import Exercise Set', fn:importCustomExercise},
     {sep:true},
-    {label:'🥁 Rhythm Composer…', fn:showRhythmComposer},
-    {label:'🎵 Melody Composer…', fn:showMelodyComposer},
+    // Compose
+    {label:'Rhythm Composer', fn:showRhythmComposer},
+    {label:'Melody Composer', fn:showMelodyComposer},
     {sep:true},
-    {label:'📊 My Progress', fn:showStudentProgress},
-    {label:'👩‍🏫 Teacher Dashboard', fn:showTeacherDashboard},
-    {label:'🧪 Diagnostic Assessment', fn:showDiagnosticDialog},
+    // Monitor
+    ...(role === 'teacher'
+      ? [{label:'Class Progress', fn:showStudentProgress}]
+      : [{label:'My Progress', fn:showStudentProgress}]),
+    {label:'Teacher Dashboard', fn:showTeacherDashboard},
+    {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
     {sep:true},
-    {label:'🎚 Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
+    // Settings
+    {label:'Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
   ]);
 }
 
@@ -17526,17 +17533,17 @@ function applyKeySig(ks) {
 // ── File Operations ───────────────────────────────────────────────
 function showFileMenu(btn) {
   showDropdown(btn, [
-    {label:'📂 Open .mscz / .mscx', fn:openFile},
+    {label:'Open .mscz / .mscx', fn:openFile},
     {sep:true},
-    {label:'💾 Save as .mscz', fn:saveMSCZ},
-    {label:'📄 Save as .mscx (XML)', fn:saveMSCX},
+    {label:'Save as .mscz', fn:saveMSCZ},
+    {label:'Save as .mscx (XML)', fn:saveMSCX},
     {sep:true},
-    {label:'🖨️ Print / Save as PDF', fn:printScore},
-    {label:'📄 Export Engraved PDF', fn:showExportPDFDialog},
-    {label:'🔊 Export Audio', fn:showExportDialog},
+    {label:'Print / Save as PDF', fn:printScore},
+    {label:'Export Engraved PDF', fn:showExportPDFDialog},
+    {label:'Export Audio', fn:showExportDialog},
     {sep:true},
-    {label:'✨ New Score', fn:showNewScoreDialog},
-    {label:'ℹ️ Score Info', fn:showScoreInfo},
+    {label:'New Score', fn:showNewScoreDialog},
+    {label:'Score Info', fn:showScoreInfo},
   ]);
 }
 

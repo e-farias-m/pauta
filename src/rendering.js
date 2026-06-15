@@ -2129,6 +2129,14 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
   const DY = 44;             // vertical spacing
   const Y0 = -80;            // top row y (higher on page)
 
+  // "Fingering" label
+  const titleEl = document.createElementNS(ns, 'text');
+  titleEl.setAttribute('x', '11'); titleEl.setAttribute('y', '-130');
+  titleEl.setAttribute('text-anchor', 'middle');
+  titleEl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#888;pointer-events:none');
+  titleEl.textContent = 'Fingering';
+  inner.appendChild(titleEl);
+
   const SVG_HOLES = [
     [ 'T',  CX_L, Y0,          ],
     [ '1',  CX_R, Y0,          ],

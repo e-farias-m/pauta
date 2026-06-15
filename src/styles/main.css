@@ -58,7 +58,7 @@ body            { background:var(--bg-body); }
 .pal-btn        { background:var(--pal-btn-bg); border-color:var(--pal-btn-border); color:var(--text-panel); }
 .pal-btn.active { background:var(--accent-bg); border-color:var(--accent-border); color:var(--accent); }
 .pal-label      { color:var(--pal-label); }
-.pal-lbl        { color:var(--text-panel); opacity:0.75; }
+.pal-lbl        { color:var(--text-panel); opacity:0.85; }
 #side-tabs      { background:var(--bg-sidebar-glass); border-color:var(--border-mid); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); }
 .side-tab       { color:var(--text-panel); }
 .side-tab.active{ color:var(--accent); background:var(--accent-bg); }
