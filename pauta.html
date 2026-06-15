@@ -18321,7 +18321,8 @@ async function loadScript(src) {
   // 1. Try the Cache API (works after first successful load)
   if ('caches' in window) {
     try {
-      const cache    = await caches.open(_LIB_CACHE);
+      const cacheP   = caches.open(_LIB_CACHE);
+      const cache    = await Promise.race([cacheP, new Promise((_,rej) => setTimeout(() => rej(new Error('cache timeout')), 2000))]);
       const cached   = await cache.match(src);
       if (cached) {
         const text = await cached.text();
@@ -18344,7 +18345,7 @@ async function loadScript(src) {
 async function _cacheUrl(url) {
   if (!('caches' in window)) return;
   try {
-    const cache   = await caches.open(_LIB_CACHE);
+    const cache   = await Promise.race([caches.open(_LIB_CACHE), new Promise((_,rej) => setTimeout(() => rej(new Error('cache timeout')), 2000))]);
     const already = await cache.match(url);
     if (!already) await cache.add(url);
   } catch(e) { /* storage quota or CORS — non-fatal */ }
