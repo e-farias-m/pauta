@@ -2694,6 +2694,7 @@ _registerAction('selectNDInstr', (e) => {
     createBtn.textContent = total === 0 ? 'Select an instrument first' : 'Create';
     createBtn.style.opacity = total === 0 ? '0.5' : '1';
     createBtn.style.pointerEvents = total === 0 ? 'none' : 'auto';
+    createBtn.disabled = total === 0;
   }
 });
 
