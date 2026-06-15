@@ -42,10 +42,12 @@
 /* ── Apply theme vars ── */
 body            { background:var(--bg-body); }
 #topbar         { background:var(--bg-topbar-glass); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); border-bottom:1px solid var(--border-mid); }
-#score-title    { color:var(--text-title); flex:1; text-align:center; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#score-title    { color:var(--text-title); flex:1; text-align:center; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; border-radius:6px; padding:4px 8px; transition:background 0.15s; }
+#score-title:hover { background:rgba(192,86,33,0.08); }
 .btn-top        { background:var(--btn-bg); border-color:var(--border-input); color:var(--text-btn); }
 .btn-top.active { background:var(--accent-bg); border-color:var(--accent-border); color:var(--accent); }
 #transport-bar  { background:var(--bg-transport-glass); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); border-bottom:1px solid var(--border-subtle); }
+#mode-banner   { padding:6px 16px;font-size:12px;font-weight:600;text-align:center;letter-spacing:0.3px;cursor:default;transition:background 0.2s,color 0.2s;flex-shrink:0; }
 #score-area     { background:var(--bg-score-area); }
 #score-svg      { background:var(--bg-score); box-shadow:var(--score-shadow); }
 #status-bar     { background:var(--bg-status-glass); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); }
@@ -168,7 +170,7 @@ body{
 }
 #palette-toggle{
   display:flex;align-items:center;justify-content:center;gap:4px;
-  padding:4px 0;cursor:pointer;border:none;background:transparent;
+  padding:10px 0;cursor:pointer;border:none;background:transparent;
   color:rgba(74,85,104,0.35);font-size:11px;font-weight:500;
   border-bottom:1px solid rgba(192,86,33,0.05);
   transition:color 0.15s;
@@ -573,7 +575,7 @@ body{
 }
 .btn-action-sm.orange.active{background:rgba(192,86,33,0.30);border-color:rgba(192,86,33,0.60)}
 .zoom-btn{
-  width:28px;height:28px;
+  width:36px;height:36px;
   border-radius:6px;
   cursor:pointer;
   display:flex;

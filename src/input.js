@@ -1282,6 +1282,7 @@ function toggleChordMode() {
   } else {
     UI.showToast('Chord mode off');
   }
+  updateModeBanner();
   _validateModeState();
 }
 
@@ -1331,6 +1332,7 @@ function toggleInputMode() {
   document.getElementById('score-svg').style.cursor = APP.inputMode ? 'crosshair' : 'pointer';
   document.getElementById('st-mode').textContent = APP.inputMode ? 'Note input' : 'Select';
   document.getElementById('note-row').style.opacity = APP.inputMode ? '1' : '0.4';
+  updateModeBanner();
   if (APP.inputMode) {
     UI.showToast('1 — Tap a measure  2 — Tap a note name (C–B)');
   } else {

@@ -146,6 +146,7 @@ function _beginExerciseSession(type, difficulty) {
   };
   APP.exerciseMode = true;
   _setExerciseUI(true);
+  updateModeBanner();
   _presentExercise(ex);
   _validateModeState();
 }
@@ -234,6 +235,7 @@ function endExerciseSession() {
   APP.exerciseMode = false;
   APP.exerciseSession = null;
   _setExerciseUI(false);
+  updateModeBanner();
   _validateModeState();
 }
 
@@ -1863,6 +1865,7 @@ function _startRhythmWorksheet(difficulty) {
   };
   APP.exerciseMode = true;
   _setExerciseUI(true);
+  updateModeBanner();
   _presentRhythmWorksheet(ex);
   _validateModeState();
 }

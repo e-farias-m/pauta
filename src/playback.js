@@ -821,7 +821,10 @@ function setMetronomeSubdivision(val) {
 function toggleMetronome() {
   APP.metronome = !APP.metronome;
   const btn = document.getElementById('btn-metronome');
-  if (btn) btn.classList.toggle('active', APP.metronome);
+  if (btn) {
+    btn.classList.toggle('active', APP.metronome);
+    btn.textContent = APP.metronome ? 'Metronome ✓' : 'Metronome';
+  }
 
   if (APP.metronome) {
     const ctx = getAudioCtx();
@@ -1226,6 +1229,7 @@ function _startPracticeMode() {
   UI.showToast('Practice mode ON — play each highlighted note');
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.add('active');
+  updateModeBanner();
 
   _updatePracticeStatusBar(true);
   _startPracticePitchDetection();
@@ -1239,6 +1243,7 @@ function _stopPracticeMode() {
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.remove('active');
   UI.showToast('Practice mode OFF');
+  updateModeBanner();
   _stopPracticePitchDetection();
   _stopPracticeMetronome();
   _updatePracticeStatusBar(false);
@@ -1625,7 +1630,21 @@ function _showPracticeResults() {
   ].join('\n');
 
   UI.showToast(`Practice complete! ${accuracy}% accuracy (${stats.correct}/${total})`, 5000);
-  setTimeout(() => alert(`Practice Session Complete\n\n${details}`), 100);
+  const color = accuracy >= 80 ? 'var(--pauta-success)' : accuracy >= 50 ? 'var(--pauta-warning)' : 'var(--pauta-error)';
+  UI.makeModal(`
+    <h2>Practice Complete</h2>
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:48px;font-weight:700;color:${color}">${accuracy}%</div>
+      <div style="font-size:13px;color:var(--pauta-text-muted);margin-top:4px">Accuracy</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(192,86,33,0.1)">
+      <div style="text-align:center"><b style="color:var(--pauta-success)">${stats.correct}</b><br><span style="color:var(--pauta-text-muted)">Correct</span></div>
+      <div style="text-align:center"><b style="color:var(--pauta-error)">${stats.incorrect}</b><br><span style="color:var(--pauta-text-muted)">Incorrect</span></div>
+      <div style="text-align:center"><b>${stats.maxStreak}</b><br><span style="color:var(--pauta-text-muted)">Best Streak</span></div>
+      <div style="text-align:center"><b>${mm}:${ss}</b><br><span style="color:var(--pauta-text-muted)">Time</span></div>
+    </div>
+    <button class="pauta-btn primary block" data-action="closeModal" style="margin-top:12px">Done</button>
+  `);
 }
 
 // ── Assign playback functions to AUDIO namespace ─────────

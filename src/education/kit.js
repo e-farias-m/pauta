@@ -89,6 +89,7 @@ function startAssignment(id) {
   if (!asgn) { UI.showToast('Assignment not found'); return; }
   APP.assignmentMode = true;
   APP.currentAssignment = asgn;
+  updateModeBanner();
   _validateModeState();
   // Try to restore unsaved answers from localStorage
   try {
@@ -113,6 +114,7 @@ function exitAssignmentMode() {
   APP.currentAssignment = null;
   _validateModeState();
   _setAssignmentUI(false);
+  updateModeBanner();
   UI.showToast('Exited assignment mode');
   RENDER.renderScore();
 }

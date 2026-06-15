@@ -125,7 +125,7 @@
   </div>
   <span id="play-pos" title="Playback position">0:00</span>
   <button id="btn-metronome" class="btn-util" data-action="toggleMetronome" aria-label="Toggle metronome" title="Toggle metronome">Metronome</button>
-  <select id="met-subdivision" data-action="setMetronomeSubdivision" title="Metronome subdivision" style="background:transparent;border:1px solid rgba(192,86,33,0.2);border-radius:5px;color:#4a5568;font-size:11px;padding:2px 4px;cursor:pointer;margin-left:-2px">
+  <select id="met-subdivision" data-action="setMetronomeSubdivision" title="Metronome subdivision" style="background:transparent;border:1px solid rgba(192,86,33,0.2);border-radius:5px;color:#4a5568;font-size:11px;padding:6px 4px;min-height:44px;cursor:pointer;margin-left:-2px">
     <option value="quarter">♩</option>
     <option value="eighth">♪</option>
     <option value="triplet">♩³</option>
@@ -133,6 +133,9 @@
   </select>
   <button id="btn-mixer" class="btn-util" data-action="showMixer" aria-label="Mixer" title="Open mixer & MIDI settings">Mixer</button>
 </div>
+
+<!-- Mode Banner -->
+<div id="mode-banner" style="display:none"></div>
 
 <!-- Score Area -->
 <div id="score-area" tabindex="0">

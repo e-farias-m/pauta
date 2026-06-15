@@ -908,7 +908,6 @@ function showScoreMenu(btn) {
 }
 
 function showViewMenu(btn) {
-  const role = localStorage.getItem('pauta_role') || 'teacher';
   const items = [
     {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
@@ -917,9 +916,6 @@ function showViewMenu(btn) {
     {sep:true},
     {label:`${APP.showTheoryOverlay?'✓':'○'} 🎼 Theory Overlay`, fn:toggleTheoryOverlay},
     {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
-    {sep:true},
-    {label:`${role==='student'?'✓':'○'} 🎓 Student Mode`, fn:() => AUDIO.switchRole('student')},
-    {label:`${role==='teacher'?'✓':'○'} 🎼 Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
     {sep:true},
     {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
   ];
@@ -1231,27 +1227,76 @@ function showPracticeMenu(btn) {
 
 function showPracticeSettingsMenu(btn) {
   const tempo = APP.practiceTempo || 80;
-  const metronome = APP.practiceMetronome ? 'ON' : 'OFF';
-  const loopEnabled = APP.practiceLoop ? 'ON' : 'OFF';
+  const metronome = APP.practiceMetronome;
+  const loopEnabled = APP.practiceLoop;
   const loopStart = APP.practiceLoopStart || 0;
   const loopEnd = APP.practiceLoopEnd || 0;
   const transposition = APP.practiceTranspose || 0;
-  showDropdown(btn, [
-    {label: `Tempo: ${tempo} BPM`, fn: () => { APP.practiceTempo = Math.max(40, Math.min(200, tempo + 10)); showPracticeSettingsMenu(btn); }},
-    {label: `Metronome: ${metronome}`, fn: () => { APP.practiceMetronome = !APP.practiceMetronome; showPracticeSettingsMenu(btn); }},
-    {label: `Loop Range: ${loopEnabled}`, fn: () => { APP.practiceLoop = !APP.practiceLoop; showPracticeSettingsMenu(btn); }},
-    ...(APP.practiceLoop ? [
-      {label: `Loop Start: Measure ${loopStart + 1}`, fn: () => { APP.practiceLoopStart = Math.max(0, Math.min((APP.score?.parts[0]?.staves[0]?.measures?.length || 1) - 1, loopStart + 1)); showPracticeSettingsMenu(btn); }},
-      {label: `Loop End: Measure ${loopEnd + 1}`, fn: () => { APP.practiceLoopEnd = Math.max(0, Math.min((APP.score?.parts[0]?.staves[0]?.measures?.length || 1) - 1, loopEnd + 1)); showPracticeSettingsMenu(btn); }},
-    ] : []),
-    {label: `Transpose: ${transposition >= 0 ? '+' : ''}${transposition} semitones`, fn: () => { APP.practiceTranspose = Math.max(-12, Math.min(12, transposition + 1)); showPracticeSettingsMenu(btn); }},
-    {sep:true},
-    {label: '⬅ Back', fn: () => showPracticeMenu(btn)},
-  ]);
+  const maxMeasure = Math.max(0, (APP.score?.parts[0]?.staves[0]?.measures?.length || 1) - 1);
+  const sens = Math.round((APP.practiceSensitivity || 0.3) * 100);
+
+  function row(label, value, onMinus, onPlus) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(192,86,33,0.08)">
+      <span style="font-size:13px;color:var(--pauta-text)">${label}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="pauta-btn ghost sm" data-action="psMinus" data-ps="${onMinus}" style="width:32px;height:32px;font-size:18px;padding:0">−</button>
+        <span style="font-size:14px;font-weight:600;min-width:60px;text-align:center;color:var(--pauta-primary)">${value}</span>
+        <button class="pauta-btn ghost sm" data-action="psPlus" data-ps="${onPlus}" style="width:32px;height:32px;font-size:18px;padding:0">+</button>
+      </div>
+    </div>`;
+  }
+  function toggleRow(label, isOn, action) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(192,86,33,0.08)">
+      <span style="font-size:13px;color:var(--pauta-text)">${label}</span>
+      <button class="pauta-btn ${isOn ? 'primary' : 'ghost'} sm" data-action="${action}" style="min-width:60px;height:32px">${isOn ? 'ON' : 'OFF'}</button>
+    </div>`;
+  }
+
+  makeModal(`
+    <h2>Practice Settings</h2>
+    ${row('Tempo', `${tempo} BPM`, 'psTempoMinus', 'psTempoPlus')}
+    ${toggleRow('Metronome', metronome, 'psToggleMet')}
+    ${toggleRow('Loop', loopEnabled, 'psToggleLoop')}
+    ${loopEnabled ? row('Loop Start', `Measure ${loopStart + 1}`, 'psLoopStartMinus', 'psLoopStartPlus') : ''}
+    ${loopEnabled ? row('Loop End', `Measure ${loopEnd + 1}`, 'psLoopEndMinus', 'psLoopEndPlus') : ''}
+    ${row('Transpose', `${transposition >= 0 ? '+' : ''}${transposition} st`, 'psTransMinus', 'psTransPlus')}
+    ${row('Sensitivity', `${sens}%`, 'psSensMinus', 'psSensPlus')}
+    <div style="margin-top:12px">
+      <button class="pauta-btn secondary block" data-action="closeModal">Done</button>
+    </div>
+  `);
+
+  // Register one-time action handlers
+  const actions = {
+    psTempoMinus:    () => { APP.practiceTempo = Math.max(40, tempo - 10); showPracticeSettingsMenu(btn); },
+    psTempoPlus:     () => { APP.practiceTempo = Math.min(200, tempo + 10); showPracticeSettingsMenu(btn); },
+    psToggleMet:     () => { APP.practiceMetronome = !metronome; showPracticeSettingsMenu(btn); },
+    psToggleLoop:    () => { APP.practiceLoop = !loopEnabled; showPracticeSettingsMenu(btn); },
+    psLoopStartMinus:() => { APP.practiceLoopStart = Math.max(0, loopStart - 1); showPracticeSettingsMenu(btn); },
+    psLoopStartPlus: () => { APP.practiceLoopStart = Math.min(maxMeasure, loopStart + 1); showPracticeSettingsMenu(btn); },
+    psLoopEndMinus:  () => { APP.practiceLoopEnd = Math.max(0, loopEnd - 1); showPracticeSettingsMenu(btn); },
+    psLoopEndPlus:   () => { APP.practiceLoopEnd = Math.min(maxMeasure, loopEnd + 1); showPracticeSettingsMenu(btn); },
+    psTransMinus:    () => { APP.practiceTranspose = Math.max(-12, transposition - 1); showPracticeSettingsMenu(btn); },
+    psTransPlus:     () => { APP.practiceTranspose = Math.min(12, transposition + 1); showPracticeSettingsMenu(btn); },
+    psSensMinus:     () => { APP.practiceSensitivity = Math.max(10, sens - 10) / 100; showPracticeSettingsMenu(btn); },
+    psSensPlus:      () => { APP.practiceSensitivity = Math.min(50, sens + 10) / 100; showPracticeSettingsMenu(btn); },
+  };
+  // Delegate clicks inside the modal
+  const modal = document.querySelector('.pauta-modal, .modal-overlay');
+  if (modal) {
+    modal.addEventListener('click', e => {
+      const el = e.target.closest('[data-action]');
+      if (el && actions[el.dataset.action]) { e.preventDefault(); actions[el.dataset.action](); }
+    });
+  }
 }
 
 function showTeachMenu(btn) {
+  const role = localStorage.getItem('pauta_role') || 'teacher';
   showDropdown(btn, [
+    {label:`${role==='student'?'✓':'○'} 🎓 Student Mode`, fn:() => AUDIO.switchRole('student')},
+    {label:`${role==='teacher'?'✓':'○'} 🎼 Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
+    {sep:true},
     {label:'📋 Starter Assignments…', fn:showStarterAssignmentsDialog},
     {label:'🛠 Exercise Builder…', fn:showExerciseBuilderDialog},
     {label:'📥 Import Exercise Set', fn:importCustomExercise},
@@ -1494,8 +1539,6 @@ function showFileMenu(btn) {
     {label:'📄 Export Engraved PDF', fn:showExportPDFDialog},
     {label:'🔊 Export Audio', fn:showExportDialog},
     {sep:true},
-    {label:'🎵 Recorder Exercises', fn:showRecorderExercises},
-    {sep:true},
     {label:'✨ New Score', fn:showNewScoreDialog},
     {label:'ℹ️ Score Info', fn:showScoreInfo},
   ]);
@@ -1634,11 +1677,30 @@ let _ndScrollPos = 0;                    // preserved scroll position for dialog
 const TS_DEN_VALUES = [1, 2, 4, 8, 16, 32];
 
 function showNewScoreDialog() {
+  // Prompt to save if there are unsaved changes
+  if (APP.score && APP.undoStack.length > 0) {
+    UI.makeModal(`
+      <h2>Unsaved Changes</h2>
+      <p style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:14px">The current score has unsaved changes. Create a new score anyway?</p>
+      <div style="display:flex;gap:8px">
+        <button class="pauta-btn primary" data-action="ndConfirmNew" style="flex:1">New Score</button>
+        <button class="pauta-btn secondary" data-action="closeModal" style="flex:1">Cancel</button>
+      </div>
+    `);
+    return;
+  }
   _ndFamily = 'Recorder';
   _ndSelectedInstruments = new Map();
   _ndLevel = APP.teachingKitLevel || 'advanced';
   _renderNewScoreDialog();
 }
+_registerAction('ndConfirmNew', () => {
+  UI.closeModal();
+  _ndFamily = 'Recorder';
+  _ndSelectedInstruments = new Map();
+  _ndLevel = APP.teachingKitLevel || 'advanced';
+  _renderNewScoreDialog();
+});
 
 function _renderNewScoreDialog(restoreScroll) {
   const famOrder = ['Recorder','Brass','Woodwinds','Voice'];
@@ -1743,6 +1805,16 @@ function _renderNewScoreDialog(restoreScroll) {
         <span style="color:rgba(74,85,104,0.40);font-size:14px">/</span>
         ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen})}
       </span>
+    </div>
+
+    <!-- Quick Start -->
+    <div style="background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:10px;padding:8px 6px;margin-top:6px">
+      ${sectionLabel('Quick Start')}
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">🎹 Piano</button>
+        <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Solo Treble</button>
+        <button class="pauta-pill" data-action="ndQuickStart" data-preset="bass">𝄢 Solo Bass</button>
+      </div>
     </div>
 
     ${FAMILY_KIT_MAP[_ndFamily] ? (() => {
@@ -2103,6 +2175,33 @@ function updateStatusBar() {
 // Subscribe to score:changed so status bar stays current after mutations
 if (window.BUS) BUS.on('score:changed', updateStatusBar);
 
+// ── Mode Banner ──────────────────────────────────────────────────
+function updateModeBanner() {
+  const banner = document.getElementById('mode-banner');
+  if (!banner) return;
+  let mode = null, label = '', bg = '', color = '';
+  if (APP.practiceMode) {
+    mode = 'practice'; label = '🎯 Practice Mode — play each highlighted note'; bg = 'rgba(34,197,94,0.15)'; color = '#16a34a';
+  } else if (APP.exerciseMode) {
+    mode = 'exercise'; label = '📝 Exercise Mode — answer the questions'; bg = 'rgba(74,85,104,0.10)'; color = '#4a5568';
+  } else if (APP.assignmentMode) {
+    mode = 'assignment'; label = '📋 Assignment Mode — complete your assignment'; bg = 'rgba(59,130,246,0.12)'; color = '#2563eb';
+  } else if (APP.inputMode) {
+    mode = 'input'; label = '✏️ Note Input — tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
+  } else if (APP.chordMode) {
+    mode = 'chord'; label = '🎵 Chord Mode — add notes to the selected beat'; bg = 'rgba(192,86,33,0.08)'; color = '#c05621';
+  }
+  if (mode) {
+    banner.style.display = 'block';
+    banner.style.background = bg;
+    banner.style.color = color;
+    banner.textContent = label;
+  } else {
+    banner.style.display = 'none';
+    banner.textContent = '';
+  }
+}
+
 // ── Toast ─────────────────────────────────────────────────────────
 let _toastT = null;
 function showToast(msg) {
@@ -2310,6 +2409,7 @@ function bootApp() {
 
   // Wire up all static DOM listeners (keyboard, resize, action delegation)
   initListeners();
+  updateModeBanner();
 
   // Offer to restore any autosaved score; opens New Score dialog if none found
   _checkAndOfferRestore(showNewScoreDialog);
@@ -2518,6 +2618,19 @@ _registerAction('saveChordSymbol', () => saveChordSymbol());
 _registerAction('saveRehearsalMark', () => saveRehearsalMark());
 _registerAction('saveStaffText', () => saveStaffText());
 _registerAction('ndSelectLevel', (e) => ndSelectLevel(e.target.closest('[data-level]')?.dataset.level));
+_registerAction('ndQuickStart', (e) => {
+  const preset = e.target.closest('[data-preset]')?.dataset.preset;
+  if (!preset) return;
+  _ndSelectedInstruments.clear();
+  if (preset === 'piano') {
+    _ndSelectedInstruments.set('Piano', 1);
+  } else if (preset === 'treble') {
+    _ndSelectedInstruments.set('Soprano Recorder', 1);
+  } else if (preset === 'bass') {
+    _ndSelectedInstruments.set('Cello', 1);
+  }
+  _renderNewScoreDialog(_ndScrollPos);
+});
 _registerAction('selectDur', (e) => selectDur(e.target.closest('[data-dur]')?.dataset.dur));
 _registerAction('selectNDFamily', (e) => selectNDFamily(e.target.closest('[data-family]')?.dataset.family));
 _registerAction('setAcc', (e) => setAcc(e.target.closest('[data-acc]')?.dataset.acc));
@@ -2793,7 +2906,7 @@ function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
 
 // ── Assign UI functions to UI namespace ─────────
  [showToast, makeModal, closeModal, safeName, dlBlob, escHtml, loadScript,
- updateStatusBar, togglePalette,
+ updateStatusBar, togglePalette, updateModeBanner,
  renderRehearsalMarks, renderStaffTexts,
  renderChordSymbols, renderLyrics, _autosaveNow
 ].forEach(fn => { UI[fn.name] = fn; });
