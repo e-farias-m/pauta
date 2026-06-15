@@ -17632,7 +17632,7 @@ function _renderNewScoreDialog(restoreScroll) {
   const instrList = INSTRUMENTS.filter(i => i.family === _ndFamily && levelInstrs.includes(i.name));
 
   // Family tab buttons
-  const famBtns = families.map(f => pillBtn(f, {active: f === _ndFamily, action: 'selectNDFamily', className: `data-family="${f}"`})).join('');
+  const famBtns = families.map(f => pillBtn(f, {active: f === _ndFamily, action: 'selectNDFamily', dataAttrs: {family: f}})).join('');
 
   // Instrument grid buttons
   const instrBtns = instrList.map(i => instrGridBtn(i.name, _ndSelectedInstruments.get(i.name) || 0)).join('');
@@ -18738,11 +18738,12 @@ function iconBtn(icon, {variant = 'ghost', size = 'sm', action = '', title = '',
 }
 
 // Pill-style button for tab/segmented controls
-function pillBtn(label, {active = false, action = '', className = ''} = {}) {
+function pillBtn(label, {active = false, action = '', className = '', dataAttrs = {}} = {}) {
   const actionAttr = action ? ` data-action="${action}"` : '';
   const classAttr = className ? ` ${className}` : '';
   const activeClass = active ? ' active' : '';
-  return `<button class="pauta-pill${activeClass}${classAttr}"${actionAttr}>${label}</button>`;
+  const dataAttrsStr = Object.entries(dataAttrs).map(([k, v]) => ` data-${k}="${v}"`).join(' ');
+  return `<button class="pauta-pill${activeClass}${classAttr}"${actionAttr}${dataAttrsStr}>${label}</button>`;
 }
 
 // Instrument grid item (used in New Score)
