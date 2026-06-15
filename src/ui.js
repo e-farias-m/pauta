@@ -1777,19 +1777,20 @@ function _renderNewScoreDialog(restoreScroll) {
         <input type="hidden" id="nd-ts-num" value="${initTSnum}">
         <input type="hidden" id="nd-ts-den" value="${initTSden}">
         <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Time</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px">
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
             ${iconBtn('▲', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
-            <span id="nd-ts-num-label" style="font-size:22px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSnum}</span>
+            <span id="nd-ts-num-label" style="font-size:28px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSnum}</span>
             ${iconBtn('▼', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;position:relative">
-            <span style="font-size:22px;color:rgba(74,85,104,0.30);font-weight:100;line-height:1">—</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);top:-2px;height:1px;width:24px;background:rgba(74,85,104,0.30)"></span>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;min-width:50px">
+            <span style="font-size:28px;color:rgba(74,85,104,0.30);font-weight:100;line-height:1">—</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);top:50%;height:1px;width:40px;background:rgba(74,85,104,0.30)"></span>
+            <span id="nd-ts-den-label" style="font-size:28px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSden}</span>
           </div>
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
             ${iconBtn('▲', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
-            <span id="nd-ts-den-label" style="font-size:22px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSden}</span>
+            <span style="font-size:12px;color:var(--pauta-text-subtle);line-height:1">▼</span>
             ${iconBtn('▼', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
           </div>
         </div>
@@ -1798,10 +1799,14 @@ function _renderNewScoreDialog(restoreScroll) {
       <div style="flex:0 0 72px;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
         <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Pickup</div>
         ${checkbox({id: 'nd-pickup', label: '', checked: prevPickup, action: 'ndPickupToggle'})}
-        <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};align-items:center;gap:1px;margin-top:2px">
-          ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum, style: 'width:40px'})}
-          <span style="color:rgba(74,85,104,0.30);font-size:11px">/</span>
-          ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen, style: 'width:36px'})}
+        <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};flex-direction:column;align-items:center;gap:0;margin-top:2px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+            ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum, style: 'width:40px'})}
+            <span style="color:rgba(74,85,104,0.30);font-size:11px;line-height:1">—</span>
+            <span style="position:relative;display:inline-block;width:40px;height:1px;background:rgba(74,85,104,0.30)"></span>
+            <span style="color:rgba(74,85,104,0.30);font-size:11px;line-height:1">—</span>
+            ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen, style: 'width:40px'})}
+          </div>
         </span>
       </div>
     </div>
