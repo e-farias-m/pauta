@@ -2375,18 +2375,18 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
   // ── Yamaha-style simplified clarinet diagram ──────────────────
   if (type === 'clarinet') {
-    const w = 110, h = 400;
+    const w = 120, h = 270;
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('pointer-events', 'none');
 
-    const CX = 72;       // main hole column center
-    const LX = 22;       // side key column center
-    const R = 9;         // main hole radius
-    const SR = 5;        // small key radius
-    const DY = 38;       // vertical spacing
-    const Y0 = 50;       // first hole Y
+    const CX = 75;       // main hole column center
+    const LX = 28;       // side key column center
+    const R = 6;         // main hole radius
+    const SR = 4;        // small key radius
+    const DY = 22;       // vertical spacing
+    const Y0 = 38;       // first hole Y
     const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
 
     // Main tone holes: Th (index 1), L1-L3 (2-4), R1-R4 (8-11)
