@@ -2375,7 +2375,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
   // ── Yamaha-style simplified clarinet diagram ──────────────────
   if (type === 'clarinet') {
-    const w = 120, h = 270;
+    const w = 120, h = 200;
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -2385,24 +2385,27 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     const LX = 28;       // side key column center
     const R = 6;         // main hole radius
     const SR = 4;        // small key radius
-    const DY = 22;       // vertical spacing
-    const Y0 = 38;       // first hole Y
+    const DY = 17;       // vertical spacing
+    const Y0 = 30;       // first hole Y
     const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
 
-    // Main tone holes: Th (index 1), L1-L3 (2-4), R1-R4 (8-11)
+    // Main tone holes: Th (index 1), L1-L3 (2-4)
     const MAIN_HOLES = [
       [1, 'Th', 0], [2, '1', 1], [3, '2', 2], [4, '3', 3],
     ];
+
+    // RH tone holes: R1-R4 (8-11) — rows 5-8 in the grid
     const RH_HOLES = [
       [8, '1', 0], [9, '2', 1], [10, '3', 2], [11, '4', 3],
     ];
 
-    // Side keys: Reg(0), G#(7), Eb(5), C#(6)
+    // Side keys: Reg(0), G#(7) next to LH main holes;
+    // Eb(5), C#(6) as left-pinky keys positioned after L3 but before the separator
     const SIDE_KEYS = [
-      [0, 'Reg', 0, 'circle'],   // index, label, row offset, shape
+      [0, 'Reg', 0, 'circle'],
       [7, 'G#', 1, 'circle'],
-      [5, 'Eb', 6.3, 'rect'],
-      [6, 'C#', 7.7, 'circle'],
+      [5, 'Eb', 4, 'rect'],
+      [6, 'C#', 4.5, 'circle'],
     ];
 
     function drawHole(cx, cy, r, isCovered, shape) {
@@ -2436,8 +2439,8 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       svg.appendChild(lbl);
     });
 
-    // Separator between LH and RH
-    const sepY = Y0 + 4 * DY + DY/2;
+    // Separator between LH pinky keys and RH holes
+    const sepY = Y0 + 4.8 * DY;
     const sep = document.createElementNS(ns, 'line');
     sep.setAttribute('x1', CX - R - 8); sep.setAttribute('y1', sepY);
     sep.setAttribute('x2', CX + R + 22); sep.setAttribute('y2', sepY);
@@ -2446,7 +2449,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
     // Draw RH holes
     RH_HOLES.forEach(([idx, label, row]) => {
-      const cy = Y0 + (4 + 1 + row) * DY;
+      const cy = Y0 + (5 + row) * DY;
       drawHole(CX, cy, R, pressed.has(idx));
       const lbl = document.createElementNS(ns, 'text');
       lbl.setAttribute('x', CX + R + 5); lbl.setAttribute('y', cy + 2.5);
@@ -2471,7 +2474,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
     // "LH" / "RH" labels
     const lhLbl = document.createElementNS(ns, 'text');
-    lhLbl.setAttribute('x', CX); lhLbl.setAttribute('y', Y0 - 14);
+    lhLbl.setAttribute('x', CX); lhLbl.setAttribute('y', Y0 - 6);
     lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
     lhLbl.textContent = 'LH';
     svg.appendChild(lhLbl);
@@ -2482,7 +2485,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     svg.appendChild(rhLbl);
 
     // Note name
-    diagNoteName(svg, noteName, w / 2, 16);
+    diagNoteName(svg, noteName, w / 2, 12);
 
     // Alternate-fingering overlay
     diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
