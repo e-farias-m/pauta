@@ -2543,7 +2543,6 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   }
 
   // ── Keywork ───────────────────────────────────────────────────
-  const pressed = pf.covered;
   const halfHole = pf.halfHole;
 
   const regionBounds = {};
