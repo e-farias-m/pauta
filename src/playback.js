@@ -542,14 +542,23 @@ function showWelcomeModal() {
   const seen = localStorage.getItem('pauta_welcome_seen');
   if (seen) return;
   UI.makeModal(`
-    <h2>Welcome to Pauta</h2>
-    <div style="font-size:13px;color:var(--pauta-text-muted);line-height:1.5;margin-bottom:14px">
-      <p>What would you like to do?</p>
-    </div>
-    <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:8px;width:100%">🎓 I'm a student — start exercises</button>
-    <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%">🎼 I'm composing — open the editor</button>
-    <div style="margin-top:8px;font-size:12px;color:rgba(74,85,104,0.7)">
-      You can change your mind anytime via the View menu.
+    <div style="text-align:center;padding:4px 0">
+      <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
+      <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:18px">Welcome! What would you like to do today?</div>
+
+      <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:10px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="font-size:22px">&#9835;</span>
+        <span>I want to learn music!</span>
+      </button>
+
+      <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="font-size:20px;font-weight:700">&#9998;</span>
+        <span>I want to write music!</span>
+      </button>
+
+      <div style="margin-top:6px;font-size:11px;color:var(--pauta-text-subtle)">
+        You can change your mind anytime in the View menu.
+      </div>
     </div>
   `);
 }
@@ -1239,7 +1248,7 @@ function _startPracticeMode() {
   const ok = _practiceAdvance();
   if (!ok) { APP.practiceMode = false; return; }
 
-  UI.showToast('Practice mode ON — play each highlighted note');
+  UI.showToast('Practice time! Play each highlighted note on your instrument');
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.add('active');
   updateModeBanner();
@@ -1255,7 +1264,7 @@ function _stopPracticeMode() {
   APP._practiceTargetPitch = null;
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.remove('active');
-  UI.showToast('Practice mode OFF');
+  UI.showToast('Practice finished — great work!');
   updateModeBanner();
   _stopPracticePitchDetection();
   _stopPracticeMetronome();
@@ -1513,7 +1522,7 @@ function startPitchDetection(pitchCallback, levelCallback) {
     })
     .catch(err => {
       console.warn('Microphone access denied:', err);
-      UI.showToast('Microphone access required for pitch detection');
+      UI.showToast('Microphone access is needed for pitch detection');
     });
 }
 
@@ -1618,7 +1627,7 @@ function _renderPracticeStats() {
   const elapsed = Math.round((Date.now() - stats.startTime) / 1000);
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
-  const streak = stats.streak > 0 ? ` 🔥${stats.streak}` : '';
+  const streak = stats.streak > 0 ? ` (streak ${stats.streak})` : '';
   document.getElementById('st-practice-stats').textContent = 
     `${stats.correct}/${total} (${accuracy}%) ${mm}:${ss}${streak}`;
 }
@@ -1633,13 +1642,13 @@ function _showPracticeResults() {
   const ss = String(elapsed % 60).padStart(2, '0');
 
   const details = [
-    `✅ Correct: ${stats.correct}`,
-    `❌ Incorrect: ${stats.incorrect}`,
+    `Correct: ${stats.correct}`,
+    `Incorrect: ${stats.incorrect}`,
     `↕ Octave: ${stats.octaveDisplacement}`,
     `↗↘ Near miss: ${stats.nearMiss}`,
-    `🔥 Max streak: ${stats.maxStreak}`,
-    `⏱ Time: ${mm}:${ss}`,
-    `📊 Accuracy: ${accuracy}%`
+    `Max streak: ${stats.maxStreak}`,
+    `Time: ${mm}:${ss}`,
+    `Accuracy: ${accuracy}%`
   ].join('\n');
 
   UI.showToast(`Practice complete! ${accuracy}% accuracy (${stats.correct}/${total})`, 5000);

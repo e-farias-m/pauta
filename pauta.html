@@ -19,6 +19,14 @@
 
 <!-- Top Bar -->
 <div id="topbar">
+  <button class="btn-top" data-action="showExerciseDialog" title="Practice Gym" style="padding:8px 10px">
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9 L10 2 L17 9"/>
+      <path d="M5 7 L5 17 L15 17 L15 7"/>
+      <rect x="8" y="12" width="4" height="5"/>
+    </svg>
+    <span>Home</span>
+  </button>
   <button class="btn-top" data-action="showNewScoreDialog" title="New score" style="padding:8px 12px;gap:4px"><span style="font-size:16px;font-weight:300">+</span><span style="font-size:11px">New</span></button>
   <button class="btn-top" data-action="showFileMenu" title="Open, save, export scores">
     <svg width="14" height="14" viewBox="0 0 20 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -355,11 +363,11 @@
     <button class="zoom-btn reset" data-action="zoomReset" aria-label="Reset zoom">⟲</button>
   </div>
   <div id="st-mode" class="status-item">Select</div>
-  <span id="st-badge-theory" class="st-badge" style="display:none">🎼</span>
+  <span id="st-badge-theory" class="st-badge" style="display:none">♩</span>
   <span id="st-badge-rhythm" class="st-badge" style="display:none">𝅘𝅥𝅮</span>
   <span id="st-badge-continuous" class="st-badge" style="display:none">↔</span>
   <div id="st-practice" class="status-item" style="display:none">
-    <span id="st-practice-icon">🎯</span>
+    <span id="st-practice-icon">▶</span>
     <span id="st-practice-text">Practice</span>
     <span id="st-practice-stats" style="margin-left:8px;font-size:11px;color:rgba(74,85,104,0.7)"></span>
   </div>
@@ -448,53 +456,265 @@
   </div>
 
   <!-- Articulations panel -->
+  <div class="panel-page" id="panel-artic">
+    <div class="panel-title">Articulations</div>
+    <div class="panel-section-label">Common</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Staccato" data-action="applyArticulation" data-type="staccato"><span class="panel-sym">·</span><span class="panel-lbl">Staccato</span></button>
+      <button class="panel-btn" aria-label="Accent" data-action="applyArticulation" data-type="accent"><span class="panel-sym" style="font-size:13px">&gt;</span><span class="panel-lbl">Accent</span></button>
+      <button class="panel-btn" aria-label="Tenuto" data-action="applyArticulation" data-type="tenuto"><span class="panel-sym" style="font-size:13px">—</span><span class="panel-lbl">Tenuto</span></button>
+      <button class="panel-btn" aria-label="Marcato" data-action="applyArticulation" data-type="marcato"><span class="panel-sym" style="font-size:13px">^</span><span class="panel-lbl">Marcato</span></button>
+    </div>
+    <div class="panel-section-label">Combinations</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Portato" data-action="applyArticulation" data-type="staccato+tenuto"><span class="panel-sym" style="font-size:11px">·—</span><span class="panel-lbl">Portato</span></button>
+      <button class="panel-btn" aria-label="Tenuto accent" data-action="applyArticulation" data-type="tenuto+accent"><span class="panel-sym" style="font-size:11px">—&gt;</span><span class="panel-lbl">Ten.+Acc.</span></button>
+      <button class="panel-btn" aria-label="Staccato accent" data-action="applyArticulation" data-type="staccato+accent"><span class="panel-sym" style="font-size:11px">·&gt;</span><span class="panel-lbl">Stacc.+Acc.</span></button>
+      <button class="panel-btn" aria-label="Martellato" data-action="applyArticulation" data-type="marcato+staccato"><span class="panel-sym" style="font-size:11px">^·</span><span class="panel-lbl">Martellato</span></button>
+    </div>
+    <div class="panel-section-label">Other</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Fermata" data-action="applyArticulation" data-type="fermata"><span class="panel-sym">𝄐</span><span class="panel-lbl">Fermata</span></button>
+      <button class="panel-btn" aria-label="Staccatissimo" data-action="applyArticulation" data-type="staccatissimo"><span class="panel-sym" style="font-size:18px">▾</span><span class="panel-lbl">Staccatiss.</span></button>
+      <button class="panel-btn" aria-label="Trill" data-action="applyArticulation" data-type="trill"><span class="panel-sym" style="font-size:12px">tr~</span><span class="panel-lbl">Trill</span></button>
+      <button class="panel-btn" aria-label="Remove articulation" data-action="applyArticulation" data-type=""><span class="panel-sym" style="font-size:12px">✕</span><span class="panel-lbl">Remove</span></button>
+    </div>
+    <div class="panel-section-label">Fingering</div>
+    <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
+      Select a note, then tap a number to add or remove fingering.</p>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Fingering thumb" data-action="applyFingering" data-f="1"><span class="panel-sym" style="font-size:14px;font-weight:700">1</span><span class="panel-lbl">Thumb</span></button>
+      <button class="panel-btn" aria-label="Fingering index" data-action="applyFingering" data-f="2"><span class="panel-sym" style="font-size:14px;font-weight:700">2</span><span class="panel-lbl">Index</span></button>
+      <button class="panel-btn" aria-label="Fingering middle" data-action="applyFingering" data-f="3"><span class="panel-sym" style="font-size:14px;font-weight:700">3</span><span class="panel-lbl">Middle</span></button>
+      <button class="panel-btn" aria-label="Fingering ring" data-action="applyFingering" data-f="4"><span class="panel-sym" style="font-size:14px;font-weight:700">4</span><span class="panel-lbl">Ring</span></button>
+      <button class="panel-btn" aria-label="Fingering pinky" data-action="applyFingering" data-f="5"><span class="panel-sym" style="font-size:14px;font-weight:700">5</span><span class="panel-lbl">Pinky</span></button>
+      <button class="panel-btn" aria-label="Remove fingering" data-action="applyFingering" data-f="" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
+        <span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span>
+      </button>
+    </div>
+  </div>
 
+  <!-- Lines panel -->
+  <div class="panel-page" id="panel-lines">
+    <div class="panel-title">Lines</div>
+    <div class="panel-section-label">Phrase</div>
+    <div class="panel-grid">
+      <button class="panel-btn" id="btn-tie"   aria-label="Tie notes" data-action="startMarking" data-type="tie"><span class="panel-sym">⌢</span><span class="panel-lbl">Tie</span></button>
+      <button class="panel-btn" id="btn-slur"  aria-label="Slur notes" data-action="startMarking" data-type="slur"><span class="panel-sym">⌣</span><span class="panel-lbl">Slur</span></button>
+      <button class="panel-btn" id="btn-cresc" aria-label="Crescendo" data-action="startMarking" data-type="cresc"><span class="panel-sym" style="font-size:0">
+        <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 17,8 1,14"/></svg>
+      </span><span class="panel-lbl">Cresc</span></button>
+      <button class="panel-btn" id="btn-dim"   aria-label="Diminuendo" data-action="startMarking" data-type="dim"><span class="panel-sym" style="font-size:0">
+        <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17,2 1,8 17,14"/></svg>
+      </span><span class="panel-lbl">Dim</span></button>
+    </div>
+  </div>
 
+  <!-- Clef panel -->
+  <div class="panel-page" id="panel-clef">
+    <div class="panel-title">Clef</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Treble clef" data-action="applyClefChange" data-type="treble">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄞</span>
+        <span class="panel-lbl">Treble</span>
+      </button>
+      <button class="panel-btn" aria-label="Bass clef" data-action="applyClefChange" data-type="bass">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄢</span>
+        <span class="panel-lbl">Bass</span>
+      </button>
+      <button class="panel-btn" aria-label="Alto C clef" data-action="applyClefChange" data-type="alto">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
+        <span class="panel-lbl">Alto</span>
+      </button>
+      <button class="panel-btn" aria-label="Tenor C clef" data-action="applyClefChange" data-type="tenor">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
+        <span class="panel-lbl">Tenor</span>
+      </button>
+      <button class="panel-btn" aria-label="Percussion clef" data-action="applyClefChange" data-type="percussion">
+        <span class="panel-sym" style="font-size:0">
+          <svg viewBox="0 0 20 28" width="20" height="28" fill="currentColor">
+            <rect x="5" y="3" width="3.5" height="22" rx="1.2"/>
+            <rect x="12" y="3" width="3.5" height="22" rx="1.2"/>
+          </svg>
+        </span>
+        <span class="panel-lbl">Percussion</span>
+      </button>
+      <button class="panel-btn" aria-label="Remove clef" data-action="applyClefChange" data-type="" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
+        <span class="panel-sym" style="font-size:11px">✕</span>
+        <span class="panel-lbl">Remove</span>
+      </button>
+    </div>
+    <div class="panel-section-label">Key Signature</div>
+    <div class="panel-grid" style="grid-template-columns:repeat(5,1fr)">
+      <button class="panel-btn" aria-label="Key of F major 1 flat" data-action="applyKeySig" data-ks="-1"><span class="panel-sym" style="font-size:13px;font-weight:700">F</span><span class="panel-lbl">1♭</span></button>
+      <button class="panel-btn" aria-label="Key of B flat major 2 flats" data-action="applyKeySig" data-ks="-2"><span class="panel-sym" style="font-size:13px;font-weight:700">B♭</span><span class="panel-lbl">2♭</span></button>
+      <button class="panel-btn" aria-label="Key of E flat major 3 flats" data-action="applyKeySig" data-ks="-3"><span class="panel-sym" style="font-size:13px;font-weight:700">E♭</span><span class="panel-lbl">3♭</span></button>
+      <button class="panel-btn" aria-label="Key of A flat major 4 flats" data-action="applyKeySig" data-ks="-4"><span class="panel-sym" style="font-size:13px;font-weight:700">A♭</span><span class="panel-lbl">4♭</span></button>
+      <button class="panel-btn" aria-label="Key of C major no sharps or flats" data-action="applyKeySig" data-ks="0"><span class="panel-sym" style="font-size:13px;font-weight:700">C</span><span class="panel-lbl">♮</span></button>
+      <button class="panel-btn" aria-label="Key of G major 1 sharp" data-action="applyKeySig" data-ks="1"><span class="panel-sym" style="font-size:13px;font-weight:700">G</span><span class="panel-lbl">1♯</span></button>
+      <button class="panel-btn" aria-label="Key of D major 2 sharps" data-action="applyKeySig" data-ks="2"><span class="panel-sym" style="font-size:13px;font-weight:700">D</span><span class="panel-lbl">2♯</span></button>
+      <button class="panel-btn" aria-label="Key of A major 3 sharps" data-action="applyKeySig" data-ks="3"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">3♯</span></button>
+      <button class="panel-btn" aria-label="Key of E major 4 sharps" data-action="applyKeySig" data-ks="4"><span class="panel-sym" style="font-size:13px;font-weight:700">E</span><span class="panel-lbl">4♯</span></button>
+      <button class="panel-btn" aria-label="More key signatures" data-action="showKeySigDialog" style="background:rgba(212,152,74,0.1);border-color:rgba(212,152,74,0.3);color:#d4984a">
+        <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
+      </button>
+    </div>
+    <div class="panel-section-label">Time Signature</div>
+    <div class="panel-grid" style="grid-template-columns:repeat(4,1fr)">
+      <button class="panel-btn" aria-label="Time signature 2 2" data-action="applyTimeSig" data-num="2" data-den="2"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
+        </svg>
+      </span><span class="panel-lbl">2/2</span></button>
+      <button class="panel-btn" aria-label="Time signature 2 4" data-action="applyTimeSig" data-num="2" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">2/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 3 4" data-action="applyTimeSig" data-num="3" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">3/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 4 4" data-action="applyTimeSig" data-num="4" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">4/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 5 4" data-action="applyTimeSig" data-num="5" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">5</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">5/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 3 8" data-action="applyTimeSig" data-num="3" data-den="8"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
+        </svg>
+      </span><span class="panel-lbl">3/8</span></button>
+      <button class="panel-btn" aria-label="Time signature 6 8" data-action="applyTimeSig" data-num="6" data-den="8"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">6</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
+        </svg>
+      </span><span class="panel-lbl">6/8</span></button>
+      <button class="panel-btn" aria-label="More time signatures" data-action="showTimeSigDialog" style="background:rgba(212,152,74,0.1);border-color:rgba(212,152,74,0.3);color:#d4984a">
+        <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
+      </button>
+    </div>
+  </div>
 
+  <!-- Barlines panel -->
+  <div class="panel-page" id="panel-bars">
+    <div class="panel-title">Barlines</div>
+    <div class="panel-section-label">Barline Type</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Normal barline" data-action="applyBarline" data-type="single"><span class="panel-sym" style="font-size:18px">|</span><span class="panel-lbl">Normal</span></button>
+      <button class="panel-btn" aria-label="Double barline" data-action="applyBarline" data-type="double"><span class="panel-sym" style="font-size:18px">‖</span><span class="panel-lbl">Double</span></button>
+      <button class="panel-btn" aria-label="Final barline" data-action="applyBarline" data-type="end"><span class="panel-sym" style="font-size:0">
+        <svg width="18" height="18" viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+          <line x1="2" y1="0" x2="2" y2="28"/>
+          <rect x="5" y="0" width="4" height="28" rx="0.8"/>
+        </svg>
+      </span><span class="panel-lbl">Final</span></button>
+      <button class="panel-btn" aria-label="Repeat start barline" data-action="applyBarline" data-type="repeat_begin"><span class="panel-sym" style="font-size:14px">|:</span><span class="panel-lbl">Rep. Start</span></button>
+      <button class="panel-btn" aria-label="Repeat end barline" data-action="applyBarline" data-type="repeat_end"><span class="panel-sym" style="font-size:14px">:|</span><span class="panel-lbl">Rep. End</span></button>
+      <button class="panel-btn" aria-label="Repeat both barline" data-action="applyBarline" data-type="repeat_both"><span class="panel-sym" style="font-size:14px">:|:</span><span class="panel-lbl">Rep. Both</span></button>
+    </div>
+  </div>
 
+  <!-- Tempo panel -->
+  <div class="panel-page" id="panel-tempo">
+    <div class="panel-title">Tempo</div>
+    <button class="panel-btn-wide" id="btn-tempo-toggle" data-action="toggleTempoDisplay"
+      style="margin-bottom:6px;background:rgba(212,152,74,0.12);border-color:rgba(212,152,74,0.45);color:#d4984a">
+      ✓ Show on score
+    </button>
+    <div class="panel-section-label">Slow</div>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Larghissimo" data-bpm="24">Larghissimo <span style="opacity:0.5;font-size:9px">♩=24</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Grave" data-bpm="40">Grave <span style="opacity:0.5;font-size:9px">♩=40</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Largo" data-bpm="50">Largo <span style="opacity:0.5;font-size:9px">♩=50</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Lento" data-bpm="52">Lento <span style="opacity:0.5;font-size:9px">♩=52</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Larghetto" data-bpm="60">Larghetto <span style="opacity:0.5;font-size:9px">♩=60</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagio" data-bpm="66">Adagio <span style="opacity:0.5;font-size:9px">♩=66</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagietto" data-bpm="72">Adagietto <span style="opacity:0.5;font-size:9px">♩=72</span></button>
+    <div class="panel-section-label">Medium</div>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andante" data-bpm="76">Andante <span style="opacity:0.5;font-size:9px">♩=76</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andantino" data-bpm="88">Andantino <span style="opacity:0.5;font-size:9px">♩=88</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Moderato" data-bpm="96">Moderato <span style="opacity:0.5;font-size:9px">♩=96</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegretto" data-bpm="112">Allegretto <span style="opacity:0.5;font-size:9px">♩=112</span></button>
+    <div class="panel-section-label">Fast</div>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegro" data-bpm="132">Allegro <span style="opacity:0.5;font-size:9px">♩=132</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Vivace" data-bpm="160">Vivace <span style="opacity:0.5;font-size:9px">♩=160</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Presto" data-bpm="184">Presto <span style="opacity:0.5;font-size:9px">♩=184</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Prestissimo" data-bpm="208">Prestissimo <span style="opacity:0.5;font-size:9px">♩=208</span></button>
+  </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  <!-- Text panel -->
+  <div class="panel-page" id="panel-text">
+    <div class="panel-title">Text</div>
+    <div class="panel-section-label">Staff Text</div>
+    <button class="panel-btn-wide" aria-label="Add staff text annotation" data-action="addStaffText">✎ Add Text Annotation</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove staff text" data-action="clearStaffText">✕ Remove Text</button>
+    <div class="panel-section-label">Chord Symbol</div>
+    <button class="panel-btn-wide" aria-label="Add or edit chord symbol" data-action="editChordSymbol">𝄢 Add / Edit Chord</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove chord symbol" data-action="clearChordSymbol">✕ Remove Chord</button>
+    <div class="panel-section-label">Rehearsal Mark</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Rehearsal mark letter" data-action="addRehearsalMark" data-type="letter"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">Letter</span></button>
+      <button class="panel-btn" aria-label="Rehearsal mark number" data-action="addRehearsalMark" data-type="number"><span class="panel-sym" style="font-size:13px;font-weight:700">1</span><span class="panel-lbl">Number</span></button>
+      <button class="panel-btn" aria-label="Custom rehearsal mark" data-action="editRehearsalMark"><span class="panel-sym" style="font-size:11px">✎</span><span class="panel-lbl">Custom</span></button>
+      <button class="panel-btn" aria-label="Remove rehearsal mark" data-action="clearRehearsalMark" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span></button>
+    </div>
+    <div class="panel-section-label">Navigation Markers</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Segno marker" data-action="applyMarker" data-type="segno"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif">&#xE047;</span><span class="panel-lbl">Segno</span></button>
+      <button class="panel-btn" aria-label="Coda marker" data-action="applyMarker" data-type="coda"><span class="panel-sym" style="font-size:18px;position:relative">
+        <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;position:absolute;top:0;left:50%;transform:translateX(-50%)">
+          <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <line x1="9" y1="0" x2="9" y2="18" stroke="currentColor" stroke-width="1.6"/>
+          <line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        &#x200B;</span><span class="panel-lbl">Coda</span></button>
+      <button class="panel-btn" aria-label="Fine marker" data-action="applyMarker" data-type="fine"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:bold">Fine</span><span class="panel-lbl">Fine</span></button>
+      <button class="panel-btn" aria-label="Da Capo" data-action="applyMarker" data-type="dc"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.C.</span><span class="panel-lbl">Da Capo</span></button>
+      <button class="panel-btn" aria-label="Dal Segno" data-action="applyMarker" data-type="ds"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.S.</span><span class="panel-lbl">Dal Segno</span></button>
+      <button class="panel-btn" aria-label="Clear navigation markers" data-action="clearMarker" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Clear</span></button>
+    </div>
+    <div class="panel-section-label" style="margin-top:8px">Lyrics</div>
+    <button class="panel-btn-wide" aria-label="Edit lyrics" data-action="editLyric">✎ Edit Lyric</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove lyrics" data-action="clearLyric">✕ Remove</button>
+    <div class="panel-section-label" style="margin-top:8px">Font</div>
+    <select id="lyric-font" class="panel-select">
+      <option value="'Helvetica Neue',Helvetica,sans-serif">Helvetica</option>
+      <option value="serif">Serif</option>
+      <option value="Georgia,serif">Georgia</option>
+      <option value="'Times New Roman',serif">Times</option>
+      <option value="Arial,sans-serif">Arial</option>
+    </select>
+    <div class="panel-section-label">Size</div>
+    <select id="lyric-size" class="panel-select">
+      <option value="10">10</option>
+      <option value="11" selected>11</option>
+      <option value="12">12</option>
+      <option value="14">14</option>
+      <option value="16">16</option>
+    </select>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="panel-btn" id="btn-lyric-bold"   data-action="toggleLyricStyle" data-style="bold"   style="flex:1;font-weight:700">B</button>
+      <button class="panel-btn" id="btn-lyric-italic" data-action="toggleLyricStyle" data-style="italic" style="flex:1;font-style:italic">I</button>
+    </div>
+    <p style="color:rgba(200,192,176,0.4);font-size:10px;margin-top:8px;line-height:1.4;text-align:center">
+      Select a note, tap Edit Lyric.<br>
+      Dash (–) → next syllable<br>
+      Space → next word
+    </p>
+  </div>
 
   
 <style>
@@ -547,7 +767,7 @@ body            { background:var(--bg-body); }
 .btn-top        { background:var(--btn-bg); border-color:var(--border-input); color:var(--text-btn); }
 .btn-top.active { background:var(--accent-bg); border-color:var(--accent-border); color:var(--accent); }
 #transport-bar  { background:var(--bg-transport-glass); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); border-bottom:1px solid var(--border-subtle); }
-#mode-banner   { padding:6px 16px;font-size:12px;font-weight:600;text-align:center;letter-spacing:0.3px;cursor:default;transition:background 0.2s,color 0.2s;flex-shrink:0; }
+#mode-banner   { padding:8px 20px;font-size:13px;font-weight:700;text-align:center;letter-spacing:0.3px;cursor:default;transition:all 0.2s ease;flex-shrink:0;border-radius:var(--pauta-radius-bubble);margin:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 #score-area     { background:var(--bg-score-area); }
 #score-svg      { background:var(--bg-score); box-shadow:var(--score-shadow); }
 #status-bar     { background:var(--bg-status-glass); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); }
@@ -594,17 +814,18 @@ body{
   transition:background 0.5s;
 }
 #topbar{
-  height:48px;display:flex;align-items:center;
+  height:50px;display:flex;align-items:center;
   padding:0 10px;gap:6px;flex-shrink:0;z-index:10;
 }
 .btn-top{
-  border-radius:10px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;
+  border-radius:12px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;
   white-space:nowrap;-webkit-tap-highlight-color:transparent;
-  transition:all 0.15s ease;min-width:48px;min-height:48px;
+  transition:all 0.2s ease;min-width:48px;min-height:50px;
   display:flex;align-items:center;justify-content:center;gap:5px;
   border-width:1.5px;border-style:solid;
 }
-.btn-top:active{opacity:0.7;transform:scale(0.95)}
+.btn-top:hover{opacity:0.85;}
+.btn-top:active{opacity:0.7;transform:scale(0.94)}
 #score-area{
   flex:1;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;position:relative;
@@ -933,7 +1154,7 @@ body{
   border:1px solid rgba(192,86,33,0.20);
   border-radius:20px 20px 0 0;
   padding:22px;
-  width:min(92vw,380px);
+  width:min(94vw,500px);
   display:flex;
   flex-direction:column;
   gap:12px;
@@ -1599,6 +1820,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-cat-ear: #22c55e;
   --pauta-cat-theory: #4a5568;
 
+  /* ── Kid-Friendly Accent Palette ────────────────────────────── */
+  --pauta-kid-pink: #ec4899;
+  --pauta-kid-blue: #3b82f6;
+  --pauta-kid-lime: #84cc16;
+  --pauta-kid-yellow: #facc15;
+  --pauta-kid-purple: #a855f7;
+
   /* ── Spacing ────────────────────────────────────────────────── */
   --pauta-space-xs: 4px;
   --pauta-space-sm: 8px;
@@ -1607,12 +1835,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-space-xl: 20px;
   --pauta-space-2xl: 24px;
 
-  /* ── Border Radius ──────────────────────────────────────────── */
-  --pauta-radius-sm: 6px;
-  --pauta-radius-md: 10px;
-  --pauta-radius-lg: 12px;
-  --pauta-radius-pill: 16px;
+  /* ── Border Radius (bubblier for kids) ──────────────────────── */
+  --pauta-radius-sm: 10px;
+  --pauta-radius-md: 14px;
+  --pauta-radius-lg: 18px;
+  --pauta-radius-pill: 20px;
   --pauta-radius-full: 9999px;
+  --pauta-radius-bubble: 22px;
 
   /* ── Typography ─────────────────────────────────────────────── */
   --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1632,7 +1861,9 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
 
   /* ── Transitions ────────────────────────────────────────────── */
-  --pauta-transition: all 0.15s ease;
+  --pauta-transition: all 0.2s ease;
+  --pauta-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --pauta-transition-bounce: all 0.3s var(--pauta-bounce);
 }
 
 /* ── Hero Section ──────────────────────────────────────────────── */
@@ -1847,6 +2078,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-cat-ear: #22c55e;
   --pauta-cat-theory: #4a5568;
 
+  /* ── Kid-Friendly Accent Palette ────────────────────────────── */
+  --pauta-kid-pink: #ec4899;
+  --pauta-kid-blue: #3b82f6;
+  --pauta-kid-lime: #84cc16;
+  --pauta-kid-yellow: #facc15;
+  --pauta-kid-purple: #a855f7;
+
   /* ── Spacing ────────────────────────────────────────────────── */
   --pauta-space-xs: 4px;
   --pauta-space-sm: 8px;
@@ -1855,12 +2093,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-space-xl: 20px;
   --pauta-space-2xl: 24px;
 
-  /* ── Border Radius ──────────────────────────────────────────── */
-  --pauta-radius-sm: 6px;
-  --pauta-radius-md: 10px;
-  --pauta-radius-lg: 12px;
-  --pauta-radius-pill: 16px;
+  /* ── Border Radius (bubblier for kids) ──────────────────────── */
+  --pauta-radius-sm: 10px;
+  --pauta-radius-md: 14px;
+  --pauta-radius-lg: 18px;
+  --pauta-radius-pill: 20px;
   --pauta-radius-full: 9999px;
+  --pauta-radius-bubble: 22px;
 
   /* ── Typography ─────────────────────────────────────────────── */
   --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1880,7 +2119,9 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
 
   /* ── Transitions ────────────────────────────────────────────── */
-  --pauta-transition: all 0.15s ease;
+  --pauta-transition: all 0.2s ease;
+  --pauta-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --pauta-transition-bounce: all 0.3s var(--pauta-bounce);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2315,6 +2556,166 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   gap: var(--pauta-space-sm);
   padding-top: var(--pauta-space-md);
   border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Kid Additions
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Bouncy card hover */
+.pauta-card {
+  transition: var(--pauta-transition-bounce);
+}
+.pauta-card:hover {
+  transform: translateY(-3px);
+}
+.pauta-card:active {
+  transform: scale(0.96);
+}
+
+/* Bigger pill buttons for small fingers */
+.pauta-pill {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: var(--pauta-text-md);
+  transition: var(--pauta-transition-bounce);
+}
+
+/* Star progress indicator */
+.pauta-star {
+  display: inline-block;
+  color: var(--pauta-kid-yellow);
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+.pauta-star.empty {
+  color: rgba(0,0,0,0.1);
+}
+
+/* Score circle for session complete */
+.pauta-score-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-weight: 700;
+  color: #fff;
+  position: relative;
+  transition: var(--pauta-transition-bounce);
+}
+.pauta-score-circle .score-pct {
+  font-size: 36px;
+  line-height: 1;
+}
+.pauta-score-circle .score-label {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+/* Celebration banner with bounce */
+@keyframes celebrate-bounce {
+  0%   { transform: translateX(-50%) translateY(-12px) scale(0.9); opacity: 0; }
+  50%  { transform: translateX(-50%) translateY(4px) scale(1.05); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+}
+@keyframes celebrate-bounce-out {
+  0%   { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-12px) scale(0.9); opacity: 0; }
+}
+
+/* Level-up pop with scale bounce */
+@keyframes pop-in {
+  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  60%  { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+@keyframes pop-out {
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+}
+
+/* Confetti sparkle dots */
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(120px) rotate(720deg) scale(0.3); opacity: 0; }
+}
+.pauta-confetti-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2002;
+}
+.pauta-confetti-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: confetti-fall 1.2s ease-out forwards;
+}
+
+/* Star rating row */
+.pauta-star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+.pauta-star-rating .star {
+  font-size: 28px;
+  color: var(--pauta-kid-yellow);
+  opacity: 0.2;
+  transition: var(--pauta-transition-bounce);
+}
+.pauta-star-rating .star.filled {
+  opacity: 1;
+  animation: star-pop 0.4s var(--pauta-bounce) forwards;
+}
+@keyframes star-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Encouraging message pool style */
+.pauta-encouragement {
+  font-size: var(--pauta-text-2xl);
+  font-weight: 700;
+  text-align: center;
+  margin: 4px 0;
+}
+
+/* Big action button for session start */
+.pauta-btn-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  font-size: var(--pauta-text-2xl);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--pauta-radius-lg);
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--pauta-primary), var(--pauta-primary-light));
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(192,86,33,0.3);
+  transition: var(--pauta-transition-bounce);
+  font-family: var(--pauta-font-sans);
+}
+.pauta-btn-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(192,86,33,0.4);
+}
+.pauta-btn-start:active {
+  transform: scale(0.97);
 }
 
 
@@ -3512,7 +3913,7 @@ function adoptScore(raw, opts = {}) {
       const pending = score.assignments.filter(a => !score.studentAnswers?.[a.id]?.submitted);
       if (pending.length) {
         UI.makeModal(`
-          <h2>📚 Assignment Detected</h2>
+          <h2>Assignment Detected</h2>
           <div style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:12px">
             This score contains ${pending.length} assignment${pending.length > 1 ? 's' : ''}.
           </div>
@@ -6745,7 +7146,8 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
   const titleEl = document.createElementNS(ns, 'text');
   titleEl.setAttribute('x', '11'); titleEl.setAttribute('y', '-130');
   titleEl.setAttribute('text-anchor', 'middle');
-  titleEl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#888;pointer-events:none');
+  titleEl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:12px;font-weight:600;fill:#888;pointer-events:none');
+  titleEl.setAttribute('transform', 'translate(11,-130) scale(1,-1) translate(-11,130)');
   titleEl.textContent = 'Fingering';
   inner.appendChild(titleEl);
 
@@ -6782,7 +7184,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     return covered.has(parseInt(id));
   }
 
-  const lblSt = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#222;text-anchor:middle;pointer-events:none';
+  const lblSt = 'font-family:var(--pauta-font-sans);font-size:10px;font-weight:600;fill:#222;text-anchor:middle;pointer-events:none';
   for (const [id, hx, hy] of SVG_HOLES) {
     const cov = isCov(id);
     const dr = cov ? R * 1.2 : R;
@@ -6803,7 +7205,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     // Label centered above right-column hole for double pairs (6, 7)
     const isLeftSub = id === '6a' || id === '7a';
     const lx = isLeftSub ? CX_R : hx;
-    const ly = hy - dr - 2;
+    const ly = hy - dr - 20;
     const lbl = document.createElementNS(ns, 'text');
     lbl.setAttribute('x', lx); lbl.setAttribute('y', ly);
     lbl.setAttribute('style', lblSt);
@@ -6815,10 +7217,10 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
   g.appendChild(inner);
 
   // ── Note name ─────────────────────────────────────────────────
-  diagNoteName(inner, noteName, 25, -60, { size: '8', flipY: true });
+  diagNoteName(inner, noteName, 25, -60, { size: '11', flipY: true });
 
   // ── Alternate-fingering click overlay ─────────────────────────
-  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 280, updateRecorderDiagram, { x: '12', y: '-460', tx: '38', ty: '-233', fontSize: '4', flipY: true });
+  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 280, updateRecorderDiagram, { x: '12', y: '-460', tx: '38', ty: '-240', fontSize: '8', flipY: true });
 
   g.appendChild(inner);
 
@@ -8206,7 +8608,7 @@ function insertNoteByName(name) {
 function insertRest() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (!APP.inputMode) {
-    UI.showToast('Tap ✏️ Input first to enter note-input mode');
+    UI.showToast('Tap Input first to enter note-input mode');
     return;
   }
   APP.curRest = true;
@@ -8240,7 +8642,7 @@ function changePitchOfSelected(name) {
     n.type = 'note';
     n.pitch = 60; // placeholder, will be set below
   } else if (n.type === 'rest') {
-    UI.showToast('Select a note (not a rest) to change pitch'); return;
+    UI.showToast('Pick a note first (not a rest)'); return;
   }
 
   let pc = NAME_TO_PC[name];
@@ -8788,7 +9190,7 @@ function toggleInputMode() {
   }
   const btn = document.getElementById('btn-input-mode');
   btn.classList.toggle('active', APP.inputMode);
-  btn.textContent = APP.inputMode ? '⏹ Input' : '✏️ Input';
+  btn.textContent = APP.inputMode ? 'Stop Input' : 'Input';
   document.getElementById('score-svg').style.cursor = APP.inputMode ? 'crosshair' : 'pointer';
   document.getElementById('st-mode').textContent = APP.inputMode ? 'Note input' : 'Select';
   document.getElementById('note-row').style.opacity = APP.inputMode ? '1' : '0.4';
@@ -8925,7 +9327,7 @@ function toggleLineBreak() {
   const newVal = !measure.lineBreak;
   SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves[0].measures[mi].lineBreak = newVal);
-  }, { toast: newVal ? '⏎ Line break' : 'Line break removed' });
+  }, { toast: newVal ? 'Line break' : 'Line break removed' });
 }
 
 function toggleContinuousView() {
@@ -9117,7 +9519,7 @@ const CURRICULUM = [
     id: 'grade-1-rhythm',
     title: 'Grade 1: Rhythm Basics',
     description: 'Quarter notes, half notes, and whole notes in 4/4 time',
-    icon: '🥁',
+    icon: '',
     exercises: [
       { type: 'rhythm_read', difficulty: 'beginner', label: 'Quarter & Half Notes', count: 5 },
       { type: 'rhythm_read', difficulty: 'beginner', label: 'Whole Notes & Rests', count: 5 },
@@ -9129,7 +9531,7 @@ const CURRICULUM = [
     id: 'grade-2-notes',
     title: 'Grade 2: Note Reading',
     description: 'Identify notes on treble clef (C4–C5 naturals)',
-    icon: '🎵',
+    icon: '',
     exercises: [
       { type: 'note_id', difficulty: 'beginner', label: 'Treble Clef: C–C', count: 10 },
       { type: 'note_id', difficulty: 'beginner', label: 'Treble Clef: Extend Range', count: 10 },
@@ -9152,7 +9554,7 @@ const CURRICULUM = [
     id: 'grade-3b-scales',
     title: 'Grade 3b: Scale Identification',
     description: 'Identify major, minor, and pentatonic scales by ear',
-    icon: '🎹',
+    icon: '',
     exercises: [
       { type: 'scale_id', difficulty: 'beginner', label: 'Major & Minor', count: 8 },
       { type: 'scale_id', difficulty: 'intermediate', label: 'Modes & Pentatonic', count: 8 },
@@ -9164,7 +9566,7 @@ const CURRICULUM = [
     id: 'grade-4-keysigs',
     title: 'Grade 4: Key Signatures',
     description: 'Major and minor keys with up to 2 sharps/flats',
-    icon: '🔑',
+    icon: '',
     exercises: [
       { type: 'key_sig_id', difficulty: 'beginner', label: 'Major Keys: 0–2 sharps', count: 8 },
       { type: 'key_sig_id', difficulty: 'beginner', label: 'Minor Keys: 0–2 flats', count: 8 },
@@ -9176,7 +9578,7 @@ const CURRICULUM = [
     id: 'grade-5-rhythm-2',
     title: 'Grade 5: Rhythm Reading',
     description: 'Eighth notes, dotted rhythms, and syncopation',
-    icon: '🎶',
+    icon: '',
     exercises: [
       { type: 'rhythm_read', difficulty: 'intermediate', label: 'Eighth Notes', count: 5 },
       { type: 'rhythm_read', difficulty: 'intermediate', label: 'Dotted Rhythms', count: 5 },
@@ -9188,7 +9590,7 @@ const CURRICULUM = [
     id: 'grade-6-melody',
     title: 'Grade 6: Melody Dictation',
     description: 'Hear and notate short melodies',
-    icon: '🎼',
+    icon: '',
     exercises: [
       { type: 'melody_dictation', difficulty: 'beginner', label: '4-note Melodies', count: 5 },
       { type: 'melody_dictation', difficulty: 'intermediate', label: '6-note Melodies', count: 5 },
@@ -9200,7 +9602,7 @@ const CURRICULUM = [
     id: 'advanced-comprehensive',
     title: 'Advanced: Comprehensive',
     description: 'All exercise types at advanced difficulty',
-    icon: '🏆',
+    icon: '',
     exercises: [
       { type: 'note_id', difficulty: 'advanced', label: 'Chromatic Note ID', count: 8 },
       { type: 'interval_id', difficulty: 'advanced', label: 'All Intervals', count: 8 },
@@ -9292,13 +9694,13 @@ function showCurriculumDialog() {
           </button>`;
         }).join('')}
       </div>` : `<div style="font-size:11px;color:rgba(74,85,104,0.5);text-align:center;margin-top:4px">
-        🔒 Complete ${grade.unlockCondition.count} ${grade.unlockCondition.exerciseType ? TYPE_LABELS[grade.unlockCondition.exerciseType] : 'total'} sessions to unlock
+        Complete ${grade.unlockCondition.count} ${grade.unlockCondition.exerciseType ? TYPE_LABELS[grade.unlockCondition.exerciseType] : 'total'} sessions to unlock
       </div>`}
     </div>`;
   }).join('');
 
   UI.makeModal(`
-    <h2>📚 Curriculum</h2>
+    <h2>Curriculum</h2>
     <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
       Structured learning path · ${totalSessions} total sessions completed
     </div>
@@ -9369,7 +9771,7 @@ function recommendDifficulty(exerciseType) {
   // Upgrade: 3 consecutive sessions > 85%
   if (lastThreeAvg >= 85 && currentDiff < 2) {
     const newDiff = DIFF_NAMES[currentDiff + 1];
-    UI.showToast(`📈 Great performance! Moving to ${newDiff}`);
+    UI.showToast(`Great performance! Moving to ${newDiff}`);
     APP.exerciseDifficulty = newDiff;
     return newDiff;
   }
@@ -9377,7 +9779,7 @@ function recommendDifficulty(exerciseType) {
   // Downgrade: 3 consecutive sessions < 50%
   if (lastThreeAvg < 50 && currentDiff > 0) {
     const newDiff = DIFF_NAMES[currentDiff - 1];
-    UI.showToast(`📉 Let's try ${newDiff} for now`);
+    UI.showToast(`Let's try ${newDiff} for now`);
     APP.exerciseDifficulty = newDiff;
     return newDiff;
   }
@@ -9478,7 +9880,7 @@ function _genNoteId(difficulty) {
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
-  const answer = names[pc] + oct;
+  const answer = names[pc];
   return {
     type: EXERCISE_TYPES.NOTE_ID,
     difficulty,
@@ -10345,21 +10747,21 @@ function _showSessionIntro(type, difficulty) {
 
       <div class="pauta-modal-body">
         <div style="background:rgba(192,86,33,0.05);border-left:3px solid var(--pauta-primary);padding:12px;margin-bottom:16px;border-radius:0 6px 6px 0">
-          <div style="font-weight:600;color:var(--pauta-primary);margin-bottom:4px">🎯 Learning Goal</div>
+          <div style="font-weight:600;color:var(--pauta-primary);margin-bottom:4px">Learning Goal</div>
           <div style="font-size:13px;color:var(--pauta-text)">${intro.goal}</div>
         </div>
 
         <p style="font-size:13px;color:var(--pauta-text-muted);line-height:1.6;margin-bottom:16px">${intro.description}</p>
 
         <div style="margin-bottom:16px">
-          <div style="font-weight:600;color:var(--pauta-text);margin-bottom:8px;font-size:12px">💡 Tips</div>
+          <div style="font-weight:600;color:var(--pauta-text);margin-bottom:8px;font-size:12px">Tips</div>
           <ul style="margin:0;padding-left:20px;font-size:12px;color:var(--pauta-text-muted);line-height:1.8">
             ${intro.tips.map(tip => `<li>${tip}</li>`).join('')}
           </ul>
         </div>
 
         <div style="background:rgba(34,197,94,0.05);border-left:3px solid var(--pauta-success);padding:12px;border-radius:0 6px 6px 0">
-          <div style="font-weight:600;color:var(--pauta-success);margin-bottom:4px">📈 Session Structure</div>
+          <div style="font-weight:600;color:var(--pauta-success);margin-bottom:4px">Session Structure</div>
           <div style="font-size:12px;color:var(--pauta-text-muted)">
             • Warm-up: First 2-3 questions are easy to get you started<br>
             • Main: Questions adapt to your performance<br>
@@ -10417,33 +10819,57 @@ function endExerciseSession() {
   let nextActionHtml = '';
   if (recommendation.action === 'advance') {
     nextActionHtml = `<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-success);font-size:13px">📈 Ready to advance!</div>
+      <div style="font-weight:600;color:var(--pauta-success);font-size:13px">Ready to advance!</div>
       <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
     </div>`;
   } else if (recommendation.action === 'review') {
     nextActionHtml = `<div style="background:rgba(230,168,23,0.1);border:1px solid rgba(230,168,23,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-warning);font-size:13px">🔄 Review recommended</div>
+      <div style="font-weight:600;color:var(--pauta-warning);font-size:13px">Review recommended</div>
       <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
     </div>`;
   }
 
+  const starCount = pct >= 80 ? 3 : pct >= 50 ? 2 : 1;
+  const scoreCircleColor = pct >= 80 ? 'var(--pauta-success)' : pct >= 50 ? 'var(--pauta-warning)' : 'var(--pauta-primary-light)';
+  const encouragements = [
+    'Great effort!', 'Nice work!', 'Keep practicing!',
+    'You\'re improving!', 'Well done!', 'Fantastic!'
+  ];
+  const cheer = encouragements[Math.floor(Math.random() * encouragements.length)];
+
   UI.makeModal(`
-    <h2>Session Complete</h2>
-    <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
-      <div style="font-size:32px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">${pct}%</div>
-      <div>${correct} / ${total} correct</div>
-      <div style="font-size:12px;color:rgba(74,85,104,0.6);margin-top:4px">Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
+    <div style="text-align:center">
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:4px;color:var(--pauta-text)">Session Complete</h2>
+
+      <div class="pauta-score-circle" style="background:${scoreCircleColor};box-shadow:0 4px 20px ${scoreCircleColor}44">
+        <span class="score-pct">${pct}%</span>
+        <span class="score-label">${correct} / ${total} correct</span>
+      </div>
+
+      <div class="pauta-star-rating">
+        ${[1,2,3].map(i =>
+          `<span class="star ${i <= starCount ? 'filled' : ''}">★</span>`
+        ).join('')}
+      </div>
+
+      <div class="pauta-encouragement" style="color:${scoreCircleColor}">${cheer}</div>
+
+      <div style="font-size:12px;color:var(--pauta-text-muted);margin:6px 0 12px">
+        Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}
+      </div>
     </div>
+
     ${nextActionHtml}
-    <div style="flex-shrink:0;margin-bottom:12px;max-height:200px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted)">
+
+    <div style="flex-shrink:0;margin-bottom:12px;max-height:180px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm);background:var(--pauta-bg);padding:8px">
       ${s.completed.map((c,i) => {
         if (c.type === 'difficulty_change') {
-          return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
-            <span style="width:16px;text-align:center;font-size:14px">🔄</span>
+          return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
+            <span style="width:16px;text-align:center;font-size:14px">↕</span>
             <span>#${i+1}: Difficulty ${c.difficultyChange === 'up' ? '↑' : '↓'} to ${c.answer}</span>
           </div>`;
         }
-        const icon = c.ok ? '🟢' : (c.nearMiss ? '🟡' : '🔴');
+        const icon = c.ok ? '✓' : (c.nearMiss ? '~' : '✗');
         const label = c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer
           : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer
           : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer
@@ -10452,14 +10878,14 @@ function endExerciseSession() {
           : c.type === EXERCISE_TYPES.SCALE_ID ? 'Scale ' + c.answer
           : c.type === EXERCISE_TYPES.NOTE_CONSTRUCT ? 'Construct ' + c.answer
           : 'Rhythm';
-        return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
           <span style="width:16px;text-align:center;font-size:14px">${icon}</span>
           <span>#${i+1}: ${label}${c.nearMiss && !c.ok ? ' (off by 1)' : ''}</span>
         </div>`;
       }).join('')}
     </div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-      <button class="modal-btn primary" data-action="reviewExerciseSession">📝 Review Answers</button>
+      <button class="modal-btn primary" data-action="reviewExerciseSession">Review Answers</button>
       <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
       <button class="modal-btn secondary" data-action="closeModalExercise">Close</button>
     </div>
@@ -10577,7 +11003,7 @@ function reviewExerciseSession() {
           <div style="font-size:16px;font-weight:700;color:var(--pauta-success)">${UI.escHtml(correctAns)}</div>
         </div>` : ''}
       </div>
-      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">💡 ${UI.escHtml(hint)}</div>` : ''}
+      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">${UI.escHtml(hint)}</div>` : ''}
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         ${idx > 0 ? `<button class="modal-btn secondary" data-action="reviewPrev">← Previous</button>` : ''}
         ${idx < completed.length - 1 ? `<button class="modal-btn primary" data-action="reviewNext">Next →</button>` : `<button class="modal-btn primary" data-action="closeModal">Done</button>`}
@@ -10756,6 +11182,15 @@ function _createNoteStaff(pitch) {
     svg.appendChild(line);
   }
   
+  // Draw treble clef (Note Drills use treble clef positioning)
+  const clef = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  clef.setAttribute('x', '28');
+  clef.setAttribute('y', '68');
+  clef.setAttribute('font-size', '44');
+  clef.setAttribute('fill', 'var(--pauta-text)');
+  clef.textContent = '𝄞';
+  svg.appendChild(clef);
+
   const notePos = _pitchToStaffPosition(pitch);
   const bottomLineY = STAFF_BOTTOM;
   
@@ -10862,38 +11297,19 @@ function _pitchToStaffPosition(pitch) {
 function _generateNoteOptions(correctPitch) {
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const correctPc = correctPitch % 12;
-  const correctOct = Math.floor(correctPitch / 12) - 1;
-  const correctName = noteNames[correctPc] + correctOct;
+  const correctName = noteNames[correctPc];
 
   const options = [correctName];
   const usedNames = new Set([correctName]);
   
-  // Add nearby notes, adjusting octave when pitch class wraps
+  // Add nearby notes by pitch class
   for (let pcOffset of [-1, 1, -2, 2]) {
     const rawPc = correctPc + pcOffset;
     const pc = (rawPc + 12) % 12;
-    let octOffset = 0;
-    if (rawPc < 0) octOffset = -1;
-    else if (rawPc > 11) octOffset = 1;
-    const oct = correctOct + octOffset;
-    const name = noteNames[pc] + oct;
+    const name = noteNames[pc];
     if (!usedNames.has(name) && options.length < 4) {
       options.push(name);
       usedNames.add(name);
-    }
-  }
-  
-  // Add octave variations if still needed
-  if (options.length < 4) {
-    for (let octOffset of [-1, 1]) {
-      const oct = correctOct + octOffset;
-      if (oct >= 3 && oct <= 6) {
-        const name = noteNames[correctPc] + oct;
-        if (!usedNames.has(name) && options.length < 4) {
-          options.push(name);
-          usedNames.add(name);
-        }
-      }
     }
   }
 
@@ -10908,8 +11324,7 @@ function _generateNoteOptions(correctPitch) {
 function _handleNoteChoice(answer, correctPitch, container) {
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const correctPc = correctPitch % 12;
-  const correctOct = Math.floor(correctPitch / 12) - 1;
-  const correctName = noteNames[correctPc] + correctOct;
+  const correctName = noteNames[correctPc];
   
   const isCorrect = answer === correctName;
   
@@ -10947,7 +11362,7 @@ function _presentNoteConstruct(ex) {
   score.parts[0].staves[0].measures[0].notes = [SCORE.mkRest('w')];
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   RENDER.renderScore();
-  UI.showToast('Click on the staff to place the note!');
+  UI.showToast('Tap on the staff to place your note!');
   setTimeout(() => _attachNoteConstructClickHandler(), 100);
 }
 
@@ -11061,7 +11476,7 @@ function _checkNoteConstructAnswer(pitch) {
   if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
     const newDiff = DIFF_NAMES[diffIdx + 1];
     s.difficulty = newDiff;
-    UI.showToast(`📈 Leveling up to ${newDiff}!`);
+    UI.showToast(`Leveling up to ${newDiff} — great progress!`);
     s.completed.push({
       type: 'difficulty_change',
       answer: newDiff,
@@ -11076,7 +11491,7 @@ function _checkNoteConstructAnswer(pitch) {
     if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
       const newDiff = DIFF_NAMES[diffIdx - 1];
       s.difficulty = newDiff;
-      UI.showToast(`📉 Easing to ${newDiff}`);
+      UI.showToast(`Easing to ${newDiff} — keep going!`);
       s.completed.push({
         type: 'difficulty_change',
         answer: newDiff,
@@ -11170,7 +11585,7 @@ function _presentRhythmRead(ex) {
   score.parts[0].staves[0].measures[0].notes = notes;
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   RENDER.renderScore();
-  UI.showToast('Tap ▶ to hear, then clap/tap it back');
+   UI.showToast('Tap play to hear it, then clap or tap it back!');
 }
 
 function _presentRhythmWorksheet(ex) {
@@ -11247,7 +11662,7 @@ function _showDictationListenBar(ex) {
       <div style="font-size:14px;font-weight:700;color:var(--pauta-text)">${firstName}</div>
     </div>
     <button class="modal-btn primary" id="dictation-play" style="padding:6px 16px;font-size:13px">▶ Play Melody</button>
-    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:12px">📝 I'm Ready</button>
+    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:12px">I'm Ready</button>
     <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
       <label style="font-size:11px;color:var(--pauta-text-muted);font-weight:600">♩</label>
       <input type="range" id="dictation-tempo" min="40" max="200" value="${currentTempo}" style="width:100px" aria-label="Tempo">
@@ -11354,13 +11769,13 @@ function _startDictationNotate() {
   if (s) s._dictationPhase = 'notate';
   // Show a floating submit bar
   _showDictationCheckBar();
-  UI.showToast('Enter the notes you heard (tap palette or use MIDI/mic)');
+    UI.showToast('Write down the notes you heard — tap the palette or play your instrument!');
 }
 
 function _showDictationCheckBar() {
   const bar = _createFeedbackBar('dictation-check-bar', 'gap:10px;flex-wrap:wrap');
   const currentTempo = APP.tempo || 120;
-  bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">✍️ Done notating?</span>
+  bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">Done notating?</span>
     <button class="modal-btn primary" id="dictation-check" style="padding:4px 12px;font-size:12px">✔ Check Melody</button>
     <button class="modal-btn secondary" id="dictation-play-again" style="padding:4px 12px;font-size:12px">▶ Play Again</button>
     <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
@@ -11517,7 +11932,7 @@ function _presentScaleId(ex) {
   RENDER.renderScore();
   _showMCGrid(_generateScaleOptions(ex), ex.answer, _handleScaleChoice, 'Name this scale');
   setTimeout(() => {
-    UI.showToast('🎧 Listen to the scale, then name it!');
+    UI.showToast('Listen to the scale, then name it!');
     startPlayback();
   }, 300);
 }
@@ -11626,7 +12041,7 @@ function checkExerciseAnswer(userAnswer) {
   if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
     const newDiff = DIFF_NAMES[diffIdx + 1];
     s.difficulty = newDiff;
-    UI.showToast(`📈 Leveling up to ${newDiff}!`);
+    UI.showToast(`Leveling up to ${newDiff} — great progress!`);
     s.completed.push({
       type: 'difficulty_change',
       answer: newDiff,
@@ -11641,7 +12056,7 @@ function checkExerciseAnswer(userAnswer) {
     if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
       const newDiff = DIFF_NAMES[diffIdx - 1];
       s.difficulty = newDiff;
-      UI.showToast(`📉 Easing to ${newDiff}`);
+      UI.showToast(`Easing to ${newDiff} — keep going!`);
       s.completed.push({
         type: 'difficulty_change',
         answer: newDiff,
@@ -11692,22 +12107,31 @@ function _showSuccessBanner(msg, opts = {}) {
   const streak = opts.streak || 0;
   const correctAnswer = opts.correctAnswer || '';
   let milestone = '';
-  if (streak === 3) milestone = 'Nice streak!';
-  else if (streak === 5) milestone = 'On fire!';
-  else if (streak >= 10) milestone = 'Unstoppable!';
+  if (streak === 3) milestone = 'Awesome!';
+  else if (streak === 5) milestone = 'Amazing!';
+  else if (streak >= 10) milestone = 'Incredible!';
+
+  const encouragements = [
+    'Great job!', 'Nailed it!', 'Nice work!',
+    'Keep it up!', 'You got this!', 'Fantastic!',
+    'Way to go!', 'Super!', 'Brilliant!'
+  ];
+  const cheer = encouragements[Math.floor(Math.random() * encouragements.length)];
 
   const el = document.createElement('div');
   el.id = 'exercise-success-banner';
-  el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:2000;background:linear-gradient(135deg,var(--pauta-success),#16a34a);color:#fff;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(34,197,94,0.35);opacity:0;transition:opacity 0.25s ease, transform 0.25s ease;pointer-events:none;white-space:nowrap;font-family:var(--pauta-font-sans);text-align:center';
-  el.innerHTML = `<div>${UI.escHtml(msg)}</div>${correctAnswer ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">Answer: ${UI.escHtml(correctAnswer)}</div>` : ''}${milestone ? `<div style="font-size:13px;margin-top:3px;color:#bbf7d0">${milestone}</div>` : ''}`;
+  el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-12px) scale(0.9);z-index:2000;background:linear-gradient(135deg,var(--pauta-success),var(--pauta-kid-lime));color:#fff;padding:14px 32px;border-radius:var(--pauta-radius-bubble);font-size:16px;font-weight:700;box-shadow:0 4px 24px rgba(34,197,94,0.4);pointer-events:none;white-space:nowrap;font-family:var(--pauta-font-sans);text-align:center';
+  el.innerHTML = `<div>${cheer} ${UI.escHtml(msg)}</div>${correctAnswer ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">Answer: ${UI.escHtml(correctAnswer)}</div>` : ''}${milestone ? `<div style="font-size:13px;margin-top:3px;opacity:0.9">${milestone}</div>` : ''}`;
   document.body.appendChild(el);
-  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)'; });
+
+  requestAnimationFrame(() => {
+    el.style.animation = 'celebrate-bounce 0.4s var(--pauta-bounce) forwards';
+  });
 
   setTimeout(() => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(-50%) translateY(-12px)';
-    setTimeout(() => { if (el.parentNode) el.remove(); }, 250);
-  }, 1000);
+    el.style.animation = 'celebrate-bounce-out 0.25s ease forwards';
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 260);
+  }, 1200);
 }
 
 function _hideSuccessBanner() {
@@ -11718,26 +12142,40 @@ function _hideSuccessBanner() {
 function _showLevelUpMoment(correctCount, pct) {
   const existing = document.getElementById('level-up-moment');
   if (existing) existing.remove();
+  const existingConfetti = document.getElementById('level-up-confetti');
+  if (existingConfetti) existingConfetti.remove();
 
   const s = APP.exerciseSession;
   if (!s) return;
 
   const messages = [
-    { threshold: 5, title: 'Warming Up!', desc: 'You\'re getting the hang of it.', emoji: '🔥' },
-    { threshold: 10, title: 'Halfway There!', desc: 'Great consistency. Keep going!', emoji: '⭐' },
-    { threshold: 15, title: 'Solid Progress!', desc: 'Your accuracy is improving.', emoji: '💪' },
-    { threshold: 20, title: 'Building Mastery!', desc: 'This skill is becoming automatic.', emoji: '🎯' },
-    { threshold: 25, title: 'Almost There!', desc: 'You\'re approaching mastery.', emoji: '🏆' },
-    { threshold: 30, title: 'Mastery Zone!', desc: 'Excellent work. You\'ve got this!', emoji: '👑' },
+    { threshold: 5, title: 'Warming Up!', desc: 'You\'re getting the hang of it.' },
+    { threshold: 10, title: 'Halfway There!', desc: 'Great consistency. Keep going!' },
+    { threshold: 15, title: 'Solid Progress!', desc: 'Your accuracy is improving.' },
+    { threshold: 20, title: 'Building Mastery!', desc: 'This skill is becoming automatic.' },
+    { threshold: 25, title: 'Almost There!', desc: 'You\'re approaching mastery.' },
+    { threshold: 30, title: 'Mastery Zone!', desc: 'Excellent work. You\'ve got this!' },
   ];
 
   const msg = messages.find(m => m.threshold === correctCount) || messages[0];
 
+  // Confetti dots
+  const confettiColors = ['var(--pauta-kid-pink)', 'var(--pauta-kid-blue)', 'var(--pauta-kid-lime)', 'var(--pauta-kid-yellow)', 'var(--pauta-kid-purple)', 'var(--pauta-primary)'];
+  const confettiContainer = document.createElement('div');
+  confettiContainer.id = 'level-up-confetti';
+  confettiContainer.className = 'pauta-confetti-container';
+  for (let i = 0; i < 24; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'pauta-confetti-dot';
+    dot.style.cssText = `left:${Math.random() * 200 - 100}px;top:${Math.random() * 40 - 20}px;background:${confettiColors[i % confettiColors.length]};animation-delay:${Math.random() * 0.3}s;width:${6 + Math.random() * 8}px;height:${6 + Math.random() * 8}px`;
+    confettiContainer.appendChild(dot);
+  }
+  document.body.appendChild(confettiContainer);
+
   const el = document.createElement('div');
   el.id = 'level-up-moment';
-  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%) scale(0.9);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:16px;box-shadow:0 12px 40px rgba(192,86,33,0.4);opacity:0;transition:all 0.3s ease;pointer-events:none;text-align:center;min-width:280px';
+  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:var(--pauta-radius-lg);box-shadow:0 12px 40px rgba(192,86,33,0.4);text-align:center;min-width:280px';
   el.innerHTML = `
-    <div style="font-size:48px;margin-bottom:8px">${msg.emoji}</div>
     <div style="font-size:24px;font-weight:700;margin-bottom:8px">${msg.title}</div>
     <div style="font-size:14px;opacity:0.9;margin-bottom:12px">${msg.desc}</div>
     <div style="font-size:13px;opacity:0.8">${correctCount} correct · ${pct}% accuracy</div>
@@ -11745,14 +12183,17 @@ function _showLevelUpMoment(correctCount, pct) {
   document.body.appendChild(el);
 
   requestAnimationFrame(() => {
-    el.style.opacity = '1';
-    el.style.transform = 'translate(-50%, -50%) scale(1)';
+    el.style.animation = 'pop-in 0.4s var(--pauta-bounce) forwards';
   });
 
   setTimeout(() => {
-    el.style.opacity = '0';
-    el.style.transform = 'translate(-50%, -50%) scale(0.9)';
-    setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
+    el.style.animation = 'pop-out 0.25s ease forwards';
+    if (confettiContainer.parentNode) {
+      confettiContainer.style.transition = 'opacity 0.3s';
+      confettiContainer.style.opacity = '0';
+      setTimeout(() => { if (confettiContainer.parentNode) confettiContainer.remove(); }, 300);
+    }
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 260);
   }, 2500);
 }
 
@@ -11784,7 +12225,7 @@ function _showExerciseFeedback(ex, userAnswer) {
       ${hintText ? `
         <details open style="margin-top:2px">
           <summary style="cursor:pointer;font-size:11px;color:rgba(74,85,104,0.6);font-weight:600;user-select:none">Why? ▸</summary>
-          <div style="margin-top:4px;font-size:11px;color:rgba(74,85,104,0.7);line-height:1.5">💡 ${hintText}</div>
+          <div style="margin-top:4px;font-size:11px;color:rgba(74,85,104,0.7);line-height:1.5">${hintText}</div>
         </details>` : ''}
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;align-self:center">
@@ -11850,7 +12291,7 @@ function _updateScoreDisplay() {
   el.dataset.prevCount = s.totalCount;
 
   const streakHtml = s.streak >= 2
-    ? `<span class="score-streak">🔥 ${s.streak}</span>`
+    ? `<span class="score-streak">${s.streak}</span>`
     : '';
 
   const diffLabel = s.difficulty ? `<span style="font-size:10px;opacity:0.7;margin-left:4px">${s.difficulty}</span>` : '';
@@ -11988,7 +12429,7 @@ function _playRhythmDictation(ex) {
   const s = APP.exerciseSession;
   if (!s) return;
   const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
-  if (s.playsLeft !== undefined && s.playsLeft <= 0) { UI.showToast('No plays remaining'); return; }
+  if (s.playsLeft !== undefined && s.playsLeft <= 0) { UI.showToast('No more plays — try again from the start!'); return; }
 
   const ctx = getAudioCtx();
   const bpm = APP.tempo || 100;
@@ -12068,7 +12509,7 @@ function checkRhythmWorksheet() {
 }
 
 function showRhythmWorksheetDialog() {
-  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your exercise first, then come back!'); return; }
   const diffs = ['beginner', 'intermediate', 'advanced'];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
 
@@ -12120,7 +12561,7 @@ function _startRhythmWorksheet(difficulty) {
 
 // ── Main Exercise Dialog ───────────────────────────────────────
 function showExerciseDialog() {
-  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your exercise first, then come back!'); return; }
 
   const results = _loadResults();
   const byType = {};
@@ -12132,28 +12573,28 @@ function showExerciseDialog() {
   const categories = [
     {
       name: 'Rhythm',
-      color: '#e06850',
+      color: 'var(--pauta-kid-pink)',
       exercises: [
-        {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'🥁', label:'Rhythm Workout', desc:'Random rhythms — customize time sig, tempo, note values'},
+        {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'', label:'Rhythm Workout', desc:'Random rhythms — customize time sig, tempo, note values'},
         {key: EXERCISE_TYPES.RHYTHM_READ,  icon:'𝅘𝅥𝅮', label:'Rhythm Reading', desc:'Read and clap patterns'},
-        {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear it, mark each beat'},
+        {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'', label:'Rhythm Dictation', desc:'Hear it, mark each beat'},
       ]
     },
     {
       name: 'Pitch & Theory',
-      color: 'var(--pauta-primary)',
+      color: 'var(--pauta-kid-blue)',
       exercises: [
-        {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Drills', desc:'Name notes on the staff'},
+        {key: EXERCISE_TYPES.NOTE_ID,      icon:'', label:'Note Drills', desc:'Name notes on the staff'},
         {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Training', desc:'Identify intervals'},
         {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Sig Drills', desc:'Name keys from signatures'},
-        {key: EXERCISE_TYPES.SCALE_ID,     icon:'🎹', label:'Scale Gym', desc:'Hear scales and modes'},
+        {key: EXERCISE_TYPES.SCALE_ID,     icon:'', label:'Scale Gym', desc:'Hear scales and modes'},
       ]
     },
     {
       name: 'Ear Training',
-      color: 'var(--pauta-success)',
+      color: 'var(--pauta-kid-lime)',
       exercises: [
-        {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Melody Dictation', desc:'Hear it, notate it'},
+        {key: EXERCISE_TYPES.MELODY_DICT,  icon:'', label:'Melody Dictation', desc:'Hear it, notate it'},
       ]
     },
   ];
@@ -12163,13 +12604,13 @@ function showExerciseDialog() {
   const overallPct = results.length > 0 ? Math.round(results.reduce((s,r) => s + r.pct, 0) / results.length) : 0;
 
   UI.makeModal(`
-    <div class="pauta-modal">
+    <div class="pauta-modal" style="border-radius:var(--pauta-radius-lg)">
       <div class="pauta-modal-header">
-        <h2 class="pauta-modal-title">Practice Gym</h2>
-        <p class="pauta-modal-subtitle">Daily exercises for musicians</p>
+        <h2 class="pauta-modal-title" style="font-size:22px;text-align:center">Practice Gym</h2>
+        <p class="pauta-modal-subtitle" style="text-align:center;font-size:14px">Let's practice and get better together!</p>
 
         ${totalSessions > 0 ? `
-        <div class="pauta-stats">
+        <div class="pauta-stats" style="font-size:14px">
           <span><span class="pauta-stat-num">${totalSessions}</span> sessions</span>
           <span><span class="pauta-stat-num">${overallPct}%</span> avg</span>
         </div>` : ''}
@@ -12182,10 +12623,10 @@ function showExerciseDialog() {
       </div>
 
       <div class="pauta-modal-body">
-        <div class="pauta-hero" data-action="showRhythmWorkoutDialog">
-          <div class="pauta-hero-badge">⚡ Most Popular</div>
-          <div class="pauta-hero-title">🥁 Rhythm Workout</div>
-          <div class="pauta-hero-desc">Random rhythms with custom time signatures, tempo, and note values</div>
+        <div class="pauta-hero" data-action="showRhythmWorkoutDialog" style="border-radius:var(--pauta-radius-lg)">
+          <div class="pauta-hero-badge" style="background:var(--pauta-kid-yellow);color:#7c5e00">Most Popular</div>
+          <div class="pauta-hero-title">Rhythm Workout</div>
+          <div class="pauta-hero-desc">Make your own rhythm patterns with fun sounds!</div>
         </div>
 
         ${categories.map(cat => `
@@ -12197,17 +12638,23 @@ function showExerciseDialog() {
                 const sessions = typeResults.length;
                 let scoreColor = 'rgba(74,85,104,0.3)';
                 let scoreText = '';
+                let starCount = 0;
                 if (sessions > 0) {
                   const lastPct = typeResults[typeResults.length - 1].pct;
                   scoreColor = lastPct >= 80 ? 'var(--pauta-success)' : lastPct >= 60 ? 'var(--pauta-warning)' : 'var(--pauta-primary-light)';
                   scoreText = lastPct + '%';
+                  starCount = lastPct >= 80 ? 3 : lastPct >= 60 ? 2 : 1;
                 }
                 return `
-                  <div class="pauta-card" style="--pauta-card-color:${cat.color}" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
+                  <div class="pauta-card" style="--pauta-card-color:${cat.color};border-radius:var(--pauta-radius-md)" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
                     ${scoreText ? `<span class="pauta-card-badge" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
                     <div class="pauta-card-title"><span style="font-size:15px">${ex.icon}</span>${ex.label}</div>
                     <div class="pauta-card-desc">${ex.desc}</div>
-                    <div class="pauta-card-meta">${sessions > 0 ? `${sessions} session${sessions>1?'s':''}` : '○ Not started'}</div>
+                    <div class="pauta-card-meta">
+                      ${sessions > 0
+                        ? `<span class="pauta-star">${'★'.repeat(starCount)}${'☆'.repeat(3-starCount)}</span>`
+                        : `<span class="pauta-star empty">☆☆☆</span>`}
+                    </div>
                   </div>`;
               }).join('')}
             </div>
@@ -12216,9 +12663,9 @@ function showExerciseDialog() {
       </div>
 
       <div class="pauta-modal-footer">
-        <button class="modal-btn secondary" data-action="showCurriculumDialog">📚 Curriculum</button>
-        <button class="modal-btn secondary" data-action="showStudentProgress">📊 Progress</button>
-        <button class="modal-btn secondary" data-action="closeModal">✕ Close</button>
+        <button class="modal-btn secondary" data-action="showCurriculumDialog">Curriculum</button>
+        <button class="modal-btn secondary" data-action="showStudentProgress">Progress</button>
+        <button class="modal-btn secondary" data-action="closeModal">Close</button>
       </div>
     </div>
   `);
@@ -12337,7 +12784,7 @@ function showRhythmWorkoutDialog() {
   const activeSet = new Set(s.noteGroups.map(g => g.dur + (g.rest ? 'r' : '') + (g.dots || 0)));
 
   UI.makeModal(`
-    <h2>🥁 Rhythm Workout</h2>
+    <h2>Rhythm Workout</h2>
     <div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0;max-height:60vh;overflow-y:auto">
       <div>
         <div style="font-size:12px;font-weight:600;color:var(--pauta-text-muted);margin-bottom:6px">Time Signature</div>
@@ -12472,7 +12919,7 @@ function _presentRhythmWorkout(ex) {
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   RENDER.renderScore();
-  UI.showToast(`🥁 ${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
+  UI.showToast(`${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
 }
 
 function _checkRhythmWorkoutAnswer(userAnswer) {
@@ -12656,7 +13103,7 @@ function checkAssignmentAnswers() {
     </div>
     <div style="flex-shrink:0;max-height:200px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px">
       ${results.details.map(d => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
-        <span style="width:16px;text-align:center;font-size:14px">${d.ok?'🟢':'🔴'}</span>
+        <span style="width:16px;text-align:center;font-size:14px">${d.ok?'✓':'✗'}</span>
         Measure ${d.mi+1}, note ${d.ni+1}: ${d.msg}
       </div>`).join('')}
     </div>
@@ -12928,14 +13375,14 @@ function showStudentProgress() {
 
   // Mastery badges
   const badges = [];
-  if (overallPct >= 90) badges.push({ emoji: '🏆', label: '90%+ Overall', color: 'var(--pauta-primary)' });
-  if (bestStreak >= 10) badges.push({ emoji: '🔥', label: '10+ Streak', color: 'var(--pauta-primary-light)' });
-  if (totalSessions >= 50) badges.push({ emoji: '⭐', label: '50+ Sessions', color: 'var(--pauta-warning)' });
-  if (totalSessions >= 100) badges.push({ emoji: '🌟', label: '100+ Sessions', color: 'var(--pauta-success)' });
+  if (overallPct >= 90) badges.push({ emoji: '', label: '90%+ Overall', color: 'var(--pauta-primary)' });
+  if (bestStreak >= 10) badges.push({ emoji: '', label: '10+ Streak', color: 'var(--pauta-primary-light)' });
+  if (totalSessions >= 50) badges.push({ emoji: '', label: '50+ Sessions', color: 'var(--pauta-warning)' });
+  if (totalSessions >= 100) badges.push({ emoji: '', label: '100+ Sessions', color: 'var(--pauta-success)' });
   Object.keys(byType).forEach(type => {
     const avg = Math.round(byType[type].reduce((s, x) => s + x.pct, 0) / byType[type].length);
     if (avg >= 85 && byType[type].length >= 5) {
-      badges.push({ emoji: '🎯', label: `${TYPE_LABELS[type]} Master`, color: 'var(--pauta-success)' });
+      badges.push({ emoji: '', label: `${TYPE_LABELS[type]} Master`, color: 'var(--pauta-success)' });
     }
   });
 
@@ -12954,7 +13401,7 @@ function showStudentProgress() {
     : totalTime >= 60 ? `${Math.floor(totalTime/60)}m ${totalTime%60}s` : `${totalTime}s`;
 
   UI.makeModal(`
-    <h2>📊 My Progress</h2>
+    <h2>My Progress</h2>
     <div style="text-align:center;margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px">
         <div style="text-align:center">
@@ -12971,9 +13418,9 @@ function showStudentProgress() {
         </div>
       </div>
       <div style="display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">
-        <span>🔥 Current streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}</span>
-        <span>🔥 Best streak: ${bestStreak}</span>
-        <span>⏱ Total time: ${timeStr}</span>
+        <span>Current streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}</span>
+        <span>Best streak: ${bestStreak}</span>
+        <span>Total time: ${timeStr}</span>
       </div>
     </div>
     ${badges.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
@@ -12999,9 +13446,9 @@ function showStudentProgress() {
       ${typeHtml}
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="modal-btn primary" data-action="exportProgress">📤 Export Report</button>
-      <button class="modal-btn secondary" data-action="importProgress">📥 Import Report</button>
-      <button class="modal-btn secondary" data-action="clearProgress" style="color:var(--pauta-primary-light)">🗑 Clear All</button>
+      <button class="modal-btn primary" data-action="exportProgress">Export Report</button>
+      <button class="modal-btn secondary" data-action="importProgress">Import Report</button>
+      <button class="modal-btn secondary" data-action="clearProgress" style="color:var(--pauta-primary-light)">Clear All</button>
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
   `);
@@ -13062,13 +13509,13 @@ function showTeacherDashboard() {
   const studentNames = Object.keys(imported);
   if (!studentNames.length) {
     UI.makeModal(`
-      <h2>👩‍🏫 Teacher Dashboard</h2>
+      <h2>Teacher Dashboard</h2>
       <p style="color:var(--pauta-text-muted);font-size:13px;text-align:center;margin:12px 0">
         No imported reports yet.<br>
         Ask students to export their progress from <b>Exercises → My Progress → Export Report</b>,<br>
         then use <b>Import Report</b> here.
       </p>
-      <button class="modal-btn primary" data-action="importProgress">📥 Import Report</button>
+      <button class="modal-btn primary" data-action="importProgress">Import Report</button>
       <button class="modal-btn secondary" data-action="closeModal">Close</button>
     `);
     return;
@@ -13103,14 +13550,14 @@ function showTeacherDashboard() {
   }).join('');
 
   UI.makeModal(`
-    <h2>👩‍🏫 Teacher Dashboard</h2>
+    <h2>Teacher Dashboard</h2>
     <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">
       ${studentNames.length} student(s) · ${imported[studentNames[0]]?.length || 0} total submissions
     </div>
     <div style="flex-shrink:0;max-height:300px;overflow-y:auto;margin-bottom:8px">${rows}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="modal-btn primary" data-action="importProgress">📥 Import Report</button>
-      <button class="modal-btn secondary" data-action="clearAllImported" style="color:var(--pauta-primary-light)">🗑 Clear All</button>
+      <button class="modal-btn primary" data-action="importProgress">Import Report</button>
+      <button class="modal-btn secondary" data-action="clearAllImported" style="color:var(--pauta-primary-light)">Clear All</button>
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
   `);
@@ -13142,7 +13589,7 @@ const STARTER_TEMPLATES = [
 function showStarterAssignmentsDialog() {
   if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   UI.makeModal(`
-    <h2>📋 Starter Assignments</h2>
+    <h2>Starter Assignments</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:10px">
       Download ready-made exercise files (.mscx) for your students.
       Each file includes an answer key where applicable —
@@ -13205,8 +13652,8 @@ function showExerciseBuilderDialog() {
               <div style="font-weight:600;font-size:12px;color:var(--pauta-text)">${UI.escHtml(ex.name)}</div>
               <div style="font-size:10px;color:rgba(74,85,104,0.6)">${ex.exercises.length} exercises · ${ex.difficulty}</div>
             </div>
-            <button class="modal-btn secondary" data-action="exportCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px">📤</button>
-            <button class="modal-btn secondary" data-action="deleteCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px;color:var(--pauta-primary-light)">🗑</button>
+            <button class="modal-btn secondary" data-action="exportCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px">Export</button>
+            <button class="modal-btn secondary" data-action="deleteCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px;color:var(--pauta-primary-light)">Delete</button>
           </div>
         `).join('')}
       </div>
@@ -13214,7 +13661,7 @@ function showExerciseBuilderDialog() {
   ` : '';
 
   UI.makeModal(`
-    <h2>🛠 Exercise Builder</h2>
+    <h2>Exercise Builder</h2>
     ${existingHtml}
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Exercise Set Name</div>
@@ -13247,8 +13694,8 @@ function showExerciseBuilderDialog() {
       `).join('')}
     </div>
     <div style="display:flex;gap:6px">
-      <button class="modal-btn primary" id="exb-save">💾 Save Set</button>
-      <button class="modal-btn secondary" id="exb-export">📤 Export JSON</button>
+      <button class="modal-btn primary" id="exb-save">Save Set</button>
+      <button class="modal-btn secondary" id="exb-export">Export JSON</button>
       <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
     </div>
   `);
@@ -13542,7 +13989,7 @@ function showStarterPreviewDialog(exercises, label) {
   const count = exercises.length;
   const fileLabel = count === 1 ? exercises[0].title : label;
   UI.makeModal(`
-    <h2>📋 ${UI.escHtml(label)}</h2>
+    <h2>${UI.escHtml(label)}</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px">
       ${count} exercise${count > 1 ? 's' : ''} generated with the selected clef.
     </p>
@@ -13555,7 +14002,7 @@ function showStarterPreviewDialog(exercises, label) {
       `).join('')}
     </div>
     <div style="display:flex;gap:8px">
-      <button class="modal-btn primary" data-action="confirmStarterDownload" style="flex:1">📥 Download .mscx</button>
+      <button class="modal-btn primary" data-action="confirmStarterDownload" style="flex:1">Download .mscx</button>
       <button class="modal-btn secondary" data-action="previewStarterScore">Preview in Pauta</button>
       <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
     </div>
@@ -13663,7 +14110,7 @@ const DIAG_PLACEMENTS = [
 function showDiagnosticDialog() {
   if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   UI.makeModal(`
-    <h2>🧪 Diagnostic Assessment</h2>
+    <h2>Diagnostic Assessment</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;text-align:center;line-height:1.6;margin:8px 0">
       A quick 5-minute placement test covering<Br>
       <b>notes</b> · <b>intervals</b> · <b>key signatures</b> · <b>rhythm</b>
@@ -13823,7 +14270,7 @@ function _finishDiagnostic() {
   _validateModeState();
 
   UI.makeModal(`
-    <h2>🧪 Assessment Complete</h2>
+    <h2>Assessment Complete</h2>
     <div style="text-align:center;margin-bottom:10px">
       <div style="font-size:38px;font-weight:700;color:var(--pauta-primary)">${pct}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted)">${totalCorrect}/${totalQs} correct · ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
@@ -14004,7 +14451,7 @@ function _restorePalette() {
 function showRhythmComposer() {
   if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   UI.makeModal(`
-    <h2 style="font-size:15px;margin-bottom:6px">🥁 Rhythm Composer</h2>
+    <h2 style="font-size:15px;margin-bottom:6px">Rhythm Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Time:</span>
       <select id="rc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
@@ -14150,7 +14597,7 @@ function showMelodyComposer() {
   ).join('');
 
   UI.makeModal(`
-    <h2 style="font-size:15px;margin-bottom:6px">🎵 Melody Composer</h2>
+    <h2 style="font-size:15px;margin-bottom:6px">Melody Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Key:</span>
       <select id="mc-ks" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">${ksOpts}</select>
@@ -14194,7 +14641,7 @@ function startMelodyComposer() {
 
   UI.closeModal();
   _enterMelodyMode(ks);
-  UI.showToast('🎵 Tap a scale degree, then click staff to place notes. ✕ to exit.');
+  UI.showToast('Tap a scale degree, then click staff to place notes. ✕ to exit.');
 }
 
 function _enterMelodyMode(ks) {
@@ -14912,14 +15359,23 @@ function showWelcomeModal() {
   const seen = localStorage.getItem('pauta_welcome_seen');
   if (seen) return;
   UI.makeModal(`
-    <h2>Welcome to Pauta</h2>
-    <div style="font-size:13px;color:var(--pauta-text-muted);line-height:1.5;margin-bottom:14px">
-      <p>What would you like to do?</p>
-    </div>
-    <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:8px;width:100%">🎓 I'm a student — start exercises</button>
-    <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%">🎼 I'm composing — open the editor</button>
-    <div style="margin-top:8px;font-size:12px;color:rgba(74,85,104,0.7)">
-      You can change your mind anytime via the View menu.
+    <div style="text-align:center;padding:4px 0">
+      <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
+      <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:18px">Welcome! What would you like to do today?</div>
+
+      <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:10px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="font-size:22px">&#9835;</span>
+        <span>I want to learn music!</span>
+      </button>
+
+      <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="font-size:20px;font-weight:700">&#9998;</span>
+        <span>I want to write music!</span>
+      </button>
+
+      <div style="margin-top:6px;font-size:11px;color:var(--pauta-text-subtle)">
+        You can change your mind anytime in the View menu.
+      </div>
     </div>
   `);
 }
@@ -15609,7 +16065,7 @@ function _startPracticeMode() {
   const ok = _practiceAdvance();
   if (!ok) { APP.practiceMode = false; return; }
 
-  UI.showToast('Practice mode ON — play each highlighted note');
+  UI.showToast('Practice time! Play each highlighted note on your instrument');
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.add('active');
   updateModeBanner();
@@ -15625,7 +16081,7 @@ function _stopPracticeMode() {
   APP._practiceTargetPitch = null;
   const btn = document.getElementById('btn-practice');
   if (btn) btn.classList.remove('active');
-  UI.showToast('Practice mode OFF');
+  UI.showToast('Practice finished — great work!');
   updateModeBanner();
   _stopPracticePitchDetection();
   _stopPracticeMetronome();
@@ -15883,7 +16339,7 @@ function startPitchDetection(pitchCallback, levelCallback) {
     })
     .catch(err => {
       console.warn('Microphone access denied:', err);
-      UI.showToast('Microphone access required for pitch detection');
+      UI.showToast('Microphone access is needed for pitch detection');
     });
 }
 
@@ -15988,7 +16444,7 @@ function _renderPracticeStats() {
   const elapsed = Math.round((Date.now() - stats.startTime) / 1000);
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
-  const streak = stats.streak > 0 ? ` 🔥${stats.streak}` : '';
+  const streak = stats.streak > 0 ? ` (streak ${stats.streak})` : '';
   document.getElementById('st-practice-stats').textContent = 
     `${stats.correct}/${total} (${accuracy}%) ${mm}:${ss}${streak}`;
 }
@@ -16003,13 +16459,13 @@ function _showPracticeResults() {
   const ss = String(elapsed % 60).padStart(2, '0');
 
   const details = [
-    `✅ Correct: ${stats.correct}`,
-    `❌ Incorrect: ${stats.incorrect}`,
+    `Correct: ${stats.correct}`,
+    `Incorrect: ${stats.incorrect}`,
     `↕ Octave: ${stats.octaveDisplacement}`,
     `↗↘ Near miss: ${stats.nearMiss}`,
-    `🔥 Max streak: ${stats.maxStreak}`,
-    `⏱ Time: ${mm}:${ss}`,
-    `📊 Accuracy: ${accuracy}%`
+    `Max streak: ${stats.maxStreak}`,
+    `Time: ${mm}:${ss}`,
+    `Accuracy: ${accuracy}%`
   ].join('\n');
 
   UI.showToast(`Practice complete! ${accuracy}% accuracy (${stats.correct}/${total})`, 5000);
@@ -16562,7 +17018,7 @@ function renderRehearsalMarks() {
 
 // ── Help Tips ───────────────────────────────────────────────────
 const HELP_TIPS = [
-  { q: 'How do I add a note?', a: 'Tap ✏️ Input, then tap a note name (C, D, E…) in the palette. The note is inserted at the selected measure.' },
+  { q: 'How do I add a note?', a: 'Tap Input, then tap a note name (C, D, E…) in the palette. The note is inserted at the selected measure.' },
   { q: 'How do I change a note\'s pitch?', a: 'Select the note (tap it on the score), then tap a different note name in the palette.' },
   { q: 'How do I add a rest?', a: 'Tap the rest button (𝄽) in the palette while in input mode, or press the 0 key.' },
   { q: 'How do I play back the score?', a: 'Press Space or tap the ▶ button in the transport bar.' },
@@ -16951,10 +17407,10 @@ function showViewMenu(btn) {
     {label:`${APP.continuousView?'✓':'○'} Continuous View`, fn:toggleContinuousView},
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
-    {label:`${APP.showTheoryOverlay?'✓':'○'} 🎼 Theory Overlay`, fn:toggleTheoryOverlay},
+    {label:`${APP.showTheoryOverlay?'✓':'○'} Theory Overlay`, fn:toggleTheoryOverlay},
     {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
     {sep:true},
-    {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
+    {label:'Difficulty Profile', fn:showProfileSubmenu},
   ];
   showDropdown(btn, items);
 }
@@ -17373,12 +17829,12 @@ function showAssignmentSubmenu() {
       items.push({label:`${completed?'✓':'○'} ${a.title}`, fn:()=>startAssignment(a.id)});
     });
     items.push({sep:true});
-    items.push({label:'➕ New Assignment', fn:showAssignmentDialog});
+    items.push({label:'+ New Assignment', fn:showAssignmentDialog});
   } else {
-    items.push({label:'✅ Check Answers', fn:checkAssignmentAnswers});
-    items.push({label:'📤 Submit Assignment', fn:submitAssignment});
+    items.push({label:'Check Answers', fn:checkAssignmentAnswers});
+    items.push({label:'Submit Assignment', fn:submitAssignment});
     items.push({sep:true});
-    items.push({label:'🚪 Exit Assignment Mode', fn:exitAssignmentMode, danger:true});
+    items.push({label:'Exit Assignment Mode', fn:exitAssignmentMode, danger:true});
   }
   showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
@@ -17788,7 +18244,7 @@ function _renderNewScoreDialog(restoreScroll) {
 
     \x3C!-- Quick Start --\x3E
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
-      <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">🎹 Piano</button>
+      <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">Piano</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Treble</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="bass">𝄢 Bass</button>
       <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;margin-left:4px">or pick below</span>
@@ -18215,31 +18671,31 @@ function updateModeBanner() {
   if (!banner) return;
   let mode = null, label = '', bg = '', color = '';
   if (APP.practiceMode) {
-    mode = 'practice'; label = '🎯 Practice Mode — play each highlighted note'; bg = 'rgba(34,197,94,0.15)'; color = '#16a34a';
+    mode = 'practice'; label = '\u266A Practice Mode \u2014 play each highlighted note'; bg = 'rgba(34,197,94,0.15)'; color = '#16a34a';
   } else if (APP.exerciseMode) {
-    mode = 'exercise'; label = '📝 Exercise Mode — answer the questions'; bg = 'rgba(74,85,104,0.10)'; color = '#4a5568';
+    mode = 'exercise'; label = '\u270E Exercise Mode \u2014 answer the questions'; bg = 'rgba(132,204,22,0.12)'; color = '#65a30d';
   } else if (APP.assignmentMode) {
-    mode = 'assignment'; label = '📋 Assignment Mode — complete your assignment'; bg = 'rgba(59,130,246,0.12)'; color = '#2563eb';
+    mode = 'assignment'; label = '\u2713 Assignment Mode \u2014 complete your assignment'; bg = 'rgba(59,130,246,0.12)'; color = '#2563eb';
   } else if (APP.inputMode) {
-    mode = 'input'; label = '✏️ Note Input — tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
+    mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
   } else if (APP.chordMode) {
-    mode = 'chord'; label = '🎵 Chord Mode — add notes to the selected beat'; bg = 'rgba(0,150,136,0.12)'; color = '#009688';
+    mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat'; bg = 'rgba(236,72,153,0.12)'; color = '#db2777';
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
-    mode = 'marking'; label = `🔗 ${markLabels[APP.markingMode] || 'Mark'} — now select the END note`; bg = 'rgba(147,51,234,0.12)'; color = '#9333ea';
+    mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`; bg = 'rgba(168,85,247,0.12)'; color = '#9333ea';
   } else if (APP.compositionMode === 'rhythm') {
-    mode = 'composition-rhythm'; label = '🎵 Rhythm Composition — tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
+    mode = 'composition-rhythm'; label = '\u266A Rhythm Composition \u2014 tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
   } else if (APP.compositionMode === 'melody') {
-    mode = 'composition-melody'; label = '🎵 Melody Composition — choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
+    mode = 'composition-melody'; label = '\u266B Melody Composition \u2014 choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
   }
   if (mode) {
     banner.style.display = 'block';
     banner.style.background = bg;
     banner.style.color = color;
-    banner.textContent = label;
+    banner.innerHTML = label;
   } else {
     banner.style.display = 'none';
-    banner.textContent = '';
+    banner.innerHTML = '';
   }
 }
 

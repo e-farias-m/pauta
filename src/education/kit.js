@@ -157,7 +157,7 @@ function checkAssignmentAnswers() {
     </div>
     <div style="flex-shrink:0;max-height:200px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px">
       ${results.details.map(d => `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
-        <span style="width:16px;text-align:center;font-size:14px">${d.ok?'🟢':'🔴'}</span>
+        <span style="width:16px;text-align:center;font-size:14px">${d.ok?'✓':'✗'}</span>
         Measure ${d.mi+1}, note ${d.ni+1}: ${d.msg}
       </div>`).join('')}
     </div>
@@ -429,14 +429,14 @@ function showStudentProgress() {
 
   // Mastery badges
   const badges = [];
-  if (overallPct >= 90) badges.push({ emoji: '🏆', label: '90%+ Overall', color: 'var(--pauta-primary)' });
-  if (bestStreak >= 10) badges.push({ emoji: '🔥', label: '10+ Streak', color: 'var(--pauta-primary-light)' });
-  if (totalSessions >= 50) badges.push({ emoji: '⭐', label: '50+ Sessions', color: 'var(--pauta-warning)' });
-  if (totalSessions >= 100) badges.push({ emoji: '🌟', label: '100+ Sessions', color: 'var(--pauta-success)' });
+  if (overallPct >= 90) badges.push({ emoji: '', label: '90%+ Overall', color: 'var(--pauta-primary)' });
+  if (bestStreak >= 10) badges.push({ emoji: '', label: '10+ Streak', color: 'var(--pauta-primary-light)' });
+  if (totalSessions >= 50) badges.push({ emoji: '', label: '50+ Sessions', color: 'var(--pauta-warning)' });
+  if (totalSessions >= 100) badges.push({ emoji: '', label: '100+ Sessions', color: 'var(--pauta-success)' });
   Object.keys(byType).forEach(type => {
     const avg = Math.round(byType[type].reduce((s, x) => s + x.pct, 0) / byType[type].length);
     if (avg >= 85 && byType[type].length >= 5) {
-      badges.push({ emoji: '🎯', label: `${TYPE_LABELS[type]} Master`, color: 'var(--pauta-success)' });
+      badges.push({ emoji: '', label: `${TYPE_LABELS[type]} Master`, color: 'var(--pauta-success)' });
     }
   });
 
@@ -455,7 +455,7 @@ function showStudentProgress() {
     : totalTime >= 60 ? `${Math.floor(totalTime/60)}m ${totalTime%60}s` : `${totalTime}s`;
 
   UI.makeModal(`
-    <h2>📊 My Progress</h2>
+    <h2>My Progress</h2>
     <div style="text-align:center;margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px">
         <div style="text-align:center">
@@ -472,9 +472,9 @@ function showStudentProgress() {
         </div>
       </div>
       <div style="display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">
-        <span>🔥 Current streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}</span>
-        <span>🔥 Best streak: ${bestStreak}</span>
-        <span>⏱ Total time: ${timeStr}</span>
+        <span>Current streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}</span>
+        <span>Best streak: ${bestStreak}</span>
+        <span>Total time: ${timeStr}</span>
       </div>
     </div>
     ${badges.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
@@ -500,9 +500,9 @@ function showStudentProgress() {
       ${typeHtml}
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="modal-btn primary" data-action="exportProgress">📤 Export Report</button>
-      <button class="modal-btn secondary" data-action="importProgress">📥 Import Report</button>
-      <button class="modal-btn secondary" data-action="clearProgress" style="color:var(--pauta-primary-light)">🗑 Clear All</button>
+      <button class="modal-btn primary" data-action="exportProgress">Export Report</button>
+      <button class="modal-btn secondary" data-action="importProgress">Import Report</button>
+      <button class="modal-btn secondary" data-action="clearProgress" style="color:var(--pauta-primary-light)">Clear All</button>
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
   `);
@@ -563,13 +563,13 @@ function showTeacherDashboard() {
   const studentNames = Object.keys(imported);
   if (!studentNames.length) {
     UI.makeModal(`
-      <h2>👩‍🏫 Teacher Dashboard</h2>
+      <h2>Teacher Dashboard</h2>
       <p style="color:var(--pauta-text-muted);font-size:13px;text-align:center;margin:12px 0">
         No imported reports yet.<br>
         Ask students to export their progress from <b>Exercises → My Progress → Export Report</b>,<br>
         then use <b>Import Report</b> here.
       </p>
-      <button class="modal-btn primary" data-action="importProgress">📥 Import Report</button>
+      <button class="modal-btn primary" data-action="importProgress">Import Report</button>
       <button class="modal-btn secondary" data-action="closeModal">Close</button>
     `);
     return;
@@ -604,14 +604,14 @@ function showTeacherDashboard() {
   }).join('');
 
   UI.makeModal(`
-    <h2>👩‍🏫 Teacher Dashboard</h2>
+    <h2>Teacher Dashboard</h2>
     <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">
       ${studentNames.length} student(s) · ${imported[studentNames[0]]?.length || 0} total submissions
     </div>
     <div style="flex-shrink:0;max-height:300px;overflow-y:auto;margin-bottom:8px">${rows}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="modal-btn primary" data-action="importProgress">📥 Import Report</button>
-      <button class="modal-btn secondary" data-action="clearAllImported" style="color:var(--pauta-primary-light)">🗑 Clear All</button>
+      <button class="modal-btn primary" data-action="importProgress">Import Report</button>
+      <button class="modal-btn secondary" data-action="clearAllImported" style="color:var(--pauta-primary-light)">Clear All</button>
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
   `);
@@ -643,7 +643,7 @@ const STARTER_TEMPLATES = [
 function showStarterAssignmentsDialog() {
   if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   UI.makeModal(`
-    <h2>📋 Starter Assignments</h2>
+    <h2>Starter Assignments</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:10px">
       Download ready-made exercise files (.mscx) for your students.
       Each file includes an answer key where applicable —
@@ -706,8 +706,8 @@ function showExerciseBuilderDialog() {
               <div style="font-weight:600;font-size:12px;color:var(--pauta-text)">${UI.escHtml(ex.name)}</div>
               <div style="font-size:10px;color:rgba(74,85,104,0.6)">${ex.exercises.length} exercises · ${ex.difficulty}</div>
             </div>
-            <button class="modal-btn secondary" data-action="exportCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px">📤</button>
-            <button class="modal-btn secondary" data-action="deleteCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px;color:var(--pauta-primary-light)">🗑</button>
+            <button class="modal-btn secondary" data-action="exportCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px">Export</button>
+            <button class="modal-btn secondary" data-action="deleteCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px;color:var(--pauta-primary-light)">Delete</button>
           </div>
         `).join('')}
       </div>
@@ -715,7 +715,7 @@ function showExerciseBuilderDialog() {
   ` : '';
 
   UI.makeModal(`
-    <h2>🛠 Exercise Builder</h2>
+    <h2>Exercise Builder</h2>
     ${existingHtml}
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Exercise Set Name</div>
@@ -748,8 +748,8 @@ function showExerciseBuilderDialog() {
       `).join('')}
     </div>
     <div style="display:flex;gap:6px">
-      <button class="modal-btn primary" id="exb-save">💾 Save Set</button>
-      <button class="modal-btn secondary" id="exb-export">📤 Export JSON</button>
+      <button class="modal-btn primary" id="exb-save">Save Set</button>
+      <button class="modal-btn secondary" id="exb-export">Export JSON</button>
       <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
     </div>
   `);
@@ -1043,7 +1043,7 @@ function showStarterPreviewDialog(exercises, label) {
   const count = exercises.length;
   const fileLabel = count === 1 ? exercises[0].title : label;
   UI.makeModal(`
-    <h2>📋 ${UI.escHtml(label)}</h2>
+    <h2>${UI.escHtml(label)}</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px">
       ${count} exercise${count > 1 ? 's' : ''} generated with the selected clef.
     </p>
@@ -1056,7 +1056,7 @@ function showStarterPreviewDialog(exercises, label) {
       `).join('')}
     </div>
     <div style="display:flex;gap:8px">
-      <button class="modal-btn primary" data-action="confirmStarterDownload" style="flex:1">📥 Download .mscx</button>
+      <button class="modal-btn primary" data-action="confirmStarterDownload" style="flex:1">Download .mscx</button>
       <button class="modal-btn secondary" data-action="previewStarterScore">Preview in Pauta</button>
       <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
     </div>
@@ -1164,7 +1164,7 @@ const DIAG_PLACEMENTS = [
 function showDiagnosticDialog() {
   if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   UI.makeModal(`
-    <h2>🧪 Diagnostic Assessment</h2>
+    <h2>Diagnostic Assessment</h2>
     <p style="color:var(--pauta-text-muted);font-size:13px;text-align:center;line-height:1.6;margin:8px 0">
       A quick 5-minute placement test covering<Br>
       <b>notes</b> · <b>intervals</b> · <b>key signatures</b> · <b>rhythm</b>
@@ -1324,7 +1324,7 @@ function _finishDiagnostic() {
   _validateModeState();
 
   UI.makeModal(`
-    <h2>🧪 Assessment Complete</h2>
+    <h2>Assessment Complete</h2>
     <div style="text-align:center;margin-bottom:10px">
       <div style="font-size:38px;font-weight:700;color:var(--pauta-primary)">${pct}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted)">${totalCorrect}/${totalQs} correct · ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
@@ -1505,7 +1505,7 @@ function _restorePalette() {
 function showRhythmComposer() {
   if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
   UI.makeModal(`
-    <h2 style="font-size:15px;margin-bottom:6px">🥁 Rhythm Composer</h2>
+    <h2 style="font-size:15px;margin-bottom:6px">Rhythm Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Time:</span>
       <select id="rc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
@@ -1651,7 +1651,7 @@ function showMelodyComposer() {
   ).join('');
 
   UI.makeModal(`
-    <h2 style="font-size:15px;margin-bottom:6px">🎵 Melody Composer</h2>
+    <h2 style="font-size:15px;margin-bottom:6px">Melody Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Key:</span>
       <select id="mc-ks" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">${ksOpts}</select>
@@ -1695,7 +1695,7 @@ function startMelodyComposer() {
 
   UI.closeModal();
   _enterMelodyMode(ks);
-  UI.showToast('🎵 Tap a scale degree, then click staff to place notes. ✕ to exit.');
+  UI.showToast('Tap a scale degree, then click staff to place notes. ✕ to exit.');
 }
 
 function _enterMelodyMode(ks) {

@@ -749,7 +749,7 @@ function insertNoteByName(name) {
 function insertRest() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (!APP.inputMode) {
-    UI.showToast('Tap ✏️ Input first to enter note-input mode');
+    UI.showToast('Tap Input first to enter note-input mode');
     return;
   }
   APP.curRest = true;
@@ -783,7 +783,7 @@ function changePitchOfSelected(name) {
     n.type = 'note';
     n.pitch = 60; // placeholder, will be set below
   } else if (n.type === 'rest') {
-    UI.showToast('Select a note (not a rest) to change pitch'); return;
+    UI.showToast('Pick a note first (not a rest)'); return;
   }
 
   let pc = NAME_TO_PC[name];
@@ -1331,7 +1331,7 @@ function toggleInputMode() {
   }
   const btn = document.getElementById('btn-input-mode');
   btn.classList.toggle('active', APP.inputMode);
-  btn.textContent = APP.inputMode ? '⏹ Input' : '✏️ Input';
+  btn.textContent = APP.inputMode ? 'Stop Input' : 'Input';
   document.getElementById('score-svg').style.cursor = APP.inputMode ? 'crosshair' : 'pointer';
   document.getElementById('st-mode').textContent = APP.inputMode ? 'Note input' : 'Select';
   document.getElementById('note-row').style.opacity = APP.inputMode ? '1' : '0.4';
@@ -1468,7 +1468,7 @@ function toggleLineBreak() {
   const newVal = !measure.lineBreak;
   SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves[0].measures[mi].lineBreak = newVal);
-  }, { toast: newVal ? '⏎ Line break' : 'Line break removed' });
+  }, { toast: newVal ? 'Line break' : 'Line break removed' });
 }
 
 function toggleContinuousView() {

@@ -19,6 +19,14 @@
 
 <!-- Top Bar -->
 <div id="topbar">
+  <button class="btn-top" data-action="showExerciseDialog" title="Practice Gym" style="padding:8px 10px">
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9 L10 2 L17 9"/>
+      <path d="M5 7 L5 17 L15 17 L15 7"/>
+      <rect x="8" y="12" width="4" height="5"/>
+    </svg>
+    <span>Home</span>
+  </button>
   <button class="btn-top" data-action="showNewScoreDialog" title="New score" style="padding:8px 12px;gap:4px"><span style="font-size:16px;font-weight:300">+</span><span style="font-size:11px">New</span></button>
   <button class="btn-top" data-action="showFileMenu" title="Open, save, export scores">
     <svg width="14" height="14" viewBox="0 0 20 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -355,11 +363,11 @@
     <button class="zoom-btn reset" data-action="zoomReset" aria-label="Reset zoom">⟲</button>
   </div>
   <div id="st-mode" class="status-item">Select</div>
-  <span id="st-badge-theory" class="st-badge" style="display:none">🎼</span>
+  <span id="st-badge-theory" class="st-badge" style="display:none">♩</span>
   <span id="st-badge-rhythm" class="st-badge" style="display:none">𝅘𝅥𝅮</span>
   <span id="st-badge-continuous" class="st-badge" style="display:none">↔</span>
   <div id="st-practice" class="status-item" style="display:none">
-    <span id="st-practice-icon">🎯</span>
+    <span id="st-practice-icon">▶</span>
     <span id="st-practice-text">Practice</span>
     <span id="st-practice-stats" style="margin-left:8px;font-size:11px;color:rgba(74,85,104,0.7)"></span>
   </div>
@@ -448,53 +456,265 @@
   </div>
 
   <!-- Articulations panel -->
+  <div class="panel-page" id="panel-artic">
+    <div class="panel-title">Articulations</div>
+    <div class="panel-section-label">Common</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Staccato" data-action="applyArticulation" data-type="staccato"><span class="panel-sym">·</span><span class="panel-lbl">Staccato</span></button>
+      <button class="panel-btn" aria-label="Accent" data-action="applyArticulation" data-type="accent"><span class="panel-sym" style="font-size:13px">&gt;</span><span class="panel-lbl">Accent</span></button>
+      <button class="panel-btn" aria-label="Tenuto" data-action="applyArticulation" data-type="tenuto"><span class="panel-sym" style="font-size:13px">—</span><span class="panel-lbl">Tenuto</span></button>
+      <button class="panel-btn" aria-label="Marcato" data-action="applyArticulation" data-type="marcato"><span class="panel-sym" style="font-size:13px">^</span><span class="panel-lbl">Marcato</span></button>
+    </div>
+    <div class="panel-section-label">Combinations</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Portato" data-action="applyArticulation" data-type="staccato+tenuto"><span class="panel-sym" style="font-size:11px">·—</span><span class="panel-lbl">Portato</span></button>
+      <button class="panel-btn" aria-label="Tenuto accent" data-action="applyArticulation" data-type="tenuto+accent"><span class="panel-sym" style="font-size:11px">—&gt;</span><span class="panel-lbl">Ten.+Acc.</span></button>
+      <button class="panel-btn" aria-label="Staccato accent" data-action="applyArticulation" data-type="staccato+accent"><span class="panel-sym" style="font-size:11px">·&gt;</span><span class="panel-lbl">Stacc.+Acc.</span></button>
+      <button class="panel-btn" aria-label="Martellato" data-action="applyArticulation" data-type="marcato+staccato"><span class="panel-sym" style="font-size:11px">^·</span><span class="panel-lbl">Martellato</span></button>
+    </div>
+    <div class="panel-section-label">Other</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Fermata" data-action="applyArticulation" data-type="fermata"><span class="panel-sym">𝄐</span><span class="panel-lbl">Fermata</span></button>
+      <button class="panel-btn" aria-label="Staccatissimo" data-action="applyArticulation" data-type="staccatissimo"><span class="panel-sym" style="font-size:18px">▾</span><span class="panel-lbl">Staccatiss.</span></button>
+      <button class="panel-btn" aria-label="Trill" data-action="applyArticulation" data-type="trill"><span class="panel-sym" style="font-size:12px">tr~</span><span class="panel-lbl">Trill</span></button>
+      <button class="panel-btn" aria-label="Remove articulation" data-action="applyArticulation" data-type=""><span class="panel-sym" style="font-size:12px">✕</span><span class="panel-lbl">Remove</span></button>
+    </div>
+    <div class="panel-section-label">Fingering</div>
+    <p style="color:var(--pal-label);font-size:10px;line-height:1.4;margin-bottom:5px">
+      Select a note, then tap a number to add or remove fingering.</p>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Fingering thumb" data-action="applyFingering" data-f="1"><span class="panel-sym" style="font-size:14px;font-weight:700">1</span><span class="panel-lbl">Thumb</span></button>
+      <button class="panel-btn" aria-label="Fingering index" data-action="applyFingering" data-f="2"><span class="panel-sym" style="font-size:14px;font-weight:700">2</span><span class="panel-lbl">Index</span></button>
+      <button class="panel-btn" aria-label="Fingering middle" data-action="applyFingering" data-f="3"><span class="panel-sym" style="font-size:14px;font-weight:700">3</span><span class="panel-lbl">Middle</span></button>
+      <button class="panel-btn" aria-label="Fingering ring" data-action="applyFingering" data-f="4"><span class="panel-sym" style="font-size:14px;font-weight:700">4</span><span class="panel-lbl">Ring</span></button>
+      <button class="panel-btn" aria-label="Fingering pinky" data-action="applyFingering" data-f="5"><span class="panel-sym" style="font-size:14px;font-weight:700">5</span><span class="panel-lbl">Pinky</span></button>
+      <button class="panel-btn" aria-label="Remove fingering" data-action="applyFingering" data-f="" style="background:rgba(240,120,96,0.10);border-color:rgba(240,120,96,0.30);color:#f07860">
+        <span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span>
+      </button>
+    </div>
+  </div>
 
+  <!-- Lines panel -->
+  <div class="panel-page" id="panel-lines">
+    <div class="panel-title">Lines</div>
+    <div class="panel-section-label">Phrase</div>
+    <div class="panel-grid">
+      <button class="panel-btn" id="btn-tie"   aria-label="Tie notes" data-action="startMarking" data-type="tie"><span class="panel-sym">⌢</span><span class="panel-lbl">Tie</span></button>
+      <button class="panel-btn" id="btn-slur"  aria-label="Slur notes" data-action="startMarking" data-type="slur"><span class="panel-sym">⌣</span><span class="panel-lbl">Slur</span></button>
+      <button class="panel-btn" id="btn-cresc" aria-label="Crescendo" data-action="startMarking" data-type="cresc"><span class="panel-sym" style="font-size:0">
+        <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 17,8 1,14"/></svg>
+      </span><span class="panel-lbl">Cresc</span></button>
+      <button class="panel-btn" id="btn-dim"   aria-label="Diminuendo" data-action="startMarking" data-type="dim"><span class="panel-sym" style="font-size:0">
+        <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17,2 1,8 17,14"/></svg>
+      </span><span class="panel-lbl">Dim</span></button>
+    </div>
+  </div>
 
+  <!-- Clef panel -->
+  <div class="panel-page" id="panel-clef">
+    <div class="panel-title">Clef</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Treble clef" data-action="applyClefChange" data-type="treble">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄞</span>
+        <span class="panel-lbl">Treble</span>
+      </button>
+      <button class="panel-btn" aria-label="Bass clef" data-action="applyClefChange" data-type="bass">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄢</span>
+        <span class="panel-lbl">Bass</span>
+      </button>
+      <button class="panel-btn" aria-label="Alto C clef" data-action="applyClefChange" data-type="alto">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
+        <span class="panel-lbl">Alto</span>
+      </button>
+      <button class="panel-btn" aria-label="Tenor C clef" data-action="applyClefChange" data-type="tenor">
+        <span class="panel-sym" style="font-size:22px;font-family:serif;line-height:1">𝄡</span>
+        <span class="panel-lbl">Tenor</span>
+      </button>
+      <button class="panel-btn" aria-label="Percussion clef" data-action="applyClefChange" data-type="percussion">
+        <span class="panel-sym" style="font-size:0">
+          <svg viewBox="0 0 20 28" width="20" height="28" fill="currentColor">
+            <rect x="5" y="3" width="3.5" height="22" rx="1.2"/>
+            <rect x="12" y="3" width="3.5" height="22" rx="1.2"/>
+          </svg>
+        </span>
+        <span class="panel-lbl">Percussion</span>
+      </button>
+      <button class="panel-btn" aria-label="Remove clef" data-action="applyClefChange" data-type="" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060">
+        <span class="panel-sym" style="font-size:11px">✕</span>
+        <span class="panel-lbl">Remove</span>
+      </button>
+    </div>
+    <div class="panel-section-label">Key Signature</div>
+    <div class="panel-grid" style="grid-template-columns:repeat(5,1fr)">
+      <button class="panel-btn" aria-label="Key of F major 1 flat" data-action="applyKeySig" data-ks="-1"><span class="panel-sym" style="font-size:13px;font-weight:700">F</span><span class="panel-lbl">1♭</span></button>
+      <button class="panel-btn" aria-label="Key of B flat major 2 flats" data-action="applyKeySig" data-ks="-2"><span class="panel-sym" style="font-size:13px;font-weight:700">B♭</span><span class="panel-lbl">2♭</span></button>
+      <button class="panel-btn" aria-label="Key of E flat major 3 flats" data-action="applyKeySig" data-ks="-3"><span class="panel-sym" style="font-size:13px;font-weight:700">E♭</span><span class="panel-lbl">3♭</span></button>
+      <button class="panel-btn" aria-label="Key of A flat major 4 flats" data-action="applyKeySig" data-ks="-4"><span class="panel-sym" style="font-size:13px;font-weight:700">A♭</span><span class="panel-lbl">4♭</span></button>
+      <button class="panel-btn" aria-label="Key of C major no sharps or flats" data-action="applyKeySig" data-ks="0"><span class="panel-sym" style="font-size:13px;font-weight:700">C</span><span class="panel-lbl">♮</span></button>
+      <button class="panel-btn" aria-label="Key of G major 1 sharp" data-action="applyKeySig" data-ks="1"><span class="panel-sym" style="font-size:13px;font-weight:700">G</span><span class="panel-lbl">1♯</span></button>
+      <button class="panel-btn" aria-label="Key of D major 2 sharps" data-action="applyKeySig" data-ks="2"><span class="panel-sym" style="font-size:13px;font-weight:700">D</span><span class="panel-lbl">2♯</span></button>
+      <button class="panel-btn" aria-label="Key of A major 3 sharps" data-action="applyKeySig" data-ks="3"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">3♯</span></button>
+      <button class="panel-btn" aria-label="Key of E major 4 sharps" data-action="applyKeySig" data-ks="4"><span class="panel-sym" style="font-size:13px;font-weight:700">E</span><span class="panel-lbl">4♯</span></button>
+      <button class="panel-btn" aria-label="More key signatures" data-action="showKeySigDialog" style="background:rgba(212,152,74,0.1);border-color:rgba(212,152,74,0.3);color:#d4984a">
+        <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
+      </button>
+    </div>
+    <div class="panel-section-label">Time Signature</div>
+    <div class="panel-grid" style="grid-template-columns:repeat(4,1fr)">
+      <button class="panel-btn" aria-label="Time signature 2 2" data-action="applyTimeSig" data-num="2" data-den="2"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
+        </svg>
+      </span><span class="panel-lbl">2/2</span></button>
+      <button class="panel-btn" aria-label="Time signature 2 4" data-action="applyTimeSig" data-num="2" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">2</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">2/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 3 4" data-action="applyTimeSig" data-num="3" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">3/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 4 4" data-action="applyTimeSig" data-num="4" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">4/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 5 4" data-action="applyTimeSig" data-num="5" data-den="4"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">5</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">4</text>
+        </svg>
+      </span><span class="panel-lbl">5/4</span></button>
+      <button class="panel-btn" aria-label="Time signature 3 8" data-action="applyTimeSig" data-num="3" data-den="8"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">3</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
+        </svg>
+      </span><span class="panel-lbl">3/8</span></button>
+      <button class="panel-btn" aria-label="Time signature 6 8" data-action="applyTimeSig" data-num="6" data-den="8"><span class="panel-sym" style="font-size:0">
+        <svg viewBox="0 0 22 28" width="20" height="26" fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="11" y="12" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">6</text>
+          <text x="11" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" stroke="none">8</text>
+        </svg>
+      </span><span class="panel-lbl">6/8</span></button>
+      <button class="panel-btn" aria-label="More time signatures" data-action="showTimeSigDialog" style="background:rgba(212,152,74,0.1);border-color:rgba(212,152,74,0.3);color:#d4984a">
+        <span class="panel-sym" style="font-size:11px">⋯</span><span class="panel-lbl">More</span>
+      </button>
+    </div>
+  </div>
 
+  <!-- Barlines panel -->
+  <div class="panel-page" id="panel-bars">
+    <div class="panel-title">Barlines</div>
+    <div class="panel-section-label">Barline Type</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Normal barline" data-action="applyBarline" data-type="single"><span class="panel-sym" style="font-size:18px">|</span><span class="panel-lbl">Normal</span></button>
+      <button class="panel-btn" aria-label="Double barline" data-action="applyBarline" data-type="double"><span class="panel-sym" style="font-size:18px">‖</span><span class="panel-lbl">Double</span></button>
+      <button class="panel-btn" aria-label="Final barline" data-action="applyBarline" data-type="end"><span class="panel-sym" style="font-size:0">
+        <svg width="18" height="18" viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+          <line x1="2" y1="0" x2="2" y2="28"/>
+          <rect x="5" y="0" width="4" height="28" rx="0.8"/>
+        </svg>
+      </span><span class="panel-lbl">Final</span></button>
+      <button class="panel-btn" aria-label="Repeat start barline" data-action="applyBarline" data-type="repeat_begin"><span class="panel-sym" style="font-size:14px">|:</span><span class="panel-lbl">Rep. Start</span></button>
+      <button class="panel-btn" aria-label="Repeat end barline" data-action="applyBarline" data-type="repeat_end"><span class="panel-sym" style="font-size:14px">:|</span><span class="panel-lbl">Rep. End</span></button>
+      <button class="panel-btn" aria-label="Repeat both barline" data-action="applyBarline" data-type="repeat_both"><span class="panel-sym" style="font-size:14px">:|:</span><span class="panel-lbl">Rep. Both</span></button>
+    </div>
+  </div>
 
+  <!-- Tempo panel -->
+  <div class="panel-page" id="panel-tempo">
+    <div class="panel-title">Tempo</div>
+    <button class="panel-btn-wide" id="btn-tempo-toggle" data-action="toggleTempoDisplay"
+      style="margin-bottom:6px;background:rgba(212,152,74,0.12);border-color:rgba(212,152,74,0.45);color:#d4984a">
+      ✓ Show on score
+    </button>
+    <div class="panel-section-label">Slow</div>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Larghissimo" data-bpm="24">Larghissimo <span style="opacity:0.5;font-size:9px">♩=24</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Grave" data-bpm="40">Grave <span style="opacity:0.5;font-size:9px">♩=40</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Largo" data-bpm="50">Largo <span style="opacity:0.5;font-size:9px">♩=50</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Lento" data-bpm="52">Lento <span style="opacity:0.5;font-size:9px">♩=52</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Larghetto" data-bpm="60">Larghetto <span style="opacity:0.5;font-size:9px">♩=60</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagio" data-bpm="66">Adagio <span style="opacity:0.5;font-size:9px">♩=66</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Adagietto" data-bpm="72">Adagietto <span style="opacity:0.5;font-size:9px">♩=72</span></button>
+    <div class="panel-section-label">Medium</div>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andante" data-bpm="76">Andante <span style="opacity:0.5;font-size:9px">♩=76</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Andantino" data-bpm="88">Andantino <span style="opacity:0.5;font-size:9px">♩=88</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Moderato" data-bpm="96">Moderato <span style="opacity:0.5;font-size:9px">♩=96</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegretto" data-bpm="112">Allegretto <span style="opacity:0.5;font-size:9px">♩=112</span></button>
+    <div class="panel-section-label">Fast</div>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Allegro" data-bpm="132">Allegro <span style="opacity:0.5;font-size:9px">♩=132</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Vivace" data-bpm="160">Vivace <span style="opacity:0.5;font-size:9px">♩=160</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Presto" data-bpm="184">Presto <span style="opacity:0.5;font-size:9px">♩=184</span></button>
+    <button class="panel-btn-wide" data-action="applyTempo" data-name="Prestissimo" data-bpm="208">Prestissimo <span style="opacity:0.5;font-size:9px">♩=208</span></button>
+  </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  <!-- Text panel -->
+  <div class="panel-page" id="panel-text">
+    <div class="panel-title">Text</div>
+    <div class="panel-section-label">Staff Text</div>
+    <button class="panel-btn-wide" aria-label="Add staff text annotation" data-action="addStaffText">✎ Add Text Annotation</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove staff text" data-action="clearStaffText">✕ Remove Text</button>
+    <div class="panel-section-label">Chord Symbol</div>
+    <button class="panel-btn-wide" aria-label="Add or edit chord symbol" data-action="editChordSymbol">𝄢 Add / Edit Chord</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove chord symbol" data-action="clearChordSymbol">✕ Remove Chord</button>
+    <div class="panel-section-label">Rehearsal Mark</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Rehearsal mark letter" data-action="addRehearsalMark" data-type="letter"><span class="panel-sym" style="font-size:13px;font-weight:700">A</span><span class="panel-lbl">Letter</span></button>
+      <button class="panel-btn" aria-label="Rehearsal mark number" data-action="addRehearsalMark" data-type="number"><span class="panel-sym" style="font-size:13px;font-weight:700">1</span><span class="panel-lbl">Number</span></button>
+      <button class="panel-btn" aria-label="Custom rehearsal mark" data-action="editRehearsalMark"><span class="panel-sym" style="font-size:11px">✎</span><span class="panel-lbl">Custom</span></button>
+      <button class="panel-btn" aria-label="Remove rehearsal mark" data-action="clearRehearsalMark" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Remove</span></button>
+    </div>
+    <div class="panel-section-label">Navigation Markers</div>
+    <div class="panel-grid">
+      <button class="panel-btn" aria-label="Segno marker" data-action="applyMarker" data-type="segno"><span class="panel-sym" style="font-size:18px;font-family:'Bravura',serif">&#xE047;</span><span class="panel-lbl">Segno</span></button>
+      <button class="panel-btn" aria-label="Coda marker" data-action="applyMarker" data-type="coda"><span class="panel-sym" style="font-size:18px;position:relative">
+        <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;position:absolute;top:0;left:50%;transform:translateX(-50%)">
+          <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <line x1="9" y1="0" x2="9" y2="18" stroke="currentColor" stroke-width="1.6"/>
+          <line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        &#x200B;</span><span class="panel-lbl">Coda</span></button>
+      <button class="panel-btn" aria-label="Fine marker" data-action="applyMarker" data-type="fine"><span class="panel-sym" style="font-size:11px;font-style:italic;font-weight:bold">Fine</span><span class="panel-lbl">Fine</span></button>
+      <button class="panel-btn" aria-label="Da Capo" data-action="applyMarker" data-type="dc"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.C.</span><span class="panel-lbl">Da Capo</span></button>
+      <button class="panel-btn" aria-label="Dal Segno" data-action="applyMarker" data-type="ds"><span class="panel-sym" style="font-size:12px;font-style:italic;font-weight:bold">D.S.</span><span class="panel-lbl">Dal Segno</span></button>
+      <button class="panel-btn" aria-label="Clear navigation markers" data-action="clearMarker" style="background:rgba(224,112,96,0.1);border-color:rgba(224,112,96,0.3);color:#e07060"><span class="panel-sym" style="font-size:11px">✕</span><span class="panel-lbl">Clear</span></button>
+    </div>
+    <div class="panel-section-label" style="margin-top:8px">Lyrics</div>
+    <button class="panel-btn-wide" aria-label="Edit lyrics" data-action="editLyric">✎ Edit Lyric</button>
+    <button class="panel-btn-wide danger-btn" aria-label="Remove lyrics" data-action="clearLyric">✕ Remove</button>
+    <div class="panel-section-label" style="margin-top:8px">Font</div>
+    <select id="lyric-font" class="panel-select">
+      <option value="'Helvetica Neue',Helvetica,sans-serif">Helvetica</option>
+      <option value="serif">Serif</option>
+      <option value="Georgia,serif">Georgia</option>
+      <option value="'Times New Roman',serif">Times</option>
+      <option value="Arial,sans-serif">Arial</option>
+    </select>
+    <div class="panel-section-label">Size</div>
+    <select id="lyric-size" class="panel-select">
+      <option value="10">10</option>
+      <option value="11" selected>11</option>
+      <option value="12">12</option>
+      <option value="14">14</option>
+      <option value="16">16</option>
+    </select>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="panel-btn" id="btn-lyric-bold"   data-action="toggleLyricStyle" data-style="bold"   style="flex:1;font-weight:700">B</button>
+      <button class="panel-btn" id="btn-lyric-italic" data-action="toggleLyricStyle" data-style="italic" style="flex:1;font-style:italic">I</button>
+    </div>
+    <p style="color:rgba(200,192,176,0.4);font-size:10px;margin-top:8px;line-height:1.4;text-align:center">
+      Select a note, tap Edit Lyric.<br>
+      Dash (–) → next syllable<br>
+      Space → next word
+    </p>
+  </div>
 
   <!-- CSS_INJECT -->
   <!-- JS_INJECT -->

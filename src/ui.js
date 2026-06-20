@@ -518,7 +518,7 @@ function renderRehearsalMarks() {
 
 // ── Help Tips ───────────────────────────────────────────────────
 const HELP_TIPS = [
-  { q: 'How do I add a note?', a: 'Tap ✏️ Input, then tap a note name (C, D, E…) in the palette. The note is inserted at the selected measure.' },
+  { q: 'How do I add a note?', a: 'Tap Input, then tap a note name (C, D, E…) in the palette. The note is inserted at the selected measure.' },
   { q: 'How do I change a note\'s pitch?', a: 'Select the note (tap it on the score), then tap a different note name in the palette.' },
   { q: 'How do I add a rest?', a: 'Tap the rest button (𝄽) in the palette while in input mode, or press the 0 key.' },
   { q: 'How do I play back the score?', a: 'Press Space or tap the ▶ button in the transport bar.' },
@@ -907,10 +907,10 @@ function showViewMenu(btn) {
     {label:`${APP.continuousView?'✓':'○'} Continuous View`, fn:toggleContinuousView},
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
-    {label:`${APP.showTheoryOverlay?'✓':'○'} 🎼 Theory Overlay`, fn:toggleTheoryOverlay},
+    {label:`${APP.showTheoryOverlay?'✓':'○'} Theory Overlay`, fn:toggleTheoryOverlay},
     {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
     {sep:true},
-    {label:'🎓 Difficulty Profile', fn:showProfileSubmenu},
+    {label:'Difficulty Profile', fn:showProfileSubmenu},
   ];
   showDropdown(btn, items);
 }
@@ -1329,12 +1329,12 @@ function showAssignmentSubmenu() {
       items.push({label:`${completed?'✓':'○'} ${a.title}`, fn:()=>startAssignment(a.id)});
     });
     items.push({sep:true});
-    items.push({label:'➕ New Assignment', fn:showAssignmentDialog});
+    items.push({label:'+ New Assignment', fn:showAssignmentDialog});
   } else {
-    items.push({label:'✅ Check Answers', fn:checkAssignmentAnswers});
-    items.push({label:'📤 Submit Assignment', fn:submitAssignment});
+    items.push({label:'Check Answers', fn:checkAssignmentAnswers});
+    items.push({label:'Submit Assignment', fn:submitAssignment});
     items.push({sep:true});
-    items.push({label:'🚪 Exit Assignment Mode', fn:exitAssignmentMode, danger:true});
+    items.push({label:'Exit Assignment Mode', fn:exitAssignmentMode, danger:true});
   }
   showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
@@ -1744,7 +1744,7 @@ function _renderNewScoreDialog(restoreScroll) {
 
     \x3C!-- Quick Start --\x3E
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
-      <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">🎹 Piano</button>
+      <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">Piano</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Treble</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="bass">𝄢 Bass</button>
       <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;margin-left:4px">or pick below</span>
@@ -2171,31 +2171,31 @@ function updateModeBanner() {
   if (!banner) return;
   let mode = null, label = '', bg = '', color = '';
   if (APP.practiceMode) {
-    mode = 'practice'; label = '🎯 Practice Mode — play each highlighted note'; bg = 'rgba(34,197,94,0.15)'; color = '#16a34a';
+    mode = 'practice'; label = '\u266A Practice Mode \u2014 play each highlighted note'; bg = 'rgba(34,197,94,0.15)'; color = '#16a34a';
   } else if (APP.exerciseMode) {
-    mode = 'exercise'; label = '📝 Exercise Mode — answer the questions'; bg = 'rgba(74,85,104,0.10)'; color = '#4a5568';
+    mode = 'exercise'; label = '\u270E Exercise Mode \u2014 answer the questions'; bg = 'rgba(132,204,22,0.12)'; color = '#65a30d';
   } else if (APP.assignmentMode) {
-    mode = 'assignment'; label = '📋 Assignment Mode — complete your assignment'; bg = 'rgba(59,130,246,0.12)'; color = '#2563eb';
+    mode = 'assignment'; label = '\u2713 Assignment Mode \u2014 complete your assignment'; bg = 'rgba(59,130,246,0.12)'; color = '#2563eb';
   } else if (APP.inputMode) {
-    mode = 'input'; label = '✏️ Note Input — tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
+    mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
   } else if (APP.chordMode) {
-    mode = 'chord'; label = '🎵 Chord Mode — add notes to the selected beat'; bg = 'rgba(0,150,136,0.12)'; color = '#009688';
+    mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat'; bg = 'rgba(236,72,153,0.12)'; color = '#db2777';
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
-    mode = 'marking'; label = `🔗 ${markLabels[APP.markingMode] || 'Mark'} — now select the END note`; bg = 'rgba(147,51,234,0.12)'; color = '#9333ea';
+    mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`; bg = 'rgba(168,85,247,0.12)'; color = '#9333ea';
   } else if (APP.compositionMode === 'rhythm') {
-    mode = 'composition-rhythm'; label = '🎵 Rhythm Composition — tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
+    mode = 'composition-rhythm'; label = '\u266A Rhythm Composition \u2014 tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
   } else if (APP.compositionMode === 'melody') {
-    mode = 'composition-melody'; label = '🎵 Melody Composition — choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
+    mode = 'composition-melody'; label = '\u266B Melody Composition \u2014 choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
   }
   if (mode) {
     banner.style.display = 'block';
     banner.style.background = bg;
     banner.style.color = color;
-    banner.textContent = label;
+    banner.innerHTML = label;
   } else {
     banner.style.display = 'none';
-    banner.textContent = '';
+    banner.innerHTML = '';
   }
 }
 

@@ -47,7 +47,7 @@ body            { background:var(--bg-body); }
 .btn-top        { background:var(--btn-bg); border-color:var(--border-input); color:var(--text-btn); }
 .btn-top.active { background:var(--accent-bg); border-color:var(--accent-border); color:var(--accent); }
 #transport-bar  { background:var(--bg-transport-glass); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); border-bottom:1px solid var(--border-subtle); }
-#mode-banner   { padding:6px 16px;font-size:12px;font-weight:600;text-align:center;letter-spacing:0.3px;cursor:default;transition:background 0.2s,color 0.2s;flex-shrink:0; }
+#mode-banner   { padding:8px 20px;font-size:13px;font-weight:700;text-align:center;letter-spacing:0.3px;cursor:default;transition:all 0.2s ease;flex-shrink:0;border-radius:var(--pauta-radius-bubble);margin:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 #score-area     { background:var(--bg-score-area); }
 #score-svg      { background:var(--bg-score); box-shadow:var(--score-shadow); }
 #status-bar     { background:var(--bg-status-glass); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); }
@@ -94,17 +94,18 @@ body{
   transition:background 0.5s;
 }
 #topbar{
-  height:48px;display:flex;align-items:center;
+  height:50px;display:flex;align-items:center;
   padding:0 10px;gap:6px;flex-shrink:0;z-index:10;
 }
 .btn-top{
-  border-radius:10px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;
+  border-radius:12px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;
   white-space:nowrap;-webkit-tap-highlight-color:transparent;
-  transition:all 0.15s ease;min-width:48px;min-height:48px;
+  transition:all 0.2s ease;min-width:48px;min-height:50px;
   display:flex;align-items:center;justify-content:center;gap:5px;
   border-width:1.5px;border-style:solid;
 }
-.btn-top:active{opacity:0.7;transform:scale(0.95)}
+.btn-top:hover{opacity:0.85;}
+.btn-top:active{opacity:0.7;transform:scale(0.94)}
 #score-area{
   flex:1;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;position:relative;
@@ -433,7 +434,7 @@ body{
   border:1px solid rgba(192,86,33,0.20);
   border-radius:20px 20px 0 0;
   padding:22px;
-  width:min(92vw,380px);
+  width:min(94vw,500px);
   display:flex;
   flex-direction:column;
   gap:12px;
@@ -1099,6 +1100,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-cat-ear: #22c55e;
   --pauta-cat-theory: #4a5568;
 
+  /* ── Kid-Friendly Accent Palette ────────────────────────────── */
+  --pauta-kid-pink: #ec4899;
+  --pauta-kid-blue: #3b82f6;
+  --pauta-kid-lime: #84cc16;
+  --pauta-kid-yellow: #facc15;
+  --pauta-kid-purple: #a855f7;
+
   /* ── Spacing ────────────────────────────────────────────────── */
   --pauta-space-xs: 4px;
   --pauta-space-sm: 8px;
@@ -1107,12 +1115,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-space-xl: 20px;
   --pauta-space-2xl: 24px;
 
-  /* ── Border Radius ──────────────────────────────────────────── */
-  --pauta-radius-sm: 6px;
-  --pauta-radius-md: 10px;
-  --pauta-radius-lg: 12px;
-  --pauta-radius-pill: 16px;
+  /* ── Border Radius (bubblier for kids) ──────────────────────── */
+  --pauta-radius-sm: 10px;
+  --pauta-radius-md: 14px;
+  --pauta-radius-lg: 18px;
+  --pauta-radius-pill: 20px;
   --pauta-radius-full: 9999px;
+  --pauta-radius-bubble: 22px;
 
   /* ── Typography ─────────────────────────────────────────────── */
   --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1132,7 +1141,9 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
 
   /* ── Transitions ────────────────────────────────────────────── */
-  --pauta-transition: all 0.15s ease;
+  --pauta-transition: all 0.2s ease;
+  --pauta-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --pauta-transition-bounce: all 0.3s var(--pauta-bounce);
 }
 
 /* ── Hero Section ──────────────────────────────────────────────── */

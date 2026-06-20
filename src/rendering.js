@@ -2133,7 +2133,8 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
   const titleEl = document.createElementNS(ns, 'text');
   titleEl.setAttribute('x', '11'); titleEl.setAttribute('y', '-130');
   titleEl.setAttribute('text-anchor', 'middle');
-  titleEl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#888;pointer-events:none');
+  titleEl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:12px;font-weight:600;fill:#888;pointer-events:none');
+  titleEl.setAttribute('transform', 'translate(11,-130) scale(1,-1) translate(-11,130)');
   titleEl.textContent = 'Fingering';
   inner.appendChild(titleEl);
 
@@ -2170,7 +2171,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     return covered.has(parseInt(id));
   }
 
-  const lblSt = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#222;text-anchor:middle;pointer-events:none';
+  const lblSt = 'font-family:var(--pauta-font-sans);font-size:10px;font-weight:600;fill:#222;text-anchor:middle;pointer-events:none';
   for (const [id, hx, hy] of SVG_HOLES) {
     const cov = isCov(id);
     const dr = cov ? R * 1.2 : R;
@@ -2191,7 +2192,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     // Label centered above right-column hole for double pairs (6, 7)
     const isLeftSub = id === '6a' || id === '7a';
     const lx = isLeftSub ? CX_R : hx;
-    const ly = hy - dr - 2;
+    const ly = hy - dr - 20;
     const lbl = document.createElementNS(ns, 'text');
     lbl.setAttribute('x', lx); lbl.setAttribute('y', ly);
     lbl.setAttribute('style', lblSt);
@@ -2203,10 +2204,10 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
   g.appendChild(inner);
 
   // ── Note name ─────────────────────────────────────────────────
-  diagNoteName(inner, noteName, 25, -60, { size: '8', flipY: true });
+  diagNoteName(inner, noteName, 25, -60, { size: '11', flipY: true });
 
   // ── Alternate-fingering click overlay ─────────────────────────
-  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 280, updateRecorderDiagram, { x: '12', y: '-460', tx: '38', ty: '-233', fontSize: '4', flipY: true });
+  diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 280, updateRecorderDiagram, { x: '12', y: '-460', tx: '38', ty: '-240', fontSize: '8', flipY: true });
 
   g.appendChild(inner);
 

@@ -110,7 +110,7 @@ const CURRICULUM = [
     id: 'grade-1-rhythm',
     title: 'Grade 1: Rhythm Basics',
     description: 'Quarter notes, half notes, and whole notes in 4/4 time',
-    icon: '🥁',
+    icon: '',
     exercises: [
       { type: 'rhythm_read', difficulty: 'beginner', label: 'Quarter & Half Notes', count: 5 },
       { type: 'rhythm_read', difficulty: 'beginner', label: 'Whole Notes & Rests', count: 5 },
@@ -122,7 +122,7 @@ const CURRICULUM = [
     id: 'grade-2-notes',
     title: 'Grade 2: Note Reading',
     description: 'Identify notes on treble clef (C4–C5 naturals)',
-    icon: '🎵',
+    icon: '',
     exercises: [
       { type: 'note_id', difficulty: 'beginner', label: 'Treble Clef: C–C', count: 10 },
       { type: 'note_id', difficulty: 'beginner', label: 'Treble Clef: Extend Range', count: 10 },
@@ -145,7 +145,7 @@ const CURRICULUM = [
     id: 'grade-3b-scales',
     title: 'Grade 3b: Scale Identification',
     description: 'Identify major, minor, and pentatonic scales by ear',
-    icon: '🎹',
+    icon: '',
     exercises: [
       { type: 'scale_id', difficulty: 'beginner', label: 'Major & Minor', count: 8 },
       { type: 'scale_id', difficulty: 'intermediate', label: 'Modes & Pentatonic', count: 8 },
@@ -157,7 +157,7 @@ const CURRICULUM = [
     id: 'grade-4-keysigs',
     title: 'Grade 4: Key Signatures',
     description: 'Major and minor keys with up to 2 sharps/flats',
-    icon: '🔑',
+    icon: '',
     exercises: [
       { type: 'key_sig_id', difficulty: 'beginner', label: 'Major Keys: 0–2 sharps', count: 8 },
       { type: 'key_sig_id', difficulty: 'beginner', label: 'Minor Keys: 0–2 flats', count: 8 },
@@ -169,7 +169,7 @@ const CURRICULUM = [
     id: 'grade-5-rhythm-2',
     title: 'Grade 5: Rhythm Reading',
     description: 'Eighth notes, dotted rhythms, and syncopation',
-    icon: '🎶',
+    icon: '',
     exercises: [
       { type: 'rhythm_read', difficulty: 'intermediate', label: 'Eighth Notes', count: 5 },
       { type: 'rhythm_read', difficulty: 'intermediate', label: 'Dotted Rhythms', count: 5 },
@@ -181,7 +181,7 @@ const CURRICULUM = [
     id: 'grade-6-melody',
     title: 'Grade 6: Melody Dictation',
     description: 'Hear and notate short melodies',
-    icon: '🎼',
+    icon: '',
     exercises: [
       { type: 'melody_dictation', difficulty: 'beginner', label: '4-note Melodies', count: 5 },
       { type: 'melody_dictation', difficulty: 'intermediate', label: '6-note Melodies', count: 5 },
@@ -193,7 +193,7 @@ const CURRICULUM = [
     id: 'advanced-comprehensive',
     title: 'Advanced: Comprehensive',
     description: 'All exercise types at advanced difficulty',
-    icon: '🏆',
+    icon: '',
     exercises: [
       { type: 'note_id', difficulty: 'advanced', label: 'Chromatic Note ID', count: 8 },
       { type: 'interval_id', difficulty: 'advanced', label: 'All Intervals', count: 8 },
@@ -285,13 +285,13 @@ function showCurriculumDialog() {
           </button>`;
         }).join('')}
       </div>` : `<div style="font-size:11px;color:rgba(74,85,104,0.5);text-align:center;margin-top:4px">
-        🔒 Complete ${grade.unlockCondition.count} ${grade.unlockCondition.exerciseType ? TYPE_LABELS[grade.unlockCondition.exerciseType] : 'total'} sessions to unlock
+        Complete ${grade.unlockCondition.count} ${grade.unlockCondition.exerciseType ? TYPE_LABELS[grade.unlockCondition.exerciseType] : 'total'} sessions to unlock
       </div>`}
     </div>`;
   }).join('');
 
   UI.makeModal(`
-    <h2>📚 Curriculum</h2>
+    <h2>Curriculum</h2>
     <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
       Structured learning path · ${totalSessions} total sessions completed
     </div>
@@ -362,7 +362,7 @@ function recommendDifficulty(exerciseType) {
   // Upgrade: 3 consecutive sessions > 85%
   if (lastThreeAvg >= 85 && currentDiff < 2) {
     const newDiff = DIFF_NAMES[currentDiff + 1];
-    UI.showToast(`📈 Great performance! Moving to ${newDiff}`);
+    UI.showToast(`Great performance! Moving to ${newDiff}`);
     APP.exerciseDifficulty = newDiff;
     return newDiff;
   }
@@ -370,7 +370,7 @@ function recommendDifficulty(exerciseType) {
   // Downgrade: 3 consecutive sessions < 50%
   if (lastThreeAvg < 50 && currentDiff > 0) {
     const newDiff = DIFF_NAMES[currentDiff - 1];
-    UI.showToast(`📉 Let's try ${newDiff} for now`);
+    UI.showToast(`Let's try ${newDiff} for now`);
     APP.exerciseDifficulty = newDiff;
     return newDiff;
   }
@@ -471,7 +471,7 @@ function _genNoteId(difficulty) {
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
-  const answer = names[pc] + oct;
+  const answer = names[pc];
   return {
     type: EXERCISE_TYPES.NOTE_ID,
     difficulty,

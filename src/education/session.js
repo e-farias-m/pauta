@@ -97,21 +97,21 @@ function _showSessionIntro(type, difficulty) {
 
       <div class="pauta-modal-body">
         <div style="background:rgba(192,86,33,0.05);border-left:3px solid var(--pauta-primary);padding:12px;margin-bottom:16px;border-radius:0 6px 6px 0">
-          <div style="font-weight:600;color:var(--pauta-primary);margin-bottom:4px">🎯 Learning Goal</div>
+          <div style="font-weight:600;color:var(--pauta-primary);margin-bottom:4px">Learning Goal</div>
           <div style="font-size:13px;color:var(--pauta-text)">${intro.goal}</div>
         </div>
 
         <p style="font-size:13px;color:var(--pauta-text-muted);line-height:1.6;margin-bottom:16px">${intro.description}</p>
 
         <div style="margin-bottom:16px">
-          <div style="font-weight:600;color:var(--pauta-text);margin-bottom:8px;font-size:12px">💡 Tips</div>
+          <div style="font-weight:600;color:var(--pauta-text);margin-bottom:8px;font-size:12px">Tips</div>
           <ul style="margin:0;padding-left:20px;font-size:12px;color:var(--pauta-text-muted);line-height:1.8">
             ${intro.tips.map(tip => `<li>${tip}</li>`).join('')}
           </ul>
         </div>
 
         <div style="background:rgba(34,197,94,0.05);border-left:3px solid var(--pauta-success);padding:12px;border-radius:0 6px 6px 0">
-          <div style="font-weight:600;color:var(--pauta-success);margin-bottom:4px">📈 Session Structure</div>
+          <div style="font-weight:600;color:var(--pauta-success);margin-bottom:4px">Session Structure</div>
           <div style="font-size:12px;color:var(--pauta-text-muted)">
             • Warm-up: First 2-3 questions are easy to get you started<br>
             • Main: Questions adapt to your performance<br>
@@ -169,33 +169,57 @@ function endExerciseSession() {
   let nextActionHtml = '';
   if (recommendation.action === 'advance') {
     nextActionHtml = `<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-success);font-size:13px">📈 Ready to advance!</div>
+      <div style="font-weight:600;color:var(--pauta-success);font-size:13px">Ready to advance!</div>
       <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
     </div>`;
   } else if (recommendation.action === 'review') {
     nextActionHtml = `<div style="background:rgba(230,168,23,0.1);border:1px solid rgba(230,168,23,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-warning);font-size:13px">🔄 Review recommended</div>
+      <div style="font-weight:600;color:var(--pauta-warning);font-size:13px">Review recommended</div>
       <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
     </div>`;
   }
 
+  const starCount = pct >= 80 ? 3 : pct >= 50 ? 2 : 1;
+  const scoreCircleColor = pct >= 80 ? 'var(--pauta-success)' : pct >= 50 ? 'var(--pauta-warning)' : 'var(--pauta-primary-light)';
+  const encouragements = [
+    'Great effort!', 'Nice work!', 'Keep practicing!',
+    'You\'re improving!', 'Well done!', 'Fantastic!'
+  ];
+  const cheer = encouragements[Math.floor(Math.random() * encouragements.length)];
+
   UI.makeModal(`
-    <h2>Session Complete</h2>
-    <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
-      <div style="font-size:32px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">${pct}%</div>
-      <div>${correct} / ${total} correct</div>
-      <div style="font-size:12px;color:rgba(74,85,104,0.6);margin-top:4px">Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
+    <div style="text-align:center">
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:4px;color:var(--pauta-text)">Session Complete</h2>
+
+      <div class="pauta-score-circle" style="background:${scoreCircleColor};box-shadow:0 4px 20px ${scoreCircleColor}44">
+        <span class="score-pct">${pct}%</span>
+        <span class="score-label">${correct} / ${total} correct</span>
+      </div>
+
+      <div class="pauta-star-rating">
+        ${[1,2,3].map(i =>
+          `<span class="star ${i <= starCount ? 'filled' : ''}">★</span>`
+        ).join('')}
+      </div>
+
+      <div class="pauta-encouragement" style="color:${scoreCircleColor}">${cheer}</div>
+
+      <div style="font-size:12px;color:var(--pauta-text-muted);margin:6px 0 12px">
+        Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}
+      </div>
     </div>
+
     ${nextActionHtml}
-    <div style="flex-shrink:0;margin-bottom:12px;max-height:200px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted)">
+
+    <div style="flex-shrink:0;margin-bottom:12px;max-height:180px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm);background:var(--pauta-bg);padding:8px">
       ${s.completed.map((c,i) => {
         if (c.type === 'difficulty_change') {
-          return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
-            <span style="width:16px;text-align:center;font-size:14px">🔄</span>
+          return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
+            <span style="width:16px;text-align:center;font-size:14px">↕</span>
             <span>#${i+1}: Difficulty ${c.difficultyChange === 'up' ? '↑' : '↓'} to ${c.answer}</span>
           </div>`;
         }
-        const icon = c.ok ? '🟢' : (c.nearMiss ? '🟡' : '🔴');
+        const icon = c.ok ? '✓' : (c.nearMiss ? '~' : '✗');
         const label = c.type === EXERCISE_TYPES.NOTE_ID ? 'Note ' + c.answer
           : c.type === EXERCISE_TYPES.INTERVAL_ID ? 'Interval ' + c.answer
           : c.type === EXERCISE_TYPES.KEY_SIG_ID ? 'Key ' + c.answer
@@ -204,14 +228,14 @@ function endExerciseSession() {
           : c.type === EXERCISE_TYPES.SCALE_ID ? 'Scale ' + c.answer
           : c.type === EXERCISE_TYPES.NOTE_CONSTRUCT ? 'Construct ' + c.answer
           : 'Rhythm';
-        return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
           <span style="width:16px;text-align:center;font-size:14px">${icon}</span>
           <span>#${i+1}: ${label}${c.nearMiss && !c.ok ? ' (off by 1)' : ''}</span>
         </div>`;
       }).join('')}
     </div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-      <button class="modal-btn primary" data-action="reviewExerciseSession">📝 Review Answers</button>
+      <button class="modal-btn primary" data-action="reviewExerciseSession">Review Answers</button>
       <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
       <button class="modal-btn secondary" data-action="closeModalExercise">Close</button>
     </div>
@@ -329,7 +353,7 @@ function reviewExerciseSession() {
           <div style="font-size:16px;font-weight:700;color:var(--pauta-success)">${UI.escHtml(correctAns)}</div>
         </div>` : ''}
       </div>
-      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">💡 ${UI.escHtml(hint)}</div>` : ''}
+      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">${UI.escHtml(hint)}</div>` : ''}
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         ${idx > 0 ? `<button class="modal-btn secondary" data-action="reviewPrev">← Previous</button>` : ''}
         ${idx < completed.length - 1 ? `<button class="modal-btn primary" data-action="reviewNext">Next →</button>` : `<button class="modal-btn primary" data-action="closeModal">Done</button>`}
@@ -508,6 +532,15 @@ function _createNoteStaff(pitch) {
     svg.appendChild(line);
   }
   
+  // Draw treble clef (Note Drills use treble clef positioning)
+  const clef = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  clef.setAttribute('x', '28');
+  clef.setAttribute('y', '68');
+  clef.setAttribute('font-size', '44');
+  clef.setAttribute('fill', 'var(--pauta-text)');
+  clef.textContent = '𝄞';
+  svg.appendChild(clef);
+
   const notePos = _pitchToStaffPosition(pitch);
   const bottomLineY = STAFF_BOTTOM;
   
@@ -614,38 +647,19 @@ function _pitchToStaffPosition(pitch) {
 function _generateNoteOptions(correctPitch) {
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const correctPc = correctPitch % 12;
-  const correctOct = Math.floor(correctPitch / 12) - 1;
-  const correctName = noteNames[correctPc] + correctOct;
+  const correctName = noteNames[correctPc];
 
   const options = [correctName];
   const usedNames = new Set([correctName]);
   
-  // Add nearby notes, adjusting octave when pitch class wraps
+  // Add nearby notes by pitch class
   for (let pcOffset of [-1, 1, -2, 2]) {
     const rawPc = correctPc + pcOffset;
     const pc = (rawPc + 12) % 12;
-    let octOffset = 0;
-    if (rawPc < 0) octOffset = -1;
-    else if (rawPc > 11) octOffset = 1;
-    const oct = correctOct + octOffset;
-    const name = noteNames[pc] + oct;
+    const name = noteNames[pc];
     if (!usedNames.has(name) && options.length < 4) {
       options.push(name);
       usedNames.add(name);
-    }
-  }
-  
-  // Add octave variations if still needed
-  if (options.length < 4) {
-    for (let octOffset of [-1, 1]) {
-      const oct = correctOct + octOffset;
-      if (oct >= 3 && oct <= 6) {
-        const name = noteNames[correctPc] + oct;
-        if (!usedNames.has(name) && options.length < 4) {
-          options.push(name);
-          usedNames.add(name);
-        }
-      }
     }
   }
 
@@ -660,8 +674,7 @@ function _generateNoteOptions(correctPitch) {
 function _handleNoteChoice(answer, correctPitch, container) {
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const correctPc = correctPitch % 12;
-  const correctOct = Math.floor(correctPitch / 12) - 1;
-  const correctName = noteNames[correctPc] + correctOct;
+  const correctName = noteNames[correctPc];
   
   const isCorrect = answer === correctName;
   
@@ -699,7 +712,7 @@ function _presentNoteConstruct(ex) {
   score.parts[0].staves[0].measures[0].notes = [SCORE.mkRest('w')];
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   RENDER.renderScore();
-  UI.showToast('Click on the staff to place the note!');
+  UI.showToast('Tap on the staff to place your note!');
   setTimeout(() => _attachNoteConstructClickHandler(), 100);
 }
 
@@ -813,7 +826,7 @@ function _checkNoteConstructAnswer(pitch) {
   if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
     const newDiff = DIFF_NAMES[diffIdx + 1];
     s.difficulty = newDiff;
-    UI.showToast(`📈 Leveling up to ${newDiff}!`);
+    UI.showToast(`Leveling up to ${newDiff} — great progress!`);
     s.completed.push({
       type: 'difficulty_change',
       answer: newDiff,
@@ -828,7 +841,7 @@ function _checkNoteConstructAnswer(pitch) {
     if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
       const newDiff = DIFF_NAMES[diffIdx - 1];
       s.difficulty = newDiff;
-      UI.showToast(`📉 Easing to ${newDiff}`);
+      UI.showToast(`Easing to ${newDiff} — keep going!`);
       s.completed.push({
         type: 'difficulty_change',
         answer: newDiff,
@@ -922,7 +935,7 @@ function _presentRhythmRead(ex) {
   score.parts[0].staves[0].measures[0].notes = notes;
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   RENDER.renderScore();
-  UI.showToast('Tap ▶ to hear, then clap/tap it back');
+   UI.showToast('Tap play to hear it, then clap or tap it back!');
 }
 
 function _presentRhythmWorksheet(ex) {
@@ -999,7 +1012,7 @@ function _showDictationListenBar(ex) {
       <div style="font-size:14px;font-weight:700;color:var(--pauta-text)">${firstName}</div>
     </div>
     <button class="modal-btn primary" id="dictation-play" style="padding:6px 16px;font-size:13px">▶ Play Melody</button>
-    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:12px">📝 I'm Ready</button>
+    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:12px">I'm Ready</button>
     <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
       <label style="font-size:11px;color:var(--pauta-text-muted);font-weight:600">♩</label>
       <input type="range" id="dictation-tempo" min="40" max="200" value="${currentTempo}" style="width:100px" aria-label="Tempo">
@@ -1106,13 +1119,13 @@ function _startDictationNotate() {
   if (s) s._dictationPhase = 'notate';
   // Show a floating submit bar
   _showDictationCheckBar();
-  UI.showToast('Enter the notes you heard (tap palette or use MIDI/mic)');
+    UI.showToast('Write down the notes you heard — tap the palette or play your instrument!');
 }
 
 function _showDictationCheckBar() {
   const bar = _createFeedbackBar('dictation-check-bar', 'gap:10px;flex-wrap:wrap');
   const currentTempo = APP.tempo || 120;
-  bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">✍️ Done notating?</span>
+  bar.innerHTML = `<span style="font-weight:600;white-space:nowrap">Done notating?</span>
     <button class="modal-btn primary" id="dictation-check" style="padding:4px 12px;font-size:12px">✔ Check Melody</button>
     <button class="modal-btn secondary" id="dictation-play-again" style="padding:4px 12px;font-size:12px">▶ Play Again</button>
     <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
@@ -1269,7 +1282,7 @@ function _presentScaleId(ex) {
   RENDER.renderScore();
   _showMCGrid(_generateScaleOptions(ex), ex.answer, _handleScaleChoice, 'Name this scale');
   setTimeout(() => {
-    UI.showToast('🎧 Listen to the scale, then name it!');
+    UI.showToast('Listen to the scale, then name it!');
     startPlayback();
   }, 300);
 }
@@ -1378,7 +1391,7 @@ function checkExerciseAnswer(userAnswer) {
   if (s.streak === 3 && diffIdx >= 0 && diffIdx < 2) {
     const newDiff = DIFF_NAMES[diffIdx + 1];
     s.difficulty = newDiff;
-    UI.showToast(`📈 Leveling up to ${newDiff}!`);
+    UI.showToast(`Leveling up to ${newDiff} — great progress!`);
     s.completed.push({
       type: 'difficulty_change',
       answer: newDiff,
@@ -1393,7 +1406,7 @@ function checkExerciseAnswer(userAnswer) {
     if (last2.length >= 2 && !last2[0].ok && !last2[1].ok) {
       const newDiff = DIFF_NAMES[diffIdx - 1];
       s.difficulty = newDiff;
-      UI.showToast(`📉 Easing to ${newDiff}`);
+      UI.showToast(`Easing to ${newDiff} — keep going!`);
       s.completed.push({
         type: 'difficulty_change',
         answer: newDiff,
@@ -1444,22 +1457,31 @@ function _showSuccessBanner(msg, opts = {}) {
   const streak = opts.streak || 0;
   const correctAnswer = opts.correctAnswer || '';
   let milestone = '';
-  if (streak === 3) milestone = 'Nice streak!';
-  else if (streak === 5) milestone = 'On fire!';
-  else if (streak >= 10) milestone = 'Unstoppable!';
+  if (streak === 3) milestone = 'Awesome!';
+  else if (streak === 5) milestone = 'Amazing!';
+  else if (streak >= 10) milestone = 'Incredible!';
+
+  const encouragements = [
+    'Great job!', 'Nailed it!', 'Nice work!',
+    'Keep it up!', 'You got this!', 'Fantastic!',
+    'Way to go!', 'Super!', 'Brilliant!'
+  ];
+  const cheer = encouragements[Math.floor(Math.random() * encouragements.length)];
 
   const el = document.createElement('div');
   el.id = 'exercise-success-banner';
-  el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:2000;background:linear-gradient(135deg,var(--pauta-success),#16a34a);color:#fff;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(34,197,94,0.35);opacity:0;transition:opacity 0.25s ease, transform 0.25s ease;pointer-events:none;white-space:nowrap;font-family:var(--pauta-font-sans);text-align:center';
-  el.innerHTML = `<div>${UI.escHtml(msg)}</div>${correctAnswer ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">Answer: ${UI.escHtml(correctAnswer)}</div>` : ''}${milestone ? `<div style="font-size:13px;margin-top:3px;color:#bbf7d0">${milestone}</div>` : ''}`;
+  el.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-12px) scale(0.9);z-index:2000;background:linear-gradient(135deg,var(--pauta-success),var(--pauta-kid-lime));color:#fff;padding:14px 32px;border-radius:var(--pauta-radius-bubble);font-size:16px;font-weight:700;box-shadow:0 4px 24px rgba(34,197,94,0.4);pointer-events:none;white-space:nowrap;font-family:var(--pauta-font-sans);text-align:center';
+  el.innerHTML = `<div>${cheer} ${UI.escHtml(msg)}</div>${correctAnswer ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">Answer: ${UI.escHtml(correctAnswer)}</div>` : ''}${milestone ? `<div style="font-size:13px;margin-top:3px;opacity:0.9">${milestone}</div>` : ''}`;
   document.body.appendChild(el);
-  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)'; });
+
+  requestAnimationFrame(() => {
+    el.style.animation = 'celebrate-bounce 0.4s var(--pauta-bounce) forwards';
+  });
 
   setTimeout(() => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(-50%) translateY(-12px)';
-    setTimeout(() => { if (el.parentNode) el.remove(); }, 250);
-  }, 1000);
+    el.style.animation = 'celebrate-bounce-out 0.25s ease forwards';
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 260);
+  }, 1200);
 }
 
 function _hideSuccessBanner() {
@@ -1470,26 +1492,40 @@ function _hideSuccessBanner() {
 function _showLevelUpMoment(correctCount, pct) {
   const existing = document.getElementById('level-up-moment');
   if (existing) existing.remove();
+  const existingConfetti = document.getElementById('level-up-confetti');
+  if (existingConfetti) existingConfetti.remove();
 
   const s = APP.exerciseSession;
   if (!s) return;
 
   const messages = [
-    { threshold: 5, title: 'Warming Up!', desc: 'You\'re getting the hang of it.', emoji: '🔥' },
-    { threshold: 10, title: 'Halfway There!', desc: 'Great consistency. Keep going!', emoji: '⭐' },
-    { threshold: 15, title: 'Solid Progress!', desc: 'Your accuracy is improving.', emoji: '💪' },
-    { threshold: 20, title: 'Building Mastery!', desc: 'This skill is becoming automatic.', emoji: '🎯' },
-    { threshold: 25, title: 'Almost There!', desc: 'You\'re approaching mastery.', emoji: '🏆' },
-    { threshold: 30, title: 'Mastery Zone!', desc: 'Excellent work. You\'ve got this!', emoji: '👑' },
+    { threshold: 5, title: 'Warming Up!', desc: 'You\'re getting the hang of it.' },
+    { threshold: 10, title: 'Halfway There!', desc: 'Great consistency. Keep going!' },
+    { threshold: 15, title: 'Solid Progress!', desc: 'Your accuracy is improving.' },
+    { threshold: 20, title: 'Building Mastery!', desc: 'This skill is becoming automatic.' },
+    { threshold: 25, title: 'Almost There!', desc: 'You\'re approaching mastery.' },
+    { threshold: 30, title: 'Mastery Zone!', desc: 'Excellent work. You\'ve got this!' },
   ];
 
   const msg = messages.find(m => m.threshold === correctCount) || messages[0];
 
+  // Confetti dots
+  const confettiColors = ['var(--pauta-kid-pink)', 'var(--pauta-kid-blue)', 'var(--pauta-kid-lime)', 'var(--pauta-kid-yellow)', 'var(--pauta-kid-purple)', 'var(--pauta-primary)'];
+  const confettiContainer = document.createElement('div');
+  confettiContainer.id = 'level-up-confetti';
+  confettiContainer.className = 'pauta-confetti-container';
+  for (let i = 0; i < 24; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'pauta-confetti-dot';
+    dot.style.cssText = `left:${Math.random() * 200 - 100}px;top:${Math.random() * 40 - 20}px;background:${confettiColors[i % confettiColors.length]};animation-delay:${Math.random() * 0.3}s;width:${6 + Math.random() * 8}px;height:${6 + Math.random() * 8}px`;
+    confettiContainer.appendChild(dot);
+  }
+  document.body.appendChild(confettiContainer);
+
   const el = document.createElement('div');
   el.id = 'level-up-moment';
-  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%) scale(0.9);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:16px;box-shadow:0 12px 40px rgba(192,86,33,0.4);opacity:0;transition:all 0.3s ease;pointer-events:none;text-align:center;min-width:280px';
+  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:var(--pauta-radius-lg);box-shadow:0 12px 40px rgba(192,86,33,0.4);text-align:center;min-width:280px';
   el.innerHTML = `
-    <div style="font-size:48px;margin-bottom:8px">${msg.emoji}</div>
     <div style="font-size:24px;font-weight:700;margin-bottom:8px">${msg.title}</div>
     <div style="font-size:14px;opacity:0.9;margin-bottom:12px">${msg.desc}</div>
     <div style="font-size:13px;opacity:0.8">${correctCount} correct · ${pct}% accuracy</div>
@@ -1497,14 +1533,17 @@ function _showLevelUpMoment(correctCount, pct) {
   document.body.appendChild(el);
 
   requestAnimationFrame(() => {
-    el.style.opacity = '1';
-    el.style.transform = 'translate(-50%, -50%) scale(1)';
+    el.style.animation = 'pop-in 0.4s var(--pauta-bounce) forwards';
   });
 
   setTimeout(() => {
-    el.style.opacity = '0';
-    el.style.transform = 'translate(-50%, -50%) scale(0.9)';
-    setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
+    el.style.animation = 'pop-out 0.25s ease forwards';
+    if (confettiContainer.parentNode) {
+      confettiContainer.style.transition = 'opacity 0.3s';
+      confettiContainer.style.opacity = '0';
+      setTimeout(() => { if (confettiContainer.parentNode) confettiContainer.remove(); }, 300);
+    }
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 260);
   }, 2500);
 }
 
@@ -1536,7 +1575,7 @@ function _showExerciseFeedback(ex, userAnswer) {
       ${hintText ? `
         <details open style="margin-top:2px">
           <summary style="cursor:pointer;font-size:11px;color:rgba(74,85,104,0.6);font-weight:600;user-select:none">Why? ▸</summary>
-          <div style="margin-top:4px;font-size:11px;color:rgba(74,85,104,0.7);line-height:1.5">💡 ${hintText}</div>
+          <div style="margin-top:4px;font-size:11px;color:rgba(74,85,104,0.7);line-height:1.5">${hintText}</div>
         </details>` : ''}
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;align-self:center">
@@ -1602,7 +1641,7 @@ function _updateScoreDisplay() {
   el.dataset.prevCount = s.totalCount;
 
   const streakHtml = s.streak >= 2
-    ? `<span class="score-streak">🔥 ${s.streak}</span>`
+    ? `<span class="score-streak">${s.streak}</span>`
     : '';
 
   const diffLabel = s.difficulty ? `<span style="font-size:10px;opacity:0.7;margin-left:4px">${s.difficulty}</span>` : '';
@@ -1740,7 +1779,7 @@ function _playRhythmDictation(ex) {
   const s = APP.exerciseSession;
   if (!s) return;
   const maxPlays = ex.difficulty === 0 ? Infinity : ex.difficulty === 1 ? 3 : 1;
-  if (s.playsLeft !== undefined && s.playsLeft <= 0) { UI.showToast('No plays remaining'); return; }
+  if (s.playsLeft !== undefined && s.playsLeft <= 0) { UI.showToast('No more plays — try again from the start!'); return; }
 
   const ctx = getAudioCtx();
   const bpm = APP.tempo || 100;
@@ -1820,7 +1859,7 @@ function checkRhythmWorksheet() {
 }
 
 function showRhythmWorksheetDialog() {
-  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your exercise first, then come back!'); return; }
   const diffs = ['beginner', 'intermediate', 'advanced'];
   const currentDiff = APP.exerciseDifficulty || 'beginner';
 
@@ -1872,7 +1911,7 @@ function _startRhythmWorksheet(difficulty) {
 
 // ── Main Exercise Dialog ───────────────────────────────────────
 function showExerciseDialog() {
-  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
+  if (APP.exerciseMode) { UI.showToast('Finish your exercise first, then come back!'); return; }
 
   const results = _loadResults();
   const byType = {};
@@ -1884,28 +1923,28 @@ function showExerciseDialog() {
   const categories = [
     {
       name: 'Rhythm',
-      color: '#e06850',
+      color: 'var(--pauta-kid-pink)',
       exercises: [
-        {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'🥁', label:'Rhythm Workout', desc:'Random rhythms — customize time sig, tempo, note values'},
+        {key: EXERCISE_TYPES.RHYTHM_WORKOUT, icon:'', label:'Rhythm Workout', desc:'Random rhythms — customize time sig, tempo, note values'},
         {key: EXERCISE_TYPES.RHYTHM_READ,  icon:'𝅘𝅥𝅮', label:'Rhythm Reading', desc:'Read and clap patterns'},
-        {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'🔊', label:'Rhythm Dictation', desc:'Hear it, mark each beat'},
+        {key: EXERCISE_TYPES.RHYTHM_WS,    icon:'', label:'Rhythm Dictation', desc:'Hear it, mark each beat'},
       ]
     },
     {
       name: 'Pitch & Theory',
-      color: 'var(--pauta-primary)',
+      color: 'var(--pauta-kid-blue)',
       exercises: [
-        {key: EXERCISE_TYPES.NOTE_ID,      icon:'🎵', label:'Note Drills', desc:'Name notes on the staff'},
+        {key: EXERCISE_TYPES.NOTE_ID,      icon:'', label:'Note Drills', desc:'Name notes on the staff'},
         {key: EXERCISE_TYPES.INTERVAL_ID,  icon:'↔',  label:'Interval Training', desc:'Identify intervals'},
         {key: EXERCISE_TYPES.KEY_SIG_ID,   icon:'♭♯', label:'Key Sig Drills', desc:'Name keys from signatures'},
-        {key: EXERCISE_TYPES.SCALE_ID,     icon:'🎹', label:'Scale Gym', desc:'Hear scales and modes'},
+        {key: EXERCISE_TYPES.SCALE_ID,     icon:'', label:'Scale Gym', desc:'Hear scales and modes'},
       ]
     },
     {
       name: 'Ear Training',
-      color: 'var(--pauta-success)',
+      color: 'var(--pauta-kid-lime)',
       exercises: [
-        {key: EXERCISE_TYPES.MELODY_DICT,  icon:'🎼', label:'Melody Dictation', desc:'Hear it, notate it'},
+        {key: EXERCISE_TYPES.MELODY_DICT,  icon:'', label:'Melody Dictation', desc:'Hear it, notate it'},
       ]
     },
   ];
@@ -1915,13 +1954,13 @@ function showExerciseDialog() {
   const overallPct = results.length > 0 ? Math.round(results.reduce((s,r) => s + r.pct, 0) / results.length) : 0;
 
   UI.makeModal(`
-    <div class="pauta-modal">
+    <div class="pauta-modal" style="border-radius:var(--pauta-radius-lg)">
       <div class="pauta-modal-header">
-        <h2 class="pauta-modal-title">Practice Gym</h2>
-        <p class="pauta-modal-subtitle">Daily exercises for musicians</p>
+        <h2 class="pauta-modal-title" style="font-size:22px;text-align:center">Practice Gym</h2>
+        <p class="pauta-modal-subtitle" style="text-align:center;font-size:14px">Let's practice and get better together!</p>
 
         ${totalSessions > 0 ? `
-        <div class="pauta-stats">
+        <div class="pauta-stats" style="font-size:14px">
           <span><span class="pauta-stat-num">${totalSessions}</span> sessions</span>
           <span><span class="pauta-stat-num">${overallPct}%</span> avg</span>
         </div>` : ''}
@@ -1934,10 +1973,10 @@ function showExerciseDialog() {
       </div>
 
       <div class="pauta-modal-body">
-        <div class="pauta-hero" data-action="showRhythmWorkoutDialog">
-          <div class="pauta-hero-badge">⚡ Most Popular</div>
-          <div class="pauta-hero-title">🥁 Rhythm Workout</div>
-          <div class="pauta-hero-desc">Random rhythms with custom time signatures, tempo, and note values</div>
+        <div class="pauta-hero" data-action="showRhythmWorkoutDialog" style="border-radius:var(--pauta-radius-lg)">
+          <div class="pauta-hero-badge" style="background:var(--pauta-kid-yellow);color:#7c5e00">Most Popular</div>
+          <div class="pauta-hero-title">Rhythm Workout</div>
+          <div class="pauta-hero-desc">Make your own rhythm patterns with fun sounds!</div>
         </div>
 
         ${categories.map(cat => `
@@ -1949,17 +1988,23 @@ function showExerciseDialog() {
                 const sessions = typeResults.length;
                 let scoreColor = 'rgba(74,85,104,0.3)';
                 let scoreText = '';
+                let starCount = 0;
                 if (sessions > 0) {
                   const lastPct = typeResults[typeResults.length - 1].pct;
                   scoreColor = lastPct >= 80 ? 'var(--pauta-success)' : lastPct >= 60 ? 'var(--pauta-warning)' : 'var(--pauta-primary-light)';
                   scoreText = lastPct + '%';
+                  starCount = lastPct >= 80 ? 3 : lastPct >= 60 ? 2 : 1;
                 }
                 return `
-                  <div class="pauta-card" style="--pauta-card-color:${cat.color}" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
+                  <div class="pauta-card" style="--pauta-card-color:${cat.color};border-radius:var(--pauta-radius-md)" data-action="startExerciseSession" data-type="${ex.key}" data-diff="${currentDiff}">
                     ${scoreText ? `<span class="pauta-card-badge" style="background:${scoreColor}18;color:${scoreColor}">${scoreText}</span>` : ''}
                     <div class="pauta-card-title"><span style="font-size:15px">${ex.icon}</span>${ex.label}</div>
                     <div class="pauta-card-desc">${ex.desc}</div>
-                    <div class="pauta-card-meta">${sessions > 0 ? `${sessions} session${sessions>1?'s':''}` : '○ Not started'}</div>
+                    <div class="pauta-card-meta">
+                      ${sessions > 0
+                        ? `<span class="pauta-star">${'★'.repeat(starCount)}${'☆'.repeat(3-starCount)}</span>`
+                        : `<span class="pauta-star empty">☆☆☆</span>`}
+                    </div>
                   </div>`;
               }).join('')}
             </div>
@@ -1968,9 +2013,9 @@ function showExerciseDialog() {
       </div>
 
       <div class="pauta-modal-footer">
-        <button class="modal-btn secondary" data-action="showCurriculumDialog">📚 Curriculum</button>
-        <button class="modal-btn secondary" data-action="showStudentProgress">📊 Progress</button>
-        <button class="modal-btn secondary" data-action="closeModal">✕ Close</button>
+        <button class="modal-btn secondary" data-action="showCurriculumDialog">Curriculum</button>
+        <button class="modal-btn secondary" data-action="showStudentProgress">Progress</button>
+        <button class="modal-btn secondary" data-action="closeModal">Close</button>
       </div>
     </div>
   `);
@@ -2089,7 +2134,7 @@ function showRhythmWorkoutDialog() {
   const activeSet = new Set(s.noteGroups.map(g => g.dur + (g.rest ? 'r' : '') + (g.dots || 0)));
 
   UI.makeModal(`
-    <h2>🥁 Rhythm Workout</h2>
+    <h2>Rhythm Workout</h2>
     <div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0;max-height:60vh;overflow-y:auto">
       <div>
         <div style="font-size:12px;font-weight:600;color:var(--pauta-text-muted);margin-bottom:6px">Time Signature</div>
@@ -2224,7 +2269,7 @@ function _presentRhythmWorkout(ex) {
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   RENDER.renderScore();
-  UI.showToast(`🥁 ${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
+  UI.showToast(`${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
 }
 
 function _checkRhythmWorkoutAnswer(userAnswer) {

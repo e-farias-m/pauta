@@ -198,7 +198,7 @@ function adoptScore(raw, opts = {}) {
       const pending = score.assignments.filter(a => !score.studentAnswers?.[a.id]?.submitted);
       if (pending.length) {
         UI.makeModal(`
-          <h2>📚 Assignment Detected</h2>
+          <h2>Assignment Detected</h2>
           <div style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:12px">
             This score contains ${pending.length} assignment${pending.length > 1 ? 's' : ''}.
           </div>
