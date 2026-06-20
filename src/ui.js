@@ -1763,12 +1763,12 @@ function _renderNewScoreDialog(restoreScroll) {
         <input type="hidden" id="nd-ks" value="${prevKS}">
         <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Key</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:2px">
-          ${iconBtn('▼', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}})}
+          ${iconBtn('▼', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', title: 'Flats (◄)', dataAttrs: {delta: -1}})}
           <div style="min-width:40px">
             <div id="nd-ks-staff" style="line-height:0">${_ksMiniSVG(parseInt(prevKS))}</div>
             <span id="nd-ks-label" style="font-size:9px;color:var(--pauta-primary);font-weight:600">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'}</span>
           </div>
-          ${iconBtn('▲', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}})}
+          ${iconBtn('▲', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', title: 'Sharps (►)', dataAttrs: {delta: 1}})}
         </div>
         <div id="nd-ks-accel" style="font-size:8px;color:rgba(74,85,104,0.40)"></div>
       </div>
@@ -1817,8 +1817,11 @@ function _renderNewScoreDialog(restoreScroll) {
       };
       const _ll = _levelLabels[FAMILY_KIT_MAP[_ndFamily]] || { beginner:'', intermediate:'', advanced:'' };
       return `
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0 2px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.06)">
+      <span style="font-size:9px;color:rgba(74,85,104,0.60);text-transform:uppercase;letter-spacing:0.3px;font-weight:600">Level</span>
+      <span style="font-size:10px;color:var(--pauta-text-subtle)">— ${_kitName}</span>
+    </div>
     <div style="display:flex;gap:4px;margin-bottom:4px">
-      <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;white-space:nowrap">${_kitName}</span>
       ${['beginner','intermediate','advanced'].map(lvl => `
         <button data-action="ndSelectLevel" data-level="${lvl}"
           style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
@@ -2176,7 +2179,7 @@ function updateModeBanner() {
   } else if (APP.inputMode) {
     mode = 'input'; label = '✏️ Note Input — tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
   } else if (APP.chordMode) {
-    mode = 'chord'; label = '🎵 Chord Mode — add notes to the selected beat'; bg = 'rgba(192,86,33,0.08)'; color = '#c05621';
+    mode = 'chord'; label = '🎵 Chord Mode — add notes to the selected beat'; bg = 'rgba(0,150,136,0.12)'; color = '#009688';
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
     mode = 'marking'; label = `🔗 ${markLabels[APP.markingMode] || 'Mark'} — now select the END note`; bg = 'rgba(147,51,234,0.12)'; color = '#9333ea';
