@@ -1476,6 +1476,7 @@ function toggleContinuousView() {
   document.getElementById('btn-continuous').classList.toggle('active', APP.continuousView);
   RENDER.renderScore();
   UI.showToast(APP.continuousView ? 'Continuous view' : 'Page view');
+  updateViewBadges();
 }
 
 function toggleMeasureNumbers() {
@@ -1494,12 +1495,14 @@ function toggleTheoryOverlay() {
   APP.showTheoryOverlay = !APP.showTheoryOverlay;
   RENDER.renderScore();
   UI.showToast(APP.showTheoryOverlay ? 'Theory overlay on' : 'Theory overlay off');
+  updateViewBadges();
 }
 
 function toggleRhythmCounting() {
   APP.showRhythmCounting = !APP.showRhythmCounting;
   RENDER.renderScore();
   UI.showToast(APP.showRhythmCounting ? 'Rhythm counting on' : 'Rhythm counting off');
+  updateViewBadges();
 }
 
 // ── Zoom ──────────────────────────────────────────────────────────
@@ -1529,5 +1532,17 @@ document.getElementById('score-canvas-container').addEventListener('gestureend',
   applyZoom();
   _pinchDist = 0;
 });
+
+// ── Status bar view badges ───────────────────────────────────────
+function updateViewBadges() {
+  ['theory', 'rhythm', 'continuous'].forEach(k => {
+    const el = document.getElementById('st-badge-' + k);
+    if (!el) return;
+    const state = k === 'theory' ? APP.showTheoryOverlay
+                : k === 'rhythm' ? APP.showRhythmCounting
+                : APP.continuousView;
+    el.style.display = state ? '' : 'none';
+  });
+}
 
 // ── Transposition ─────────────────────────────────────────────────

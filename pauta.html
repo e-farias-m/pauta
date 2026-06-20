@@ -355,6 +355,9 @@
     <button class="zoom-btn reset" data-action="zoomReset" aria-label="Reset zoom">⟲</button>
   </div>
   <div id="st-mode" class="status-item">Select</div>
+  <span id="st-badge-theory" class="st-badge" style="display:none">🎼</span>
+  <span id="st-badge-rhythm" class="st-badge" style="display:none">𝅘𝅥𝅮</span>
+  <span id="st-badge-continuous" class="st-badge" style="display:none">↔</span>
   <div id="st-practice" class="status-item" style="display:none">
     <span id="st-practice-icon">🎯</span>
     <span id="st-practice-text">Practice</span>
@@ -622,6 +625,7 @@ body{
 .status-item{color:var(--text-status);font-size:12px;letter-spacing:0.1px}
 .status-item b{color:var(--text-status-b);font-weight:600}
 #st-mode{margin-left:auto;color:var(--accent);font-weight:700;font-size:12px}
+.st-badge{font-size:13px;margin-left:4px;opacity:0.8;cursor:default;line-height:1}
 
 /* ── Transport Bar ── */
 #transport-bar{
@@ -8929,6 +8933,7 @@ function toggleContinuousView() {
   document.getElementById('btn-continuous').classList.toggle('active', APP.continuousView);
   RENDER.renderScore();
   UI.showToast(APP.continuousView ? 'Continuous view' : 'Page view');
+  updateViewBadges();
 }
 
 function toggleMeasureNumbers() {
@@ -8947,12 +8952,14 @@ function toggleTheoryOverlay() {
   APP.showTheoryOverlay = !APP.showTheoryOverlay;
   RENDER.renderScore();
   UI.showToast(APP.showTheoryOverlay ? 'Theory overlay on' : 'Theory overlay off');
+  updateViewBadges();
 }
 
 function toggleRhythmCounting() {
   APP.showRhythmCounting = !APP.showRhythmCounting;
   RENDER.renderScore();
   UI.showToast(APP.showRhythmCounting ? 'Rhythm counting on' : 'Rhythm counting off');
+  updateViewBadges();
 }
 
 // ── Zoom ──────────────────────────────────────────────────────────
@@ -8982,6 +8989,18 @@ document.getElementById('score-canvas-container').addEventListener('gestureend',
   applyZoom();
   _pinchDist = 0;
 });
+
+// ── Status bar view badges ───────────────────────────────────────
+function updateViewBadges() {
+  ['theory', 'rhythm', 'continuous'].forEach(k => {
+    const el = document.getElementById('st-badge-' + k);
+    if (!el) return;
+    const state = k === 'theory' ? APP.showTheoryOverlay
+                : k === 'rhythm' ? APP.showRhythmCounting
+                : APP.continuousView;
+    el.style.display = state ? '' : 'none';
+  });
+}
 
 // ── Transposition ─────────────────────────────────────────────────
 
@@ -14038,6 +14057,7 @@ function startRhythmComposer() {
 function _enterRhythmMode() {
   APP.compositionMode = 'rhythm';
   _savePalette();
+  updateModeBanner();
 
   const body = document.getElementById('palette-body');
   if (!body) return;
@@ -14180,6 +14200,7 @@ function startMelodyComposer() {
 function _enterMelodyMode(ks) {
   APP.compositionMode = 'melody';
   _savePalette();
+  updateModeBanner();
 
   const body = document.getElementById('palette-body');
   if (!body) return;
@@ -14229,6 +14250,7 @@ function exitCompositionMode() {
   APP.inputMode = false;
   document.getElementById('btn-input')?.classList.remove('active');
   UI.showToast('Composition mode exited');
+  updateModeBanner();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -18205,6 +18227,10 @@ function updateModeBanner() {
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
     mode = 'marking'; label = `🔗 ${markLabels[APP.markingMode] || 'Mark'} — now select the END note`; bg = 'rgba(147,51,234,0.12)'; color = '#9333ea';
+  } else if (APP.compositionMode === 'rhythm') {
+    mode = 'composition-rhythm'; label = '🎵 Rhythm Composition — tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
+  } else if (APP.compositionMode === 'melody') {
+    mode = 'composition-melody'; label = '🎵 Melody Composition — choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
   }
   if (mode) {
     banner.style.display = 'block';

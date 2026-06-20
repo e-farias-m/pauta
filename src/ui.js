@@ -2183,6 +2183,10 @@ function updateModeBanner() {
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
     mode = 'marking'; label = `🔗 ${markLabels[APP.markingMode] || 'Mark'} — now select the END note`; bg = 'rgba(147,51,234,0.12)'; color = '#9333ea';
+  } else if (APP.compositionMode === 'rhythm') {
+    mode = 'composition-rhythm'; label = '🎵 Rhythm Composition — tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
+  } else if (APP.compositionMode === 'melody') {
+    mode = 'composition-melody'; label = '🎵 Melody Composition — choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
   }
   if (mode) {
     banner.style.display = 'block';

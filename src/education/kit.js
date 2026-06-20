@@ -1558,6 +1558,7 @@ function startRhythmComposer() {
 function _enterRhythmMode() {
   APP.compositionMode = 'rhythm';
   _savePalette();
+  updateModeBanner();
 
   const body = document.getElementById('palette-body');
   if (!body) return;
@@ -1700,6 +1701,7 @@ function startMelodyComposer() {
 function _enterMelodyMode(ks) {
   APP.compositionMode = 'melody';
   _savePalette();
+  updateModeBanner();
 
   const body = document.getElementById('palette-body');
   if (!body) return;
@@ -1749,6 +1751,7 @@ function exitCompositionMode() {
   APP.inputMode = false;
   document.getElementById('btn-input')?.classList.remove('active');
   UI.showToast('Composition mode exited');
+  updateModeBanner();
 }
 
 // ═══════════════════════════════════════════════════════════════════

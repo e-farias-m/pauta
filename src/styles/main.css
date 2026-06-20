@@ -125,6 +125,7 @@ body{
 .status-item{color:var(--text-status);font-size:12px;letter-spacing:0.1px}
 .status-item b{color:var(--text-status-b);font-weight:600}
 #st-mode{margin-left:auto;color:var(--accent);font-weight:700;font-size:12px}
+.st-badge{font-size:13px;margin-left:4px;opacity:0.8;cursor:default;line-height:1}
 
 /* ── Transport Bar ── */
 #transport-bar{
