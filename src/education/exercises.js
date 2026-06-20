@@ -500,12 +500,11 @@ function _genNoteConstruct(difficulty) {
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
-  const answer = names[pc] + oct;
   return {
     type: EXERCISE_TYPES.NOTE_CONSTRUCT,
     difficulty,
     target: { pitch, name: names[pc], octave: oct },
-    answer,
+    answer: names[pc],
     hint: `Click on the correct line or space on the staff.`,
   };
 }
@@ -615,8 +614,7 @@ function _genMelodyDict(difficulty) {
   // Get first note name for display
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const firstPc = notes[0].pitch % 12;
-  const firstOct = Math.floor(notes[0].pitch / 12) - 1;
-  const firstName = noteNames[firstPc] + firstOct;
+  const firstName = noteNames[firstPc];
   
   return {
     type: EXERCISE_TYPES.MELODY_DICT,
@@ -768,9 +766,8 @@ const FLAT_NAMES = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 
 function _scaleNoteName(midi) {
   const pc = midi % 12;
-  const oct = Math.floor(midi / 12) - 1;
   const useFlat = [1,3,6,8,10].includes(pc);
-  return (useFlat ? FLAT_NAMES : CHROMATIC_NOTE_NAMES)[pc] + oct;
+  return (useFlat ? FLAT_NAMES : CHROMATIC_NOTE_NAMES)[pc];
 }
 
 // Pitch class → key signature for major keys (prefers sharps for enharmonic)
@@ -841,9 +838,8 @@ const EVALUATOR = {
 
   _noteName(midi) {
     const pc = midi % 12;
-    const oct = Math.floor(midi / 12) - 1;
     const useFlat = [1,3,6,8,10].includes(pc);
-    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc] + oct;
+    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc];
   },
 
   _pcName(pc) {
@@ -918,7 +914,7 @@ const EVALUATOR = {
       detail: {
         target: this._noteName(target.pitch),
         student: this._noteName(student.pitch),
-        hint: `Try ${this._pcName(targetPC)}${targetOct}`,
+        hint: `Try ${this._pcName(targetPC)}`,
       },
     };
   },

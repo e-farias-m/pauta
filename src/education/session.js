@@ -296,18 +296,16 @@ function reviewExerciseSession() {
       const pitch = c.target?.pitch;
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
       const pc = pitch % 12;
-      const oct = Math.floor(pitch / 12) - 1;
-      const noteName = noteNames[pc] + oct;
-      questionHtml = `<div style="font-size:20px;text-align:center;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>
-        <div style="text-align:center;color:var(--pauta-text-muted)">MIDI ${pitch} · ${noteName}</div>`;
+      const noteName = noteNames[pc];
+      questionHtml = `<div style="font-size:20px;text-align:center;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>`;
     } else if (c.type === EXERCISE_TYPES.INTERVAL_ID) {
       const bottom = c.target?.bottom;
       const top = c.target?.top;
       const semitones = c.target?.semitones;
       const dir = c.target?.direction;
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-      const bName = noteNames[bottom % 12] + (Math.floor(bottom / 12) - 1);
-      const tName = noteNames[top % 12] + (Math.floor(top / 12) - 1);
+      const bName = noteNames[bottom % 12];
+      const tName = noteNames[top % 12];
       questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">${bName} → ${tName}</div>
         <div style="text-align:center;color:var(--pauta-text-muted)">${semitones} semitones ${dir > 0 ? '↑' : '↓'}</div>`;
     } else if (c.type === EXERCISE_TYPES.RHYTHM_READ || c.type === EXERCISE_TYPES.RHYTHM_WS) {
@@ -320,7 +318,7 @@ function reviewExerciseSession() {
       const notes = c.target?.notes;
       if (notes) {
         const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-        const names = notes.map(n => noteNames[n.pitch % 12] + (Math.floor(n.pitch / 12) - 1));
+        const names = notes.map(n => noteNames[n.pitch % 12]);
         questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0;letter-spacing:4px">${names.join(' ')}</div>`;
       }
     } else if (c.type === EXERCISE_TYPES.KEY_SIG_ID) {
@@ -750,7 +748,7 @@ function _checkNoteConstructAnswer(pitch) {
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
-  const userAnswer = names[pc] + oct;
+  const userAnswer = names[pc];
   const isCorrect = pitch === targetPitch;
   const isClose = semitoneDiff === 1;
 

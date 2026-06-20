@@ -207,6 +207,26 @@
   color: var(--pauta-primary);
 }
 
+/* Instrument grid button (New Score dialog) */
+.nd-instr-btn {
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: transparent;
+  border-radius: var(--pauta-radius-pill);
+  padding: 5px 8px;
+  font-size: var(--pauta-text-sm);
+  font-weight: 500;
+  color: var(--pauta-text-muted);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  text-align: center;
+  line-height: 1.3;
+  font-family: var(--pauta-font-sans);
+}
+.nd-instr-btn:hover {
+  border-color: var(--pauta-primary);
+  color: var(--pauta-primary);
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Button Component
    ════════════════════════════════════════════════════════════════════ */

@@ -911,8 +911,7 @@ function _genMelodyDictLow(difficulty) {
   }
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const firstPc = notes[0].pitch % 12;
-  const firstOct = Math.floor(notes[0].pitch / 12) - 1;
-  const firstName = noteNames[firstPc] + firstOct;
+  const firstName = noteNames[firstPc];
   return {
     type: EXERCISE_TYPES.MELODY_DICT,
     difficulty,

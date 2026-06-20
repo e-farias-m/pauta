@@ -2261,6 +2261,26 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   color: var(--pauta-primary);
 }
 
+/* Instrument grid button (New Score dialog) */
+.nd-instr-btn {
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: transparent;
+  border-radius: var(--pauta-radius-pill);
+  padding: 5px 8px;
+  font-size: var(--pauta-text-sm);
+  font-weight: 500;
+  color: var(--pauta-text-muted);
+  cursor: pointer;
+  transition: var(--pauta-transition);
+  text-align: center;
+  line-height: 1.3;
+  font-family: var(--pauta-font-sans);
+}
+.nd-instr-btn:hover {
+  border-color: var(--pauta-primary);
+  color: var(--pauta-primary);
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Button Component
    ════════════════════════════════════════════════════════════════════ */
@@ -3517,20 +3537,42 @@ const FLUTE_FINGERINGS = {
   // ── Third register ────────────────────────────────────────────
   84:'001110110000', // C6  (same keys as E4, third harmonic)
 };
-// Clarinet: 9 positions [Reg, Th, L1, L2, L3, R1, R2, R3, R4]
-// Reg = register key (left thumb) | Th = thumb hole | L1-L3 left hand | R1-R4 right hand
-// Register key mirrors thumb state: closed (1) in chalumeau, open (0) in clarion
+// Clarinet: 12 positions [Reg, Th, L1, L2, L3, L4_Eb, L4_C#, G#, R1, R2, R3, R4]
+// Reg = register key (left thumb, open=venting) | Th = thumb hole
+// L1-L3 = left hand index/middle/ring | L4_Eb = Eb/Ab side lever (left pinky)
+// L4_C# = C#/G# key (left pinky) | G# = throat G# key (L1 reaches up)
+// R1-R4 = right hand
+// Reg=1 closed (chalumeau), Reg=0 open/venting (clarion)
 const CLARINET_FINGERINGS = {
-  // ── Chalumeau register (low, register key closed = thumb closed) ──
-  59:'111111010', 60:'111110010', 61:'111110000', 62:'111100000',
-  63:'111000010', 64:'110000010', 65:'110000000', 66:'110110000',
-  // ── Clarion register (middle, register key open = thumb open) ────
-  67:'000110010', 68:'000100010', 69:'000000010', 70:'000110000',
-  71:'000010000', 72:'000001010', 73:'001110111', 74:'001110011',
-  // ── Third register (altissimo) ────────────────────────────────
-  75:'001100011', 76:'001000011', 77:'001000011', 78:'001000001',
-  79:'001010001', 80:'000110001', 81:'000100001', 82:'000000001',
-  83:'000001001', 84:'000001110',
+  // ── Chalumeau register (Reg=1, register key closed, thumb hole covered) ──
+  59:'111110000100',  // B3  — Th + L1 L2 L3 + R2
+  60:'111110000000',  // C4  — Th + L1 L2 L3
+  61:'111110100000',  // C#4 — Th + L1 L2 L3 + C#
+  62:'111100000000',  // D4  — Th + L1 L2
+  63:'111111000000',  // Eb4 — Th + L1 L2 L3 + Eb
+  64:'111000000000',  // E4  — Th + L1 only
+  65:'110000000000',  // F4  — Th only
+  66:'101000000000',  // F#4 — L1 only
+  // ── Clarion register (Reg=0, register key venting, thumb hole open) ────
+  67:'000000000000',  // G4  — register key only, all holes open
+  68:'000000001000',  // G#4 — Reg + G# throat key
+  69:'000110000000',  // A4  — Reg + L1 L2 L3
+  70:'000111000000',  // Bb4 — Reg + L1 L2 L3 + Eb
+  71:'000111000100',  // B4  — Reg + L1 L2 L3 + R2
+  72:'000110000000',  // C5  — Reg + L1 L2 L3
+  73:'000110100000',  // C#5 — Reg + L1 L2 L3 + C#
+  74:'000100000000',  // D5  — Reg + L1 L2
+  // ── Altissimo ────────────────────────────────────────────────
+  75:'000111100000',  // Eb5
+  76:'000100100100',  // E5
+  77:'000000100100',  // F5
+  78:'000000000000',  // F#5 — placeholder
+  79:'000000001000',  // G5  — placeholder
+  80:'000000001000',  // G#5 — placeholder
+  81:'000110001000',  // A5  — placeholder
+  82:'000110001000',  // Bb5 — placeholder
+  83:'000110001000',  // B5  — placeholder
+  84:'000110001000',  // C6  — placeholder
 };
 // Saxophone: 15 positions [L1, L2, L3, G#, R1, R2, R3, C, sideBb, sideC, palmD, palmEb, palmF, lowBb, lowB]
 const SAX_FINGERINGS = {
@@ -7272,7 +7314,7 @@ function updateDiagram(type, renderFn, fingeringFn, defaultName, opts) {
     if (altIndex >= fingArr.length) altIndex = 0;
   }
   const ks = si >= 0 ? getResolvedKeySig(mi, si) : 0;
-  const noteName = noteLabelForPitch(pitch, ks, note.accidental || null, 'letter') + Math.floor(pitch / 12 - 1);
+  const noteName = noteLabelForPitch(pitch, ks, note.accidental || null, 'letter');
   els.forEach(el => {
     el.innerHTML = '';
     const fresh = renderFn(fingArr, name, altIndex, noteName, opts?.extra?.(name, pitch) ?? false);
@@ -7290,7 +7332,7 @@ function updateRecorderDiagram() {
 function updateWoodwindDiagram() {
   updateDiagram('woodwind', renderWoodwindDiagram, woodwindFingeringForPitch, 'flute',
     { nameAttr: 'data-instr-name',
-      extra: (n, p) => (n === 'clarinet' && p >= 71) || (n === 'sax' && p >= 72) });
+      extra: (n, p) => (n === 'clarinet' && p >= 67) || (n === 'sax' && p >= 72) });
 }
 function updateBrassDiagram() {
   updateDiagram('brass', renderBrassDiagram, brassFingeringForPitch, 'trumpet',
@@ -7384,6 +7426,126 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
   const pf = parseFing(fingArr, altIndex);
   fingArr = pf.fingArr; const fing = pf.fing;
+  const pressed = pf.covered;
+
+  // ── Yamaha-style simplified clarinet diagram ──────────────────
+  if (type === 'clarinet') {
+    const w = 110, h = 400;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('pointer-events', 'none');
+
+    const CX = 72;       // main hole column center
+    const LX = 22;       // side key column center
+    const R = 9;         // main hole radius
+    const SR = 5;        // small key radius
+    const DY = 38;       // vertical spacing
+    const Y0 = 50;       // first hole Y
+    const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
+
+    // Main tone holes: Th (index 1), L1-L3 (2-4), R1-R4 (8-11)
+    const MAIN_HOLES = [
+      [1, 'Th', 0], [2, '1', 1], [3, '2', 2], [4, '3', 3],
+    ];
+    const RH_HOLES = [
+      [8, '1', 0], [9, '2', 1], [10, '3', 2], [11, '4', 3],
+    ];
+
+    // Side keys: Reg(0), G#(7), Eb(5), C#(6)
+    const SIDE_KEYS = [
+      [0, 'Reg', 0, 'circle'],   // index, label, row offset, shape
+      [7, 'G#', 1, 'circle'],
+      [5, 'Eb', 6.3, 'rect'],
+      [6, 'C#', 7.7, 'circle'],
+    ];
+
+    function drawHole(cx, cy, r, isCovered, shape) {
+      if (shape === 'rect') {
+        const el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', cx - 4); el.setAttribute('y', cy - 7);
+        el.setAttribute('width', 8); el.setAttribute('height', 14);
+        el.setAttribute('rx', 2);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      } else {
+        const el = document.createElementNS(ns, 'circle');
+        el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      }
+    }
+
+    // Draw main LH holes
+    MAIN_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + row * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      const lbl = document.createElementNS(ns, 'text');
+      lbl.setAttribute('x', CX + R + 5); lbl.setAttribute('y', cy + 2.5);
+      lbl.setAttribute('style', lblStyle);
+      lbl.textContent = label;
+      svg.appendChild(lbl);
+    });
+
+    // Separator between LH and RH
+    const sepY = Y0 + 4 * DY + DY/2;
+    const sep = document.createElementNS(ns, 'line');
+    sep.setAttribute('x1', CX - R - 8); sep.setAttribute('y1', sepY);
+    sep.setAttribute('x2', CX + R + 22); sep.setAttribute('y2', sepY);
+    sep.setAttribute('stroke', '#999'); sep.setAttribute('stroke-width', '1');
+    svg.appendChild(sep);
+
+    // Draw RH holes
+    RH_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + (4 + 1 + row) * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      const lbl = document.createElementNS(ns, 'text');
+      lbl.setAttribute('x', CX + R + 5); lbl.setAttribute('y', cy + 2.5);
+      lbl.setAttribute('style', lblStyle);
+      lbl.textContent = label;
+      svg.appendChild(lbl);
+    });
+
+    // Draw side keys
+    SIDE_KEYS.forEach(([idx, label, rowOffset, shape]) => {
+      const cy = Y0 + rowOffset * DY;
+      const isCovered = idx === 0 ? regActive : pressed.has(idx);
+      const r2 = shape === 'rect' ? 0 : SR;
+      drawHole(LX, cy, idx === 0 ? 4 : r2, isCovered, shape);
+      const lbl = document.createElementNS(ns, 'text');
+      lbl.setAttribute('x', LX + (idx === 0 ? 4 : SR) + 4);
+      lbl.setAttribute('y', cy + 2.5);
+      lbl.setAttribute('style', lblStyle);
+      lbl.textContent = label;
+      svg.appendChild(lbl);
+    });
+
+    // "LH" / "RH" labels
+    const lhLbl = document.createElementNS(ns, 'text');
+    lhLbl.setAttribute('x', CX); lhLbl.setAttribute('y', Y0 - 14);
+    lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    lhLbl.textContent = 'LH';
+    svg.appendChild(lhLbl);
+    const rhLbl = document.createElementNS(ns, 'text');
+    rhLbl.setAttribute('x', CX); rhLbl.setAttribute('y', sepY + 14);
+    rhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    rhLbl.textContent = 'RH';
+    svg.appendChild(rhLbl);
+
+    // Note name
+    diagNoteName(svg, noteName, w / 2, 16);
+
+    // Alternate-fingering overlay
+    diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
+      { tx: w - 6, ty: h - 6 });
+
+    g.appendChild(svg);
+    return g;
+  }
 
   const spec = WOODWIND_SPEC[type] || WOODWIND_SPEC.clarinet;
   const {w, h, body:bodyD, fill, stroke:bodyStroke, keys, r, hR} = spec;
@@ -9909,12 +10071,11 @@ function _genNoteConstruct(difficulty) {
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
-  const answer = names[pc] + oct;
   return {
     type: EXERCISE_TYPES.NOTE_CONSTRUCT,
     difficulty,
     target: { pitch, name: names[pc], octave: oct },
-    answer,
+    answer: names[pc],
     hint: `Click on the correct line or space on the staff.`,
   };
 }
@@ -10024,8 +10185,7 @@ function _genMelodyDict(difficulty) {
   // Get first note name for display
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const firstPc = notes[0].pitch % 12;
-  const firstOct = Math.floor(notes[0].pitch / 12) - 1;
-  const firstName = noteNames[firstPc] + firstOct;
+  const firstName = noteNames[firstPc];
   
   return {
     type: EXERCISE_TYPES.MELODY_DICT,
@@ -10177,9 +10337,8 @@ const FLAT_NAMES = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 
 function _scaleNoteName(midi) {
   const pc = midi % 12;
-  const oct = Math.floor(midi / 12) - 1;
   const useFlat = [1,3,6,8,10].includes(pc);
-  return (useFlat ? FLAT_NAMES : CHROMATIC_NOTE_NAMES)[pc] + oct;
+  return (useFlat ? FLAT_NAMES : CHROMATIC_NOTE_NAMES)[pc];
 }
 
 // Pitch class → key signature for major keys (prefers sharps for enharmonic)
@@ -10250,9 +10409,8 @@ const EVALUATOR = {
 
   _noteName(midi) {
     const pc = midi % 12;
-    const oct = Math.floor(midi / 12) - 1;
     const useFlat = [1,3,6,8,10].includes(pc);
-    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc] + oct;
+    return (useFlat ? this._FLAT_NAMES : this._NOTE_NAMES)[pc];
   },
 
   _pcName(pc) {
@@ -10327,7 +10485,7 @@ const EVALUATOR = {
       detail: {
         target: this._noteName(target.pitch),
         student: this._noteName(student.pitch),
-        hint: `Try ${this._pcName(targetPC)}${targetOct}`,
+        hint: `Try ${this._pcName(targetPC)}`,
       },
     };
   },
@@ -10946,18 +11104,16 @@ function reviewExerciseSession() {
       const pitch = c.target?.pitch;
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
       const pc = pitch % 12;
-      const oct = Math.floor(pitch / 12) - 1;
-      const noteName = noteNames[pc] + oct;
-      questionHtml = `<div style="font-size:20px;text-align:center;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>
-        <div style="text-align:center;color:var(--pauta-text-muted)">MIDI ${pitch} · ${noteName}</div>`;
+      const noteName = noteNames[pc];
+      questionHtml = `<div style="font-size:20px;text-align:center;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>`;
     } else if (c.type === EXERCISE_TYPES.INTERVAL_ID) {
       const bottom = c.target?.bottom;
       const top = c.target?.top;
       const semitones = c.target?.semitones;
       const dir = c.target?.direction;
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-      const bName = noteNames[bottom % 12] + (Math.floor(bottom / 12) - 1);
-      const tName = noteNames[top % 12] + (Math.floor(top / 12) - 1);
+      const bName = noteNames[bottom % 12];
+      const tName = noteNames[top % 12];
       questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">${bName} → ${tName}</div>
         <div style="text-align:center;color:var(--pauta-text-muted)">${semitones} semitones ${dir > 0 ? '↑' : '↓'}</div>`;
     } else if (c.type === EXERCISE_TYPES.RHYTHM_READ || c.type === EXERCISE_TYPES.RHYTHM_WS) {
@@ -10970,7 +11126,7 @@ function reviewExerciseSession() {
       const notes = c.target?.notes;
       if (notes) {
         const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-        const names = notes.map(n => noteNames[n.pitch % 12] + (Math.floor(n.pitch / 12) - 1));
+        const names = notes.map(n => noteNames[n.pitch % 12]);
         questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0;letter-spacing:4px">${names.join(' ')}</div>`;
       }
     } else if (c.type === EXERCISE_TYPES.KEY_SIG_ID) {
@@ -11400,7 +11556,7 @@ function _checkNoteConstructAnswer(pitch) {
   const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const pc = pitch % 12;
   const oct = Math.floor(pitch / 12) - 1;
-  const userAnswer = names[pc] + oct;
+  const userAnswer = names[pc];
   const isCorrect = pitch === targetPitch;
   const isClose = semitoneDiff === 1;
 
@@ -13857,8 +14013,7 @@ function _genMelodyDictLow(difficulty) {
   }
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const firstPc = notes[0].pitch % 12;
-  const firstOct = Math.floor(notes[0].pitch / 12) - 1;
-  const firstName = noteNames[firstPc] + firstOct;
+  const firstName = noteNames[firstPc];
   return {
     type: EXERCISE_TYPES.MELODY_DICT,
     difficulty,

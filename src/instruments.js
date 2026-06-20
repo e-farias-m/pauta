@@ -129,20 +129,42 @@ const FLUTE_FINGERINGS = {
   // ── Third register ────────────────────────────────────────────
   84:'001110110000', // C6  (same keys as E4, third harmonic)
 };
-// Clarinet: 9 positions [Reg, Th, L1, L2, L3, R1, R2, R3, R4]
-// Reg = register key (left thumb) | Th = thumb hole | L1-L3 left hand | R1-R4 right hand
-// Register key mirrors thumb state: closed (1) in chalumeau, open (0) in clarion
+// Clarinet: 12 positions [Reg, Th, L1, L2, L3, L4_Eb, L4_C#, G#, R1, R2, R3, R4]
+// Reg = register key (left thumb, open=venting) | Th = thumb hole
+// L1-L3 = left hand index/middle/ring | L4_Eb = Eb/Ab side lever (left pinky)
+// L4_C# = C#/G# key (left pinky) | G# = throat G# key (L1 reaches up)
+// R1-R4 = right hand
+// Reg=1 closed (chalumeau), Reg=0 open/venting (clarion)
 const CLARINET_FINGERINGS = {
-  // ── Chalumeau register (low, register key closed = thumb closed) ──
-  59:'111111010', 60:'111110010', 61:'111110000', 62:'111100000',
-  63:'111000010', 64:'110000010', 65:'110000000', 66:'110110000',
-  // ── Clarion register (middle, register key open = thumb open) ────
-  67:'000110010', 68:'000100010', 69:'000000010', 70:'000110000',
-  71:'000010000', 72:'000001010', 73:'001110111', 74:'001110011',
-  // ── Third register (altissimo) ────────────────────────────────
-  75:'001100011', 76:'001000011', 77:'001000011', 78:'001000001',
-  79:'001010001', 80:'000110001', 81:'000100001', 82:'000000001',
-  83:'000001001', 84:'000001110',
+  // ── Chalumeau register (Reg=1, register key closed, thumb hole covered) ──
+  59:'111110000100',  // B3  — Th + L1 L2 L3 + R2
+  60:'111110000000',  // C4  — Th + L1 L2 L3
+  61:'111110100000',  // C#4 — Th + L1 L2 L3 + C#
+  62:'111100000000',  // D4  — Th + L1 L2
+  63:'111111000000',  // Eb4 — Th + L1 L2 L3 + Eb
+  64:'111000000000',  // E4  — Th + L1 only
+  65:'110000000000',  // F4  — Th only
+  66:'101000000000',  // F#4 — L1 only
+  // ── Clarion register (Reg=0, register key venting, thumb hole open) ────
+  67:'000000000000',  // G4  — register key only, all holes open
+  68:'000000001000',  // G#4 — Reg + G# throat key
+  69:'000110000000',  // A4  — Reg + L1 L2 L3
+  70:'000111000000',  // Bb4 — Reg + L1 L2 L3 + Eb
+  71:'000111000100',  // B4  — Reg + L1 L2 L3 + R2
+  72:'000110000000',  // C5  — Reg + L1 L2 L3
+  73:'000110100000',  // C#5 — Reg + L1 L2 L3 + C#
+  74:'000100000000',  // D5  — Reg + L1 L2
+  // ── Altissimo ────────────────────────────────────────────────
+  75:'000111100000',  // Eb5
+  76:'000100100100',  // E5
+  77:'000000100100',  // F5
+  78:'000000000000',  // F#5 — placeholder
+  79:'000000001000',  // G5  — placeholder
+  80:'000000001000',  // G#5 — placeholder
+  81:'000110001000',  // A5  — placeholder
+  82:'000110001000',  // Bb5 — placeholder
+  83:'000110001000',  // B5  — placeholder
+  84:'000110001000',  // C6  — placeholder
 };
 // Saxophone: 15 positions [L1, L2, L3, G#, R1, R2, R3, C, sideBb, sideC, palmD, palmEb, palmF, lowBb, lowB]
 const SAX_FINGERINGS = {
