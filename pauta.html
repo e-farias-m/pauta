@@ -7550,6 +7550,450 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
     return g;
   }
 
+  // ── Simplified flute diagram ──────────────────────────────────
+  if (type === 'flute') {
+    const w = 280, h = 85;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('pointer-events', 'none');
+
+    const CY = 42;      // tube center Y
+    const R = 5;        // main hole radius
+    const SR = 4;       // small key radius
+    const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
+
+    // Tube body
+    const tube = document.createElementNS(ns, 'rect');
+    tube.setAttribute('x', '15'); tube.setAttribute('y', String(CY - 7));
+    tube.setAttribute('width', '250'); tube.setAttribute('height', '14');
+    tube.setAttribute('rx', '7');
+    tube.setAttribute('fill', 'none'); tube.setAttribute('stroke', '#555');
+    tube.setAttribute('stroke-width', '1.5');
+    svg.appendChild(tube);
+
+    function drawHole(cx, cy, r, isCovered, shape) {
+      if (shape === 'rect') {
+        const el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', cx - 4); el.setAttribute('y', cy - 3);
+        el.setAttribute('width', 8); el.setAttribute('height', 6);
+        el.setAttribute('rx', 1.5);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      } else {
+        const el = document.createElementNS(ns, 'circle');
+        el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      }
+    }
+
+    function putLabel(x, y, text) {
+      const el = document.createElementNS(ns, 'text');
+      el.setAttribute('x', x); el.setAttribute('y', y);
+      el.setAttribute('style', lblStyle);
+      el.textContent = text;
+      svg.appendChild(el);
+    }
+
+    // Main tone holes: L1(2), L2(3), L3(4), R1(6), R2(7), R3(8)
+    const MAIN_HOLES = [
+      [2, 'L1', 72], [3, 'L2', 102], [4, 'L3', 132],
+      [6, 'R1', 172], [7, 'R2', 202], [8, 'R3', 232],
+    ];
+    MAIN_HOLES.forEach(([idx, label, cx]) => {
+      drawHole(cx, CY, R, pressed.has(idx));
+      putLabel(cx + R + 4, CY + 3, label);
+    });
+
+    // Aux/lever keys
+    // ThB(0): circle below tube, LH thumb
+    drawHole(38, 58, 4, pressed.has(0));
+    putLabel(38 + 5, 58 + 3, 'Th');
+    // Bb(1): lever below tube
+    drawHole(72, 58, 0, pressed.has(1), 'rect');
+    putLabel(72 + 5, 58 + 3, 'B♭');
+    // G#(5): lever above tube, LH pinky
+    drawHole(157, 28, 0, pressed.has(5), 'rect');
+    putLabel(157 + 5, 28 + 3, 'G♯');
+    // Eb(9): lever below tube, RH pinky
+    drawHole(247, 58, 0, pressed.has(9), 'rect');
+    putLabel(247 + 5, 58 + 3, 'E♭');
+    // C#(10): small circle above tube, trill
+    drawHole(207, 28, 3.5, pressed.has(10));
+    putLabel(207 + 4, 28 + 3, 'C♯');
+    // C(11): larger circle at foot end
+    drawHole(262, CY, 6, pressed.has(11));
+    putLabel(262 + 7, CY + 3, 'C');
+
+    // Note name
+    diagNoteName(svg, noteName, w / 2, 12);
+
+    // Alternate-fingering overlay
+    diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
+      { tx: w - 6, ty: h - 6 });
+
+    g.appendChild(svg);
+    return g;
+  }
+
+  // ── Simplified saxophone diagram ──────────────────────────────
+  if (type === 'sax') {
+    const w = 150, h = 260;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('pointer-events', 'none');
+
+    const CX = 75, Y0 = 35, DY = 25;
+    const R = 5;
+    const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
+
+    // Body tube
+    const tube = document.createElementNS(ns, 'rect');
+    tube.setAttribute('x', String(CX - 7)); tube.setAttribute('y', '30');
+    tube.setAttribute('width', '14'); tube.setAttribute('height', '200');
+    tube.setAttribute('rx', '5');
+    tube.setAttribute('fill', 'none'); tube.setAttribute('stroke', '#555');
+    tube.setAttribute('stroke-width', '1.5');
+    svg.appendChild(tube);
+
+    // Bell flare at bottom
+    const bell = document.createElementNS(ns, 'path');
+    bell.setAttribute('d', `M ${CX - 7},230 L ${CX - 20},250 L ${CX + 20},250 L ${CX + 7},230 Z`);
+    bell.setAttribute('fill', 'none'); bell.setAttribute('stroke', '#555');
+    bell.setAttribute('stroke-width', '1.5');
+    svg.appendChild(bell);
+
+    // Register / octave key (LH thumb)
+    const regRing = document.createElementNS(ns, 'circle');
+    regRing.setAttribute('cx', '60'); regRing.setAttribute('cy', '27');
+    regRing.setAttribute('r', '3.5');
+    regRing.setAttribute('fill', regActive ? (APP.playing ? '#ff5a4a' : '#3a3028') : '#e8e0d4');
+    regRing.setAttribute('stroke', '#998a70');
+    regRing.setAttribute('stroke-width', '0.7');
+    svg.appendChild(regRing);
+    if (regActive) diagHighlight(svg, 60, 27, 3.5, APP.playing);
+    const regLbl = document.createElementNS(ns, 'text');
+    regLbl.setAttribute('x', '60'); regLbl.setAttribute('y', '23');
+    regLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none');
+    regLbl.textContent = 'Oct';
+    svg.appendChild(regLbl);
+
+    function drawHole(cx, cy, r, isCovered, shape) {
+      if (shape === 'rect') {
+        const el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', cx - 4); el.setAttribute('y', cy - 3);
+        el.setAttribute('width', 8); el.setAttribute('height', 6);
+        el.setAttribute('rx', 1.5);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      } else {
+        const el = document.createElementNS(ns, 'circle');
+        el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      }
+    }
+
+    function putLabel(x, y, text) {
+      const el = document.createElementNS(ns, 'text');
+      el.setAttribute('x', x); el.setAttribute('y', y);
+      el.setAttribute('style', lblStyle);
+      el.textContent = text;
+      svg.appendChild(el);
+    }
+
+    // Main LH holes: L1(0), L2(1), L3(2)
+    const LH_HOLES = [[0, '1', 0], [1, '2', 1], [2, '3', 2]];
+    LH_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + row * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      putLabel(CX + R + 4, cy + 3, label);
+    });
+
+    // G#(3): left side, LH pinky
+    drawHole(50, Y0 + 2 * DY, 0, pressed.has(3), 'rect');
+    putLabel(50 + 5, Y0 + 2 * DY + 3, 'G♯');
+
+    // Separator
+    const sepY = Y0 + 3.5 * DY;
+    const sep = document.createElementNS(ns, 'line');
+    sep.setAttribute('x1', CX - R - 8); sep.setAttribute('y1', sepY);
+    sep.setAttribute('x2', CX + R + 22); sep.setAttribute('y2', sepY);
+    sep.setAttribute('stroke', '#999'); sep.setAttribute('stroke-width', '1');
+    svg.appendChild(sep);
+
+    // Main RH holes: R1(4), R2(5), R3(6)
+    const RH_HOLES = [[4, '1', 0], [5, '2', 1], [6, '3', 2]];
+    RH_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + (4 + row) * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      putLabel(CX + R + 4, cy + 3, label);
+    });
+
+    // Side keys (right side)
+    drawHole(102, Y0 + 4.5 * DY, 0, pressed.has(8), 'rect');  // sideBb(8)
+    putLabel(102 + 5, Y0 + 4.5 * DY + 3, 'B♭');
+    drawHole(102, Y0 + 5.5 * DY, 0, pressed.has(9), 'rect');  // sideC(9)
+    putLabel(102 + 5, Y0 + 5.5 * DY + 3, 'C');
+
+    // Palm keys (left, above LH)
+    drawHole(50, Y0 - 1.8 * DY, 0, pressed.has(12), 'rect');  // palmF(12)
+    putLabel(50 + 5, Y0 - 1.8 * DY + 3, 'F');
+    drawHole(55, Y0 - 1.0 * DY, 0, pressed.has(11), 'rect');  // palmEb(11)
+    putLabel(55 + 5, Y0 - 1.0 * DY + 3, 'E♭');
+    drawHole(60, Y0 - 0.2 * DY, 0, pressed.has(10), 'rect');  // palmD(10)
+    putLabel(60 + 5, Y0 - 0.2 * DY + 3, 'D');
+
+    // C key(7): right side, RH thumb
+    drawHole(100, Y0 + 5.2 * DY, 3.5, pressed.has(7));
+    putLabel(100 + 4, Y0 + 5.2 * DY + 3, 'C');
+
+    // Low keys (bottom, bell area)
+    drawHole(65, Y0 + 8 * DY, 4.5, pressed.has(13));  // lowBb(13)
+    putLabel(65 + 5, Y0 + 8 * DY + 3, 'B♭');
+    drawHole(85, Y0 + 8 * DY, 4.5, pressed.has(14));  // lowB(14)
+    putLabel(85 + 5, Y0 + 8 * DY + 3, 'B');
+
+    // LH / RH labels
+    const lhLbl = document.createElementNS(ns, 'text');
+    lhLbl.setAttribute('x', CX); lhLbl.setAttribute('y', Y0 - 8);
+    lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    lhLbl.textContent = 'LH';
+    svg.appendChild(lhLbl);
+    const rhLbl = document.createElementNS(ns, 'text');
+    rhLbl.setAttribute('x', CX); rhLbl.setAttribute('y', sepY + 14);
+    rhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    rhLbl.textContent = 'RH';
+    svg.appendChild(rhLbl);
+
+    // Note name
+    diagNoteName(svg, noteName, w / 2, 14);
+
+    // Alternate-fingering overlay
+    diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
+      { tx: w - 6, ty: h - 6 });
+
+    g.appendChild(svg);
+    return g;
+  }
+
+  // ── Simplified oboe diagram ──────────────────────────────────
+  if (type === 'oboe') {
+    const w = 120, h = 220;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('pointer-events', 'none');
+
+    const CX = 60, Y0 = 35, DY = 22;
+    const R = 5;
+    const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
+
+    // Body tube
+    const tube = document.createElementNS(ns, 'rect');
+    tube.setAttribute('x', String(CX - 5)); tube.setAttribute('y', '30');
+    tube.setAttribute('width', '10'); tube.setAttribute('height', '175');
+    tube.setAttribute('rx', '3');
+    tube.setAttribute('fill', 'none'); tube.setAttribute('stroke', '#555');
+    tube.setAttribute('stroke-width', '1.5');
+    svg.appendChild(tube);
+
+    // Bell flare
+    const bell = document.createElementNS(ns, 'path');
+    bell.setAttribute('d', `M ${CX - 5},205 L ${CX - 12},218 L ${CX + 12},218 L ${CX + 5},205 Z`);
+    bell.setAttribute('fill', 'none'); bell.setAttribute('stroke', '#555');
+    bell.setAttribute('stroke-width', '1.5');
+    svg.appendChild(bell);
+
+    function drawHole(cx, cy, r, isCovered, shape) {
+      if (shape === 'rect') {
+        const el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', cx - 4); el.setAttribute('y', cy - 3);
+        el.setAttribute('width', 8); el.setAttribute('height', 6);
+        el.setAttribute('rx', 1.5);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      } else {
+        const el = document.createElementNS(ns, 'circle');
+        el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      }
+    }
+
+    function putLabel(x, y, text) {
+      const el = document.createElementNS(ns, 'text');
+      el.setAttribute('x', x); el.setAttribute('y', y);
+      el.setAttribute('style', lblStyle);
+      el.textContent = text;
+      svg.appendChild(el);
+    }
+
+    // Main LH holes: L1(0), L2(1), L3(2), L4(3)
+    const LH_HOLES = [[0, '1', 0], [1, '2', 1], [2, '3', 2], [3, '4', 3]];
+    LH_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + row * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      putLabel(CX + R + 4, cy + 3, label);
+    });
+
+    // Separator between LH and RH
+    const sepY = Y0 + 4.2 * DY;
+    const sep = document.createElementNS(ns, 'line');
+    sep.setAttribute('x1', CX - R - 8); sep.setAttribute('y1', sepY);
+    sep.setAttribute('x2', CX + R + 18); sep.setAttribute('y2', sepY);
+    sep.setAttribute('stroke', '#999'); sep.setAttribute('stroke-width', '1');
+    svg.appendChild(sep);
+
+    // Main RH holes: R1(4), R2(5), R3(6), R4(7)
+    const RH_HOLES = [[4, '1', 0], [5, '2', 1], [6, '3', 2], [7, '4', 3]];
+    RH_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + (5 + row) * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      putLabel(CX + R + 4, cy + 3, label);
+    });
+
+    // LH / RH labels
+    const lhLbl = document.createElementNS(ns, 'text');
+    lhLbl.setAttribute('x', CX); lhLbl.setAttribute('y', Y0 - 8);
+    lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    lhLbl.textContent = 'LH';
+    svg.appendChild(lhLbl);
+    const rhLbl = document.createElementNS(ns, 'text');
+    rhLbl.setAttribute('x', CX); rhLbl.setAttribute('y', sepY + 14);
+    rhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    rhLbl.textContent = 'RH';
+    svg.appendChild(rhLbl);
+
+    // Note name
+    diagNoteName(svg, noteName, w / 2, 12);
+
+    // Alternate-fingering overlay
+    diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
+      { tx: w - 6, ty: h - 6 });
+
+    g.appendChild(svg);
+    return g;
+  }
+
+  // ── Simplified bassoon diagram ───────────────────────────────
+  if (type === 'bassoon') {
+    const w = 120, h = 220;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('pointer-events', 'none');
+
+    const CX = 60, Y0 = 35, DY = 22;
+    const R = 5;
+    const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
+
+    // Body tube (bocal + wing + long joint + boot)
+    const tube = document.createElementNS(ns, 'rect');
+    tube.setAttribute('x', String(CX - 7)); tube.setAttribute('y', '30');
+    tube.setAttribute('width', '14'); tube.setAttribute('height', '178');
+    tube.setAttribute('rx', '4');
+    tube.setAttribute('fill', 'none'); tube.setAttribute('stroke', '#555');
+    tube.setAttribute('stroke-width', '1.5');
+    svg.appendChild(tube);
+
+    // Bell/curve at bottom
+    const bell = document.createElementNS(ns, 'path');
+    bell.setAttribute('d', `M ${CX - 7},208 L ${CX - 18},220 L ${CX + 18},220 L ${CX + 7},208 Z`);
+    bell.setAttribute('fill', 'none'); bell.setAttribute('stroke', '#555');
+    bell.setAttribute('stroke-width', '1.5');
+    svg.appendChild(bell);
+
+    function drawHole(cx, cy, r, isCovered, shape) {
+      if (shape === 'rect') {
+        const el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', cx - 4); el.setAttribute('y', cy - 3);
+        el.setAttribute('width', 8); el.setAttribute('height', 6);
+        el.setAttribute('rx', 1.5);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      } else {
+        const el = document.createElementNS(ns, 'circle');
+        el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+        el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
+        el.setAttribute('stroke', '#222');
+        el.setAttribute('stroke-width', isCovered ? '0' : '1.5');
+        svg.appendChild(el);
+      }
+    }
+
+    function putLabel(x, y, text) {
+      const el = document.createElementNS(ns, 'text');
+      el.setAttribute('x', x); el.setAttribute('y', y);
+      el.setAttribute('style', lblStyle);
+      el.textContent = text;
+      svg.appendChild(el);
+    }
+
+    // Main LH holes: L1(0), L2(1), L3(2), L4(3)
+    const LH_HOLES = [[0, '1', 0], [1, '2', 1], [2, '3', 2], [3, '4', 3]];
+    LH_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + row * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      putLabel(CX + R + 4, cy + 3, label);
+    });
+
+    // Separator between LH and RH
+    const sepY = Y0 + 4.2 * DY;
+    const sep = document.createElementNS(ns, 'line');
+    sep.setAttribute('x1', CX - R - 8); sep.setAttribute('y1', sepY);
+    sep.setAttribute('x2', CX + R + 18); sep.setAttribute('y2', sepY);
+    sep.setAttribute('stroke', '#999'); sep.setAttribute('stroke-width', '1');
+    svg.appendChild(sep);
+
+    // Main RH holes: R1(4), R2(5), R3(6), R4(7)
+    const RH_HOLES = [[4, '1', 0], [5, '2', 1], [6, '3', 2], [7, '4', 3]];
+    RH_HOLES.forEach(([idx, label, row]) => {
+      const cy = Y0 + (5 + row) * DY;
+      drawHole(CX, cy, R, pressed.has(idx));
+      putLabel(CX + R + 4, cy + 3, label);
+    });
+
+    // LH / RH labels
+    const lhLbl = document.createElementNS(ns, 'text');
+    lhLbl.setAttribute('x', CX); lhLbl.setAttribute('y', Y0 - 8);
+    lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    lhLbl.textContent = 'LH';
+    svg.appendChild(lhLbl);
+    const rhLbl = document.createElementNS(ns, 'text');
+    rhLbl.setAttribute('x', CX); rhLbl.setAttribute('y', sepY + 14);
+    rhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
+    rhLbl.textContent = 'RH';
+    svg.appendChild(rhLbl);
+
+    // Note name
+    diagNoteName(svg, noteName, w / 2, 12);
+
+    // Alternate-fingering overlay
+    diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
+      { tx: w - 6, ty: h - 6 });
+
+    g.appendChild(svg);
+    return g;
+  }
+
+  // ── Fallback: complex path-based diagram ──────────────────────
   const spec = WOODWIND_SPEC[type] || WOODWIND_SPEC.clarinet;
   const {w, h, body:bodyD, fill, stroke:bodyStroke, keys, r, hR} = spec;
   const isFlute = type === 'flute';
