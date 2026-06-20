@@ -2177,6 +2177,9 @@ function updateModeBanner() {
     mode = 'input'; label = '✏️ Note Input — tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
   } else if (APP.chordMode) {
     mode = 'chord'; label = '🎵 Chord Mode — add notes to the selected beat'; bg = 'rgba(192,86,33,0.08)'; color = '#c05621';
+  } else if (APP.markingMode) {
+    const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
+    mode = 'marking'; label = `🔗 ${markLabels[APP.markingMode] || 'Mark'} — now select the END note`; bg = 'rgba(147,51,234,0.12)'; color = '#9333ea';
   }
   if (mode) {
     banner.style.display = 'block';

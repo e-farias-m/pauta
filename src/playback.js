@@ -578,6 +578,19 @@ function closeWelcome() {
 function _updateDocTitle() {
   const role = localStorage.getItem('pauta_role') || 'teacher';
   document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
+  const badge = document.getElementById('role-badge');
+  if (!badge) return;
+  if (role === 'student') {
+    badge.textContent = 'Student';
+    badge.style.background = 'rgba(34,197,94,0.15)';
+    badge.style.color = '#16a34a';
+    badge.style.display = '';
+  } else {
+    badge.textContent = 'Teacher';
+    badge.style.background = 'rgba(59,130,246,0.15)';
+    badge.style.color = '#2563eb';
+    badge.style.display = '';
+  }
 }
 // Subscribe to role:changed so title updates without direct calls
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);

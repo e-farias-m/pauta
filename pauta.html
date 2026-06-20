@@ -89,6 +89,7 @@
   </button>
   <div id="score-title" title="Double-tap to edit">Untitled Score</div>
   <button class="btn-top" data-action="showHelpPanel" title="Help & tips (?)" style="margin-left:auto;margin-right:4px">?</button>
+  <span id="role-badge" style="display:none;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;margin-right:6px;white-space:nowrap"></span>
   <div style="display:flex;align-items:center;opacity:0.35;font-size:28px;letter-spacing:0.5px;padding-right:6px">
     <span style="color:#c05621;font-weight:700">P</span><span style="color:#2d3748;font-weight:300">auta</span>
   </div>
@@ -8658,6 +8659,7 @@ function startMarking(type) {
     document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
       .forEach(b => b.classList.remove('active'));
     UI.showToast('Cancelled');
+    updateModeBanner();
     _validateModeState();
     return;
   }
@@ -8677,6 +8679,7 @@ function startMarking(type) {
   document.getElementById('btn-' + type)?.classList.add('active');
   const labels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
   UI.showToast(`${labels[type]}: now select the END note`);
+  updateModeBanner();
   _validateModeState();
 }
 
@@ -8706,6 +8709,7 @@ function completeMarking(endMi, endSi, endNi) {
     document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
       .forEach(b => b.classList.remove('active'));
   }, { toast: `${labels[type]} added` });
+  updateModeBanner();
   _validateModeState();
 }
 function selectDur(d) {
@@ -14922,6 +14926,19 @@ function closeWelcome() {
 function _updateDocTitle() {
   const role = localStorage.getItem('pauta_role') || 'teacher';
   document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
+  const badge = document.getElementById('role-badge');
+  if (!badge) return;
+  if (role === 'student') {
+    badge.textContent = 'Student';
+    badge.style.background = 'rgba(34,197,94,0.15)';
+    badge.style.color = '#16a34a';
+    badge.style.display = '';
+  } else {
+    badge.textContent = 'Teacher';
+    badge.style.background = 'rgba(59,130,246,0.15)';
+    badge.style.color = '#2563eb';
+    badge.style.display = '';
+  }
 }
 // Subscribe to role:changed so title updates without direct calls
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);
@@ -18182,6 +18199,9 @@ function updateModeBanner() {
     mode = 'input'; label = '✏️ Note Input — tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
   } else if (APP.chordMode) {
     mode = 'chord'; label = '🎵 Chord Mode — add notes to the selected beat'; bg = 'rgba(192,86,33,0.08)'; color = '#c05621';
+  } else if (APP.markingMode) {
+    const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
+    mode = 'marking'; label = `🔗 ${markLabels[APP.markingMode] || 'Mark'} — now select the END note`; bg = 'rgba(147,51,234,0.12)'; color = '#9333ea';
   }
   if (mode) {
     banner.style.display = 'block';

@@ -1206,6 +1206,7 @@ function startMarking(type) {
     document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
       .forEach(b => b.classList.remove('active'));
     UI.showToast('Cancelled');
+    updateModeBanner();
     _validateModeState();
     return;
   }
@@ -1225,6 +1226,7 @@ function startMarking(type) {
   document.getElementById('btn-' + type)?.classList.add('active');
   const labels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
   UI.showToast(`${labels[type]}: now select the END note`);
+  updateModeBanner();
   _validateModeState();
 }
 
@@ -1254,6 +1256,7 @@ function completeMarking(endMi, endSi, endNi) {
     document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim')
       .forEach(b => b.classList.remove('active'));
   }, { toast: `${labels[type]} added` });
+  updateModeBanner();
   _validateModeState();
 }
 function selectDur(d) {
