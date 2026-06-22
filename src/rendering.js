@@ -1107,12 +1107,10 @@ function renderMarkings(ctx) {
     const endRad   = endNL ? noteheadW(endNote?.duration) : startRad;
 
     // Slur bows on the opposite side of stems (standard engraving: slur
-    // above for low/passage, below for high passage).
-    const startUp = (startNL.stemDir ?? 1) > 0;
-    const endUp   = endNL ? (endNL.stemDir ?? 1) > 0 : startUp;
-    const bowAbove = startUp && endUp ? true
-                   : !startUp && !endUp ? false
-                   : startUp; // mixed: follow start note
+    // above for low passage, below for high passage).  Use pitch midpoint
+    // so mixed-direction passages get the right side automatically.
+    const avgPitch = ((startNote?.pitch || endNote?.pitch || 71) + (endNote?.pitch || startNote?.pitch || 71)) / 2;
+    const bowAbove = avgPitch < 71; // below B4 → stems up → slur above
     const bowDir = bowAbove ? -1 : 1;
 
     // Asymmetric Y when start and end pitches differ
