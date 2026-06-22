@@ -862,7 +862,7 @@ function _genScaleAssignment(type, octaves) {
       const slice = notes.slice(m*4, m*4+4);
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-        keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0,
+        keySig: m === 0 ? ks : null, lineBreak: m === 0,
         barline: m === measuresNeeded - 1 ? 'double' : undefined,
         notes: slice
       });

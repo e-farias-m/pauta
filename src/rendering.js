@@ -1106,12 +1106,13 @@ function renderMarkings(ctx) {
     const startRad = noteheadW(startNote?.duration);
     const endRad   = endNL ? noteheadW(endNote?.duration) : startRad;
 
-    // Slur bows on the notehead side — opposite to stems
+    // Slur bows on the opposite side of stems (standard engraving: slur
+    // above for low/passage, below for high passage).
     const startUp = (startNL.stemDir ?? 1) > 0;
     const endUp   = endNL ? (endNL.stemDir ?? 1) > 0 : startUp;
-    const bowAbove = startUp && endUp ? false
-                   : !startUp && !endUp ? true
-                   : !startUp; // mixed: follow start note
+    const bowAbove = startUp && endUp ? true
+                   : !startUp && !endUp ? false
+                   : startUp; // mixed: follow start note
     const bowDir = bowAbove ? -1 : 1;
 
     // Asymmetric Y when start and end pitches differ
@@ -1136,7 +1137,7 @@ function renderMarkings(ctx) {
     const bowDepth = Math.min(22, Math.max(10, span * 0.18));
 
     if (endNL) {
-      drawArc(startX, endX, baseY, bowAbove, bowDepth, '#333', baseY, 2.6);
+      drawArc(startX, endX, baseY, bowAbove, bowDepth, '#333', baseY, 1.5);
     } else {
       // Cross-system slur: partial arc
       const sl = findStaveLayout(slur.startMi, slur.si);
@@ -1242,7 +1243,7 @@ function drawArc(x1, x2, y1, above, bowDepth, color='#333', endY, thickness=1.5)
 
   // Build a filled shape for variable thickness (thicker in the middle,
   // thinner at the ends) — closer to professional engraving.
-  if (thickness > 1.8) {
+  if (thickness > 1.2) {
     const steps = 24;
     let topPts = [], botPts = [];
     for (let i = 0; i <= steps; i++) {
