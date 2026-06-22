@@ -850,7 +850,7 @@ function _genScaleAssignment(type, octaves) {
     const scale = generateScale(ks, type, octaves, startOct);
     if (!scale.length) return;
     // Extend scale to ascend then descend without repeating the top note
-    const desc = scale.slice(1, -1).reverse();
+    const desc = [...scale.slice(1, -1).reverse(), scale[0]];
     const fullScale = [...scale, ...desc];
     const tonic = scaleTonicName(ks, type);
     const score = SCORE.createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
@@ -1107,7 +1107,6 @@ function previewStarterScore() {
         if (mi === 0 && idx === 0) newM.timeSigNum = 4;
         combined.parts[0].staves[0].measures.push(newM);
       });
-      if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [SCORE.mkRest('w')] });
     });
     // Apply the clef from the first exercise to the combined score
     const firstClef = exercises[0].score.parts[0].staves[0].clef || 'treble';
@@ -1139,7 +1138,6 @@ function _exportMSCZBatch(exercises, label) {
       if (mi === 0 && idx === 0) newM.timeSigNum = 4;
       combined.parts[0].staves[0].measures.push(newM);
     });
-    if (idx < exercises.length - 1) combined.parts[0].staves[0].measures.push({ lineBreak: true, notes: [SCORE.mkRest('w')] });
   });
   const firstClef = exercises[0].score.parts[0].staves[0].clef || 'treble';
   _applyClefToScore(combined, firstClef);
