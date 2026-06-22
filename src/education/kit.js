@@ -846,19 +846,25 @@ function _genScaleAssignment(type, octaves) {
   const exercises = [];
   allKeys.forEach(({key, ks}) => {
     const isMinorType = type === 'natural-minor' || type === 'harmonic-minor' || type === 'melodic-minor' || type === 'minor-arpeggio';
-    const scale = generateScale(ks, type, octaves, 4);
+    const startOct = (ks === -2 || ks === -4 || ks === -6 || ks === 3 || ks === 5) && isMajorType ? 3 : 4;
+    const scale = generateScale(ks, type, octaves, startOct);
     if (!scale.length) return;
+    // Extend scale to ascend then descend without repeating the top note
+    const desc = scale.slice(1, -1).reverse();
+    const fullScale = [...scale, ...desc];
     const tonic = scaleTonicName(ks, type);
     const score = SCORE.createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
-    const notes = scale.map((n, i) => SCORE.mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
+    const notes = fullScale.map((n, i) => SCORE.mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
     const measuresNeeded = Math.ceil(notes.length / 4);
     for (let m = 0; m < measuresNeeded; m++) {
       const slice = notes.slice(m*4, m*4+4);
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-        keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0, notes: slice
+        keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0,
+        barline: m === measuresNeeded - 1 ? 'double' : undefined,
+        notes: slice
       });
     }
     exercises.push({ title: `${tonic} ${type}`, score });

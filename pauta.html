@@ -14215,7 +14215,8 @@ function _genScaleAssignment(type, octaves) {
   const exercises = [];
   allKeys.forEach(({key, ks}) => {
     const isMinorType = type === 'natural-minor' || type === 'harmonic-minor' || type === 'melodic-minor' || type === 'minor-arpeggio';
-    const scale = generateScale(ks, type, octaves, 4);
+    const startOct = ks === -2 && isMajorType ? 3 : 4;
+    const scale = generateScale(ks, type, octaves, startOct);
     if (!scale.length) return;
     const tonic = scaleTonicName(ks, type);
     const score = SCORE.createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });

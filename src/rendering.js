@@ -1435,7 +1435,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           return arr;
         }
         const pc  = note.pitch % 12;
-        const oct = Math.floor(note.pitch / 12) - 1;
+        let oct = Math.floor(note.pitch / 12) - 1;
 
         // Determine whether the key signature already provides this accidental
         // so we can suppress redundant symbols (e.g. no flat on Eb in Eb major).
@@ -1514,6 +1514,12 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           }
           return NOTE_NAMES[PC_TO_DIA[epc]];
         };
+
+        // Adjust octave for enharmonic spellings (e.g., Cb5→oct 5, not 4)
+        if (showAcc === 'b' || (!showAcc && keyAccMap[pc] === 'b'))
+          oct = Math.floor((note.pitch + 1) / 12) - 1;
+        else if (showAcc === '#' || (!showAcc && keyAccMap[pc] === '#'))
+          oct = Math.floor((note.pitch - 1) / 12) - 1;
 
         // Build chord keys: primary pitch + any extra pitches
         // Always include accidental in the key string so VexFlow places the

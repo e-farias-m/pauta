@@ -25,12 +25,20 @@ function keySigName(ks) {
 
 
 function midiToVexKey(midi, acc) {
-  const oct = Math.floor(midi / 12) - 1;
   const pc  = midi % 12;
+  if (acc === '#') {
+    const name = NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]];
+    const oct  = Math.floor((midi - 1) / 12) - 1;
+    return `${name}#/${oct}`;
+  }
+  if (acc === 'b') {
+    const name = NOTE_NAMES[PC_TO_DIA[(pc + 1) % 12]];
+    const oct  = Math.floor((midi + 1) / 12) - 1;
+    return `${name}b/${oct}`;
+  }
+  const oct = Math.floor(midi / 12) - 1;
   const dia = PC_TO_DIA[pc];
   const name = NOTE_NAMES[dia];
-  if (acc === '#') return `${name}#/${oct}`;
-  if (acc === 'b') return `${name}b/${oct}`;
   // auto-detect if not diatonic
   if (![0,2,4,5,7,9,11].includes(pc)) return `${name}#/${oct}`;
   return `${name}/${oct}`;
