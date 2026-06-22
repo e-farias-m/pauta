@@ -14242,6 +14242,7 @@ function _genScaleAssignment(type, octaves) {
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     const notes = fullScale.map((n, i) => SCORE.mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
+    while (notes.length % 4 !== 0) notes.push(SCORE.mkRest('q'));
     const measuresNeeded = Math.ceil(notes.length / 4);
     for (let m = 0; m < measuresNeeded; m++) {
       const slice = notes.slice(m*4, m*4+4);
