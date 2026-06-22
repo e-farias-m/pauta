@@ -3255,12 +3255,20 @@ function keySigName(ks) {
 
 
 function midiToVexKey(midi, acc) {
-  const oct = Math.floor(midi / 12) - 1;
   const pc  = midi % 12;
+  if (acc === '#') {
+    const name = NOTE_NAMES[PC_TO_DIA[(pc + 11) % 12]];
+    const oct  = Math.floor((midi - 1) / 12) - 1;
+    return `${name}#/${oct}`;
+  }
+  if (acc === 'b') {
+    const name = NOTE_NAMES[PC_TO_DIA[(pc + 1) % 12]];
+    const oct  = Math.floor((midi + 1) / 12) - 1;
+    return `${name}b/${oct}`;
+  }
+  const oct = Math.floor(midi / 12) - 1;
   const dia = PC_TO_DIA[pc];
   const name = NOTE_NAMES[dia];
-  if (acc === '#') return `${name}#/${oct}`;
-  if (acc === 'b') return `${name}b/${oct}`;
   // auto-detect if not diatonic
   if (![0,2,4,5,7,9,11].includes(pc)) return `${name}#/${oct}`;
   return `${name}/${oct}`;
@@ -6493,7 +6501,7 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           return arr;
         }
         const pc  = note.pitch % 12;
-        const oct = Math.floor(note.pitch / 12) - 1;
+        let oct = Math.floor(note.pitch / 12) - 1;
 
         // Determine whether the key signature already provides this accidental
         // so we can suppress redundant symbols (e.g. no flat on Eb in Eb major).
@@ -6572,6 +6580,12 @@ function buildVFNotes(notes, clef, mi, si, dirs, isBW, isBR=false) {
           }
           return NOTE_NAMES[PC_TO_DIA[epc]];
         };
+
+        // Adjust octave for enharmonic spellings (e.g., Cb5→oct 5, not 4)
+        if (showAcc === 'b' || (!showAcc && keyAccMap[pc] === 'b'))
+          oct = Math.floor((note.pitch + 1) / 12) - 1;
+        else if (showAcc === '#' || (!showAcc && keyAccMap[pc] === '#'))
+          oct = Math.floor((note.pitch - 1) / 12) - 1;
 
         // Build chord keys: primary pitch + any extra pitches
         // Always include accidental in the key string so VexFlow places the
@@ -14215,20 +14229,25 @@ function _genScaleAssignment(type, octaves) {
   const exercises = [];
   allKeys.forEach(({key, ks}) => {
     const isMinorType = type === 'natural-minor' || type === 'harmonic-minor' || type === 'melodic-minor' || type === 'minor-arpeggio';
-    const startOct = ks === -2 && isMajorType ? 3 : 4;
+    const startOct = (ks === -2 || ks === -4 || ks === -6 || ks === 3 || ks === 5) && isMajorType ? 3 : 4;
     const scale = generateScale(ks, type, octaves, startOct);
     if (!scale.length) return;
+    // Extend scale to ascend then descend without repeating the top note
+    const desc = scale.slice(1, -1).reverse();
+    const fullScale = [...scale, ...desc];
     const tonic = scaleTonicName(ks, type);
     const score = SCORE.createScore({ title: `${tonic} ${SCALE_TYPES.find(s => s.id === type)?.label || type}`, instruments: ['Soprano Recorder'], ts: {num:4,den:4}, ks });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
-    const notes = scale.map((n, i) => SCORE.mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
+    const notes = fullScale.map((n, i) => SCORE.mkNote(n.pitch, 'q', i === 0 ? 0 : null, n.accidental));
     const measuresNeeded = Math.ceil(notes.length / 4);
     for (let m = 0; m < measuresNeeded; m++) {
       const slice = notes.slice(m*4, m*4+4);
       stave.measures.push({
         timeSigNum: m === 0 ? 4 : null, timeSigDen: m === 0 ? 4 : null,
-        keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0, notes: slice
+        keySig: m === 0 ? ks : null, lineBreak: m > 0 && m % 4 === 0,
+        barline: m === measuresNeeded - 1 ? 'double' : undefined,
+        notes: slice
       });
     }
     exercises.push({ title: `${tonic} ${type}`, score });
