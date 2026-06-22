@@ -301,7 +301,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         svgEl2.appendChild(recG);
       } else if (ns === 1 && instr && instr.family === 'Woodwinds') {
         const type = instr.name.toLowerCase();
-        const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
+        const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('tenor')?'tenor-sax':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
         const wwG = renderWoodwindDiagram('', shorthand);
         const scale = 1.44;
         const wwYOff = shorthand === 'flute' ? 193 : 183;
@@ -2277,7 +2277,7 @@ function updateRecorderDiagram() {
 function updateWoodwindDiagram() {
   updateDiagram('woodwind', renderWoodwindDiagram, woodwindFingeringForPitch, 'flute',
     { nameAttr: 'data-instr-name',
-      extra: (n, p) => (n === 'clarinet' && p >= 67) || (n === 'sax' && p >= 72) });
+      extra: (n, p) => (n === 'clarinet' && p >= 67) || ((n === 'sax' || n === 'tenor-sax') && p >= 72) });
 }
 function updateBrassDiagram() {
   updateDiagram('brass', renderBrassDiagram, brassFingeringForPitch, 'trumpet',
@@ -2289,7 +2289,7 @@ function updateBrassDiagram() {
 // staggered LH/RH positions, hand labels, and instrument-specific
 // body shapes.
 // fing: string of '1' (pressed) / '0' (open) per key position.
-// type: 'flute', 'clarinet', 'sax', 'oboe', 'bassoon'
+// type: 'flute', 'clarinet', 'sax', 'tenor-sax', 'oboe', 'bassoon'
 
 // Each spec: [viewW, viewH, bodyPath, fill, [pos0..pos7], keyR]
 // pos: [x, y, label, hand]  hand: 'L' / 'R' / 'T'(thumb)
@@ -2375,24 +2375,24 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
   // ── Simplified clarinet diagram ─────────────────────────────────
   if (type === 'clarinet') {
-    const w = 160, h = 300;
+    const w = 160, h = 215;
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('pointer-events', 'none');
-    const R = 5.5;
+    const R = 7;
     const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
     const CX = 88;
     const body = document.createElementNS(ns, 'rect');
-    body.setAttribute('x', String(CX)); body.setAttribute('y', '20');
-    body.setAttribute('width', '24'); body.setAttribute('height', '255');
+    body.setAttribute('x', String(CX)); body.setAttribute('y', '16');
+    body.setAttribute('width', '24'); body.setAttribute('height', '185');
     body.setAttribute('rx', '5');
     body.setAttribute('fill', '#e8e0d4'); body.setAttribute('stroke', '#555');
     body.setAttribute('stroke-width', '1.5');
     svg.appendChild(body);
     function drawHole(cx, cy, r, isCovered, shape) {
       const el = shape === 'rect'
-        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 4); e.setAttribute('y', cy - 3); e.setAttribute('width', 8); e.setAttribute('height', 6); e.setAttribute('rx', 1.5); return e; })()
+        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 5); e.setAttribute('y', cy - 4); e.setAttribute('width', 10); e.setAttribute('height', 8); e.setAttribute('rx', 2); return e; })()
         : (() => { const e = document.createElementNS(ns, 'circle'); e.setAttribute('cx', cx); e.setAttribute('cy', cy); e.setAttribute('r', r); return e; })();
       el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
       el.setAttribute('stroke', '#222');
@@ -2406,33 +2406,33 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       el.textContent = text;
       svg.appendChild(el);
     }
-    drawHole(132, 35, 4, regActive);
-    putLabel(132 + 5, 35 + 3, 'Reg');
-    if (regActive) diagHighlight(svg, 132, 35, 4, APP.playing);
-    drawHole(132, 65, 5, pressed.has(1));
-    putLabel(132 + 6, 65 + 3, 'Th');
-    [[2,'L1',85],[3,'L2',115],[4,'L3',145]].forEach(([idx,label,y]) => {
+    drawHole(132, 28, 4.5, regActive);
+    putLabel(132 + 6, 28 + 3, 'Reg');
+    if (regActive) diagHighlight(svg, 132, 28, 4.5, APP.playing);
+    drawHole(132, 48, 5.5, pressed.has(1));
+    putLabel(132 + 7, 48 + 3, 'Th');
+    [[2,'L1',68],[3,'L2',86],[4,'L3',104]].forEach(([idx,label,y]) => {
       drawHole(CX + 12, y, R, pressed.has(idx));
       putLabel(CX + 12 + R + 5, y + 3, label);
     });
-    drawHole(CX - 14, 102, 0, pressed.has(7), 'rect');
-    putLabel(CX - 14 + 5, 102 + 3, 'G♯');
-    const sepY = 172;
+    drawHole(CX - 16, 78, 0, pressed.has(7), 'rect');
+    putLabel(CX - 16 + 6, 78 + 3, 'G♯');
+    const sepY = 126;
     const sep = document.createElementNS(ns, 'line');
     sep.setAttribute('x1', String(CX)); sep.setAttribute('y1', String(sepY));
     sep.setAttribute('x2', String(CX + 24)); sep.setAttribute('y2', String(sepY));
     sep.setAttribute('stroke', '#999'); sep.setAttribute('stroke-width', '1');
     svg.appendChild(sep);
-    drawHole(CX - 14, 190, 0, pressed.has(5), 'rect');
-    putLabel(CX - 14 + 5, 190 + 3, 'E♭');
-    drawHole(CX - 14, 215, 4, pressed.has(6));
-    putLabel(CX - 14 + 5, 215 + 3, 'C♯');
-    [[8,'R1',197],[9,'R2',224],[10,'R3',251],[11,'R4',278]].forEach(([idx,label,y]) => {
+    drawHole(CX - 16, 139, 0, pressed.has(5), 'rect');
+    putLabel(CX - 16 + 6, 139 + 3, 'E♭');
+    drawHole(CX - 16, 156, 4.5, pressed.has(6));
+    putLabel(CX - 16 + 6, 156 + 3, 'C♯');
+    [[8,'R1',145],[9,'R2',163],[10,'R3',181],[11,'R4',199]].forEach(([idx,label,y]) => {
       drawHole(CX + 12, y, R, pressed.has(idx));
       putLabel(CX + 12 + R + 5, y + 3, label);
     });
     const lhLbl = document.createElementNS(ns, 'text');
-    lhLbl.setAttribute('x', String(CX + 12)); lhLbl.setAttribute('y', '74');
+    lhLbl.setAttribute('x', String(CX + 12)); lhLbl.setAttribute('y', '56');
     lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
     lhLbl.textContent = 'LH';
     svg.appendChild(lhLbl);
@@ -2509,41 +2509,41 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   }
 
   // ── Simplified saxophone diagram ──────────────────────────────
-  if (type === 'sax') {
-    const w = 200, h = 340;
+  if (type === 'sax' || type === 'tenor-sax') {
+    const w = 200, h = 215;
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('pointer-events', 'none');
-    const R = 5.5;
+    const R = 7;
     const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
     const body = document.createElementNS(ns, 'rect');
-    body.setAttribute('x', '78'); body.setAttribute('y', '30');
-    body.setAttribute('width', '18'); body.setAttribute('height', '270');
+    body.setAttribute('x', '78'); body.setAttribute('y', '16');
+    body.setAttribute('width', '18'); body.setAttribute('height', '145');
     body.setAttribute('rx', '5');
     body.setAttribute('fill', '#e8e0d4'); body.setAttribute('stroke', '#555');
     body.setAttribute('stroke-width', '1.5');
     svg.appendChild(body);
     const bell = document.createElementNS(ns, 'path');
-    bell.setAttribute('d', 'M 78,300 L 58,330 L 116,330 L 96,300 Z');
+    bell.setAttribute('d', 'M 78,161 L 58,198 L 116,198 L 96,161 Z');
     bell.setAttribute('fill', '#e8e0d4'); bell.setAttribute('stroke', '#555');
     bell.setAttribute('stroke-width', '1.5');
     svg.appendChild(bell);
     const octRing = document.createElementNS(ns, 'circle');
-    octRing.setAttribute('cx', '145'); octRing.setAttribute('cy', '35'); octRing.setAttribute('r', '3.5');
+    octRing.setAttribute('cx', '145'); octRing.setAttribute('cy', '22'); octRing.setAttribute('r', '4');
     octRing.setAttribute('fill', regActive ? (APP.playing ? '#ff5a4a' : '#3a3028') : '#e8e0d4');
     octRing.setAttribute('stroke', '#8a7a60');
     octRing.setAttribute('stroke-width', '0.7');
     svg.appendChild(octRing);
-    if (regActive) diagHighlight(svg, 145, 35, 3.5, APP.playing);
+    if (regActive) diagHighlight(svg, 145, 22, 4, APP.playing);
     const regLbl = document.createElementNS(ns, 'text');
-    regLbl.setAttribute('x', '145'); regLbl.setAttribute('y', '31');
+    regLbl.setAttribute('x', '145'); regLbl.setAttribute('y', '18');
     regLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#8a7a60;text-anchor:middle;pointer-events:none');
     regLbl.textContent = 'Oct';
     svg.appendChild(regLbl);
     function drawHole(cx, cy, r, isCovered, shape) {
       const el = shape === 'rect'
-        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 4); e.setAttribute('y', cy - 3); e.setAttribute('width', 8); e.setAttribute('height', 6); e.setAttribute('rx', 1.5); return e; })()
+        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 5); e.setAttribute('y', cy - 4); e.setAttribute('width', 10); e.setAttribute('height', 8); e.setAttribute('rx', 2); return e; })()
         : (() => { const e = document.createElementNS(ns, 'circle'); e.setAttribute('cx', cx); e.setAttribute('cy', cy); e.setAttribute('r', r); return e; })();
       el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
       el.setAttribute('stroke', '#222');
@@ -2557,40 +2557,40 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       el.textContent = text;
       svg.appendChild(el);
     }
-    drawHole(62, 55, 0, pressed.has(12), 'rect');
-    putLabel(62 + 5, 55 + 3, 'F');
-    drawHole(72, 75, 0, pressed.has(11), 'rect');
-    putLabel(72 + 5, 75 + 3, 'E♭');
-    drawHole(82, 95, 0, pressed.has(10), 'rect');
-    putLabel(82 + 5, 95 + 3, 'D');
-    [[0,'L1',108,105],[1,'L2',98,142],[2,'L3',88,179]].forEach(([idx,label,x,y]) => {
+    drawHole(62, 34, 0, pressed.has(12), 'rect');
+    putLabel(62 + 6, 34 + 3, 'F');
+    drawHole(72, 48, 0, pressed.has(11), 'rect');
+    putLabel(72 + 6, 48 + 3, 'E♭');
+    drawHole(82, 62, 0, pressed.has(10), 'rect');
+    putLabel(82 + 6, 62 + 3, 'D');
+    [[0,'L1',104,66],[1,'L2',95,90],[2,'L3',86,114]].forEach(([idx,label,x,y]) => {
       drawHole(x, y, R, pressed.has(idx));
-      putLabel(x + R + 5, y + 3, label);
+      putLabel(x + R + 6, y + 3, label);
     });
-    drawHole(60, 165, 0, pressed.has(3), 'rect');
-    putLabel(60 + 5, 165 + 3, 'G♯');
-    const sepY = 203;
+    drawHole(58, 86, 0, pressed.has(3), 'rect');
+    putLabel(58 + 6, 86 + 3, 'G♯');
+    const sepY = 130;
     const sep = document.createElementNS(ns, 'line');
-    sep.setAttribute('x1', '60'); sep.setAttribute('y1', String(sepY));
+    sep.setAttribute('x1', '58'); sep.setAttribute('y1', String(sepY));
     sep.setAttribute('x2', '114'); sep.setAttribute('y2', String(sepY));
     sep.setAttribute('stroke', '#999'); sep.setAttribute('stroke-width', '1');
     svg.appendChild(sep);
-    [[4,'R1',108,218],[5,'R2',98,255],[6,'R3',88,292]].forEach(([idx,label,x,y]) => {
+    [[4,'R1',100,140],[5,'R2',92,162],[6,'R3',84,184]].forEach(([idx,label,x,y]) => {
       drawHole(x, y, R, pressed.has(idx));
-      putLabel(x + R + 5, y + 3, label);
+      putLabel(x + R + 6, y + 3, label);
     });
-    drawHole(148, 225, 0, pressed.has(8), 'rect');
-    putLabel(148 + 5, 225 + 3, 'B♭');
-    drawHole(148, 258, 0, pressed.has(9), 'rect');
-    putLabel(148 + 5, 258 + 3, 'C');
-    drawHole(130, 248, 3.5, pressed.has(7));
-    putLabel(130 + 4, 248 + 3, 'C');
-    drawHole(78, 320, 4.5, pressed.has(13));
-    putLabel(78 + 5, 320 + 3, 'B♭');
-    drawHole(98, 320, 4.5, pressed.has(14));
-    putLabel(98 + 5, 320 + 3, 'B');
+    drawHole(148, 142, 0, pressed.has(8), 'rect');
+    putLabel(148 + 6, 142 + 3, 'B♭');
+    drawHole(148, 166, 0, pressed.has(9), 'rect');
+    putLabel(148 + 6, 166 + 3, 'C');
+    drawHole(130, 152, 4, pressed.has(7));
+    putLabel(130 + 5, 152 + 3, 'C');
+    drawHole(78, 194, 5, pressed.has(13));
+    putLabel(78 + 6, 194 + 3, 'B♭');
+    drawHole(98, 194, 5, pressed.has(14));
+    putLabel(98 + 6, 194 + 3, 'B');
     const lhLbl = document.createElementNS(ns, 'text');
-    lhLbl.setAttribute('x', '98'); lhLbl.setAttribute('y', '90');
+    lhLbl.setAttribute('x', '98'); lhLbl.setAttribute('y', '52');
     lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
     lhLbl.textContent = 'LH';
     svg.appendChild(lhLbl);
@@ -2608,36 +2608,36 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
   // ── Simplified oboe diagram ──────────────────────────────────
   if (type === 'oboe') {
-    const w = 160, h = 280;
+    const w = 160, h = 215;
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('pointer-events', 'none');
-    const CX = 85, R = 5;
+    const CX = 85, R = 7;
     const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
     const body = document.createElementNS(ns, 'rect');
-    body.setAttribute('x', String(CX)); body.setAttribute('y', '18');
-    body.setAttribute('width', '18'); body.setAttribute('height', '230');
+    body.setAttribute('x', String(CX)); body.setAttribute('y', '16');
+    body.setAttribute('width', '18'); body.setAttribute('height', '170');
     body.setAttribute('rx', '4');
     body.setAttribute('fill', '#e8e0d4'); body.setAttribute('stroke', '#555');
     body.setAttribute('stroke-width', '1.5');
     svg.appendChild(body);
     const bell = document.createElementNS(ns, 'path');
-    bell.setAttribute('d', `M ${CX},248 L ${CX - 12},270 L ${CX + 30},270 L ${CX + 18},248 Z`);
+    bell.setAttribute('d', `M ${CX},186 L ${CX - 12},205 L ${CX + 30},205 L ${CX + 18},186 Z`);
     bell.setAttribute('fill', '#e8e0d4'); bell.setAttribute('stroke', '#555');
     bell.setAttribute('stroke-width', '1.5');
     svg.appendChild(bell);
     const v1 = document.createElementNS(ns, 'circle');
-    v1.setAttribute('cx', '123'); v1.setAttribute('cy', '28'); v1.setAttribute('r', '3');
+    v1.setAttribute('cx', '123'); v1.setAttribute('cy', '24'); v1.setAttribute('r', '3');
     v1.setAttribute('fill', '#ccc'); v1.setAttribute('stroke', '#888'); v1.setAttribute('stroke-width', '0.7');
     svg.appendChild(v1);
     const v2 = document.createElementNS(ns, 'circle');
-    v2.setAttribute('cx', '123'); v2.setAttribute('cy', '42'); v2.setAttribute('r', '3');
+    v2.setAttribute('cx', '123'); v2.setAttribute('cy', '38'); v2.setAttribute('r', '3');
     v2.setAttribute('fill', '#ccc'); v2.setAttribute('stroke', '#888'); v2.setAttribute('stroke-width', '0.7');
     svg.appendChild(v2);
     function drawHole(cx, cy, r, isCovered, shape) {
       const el = shape === 'rect'
-        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 4); e.setAttribute('y', cy - 3); e.setAttribute('width', 8); e.setAttribute('height', 6); e.setAttribute('rx', 1.5); return e; })()
+        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 5); e.setAttribute('y', cy - 4); e.setAttribute('width', 10); e.setAttribute('height', 8); e.setAttribute('rx', 2); return e; })()
         : (() => { const e = document.createElementNS(ns, 'circle'); e.setAttribute('cx', cx); e.setAttribute('cy', cy); e.setAttribute('r', r); return e; })();
       el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
       el.setAttribute('stroke', '#222');
@@ -2651,22 +2651,22 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       el.textContent = text;
       svg.appendChild(el);
     }
-    [[0,'L1',75],[1,'L2',100],[2,'L3',125],[3,'L4',150]].forEach(([idx,label,y]) => {
+    [[0,'L1',60],[1,'L2',78],[2,'L3',96],[3,'L4',114]].forEach(([idx,label,y]) => {
       drawHole(CX + 9, y, R, pressed.has(idx));
       putLabel(CX + 9 + R + 5, y + 3, label);
     });
-    const sepY = 175;
+    const sepY = 132;
     const sep = document.createElementNS(ns, 'line');
     sep.setAttribute('x1', String(CX)); sep.setAttribute('y1', String(sepY));
     sep.setAttribute('x2', String(CX + 18)); sep.setAttribute('y2', String(sepY));
     sep.setAttribute('stroke', '#999'); sep.setAttribute('stroke-width', '1');
     svg.appendChild(sep);
-    [[4,'R1',193],[5,'R2',215],[6,'R3',237],[7,'R4',255]].forEach(([idx,label,y]) => {
+    [[4,'R1',146],[5,'R2',164],[6,'R3',182],[7,'R4',200]].forEach(([idx,label,y]) => {
       drawHole(CX + 9, y, R, pressed.has(idx));
       putLabel(CX + 9 + R + 5, y + 3, label);
     });
     const lhLbl = document.createElementNS(ns, 'text');
-    lhLbl.setAttribute('x', String(CX + 9)); lhLbl.setAttribute('y', '64');
+    lhLbl.setAttribute('x', String(CX + 9)); lhLbl.setAttribute('y', '50');
     lhLbl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:6px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
     lhLbl.textContent = 'LH';
     svg.appendChild(lhLbl);
@@ -2684,40 +2684,40 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
 
   // ── Simplified bassoon diagram ───────────────────────────────
   if (type === 'bassoon') {
-    const w = 200, h = 250;
+    const w = 200, h = 210;
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('pointer-events', 'none');
-    const R = 5;
+    const R = 7;
     const lblStyle = 'font-family:var(--pauta-font-sans);font-size:7px;font-weight:600;fill:#555;text-anchor:start;pointer-events:none';
     const wing = document.createElementNS(ns, 'rect');
-    wing.setAttribute('x', '58'); wing.setAttribute('y', '30');
-    wing.setAttribute('width', '14'); wing.setAttribute('height', '150');
+    wing.setAttribute('x', '58'); wing.setAttribute('y', '22');
+    wing.setAttribute('width', '14'); wing.setAttribute('height', '125');
     wing.setAttribute('rx', '4');
     wing.setAttribute('fill', '#e8e0d4'); wing.setAttribute('stroke', '#555');
     wing.setAttribute('stroke-width', '1.5');
     svg.appendChild(wing);
     const lj = document.createElementNS(ns, 'rect');
-    lj.setAttribute('x', '118'); lj.setAttribute('y', '30');
-    lj.setAttribute('width', '14'); lj.setAttribute('height', '150');
+    lj.setAttribute('x', '118'); lj.setAttribute('y', '22');
+    lj.setAttribute('width', '14'); lj.setAttribute('height', '125');
     lj.setAttribute('rx', '4');
     lj.setAttribute('fill', '#e8e0d4'); lj.setAttribute('stroke', '#555');
     lj.setAttribute('stroke-width', '1.5');
     svg.appendChild(lj);
     const boot = document.createElementNS(ns, 'path');
-    boot.setAttribute('d', 'M 58,180 Q 58,220 94,220 Q 118,220 118,180');
+    boot.setAttribute('d', 'M 58,147 Q 58,178 94,178 Q 118,178 118,147');
     boot.setAttribute('fill', 'none'); boot.setAttribute('stroke', '#555');
     boot.setAttribute('stroke-width', '1.5');
     svg.appendChild(boot);
     const bell = document.createElementNS(ns, 'path');
-    bell.setAttribute('d', 'M 94,220 L 94,240 Q 94,250 110,250 Q 130,250 130,240 L 130,220');
+    bell.setAttribute('d', 'M 94,178 L 94,192 Q 94,200 110,200 Q 130,200 130,192 L 130,178');
     bell.setAttribute('fill', 'none'); bell.setAttribute('stroke', '#555');
     bell.setAttribute('stroke-width', '1.5');
     svg.appendChild(bell);
     function drawHole(cx, cy, r, isCovered, shape) {
       const el = shape === 'rect'
-        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 4); e.setAttribute('y', cy - 3); e.setAttribute('width', 8); e.setAttribute('height', 6); e.setAttribute('rx', 1.5); return e; })()
+        ? (() => { const e = document.createElementNS(ns, 'rect'); e.setAttribute('x', cx - 5); e.setAttribute('y', cy - 4); e.setAttribute('width', 10); e.setAttribute('height', 8); e.setAttribute('rx', 2); return e; })()
         : (() => { const e = document.createElementNS(ns, 'circle'); e.setAttribute('cx', cx); e.setAttribute('cy', cy); e.setAttribute('r', r); return e; })();
       el.setAttribute('fill', isCovered ? (APP.playing ? '#ff5a4a' : '#222') : 'none');
       el.setAttribute('stroke', '#222');
@@ -2731,21 +2731,21 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
       el.textContent = text;
       svg.appendChild(el);
     }
-    [[0,'L1',50],[1,'L2',85],[2,'L3',120],[3,'L4',150]].forEach(([idx,label,y]) => {
+    [[0,'L1',42],[1,'L2',68],[2,'L3',94],[3,'L4',120]].forEach(([idx,label,y]) => {
       drawHole(65, y, R, pressed.has(idx));
-      putLabel(65 + R + 5, y + 3, label);
+      putLabel(65 + R + 6, y + 3, label);
     });
-    [[4,'R1',50],[5,'R2',85],[6,'R3',120],[7,'R4',150]].forEach(([idx,label,y]) => {
+    [[4,'R1',42],[5,'R2',68],[6,'R3',94],[7,'R4',120]].forEach(([idx,label,y]) => {
       drawHole(125, y, R, pressed.has(idx));
-      putLabel(125 + R + 5, y + 3, label);
+      putLabel(125 + R + 6, y + 3, label);
     });
     const j1 = document.createElementNS(ns, 'text');
-    j1.setAttribute('x', '65'); j1.setAttribute('y', '22');
+    j1.setAttribute('x', '65'); j1.setAttribute('y', '16');
     j1.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:5.5px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
     j1.textContent = 'Wing';
     svg.appendChild(j1);
     const j2 = document.createElementNS(ns, 'text');
-    j2.setAttribute('x', '125'); j2.setAttribute('y', '22');
+    j2.setAttribute('x', '125'); j2.setAttribute('y', '16');
     j2.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:5.5px;font-weight:700;fill:#999;text-anchor:middle;pointer-events:none');
     j2.textContent = 'Long';
     svg.appendChild(j2);
@@ -2787,7 +2787,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   svg.appendChild(defs);
 
   // ── Register / Octave key ─────────────────────────────────────
-  if (type === 'clarinet' || type === 'sax') {
+  if (type === 'clarinet' || type === 'sax' || type === 'tenor-sax') {
     const [rx, ry] = type === 'clarinet' ? [46, 28] : [55, 34];
     const rR = 3.8;
     const regRing = document.createElementNS(ns, 'circle');

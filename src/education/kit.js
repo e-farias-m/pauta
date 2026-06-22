@@ -626,12 +626,13 @@ function clearAllImported() {
 
 // ── Starter Assignments ─────────────────────────────────────────
 // ── Starter Assignments ─────────────────────────────────────────
+const MAJOR_KEY_ORDER = [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6];
 const STARTER_TEMPLATES = [
-  { id: 'scale-major',      label: 'Major Scale (1 octave)',    desc: 'C, G, D, A, E, B, F',     fn: () => _genScaleAssignment('major', 1) },
+  { id: 'scale-major',      label: 'Major Scale (1 octave)',    desc: 'C, F, G, Bb, D, Eb, A, Ab, E, Db, B, Gb', fn: () => _genScaleAssignment('major', 1) },
   { id: 'scale-minor-nat',  label: 'Natural Minor Scale',       desc: 'A, E, B, F#, C#, G#, D#', fn: () => _genScaleAssignment('natural-minor', 1) },
   { id: 'scale-minor-har',  label: 'Harmonic Minor Scale',      desc: 'A, E, B, F#, C#, G#, D#', fn: () => _genScaleAssignment('harmonic-minor', 1) },
   { id: 'scale-minor-mel',  label: 'Melodic Minor Scale',       desc: 'A, E, B, F#, C#, G#, D#', fn: () => _genScaleAssignment('melodic-minor', 1) },
-  { id: 'arpeggio-major',   label: 'Major Arpeggio',            desc: 'All 15 keys',             fn: () => _genScaleAssignment('major-arpeggio', 1) },
+  { id: 'arpeggio-major',   label: 'Major Arpeggio',            desc: 'C, F, G, Bb, D, Eb, A, Ab, E, Db, B, Gb', fn: () => _genScaleAssignment('major-arpeggio', 1) },
   { id: 'arpeggio-minor',   label: 'Minor Arpeggio',            desc: 'All 15 keys',             fn: () => _genScaleAssignment('minor-arpeggio', 1) },
   { id: 'rhythm-beginner',  label: 'Rhythm Dictation (Beginner)', desc: '8 measures, 75% notes',  fn: () => _genRhythmAssignment('beginner') },
   { id: 'rhythm-inter',     label: 'Rhythm Dictation (Intermed.)', desc: '8 measures, 50% notes',  fn: () => _genRhythmAssignment('intermediate') },
@@ -834,9 +835,13 @@ function importCustomExercise() {
 }
 
 function _genScaleAssignment(type, octaves) {
-  const allKeys = [];
-  for (let ks = -7; ks <= 7; ks++) {
-    allKeys.push({ key: keySigName(ks), ks });
+  const isMajorType = type === 'major' || type === 'major-arpeggio';
+  let allKeys = isMajorType
+    ? MAJOR_KEY_ORDER.map(ks => ({ key: keySigName(ks), ks }))
+    : (() => { const a = []; for (let ks = -7; ks <= 7; ks++) a.push({ key: keySigName(ks), ks }); return a; })();
+  // For major types, offer to include F# alongside Gb (enharmonic equivalent)
+  if (isMajorType && confirm('Gb major is included. F# major is enharmonic to Gb (same sound, different spelling).\n\nInclude F# major as a separate exercise?')) {
+    allKeys.push({ key: 'F#', ks: 6 });
   }
   const exercises = [];
   allKeys.forEach(({key, ks}) => {

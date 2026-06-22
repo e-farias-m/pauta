@@ -176,6 +176,8 @@ const SAX_FINGERINGS = {
   80:'001000010000000', 81:'000000010000000', 82:'000100010000000', 83:'111101100000000',
   84:'111100100000000',
 };
+// Tenor Sax: same physical fingerings as alto sax (same 15-position scheme).
+const TENOR_SAX_FINGERINGS = SAX_FINGERINGS;
 // Oboe: 8 positions [L1, L2, L3, L4, R1, R2, R3, R4]
 const OBOE_FINGERINGS = {
   64:'11110110', 65:'11110010', 66:'11110000', 67:'11100000',
@@ -198,7 +200,8 @@ const BASSOON_FINGERINGS = {
 function woodwindFingeringForPitch(pitch, type) {
   const map = {
     flute: FLUTE_FINGERINGS, clarinet: CLARINET_FINGERINGS,
-    sax: SAX_FINGERINGS, oboe: OBOE_FINGERINGS, bassoon: BASSOON_FINGERINGS,
+    sax: SAX_FINGERINGS, 'tenor-sax': TENOR_SAX_FINGERINGS,
+    oboe: OBOE_FINGERINGS, bassoon: BASSOON_FINGERINGS,
   }[type];
   const entry = map?.[pitch];
   if (!entry) return [''];
