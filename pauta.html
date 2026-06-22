@@ -9534,6 +9534,7 @@ function startMarking(type) {
 
 function completeMarking(endMi, endSi, endNi) {
   const {markingMode: type, markingStart: s} = APP;
+  const labels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
   // Validate: end must be same staff, after start
   if (endSi !== s.si) { UI.showToast('Markings must be on the same staff'); return; }
   if (endMi < s.mi || (endMi === s.mi && endNi <= s.ni)) {
