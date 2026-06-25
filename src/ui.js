@@ -2180,6 +2180,8 @@ function updateModeBanner() {
     mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
   } else if (APP.chordMode) {
     mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat'; bg = 'rgba(236,72,153,0.12)'; color = '#db2777';
+  } else if (APP.eraserMode) {
+    mode = 'eraser'; label = '\uD83E\uDDF9 Eraser \u2014 tap a note to remove its markings'; bg = 'rgba(239,68,68,0.12)'; color = '#dc2626';
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
     mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`; bg = 'rgba(168,85,247,0.12)'; color = '#9333ea';
@@ -2657,6 +2659,7 @@ _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
 _registerAction('startAssignment', (e) => startAssignment(e.target.closest('[data-id]')?.dataset.id));
 _registerAction('stopPlayback', () => AUDIO.stopPlayback());
+_registerAction('toggleEraser', () => toggleEraser());
 _registerAction('toggleChordMode', () => toggleChordMode());
 _registerAction('toggleContinuousView', () => toggleContinuousView());
 _registerAction('toggleCountIn', () => AUDIO.toggleCountIn());

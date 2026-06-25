@@ -92,6 +92,7 @@ const APP = {
   curOctave: 4,
   markingMode: null,
   markingStart: null,
+  eraserMode: false,
   lyricBold: false,
   lyricItalic: false,
   showTempoOnScore: true,
@@ -164,6 +165,12 @@ const MODE_RULES = [
   () => !APP.assignmentMode && APP.currentAssignment ? { ok: false, msg: 'currentAssignment set but mode false' } : null,
   // Tuplet pending should have active tuplet
   () => APP.tupletPending > 0 && !APP.curTuplet ? { ok: false, msg: 'tupletPending > 0 but no curTuplet' } : null,
+  // Eraser mode is mutually exclusive with editing modes
+  () => APP.eraserMode && APP.inputMode ? { ok: false, msg: 'eraserMode + inputMode' } : null,
+  () => APP.eraserMode && APP.markingMode ? { ok: false, msg: 'eraserMode + markingMode' } : null,
+  () => APP.eraserMode && APP.chordMode ? { ok: false, msg: 'eraserMode + chordMode' } : null,
+  () => APP.eraserMode && APP.exerciseMode ? { ok: false, msg: 'eraserMode + exerciseMode' } : null,
+  () => APP.eraserMode && APP.assignmentMode ? { ok: false, msg: 'eraserMode + assignmentMode' } : null,
 ];
 
 /** Check all mode rules and log warnings for violations. */

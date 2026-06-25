@@ -292,6 +292,10 @@ function handleScoreTap(e) {
         completeMarking(bestNote.mi, bestNote.si, bestNote.ni);
         return;
       }
+      if (APP.eraserMode) {
+        eraseMarkings(bestNote.mi, bestNote.si, bestNote.ni);
+        return;
+      }
       // Check if we're completing an ottava span
       APP.selectedMeasure = bestNote.mi;
       APP.selectedStaff   = bestNote.si;
@@ -1273,6 +1277,61 @@ function toggleDot() {
   APP.curDot = !APP.curDot;
   document.getElementById('btn-dot').classList.toggle('active', APP.curDot);
 }
+function toggleEraser() {
+  APP.eraserMode = !APP.eraserMode;
+  if (APP.eraserMode) {
+    APP.markingMode  = null;
+    APP.markingStart = null;
+    APP.inputMode    = false;
+    APP.chordMode    = false;
+    document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-input')?.classList.remove('active');
+    document.getElementById('btn-chord')?.classList.remove('active');
+    document.getElementById('btn-eraser')?.classList.add('active');
+    UI.showToast('Eraser — tap a note to remove its markings');
+  } else {
+    document.getElementById('btn-eraser')?.classList.remove('active');
+    UI.showToast('Eraser off');
+  }
+  updateModeBanner();
+  _validateModeState();
+}
+
+function eraseMarkings(mi, si, ni) {
+  const score = APP.score;
+  if (!score) return;
+  let removed = [];
+  SCORE.commitChange(score => {
+    // Remove slurs touching this note
+    if (score.slurs) {
+      const before = score.slurs.length;
+      score.slurs = score.slurs.filter(s =>
+        !(s.si === si && s.startMi === mi && s.startNi === ni) &&
+        !(s.si === si && s.endMi === mi && s.endNi === ni)
+      );
+      if (score.slurs.length < before) removed.push('slur');
+    }
+    // Remove hairpins touching this note
+    if (score.hairpins) {
+      const before = score.hairpins.length;
+      score.hairpins = score.hairpins.filter(h =>
+        !(h.si === si && h.startMi === mi && h.startNi === ni) &&
+        !(h.si === si && h.endMi === mi && h.endNi === ni)
+      );
+      if (score.hairpins.length < before) removed.push('hairpin');
+    }
+    // Clear per-note markings
+    const n = getMeasureBySI(si, mi)?.notes[ni];
+    if (n) {
+      if (n.tieToNext) { n.tieToNext = null; removed.push('tie'); }
+      if (n.articulation) { n.articulation = null; removed.push('articulation'); }
+      if (n.dynamic) { n.dynamic = null; removed.push('dynamic'); }
+      if (n.fingering) { n.fingering = null; removed.push('fingering'); }
+      if (n.lyric) { n.lyric = null; removed.push('lyric'); }
+    }
+  }, { toast: removed.length ? 'Erased: ' + removed.join(', ') : 'No markings to erase' });
+}
+
 function toggleChordMode() {
   APP.chordMode = !APP.chordMode;
   if (APP.chordMode) {

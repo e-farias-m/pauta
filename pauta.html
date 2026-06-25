@@ -508,6 +508,10 @@
         <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17,2 1,8 17,14"/></svg>
       </span><span class="panel-lbl">Dim</span></button>
     </div>
+    <div class="panel-section-label">Tools</div>
+    <div class="panel-grid">
+      <button class="panel-btn" id="btn-eraser" aria-label="Eraser" data-action="toggleEraser"><span class="panel-sym" style="font-size:16px">🧹</span><span class="panel-lbl">Eraser</span></button>
+    </div>
   </div>
 
   <!-- Clef panel -->
@@ -2839,6 +2843,7 @@ const APP = {
   curOctave: 4,
   markingMode: null,
   markingStart: null,
+  eraserMode: false,
   lyricBold: false,
   lyricItalic: false,
   showTempoOnScore: true,
@@ -2911,6 +2916,12 @@ const MODE_RULES = [
   () => !APP.assignmentMode && APP.currentAssignment ? { ok: false, msg: 'currentAssignment set but mode false' } : null,
   // Tuplet pending should have active tuplet
   () => APP.tupletPending > 0 && !APP.curTuplet ? { ok: false, msg: 'tupletPending > 0 but no curTuplet' } : null,
+  // Eraser mode is mutually exclusive with editing modes
+  () => APP.eraserMode && APP.inputMode ? { ok: false, msg: 'eraserMode + inputMode' } : null,
+  () => APP.eraserMode && APP.markingMode ? { ok: false, msg: 'eraserMode + markingMode' } : null,
+  () => APP.eraserMode && APP.chordMode ? { ok: false, msg: 'eraserMode + chordMode' } : null,
+  () => APP.eraserMode && APP.exerciseMode ? { ok: false, msg: 'eraserMode + exerciseMode' } : null,
+  () => APP.eraserMode && APP.assignmentMode ? { ok: false, msg: 'eraserMode + assignmentMode' } : null,
 ];
 
 /** Check all mode rules and log warnings for violations. */
@@ -8593,6 +8604,10 @@ function handleScoreTap(e) {
         completeMarking(bestNote.mi, bestNote.si, bestNote.ni);
         return;
       }
+      if (APP.eraserMode) {
+        eraseMarkings(bestNote.mi, bestNote.si, bestNote.ni);
+        return;
+      }
       // Check if we're completing an ottava span
       APP.selectedMeasure = bestNote.mi;
       APP.selectedStaff   = bestNote.si;
@@ -9574,6 +9589,61 @@ function toggleDot() {
   APP.curDot = !APP.curDot;
   document.getElementById('btn-dot').classList.toggle('active', APP.curDot);
 }
+function toggleEraser() {
+  APP.eraserMode = !APP.eraserMode;
+  if (APP.eraserMode) {
+    APP.markingMode  = null;
+    APP.markingStart = null;
+    APP.inputMode    = false;
+    APP.chordMode    = false;
+    document.querySelectorAll('#btn-tie,#btn-slur,#btn-cresc,#btn-dim').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-input')?.classList.remove('active');
+    document.getElementById('btn-chord')?.classList.remove('active');
+    document.getElementById('btn-eraser')?.classList.add('active');
+    UI.showToast('Eraser — tap a note to remove its markings');
+  } else {
+    document.getElementById('btn-eraser')?.classList.remove('active');
+    UI.showToast('Eraser off');
+  }
+  updateModeBanner();
+  _validateModeState();
+}
+
+function eraseMarkings(mi, si, ni) {
+  const score = APP.score;
+  if (!score) return;
+  let removed = [];
+  SCORE.commitChange(score => {
+    // Remove slurs touching this note
+    if (score.slurs) {
+      const before = score.slurs.length;
+      score.slurs = score.slurs.filter(s =>
+        !(s.si === si && s.startMi === mi && s.startNi === ni) &&
+        !(s.si === si && s.endMi === mi && s.endNi === ni)
+      );
+      if (score.slurs.length < before) removed.push('slur');
+    }
+    // Remove hairpins touching this note
+    if (score.hairpins) {
+      const before = score.hairpins.length;
+      score.hairpins = score.hairpins.filter(h =>
+        !(h.si === si && h.startMi === mi && h.startNi === ni) &&
+        !(h.si === si && h.endMi === mi && h.endNi === ni)
+      );
+      if (score.hairpins.length < before) removed.push('hairpin');
+    }
+    // Clear per-note markings
+    const n = getMeasureBySI(si, mi)?.notes[ni];
+    if (n) {
+      if (n.tieToNext) { n.tieToNext = null; removed.push('tie'); }
+      if (n.articulation) { n.articulation = null; removed.push('articulation'); }
+      if (n.dynamic) { n.dynamic = null; removed.push('dynamic'); }
+      if (n.fingering) { n.fingering = null; removed.push('fingering'); }
+      if (n.lyric) { n.lyric = null; removed.push('lyric'); }
+    }
+  }, { toast: removed.length ? 'Erased: ' + removed.join(', ') : 'No markings to erase' });
+}
+
 function toggleChordMode() {
   APP.chordMode = !APP.chordMode;
   if (APP.chordMode) {
@@ -19126,6 +19196,8 @@ function updateModeBanner() {
     mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
   } else if (APP.chordMode) {
     mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat'; bg = 'rgba(236,72,153,0.12)'; color = '#db2777';
+  } else if (APP.eraserMode) {
+    mode = 'eraser'; label = '\uD83E\uDDF9 Eraser \u2014 tap a note to remove its markings'; bg = 'rgba(239,68,68,0.12)'; color = '#dc2626';
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
     mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`; bg = 'rgba(168,85,247,0.12)'; color = '#9333ea';
@@ -19603,6 +19675,7 @@ _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
 _registerAction('startAssignment', (e) => startAssignment(e.target.closest('[data-id]')?.dataset.id));
 _registerAction('stopPlayback', () => AUDIO.stopPlayback());
+_registerAction('toggleEraser', () => toggleEraser());
 _registerAction('toggleChordMode', () => toggleChordMode());
 _registerAction('toggleContinuousView', () => toggleContinuousView());
 _registerAction('toggleCountIn', () => AUDIO.toggleCountIn());
