@@ -2055,7 +2055,7 @@ function _rwGetSettings() {
 }
 
 function _rwSaveSettings(s) {
-  try { localStorage.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) {}
+  try { localStorage.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) { console.warn('Failed to save rhythm workout settings:', e); }
 }
 
 function _rwBeatsPerMeasure(ts) {

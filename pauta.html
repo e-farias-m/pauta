@@ -3578,20 +3578,20 @@ const CLARINET_FINGERINGS = {
   69:'000110000000',  // A4  — Reg + L1 L2 L3
   70:'000111000000',  // Bb4 — Reg + L1 L2 L3 + Eb
   71:'000111000100',  // B4  — Reg + L1 L2 L3 + R2
-  72:'000110000000',  // C5  — Reg + L1 L2 L3
+   72:'010110001000',  // C5  — Th + L1 L2 L3 + R1 (long C)
   73:'000110100000',  // C#5 — Reg + L1 L2 L3 + C#
   74:'000100000000',  // D5  — Reg + L1 L2
-  // ── Altissimo ────────────────────────────────────────────────
-  75:'000111100000',  // Eb5
-  76:'000100100100',  // E5
-  77:'000000100100',  // F5
-  78:'000000000000',  // F#5 — placeholder
-  79:'000000001000',  // G5  — placeholder
-  80:'000000001000',  // G#5 — placeholder
-  81:'000110001000',  // A5  — placeholder
-  82:'000110001000',  // Bb5 — placeholder
-  83:'000110001000',  // B5  — placeholder
-  84:'000110001000',  // C6  — placeholder
+   // ── Altissimo ────────────────────────────────────────────────
+   75:'000111100000',  // Eb5 — Reg + L1 L2 L3 + R1 (fork)
+   76:'000100100100',  // E5  — Reg + L1 L2 + G# + R1 R2
+   77:'000000100100',  // F5  — Reg + G# + R1 R2
+   78:'010000001100',  // F#5 — Th + G# + R2 R3
+   79:'011000001000',  // G5  — Th + L1 + G# + R2
+   80:'011100001000',  // G#5 — Th + L1 L2 + G# + R2
+   81:'011110001000',  // A5  — Th + L1 L2 L3 + G# + R2
+   82:'011111001000',  // Bb5 — Th + L1 L2 L3 + Eb + G# + R2
+   83:'011111101000',  // B5  — Th + L1 L2 L3 + Eb + C# + G# + R2
+   84:'011100001110',  // C6  — Th + L1 L2 L3 + R2 R3 R4
 };
 // Saxophone: 15 positions [L1, L2, L3, G#, R1, R2, R3, C, sideBb, sideC, palmD, palmEb, palmF, lowBb, lowB]
 const SAX_FINGERINGS = {
@@ -13214,7 +13214,7 @@ function _rwGetSettings() {
 }
 
 function _rwSaveSettings(s) {
-  try { localStorage.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) {}
+  try { localStorage.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) { console.warn('Failed to save rhythm workout settings:', e); }
 }
 
 function _rwBeatsPerMeasure(ts) {
