@@ -1062,6 +1062,7 @@ body{
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
   gap:2px;
+  min-height:44px;
   -webkit-tap-highlight-color:transparent;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
   transition:background 0.1s;
@@ -1190,6 +1191,7 @@ body{
 .dropdown .dd-btn:active{background:rgba(192,86,33,0.12)}
 .dropdown .dd-btn.danger{color:var(--danger,#e07060)}
 .dropdown .dd-sep{height:1px;background:rgba(192,86,33,0.12);margin:2px 4px}
+.dropdown .dd-header{margin:6px 4px 0 4px;padding:4px 8px 2px;font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:rgba(74,85,104,0.45)}
 .modal-sep{height:1px;background:rgba(192,86,33,0.10);margin:2px 0}
 .modal input,.modal select{
   width:100%;
@@ -1281,7 +1283,7 @@ body{
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
   letter-spacing:0.2px;
-  min-height:32px;
+  min-height:44px;
   display:inline-flex;align-items:center;gap:3px;
 }
 .btn-action-sm.green{
@@ -1798,263 +1800,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 #debug-overlay .dbg-err  { color: #e07060; }
 #debug-overlay .dbg-ok   { color: #70c070; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   Pauta Design System
-   ═══════════════════════════════════════════════════════════════════ */
-
-:root {
-  /* ── Colors ─────────────────────────────────────────────────── */
-  --pauta-primary: #c05621;
-  --pauta-primary-light: #e06850;
-  --pauta-primary-dark: #9c4221;
-
-  --pauta-success: #22c55e;
-  --pauta-warning: #e6a817;
-  --pauta-error: #e06850;
-
-  --pauta-bg: #f0ebe3;
-  --pauta-bg-card: #fff;
-  --pauta-text: #2d3748;
-  --pauta-text-muted: rgba(74,85,104,0.7);
-  --pauta-text-subtle: rgba(74,85,104,0.5);
-
-  /* ── Category Colors ────────────────────────────────────────── */
-  --pauta-cat-rhythm: #e06850;
-  --pauta-cat-pitch: #c05621;
-  --pauta-cat-ear: #22c55e;
-  --pauta-cat-theory: #4a5568;
-
-  /* ── Kid-Friendly Accent Palette ────────────────────────────── */
-  --pauta-kid-pink: #ec4899;
-  --pauta-kid-blue: #3b82f6;
-  --pauta-kid-lime: #84cc16;
-  --pauta-kid-yellow: #facc15;
-  --pauta-kid-purple: #a855f7;
-
-  /* ── Spacing ────────────────────────────────────────────────── */
-  --pauta-space-xs: 4px;
-  --pauta-space-sm: 8px;
-  --pauta-space-md: 12px;
-  --pauta-space-lg: 16px;
-  --pauta-space-xl: 20px;
-  --pauta-space-2xl: 24px;
-
-  /* ── Border Radius (bubblier for kids) ──────────────────────── */
-  --pauta-radius-sm: 10px;
-  --pauta-radius-md: 14px;
-  --pauta-radius-lg: 18px;
-  --pauta-radius-pill: 20px;
-  --pauta-radius-full: 9999px;
-  --pauta-radius-bubble: 22px;
-
-  /* ── Typography ─────────────────────────────────────────────── */
-  --pauta-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --pauta-font-mono: "SF Mono", Monaco, Consolas, monospace;
-
-  --pauta-text-xs: 10px;
-  --pauta-text-sm: 11px;
-  --pauta-text-md: 12px;
-  --pauta-text-lg: 13px;
-  --pauta-text-xl: 14px;
-  --pauta-text-2xl: 16px;
-  --pauta-text-3xl: 20px;
-
-  /* ── Shadows ────────────────────────────────────────────────── */
-  --pauta-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --pauta-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
-  --pauta-shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
-
-  /* ── Transitions ────────────────────────────────────────────── */
-  --pauta-transition: all 0.2s ease;
-  --pauta-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --pauta-transition-bounce: all 0.3s var(--pauta-bounce);
-}
-
-/* ── Hero Section ──────────────────────────────────────────────── */
-.pauta-hero {
-  background: linear-gradient(135deg, var(--pauta-primary-light), var(--pauta-primary));
-  color: #fff;
-  border-radius: var(--pauta-radius-lg);
-  padding: var(--pauta-space-xl);
-  margin-bottom: var(--pauta-space-lg);
-  cursor: pointer;
-  transition: var(--pauta-transition);
-  position: relative;
-  overflow: hidden;
-}
-.pauta-hero:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(224,104,80,0.3);
-}
-.pauta-hero:active {
-  transform: scale(0.98);
-}
-.pauta-hero-title {
-  font-size: var(--pauta-text-3xl);
-  font-weight: 700;
-  margin-bottom: var(--pauta-space-xs);
-}
-.pauta-hero-desc {
-  font-size: var(--pauta-text-lg);
-  opacity: 0.9;
-}
-.pauta-hero-badge {
-  position: absolute;
-  top: var(--pauta-space-md);
-  right: var(--pauta-space-md);
-  background: rgba(255,255,255,0.2);
-  padding: var(--pauta-space-xs) var(--pauta-space-md);
-  border-radius: var(--pauta-radius-pill);
-  font-size: var(--pauta-text-sm);
-  font-weight: 600;
-}
-
-/* ── Category Section ──────────────────────────────────────────── */
-.pauta-category {
-  margin-bottom: var(--pauta-space-lg);
-}
-.pauta-category-title {
-  font-size: var(--pauta-text-md);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: var(--pauta-space-sm);
-  padding-left: var(--pauta-space-xs);
-}
-
-/* ── Card Grid ─────────────────────────────────────────────────── */
-.pauta-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--pauta-space-sm);
-}
-
-/* ── Card ──────────────────────────────────────────────────────── */
-.pauta-card {
-  background: var(--pauta-bg);
-  border: 1.5px solid rgba(0,0,0,0.08);
-  border-radius: var(--pauta-radius-md);
-  padding: var(--pauta-space-md);
-  cursor: pointer;
-  transition: var(--pauta-transition);
-  position: relative;
-}
-.pauta-card:hover {
-  border-color: var(--pauta-card-color, var(--pauta-primary));
-  box-shadow: var(--pauta-shadow-md);
-}
-.pauta-card:active {
-  transform: scale(0.97);
-}
-.pauta-card-title {
-  font-weight: 600;
-  font-size: var(--pauta-text-lg);
-  color: var(--pauta-text);
-  display: flex;
-  align-items: center;
-  gap: var(--pauta-space-sm);
-}
-.pauta-card-desc {
-  font-size: var(--pauta-text-sm);
-  color: var(--pauta-text-muted);
-  margin-top: 2px;
-  line-height: 1.3;
-}
-.pauta-card-meta {
-  font-size: var(--pauta-text-xs);
-  color: var(--pauta-text-subtle);
-  margin-top: var(--pauta-space-xs);
-}
-.pauta-card-badge {
-  position: absolute;
-  top: var(--pauta-space-sm);
-  right: var(--pauta-space-sm);
-  font-size: var(--pauta-text-xs);
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: var(--pauta-radius-sm);
-}
-
-/* ── Pill Buttons ──────────────────────────────────────────────── */
-.pauta-pills {
-  display: flex;
-  gap: var(--pauta-space-xs);
-  justify-content: center;
-  margin-bottom: var(--pauta-space-md);
-}
-.pauta-pill {
-  border: 1.5px solid rgba(0,0,0,0.1);
-  background: transparent;
-  border-radius: var(--pauta-radius-pill);
-  padding: 5px 12px;
-  font-size: var(--pauta-text-sm);
-  font-weight: 600;
-  color: var(--pauta-text-muted);
-  cursor: pointer;
-  transition: var(--pauta-transition);
-}
-.pauta-pill.active {
-  background: var(--pauta-primary);
-  color: #fff;
-  border-color: var(--pauta-primary);
-}
-.pauta-pill:hover:not(.active) {
-  border-color: var(--pauta-primary);
-  color: var(--pauta-primary);
-}
-
-/* ── Stats Row ─────────────────────────────────────────────────── */
-.pauta-stats {
-  display: flex;
-  gap: var(--pauta-space-lg);
-  justify-content: center;
-  margin-bottom: var(--pauta-space-md);
-  font-size: var(--pauta-text-md);
-  color: var(--pauta-text-muted);
-}
-.pauta-stat-num {
-  font-weight: 700;
-  color: var(--pauta-primary);
-}
-
-/* ── Modal Title ───────────────────────────────────────────────── */
-.pauta-modal-title {
-  margin-bottom: var(--pauta-space-xs);
-}
-.pauta-modal-subtitle {
-  font-size: var(--pauta-text-md);
-  color: var(--pauta-text-muted);
-  margin-bottom: var(--pauta-space-lg);
-}
-
-/* ── Modal Actions ─────────────────────────────────────────────── */
-.pauta-actions {
-  display: flex;
-  gap: var(--pauta-space-sm);
-  margin-top: var(--pauta-space-lg);
-}
-.pauta-actions > * {
-  flex: 1;
-}
-
-/* ── Shared Modal Component ────────────────────────────────────── */
-.pauta-modal {
-  max-width: 480px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-.pauta-modal-header {
-  margin-bottom: var(--pauta-space-lg);
-}
-.pauta-modal-body {
-  margin-bottom: var(--pauta-space-lg);
-}
-.pauta-modal-footer {
-  display: flex;
-  gap: var(--pauta-space-sm);
-  padding-top: var(--pauta-space-md);
-  border-top: 1px solid rgba(0,0,0,0.08);
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    Pauta Design System
@@ -2741,6 +2486,143 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 .pauta-btn-start:active {
   transform: scale(0.97);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Interactive Session UI (Bars / Controls)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Exercise feedback / answer bars */
+.pauta-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--pauta-space-sm);
+  padding: var(--pauta-space-sm) var(--pauta-space-md);
+  background: var(--pauta-bg-card);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  flex-shrink: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 44px;
+}
+
+.pauta-bar-msg {
+  flex: 1;
+  font-size: var(--pauta-text-sm);
+  color: var(--pauta-text-muted);
+  text-align: center;
+}
+.pauta-bar-btn {
+  flex-shrink: 0;
+  min-width: 60px;
+  padding: 6px 14px;
+  font-size: var(--pauta-text-sm);
+}
+.pauta-bar-choice-btn {
+  padding: 8px 16px;
+  font-size: var(--pauta-text-lg);
+  min-width: 44px;
+  min-height: 44px;
+  border: 1.5px solid rgba(192,86,33,0.2);
+  border-radius: var(--pauta-radius-sm);
+  background: var(--pauta-bg-card);
+  color: var(--pauta-primary);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: var(--pauta-font-sans);
+  -webkit-tap-highlight-color: transparent;
+  transition: var(--pauta-transition);
+}
+.pauta-bar-choice-btn:active { background: rgba(192,86,33,0.08); transform: scale(0.97); }
+.pauta-bar-choice-btn.selected { background: var(--pauta-primary); color: #fff; border-color: var(--pauta-primary); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Layout Utilities — replaces common inline flexbox patterns
+   ═══════════════════════════════════════════════════════════════════ */
+.pauta-row    { display:flex; align-items:center; gap:8px; }
+.pauta-row.sm { gap:4px; }
+.pauta-row.wrap { flex-wrap:wrap; }
+.pauta-row.between { justify-content:space-between; }
+.pauta-row.center { justify-content:center; }
+.pauta-row.stretch { align-items:stretch; }
+.pauta-grow   { flex:1; }
+.pauta-shrink0 { flex-shrink:0; }
+.pauta-col    { display:flex; flex-direction:column; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Text Utilities
+   ═══════════════════════════════════════════════════════════════════ */
+.pauta-text-muted-sm { font-size:11px; color:var(--pauta-text-muted); }
+.pauta-text-tiny     { font-size:9px; color:var(--pauta-text-subtle); }
+.pauta-text-subtle   { font-size:10px; color:var(--pauta-text-subtle); }
+.pauta-text-uc       { font-size:9px; color:var(--pauta-text-subtle); text-transform:uppercase; letter-spacing:0.3px; font-weight:600; }
+.pauta-text-center   { text-align:center; }
+.pauta-text-primary  { color:var(--pauta-primary); }
+.pauta-text-success  { color:var(--pauta-success); }
+.pauta-text-warning  { color:var(--pauta-warning); }
+.pauta-text-error    { color:var(--pauta-error); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Margin / Padding Utilities
+   ═══════════════════════════════════════════════════════════════════ */
+.pauta-mb0  { margin-bottom:0; }
+.pauta-mb-sm { margin-bottom:6px; }
+.pauta-mb-md { margin-bottom:12px; }
+.pauta-mb-lg { margin-bottom:16px; }
+.pauta-mt-sm { margin-top:6px; }
+.pauta-mt-md { margin-top:12px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Visual Utilities
+   ═══════════════════════════════════════════════════════════════════ */
+.pauta-subtle-box  { background:rgba(192,86,33,0.04); border:1px solid rgba(192,86,33,0.12); border-radius:8px; padding:4px; text-align:center; }
+.pauta-subtle-card { background:rgba(192,86,33,0.03); border-radius:6px; padding:8px; }
+.pauta-scroll-y    { flex-shrink:0; overflow-y:auto; }
+.pauta-inline-flex { display:inline-flex; align-items:center; gap:4px; }
+.pauta-block { display:block; }
+.pauta-hidden { display:none; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Range / Slider
+   ═══════════════════════════════════════════════════════════════════ */
+.pauta-range { flex:1; height:4px; accent-color:var(--pauta-primary); cursor:pointer; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mode Banner — colors driven by data-mode attribute (see ui.js)
+   ═══════════════════════════════════════════════════════════════════ */
+#mode-banner[data-mode="practice"]          { background: rgba(34,197,94,0.15);  color: #16a34a; }
+#mode-banner[data-mode="exercise"]          { background: rgba(132,204,22,0.12); color: #65a30d; }
+#mode-banner[data-mode="assignment"]        { background: rgba(59,130,246,0.12);  color: #2563eb; }
+#mode-banner[data-mode="input"]             { background: rgba(192,86,33,0.12);   color: #c05621; }
+#mode-banner[data-mode="chord"]             { background: rgba(236,72,153,0.12);  color: #db2777; }
+#mode-banner[data-mode="eraser"]            { background: rgba(239,68,68,0.12);   color: #dc2626; }
+#mode-banner[data-mode="marking"]           { background: rgba(168,85,247,0.12);  color: #9333ea; }
+#mode-banner[data-mode="composition-rhythm"]{ background: rgba(255,152,0,0.12);   color: #e65100; }
+#mode-banner[data-mode="composition-melody"]{ background: rgba(0,150,136,0.12);   color: #00695c; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Dialog / Modal Utility Classes — replaces inline styles
+   ═══════════════════════════════════════════════════════════════════ */
+.pauta-dlg-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(192,86,33,0.08) }
+.pauta-dlg-label { font-size:13px; color:var(--pauta-text) }
+.pauta-dlg-value { font-size:14px; font-weight:600; min-width:60px; text-align:center; color:var(--pauta-primary) }
+.pauta-dlg-section { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:rgba(74,85,104,0.45); margin:12px 0 4px }
+.pauta-dlg-grid2 { display:grid; grid-template-columns:repeat(2,1fr); gap:8px }
+.pauta-dlg-grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px }
+.pauta-dlg-grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:8px }
+.pauta-dlg-input-group { display:flex; align-items:center; gap:8px }
+.pauta-dlg-input, .pauta-dlg-select { width:100%; padding:10px 13px; border:1px solid rgba(192,86,33,0.20); border-radius:var(--pauta-radius-sm); font-size:var(--pauta-text-lg); font-family:var(--pauta-font-sans); background:var(--pauta-bg-card); color:var(--pauta-text); -webkit-appearance:none; appearance:none }
+.pauta-dlg-select { background-image:url("data:image/svg+xml,%3Csvg width=12 height=8 viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23c05621' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:32px }
+.pauta-dlg-btn-sm { width:32px; height:32px; font-size:18px; padding:0; display:flex; align-items:center; justify-content:center; border:1px solid rgba(192,86,33,0.20); border-radius:var(--pauta-radius-sm); background:var(--pauta-bg-card); color:var(--pauta-primary); cursor:pointer; -webkit-tap-highlight-color:transparent }
+.pauta-dlg-btn-sm:active { background:rgba(192,86,33,0.08) }
+.pauta-dlg-toggle { min-width:60px; height:32px; font-size:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(192,86,33,0.20); border-radius:var(--pauta-radius-sm); background:var(--pauta-bg-card); color:var(--pauta-text); cursor:pointer; font-family:var(--pauta-font-sans); -webkit-tap-highlight-color:transparent }
+.pauta-dlg-toggle:active { background:rgba(192,86,33,0.08) }
+.pauta-dlg-toggle.on { background:var(--pauta-primary); color:#fff; border-color:var(--pauta-primary) }
+.pauta-dlg-card { border:1px solid rgba(192,86,33,0.15); border-radius:var(--pauta-radius-lg); padding:12px; background:var(--pauta-bg-card); cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color 0.12s, transform 0.12s }
+.pauta-dlg-card:active { border-color:var(--pauta-primary); transform:scale(0.97) }
+.pauta-dlg-card.selected { border-color:var(--pauta-primary); border-width:2px; background:rgba(192,86,33,0.04) }
+.pauta-dlg-feedback-correct { display:inline-block; background:#dcfce7; color:#16a34a; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
+.pauta-dlg-feedback-wrong { display:inline-block; background:#fef2f2; color:#dc2626; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
+.pauta-dlg-feedback-hint { display:inline-block; background:#fffbeb; color:#b45309; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
 
 
 </style>
@@ -10173,40 +10055,40 @@ function showCurriculumDialog() {
   const results = _loadResults();
   const totalSessions = results.length;
 
-  const gradeHtml = CURRICULUM.map((grade, idx) => {
+  const gradeHtml = CURRICULUM.map((grade) => {
     const unlocked = _isCurriculumUnlocked(grade);
     const p = _getCurriculumProgress(grade.id);
     const totalExercises = grade.exercises.reduce((s, e) => s + e.count, 0);
     const completedExercises = p.completed || 0;
     const pct = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
-    return `<div style="margin-bottom:10px;padding:10px;background:${unlocked ? 'rgba(192,86,33,0.04)' : 'rgba(0,0,0,0.03)'};border-radius:8px;border:1px solid ${unlocked ? 'rgba(192,86,33,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    return `<div class="pauta-subtle-card pauta-mb-sm" style="background:${unlocked ? 'rgba(192,86,33,0.04)' : 'rgba(0,0,0,0.03)'};border:1px solid ${unlocked ? 'rgba(192,86,33,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
+      <div class="pauta-row" style="gap:10px;margin-bottom:6px">
         <span style="font-size:24px">${grade.icon}</span>
-        <div style="flex:1">
+        <div class="pauta-grow">
           <div style="font-weight:600;font-size:13px;color:var(--pauta-text)">${grade.title}</div>
-          <div style="font-size:11px;color:rgba(74,85,104,0.7)">${grade.description}</div>
+          <div class="pauta-text-muted-sm">${grade.description}</div>
         </div>
-        <div style="text-align:right">
+        <div class="pauta-text-center">
           <div style="font-size:16px;font-weight:700;color:${pct >= 80 ? 'var(--pauta-success)' : pct >= 50 ? 'var(--pauta-warning)' : 'var(--pauta-primary)'}">${pct}%</div>
-          <div style="font-size:10px;color:rgba(74,85,104,0.5)">${completedExercises}/${totalExercises}</div>
+          <div class="pauta-text-tiny" style="opacity:0.5">${completedExercises}/${totalExercises}</div>
         </div>
       </div>
-      ${unlocked ? `<div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${unlocked ? `<div class="pauta-row sm wrap">
         ${grade.exercises.map((ex, exIdx) => {
           const ep = p.exercises?.[exIdx];
           const done = ep?.lastScore !== undefined;
           const score = ep?.bestScore || 0;
           return `<button class="modal-btn ${done ? 'secondary' : 'primary'}" 
             data-action="startCurriculumGrade" data-grade="${grade.id}" data-exercise="${exIdx}"
-            style="flex:1;min-width:120px;padding:6px 8px;font-size:11px;text-align:left">
-            <div style="display:flex;justify-content:space-between;align-items:center">
+            class="pauta-grow" style="min-width:120px;padding:6px 8px;font-size:11px;text-align:left">
+            <div class="pauta-row between">
               <span>${done ? '✓' : '▶'} ${ex.label}</span>
-              ${done ? `<span style="font-size:10px;color:${score >= 80 ? 'var(--pauta-success)' : 'var(--pauta-warning)'}">${score}%</span>` : ''}
+              ${done ? `<span class="pauta-text-subtle" style="color:${score >= 80 ? 'var(--pauta-success)' : 'var(--pauta-warning)'}">${score}%</span>` : ''}
             </div>
           </button>`;
         }).join('')}
-      </div>` : `<div style="font-size:11px;color:rgba(74,85,104,0.5);text-align:center;margin-top:4px">
+      </div>` : `<div class="pauta-text-tiny pauta-text-center pauta-mt-sm" style="opacity:0.5">
         Complete ${grade.unlockCondition.count} ${grade.unlockCondition.exerciseType ? TYPE_LABELS[grade.unlockCondition.exerciseType] : 'total'} sessions to unlock
       </div>`}
     </div>`;
@@ -10214,10 +10096,10 @@ function showCurriculumDialog() {
 
   UI.makeModal(`
     <h2>Curriculum</h2>
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
+    <div class="pauta-text-muted-sm pauta-text-center pauta-mb-md" style="font-size:12px">
       Structured learning path · ${totalSessions} total sessions completed
     </div>
-    <div style="flex-shrink:0;max-height:340px;overflow-y:auto">
+    <div class="pauta-scroll-y" style="max-height:340px">
       ${gradeHtml}
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
@@ -11109,15 +10991,15 @@ const SESSION_MANAGER = {
 
     UI.makeModal(`
       <h2>Audio Latency Calibration</h2>
-      <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px;text-align:center">
+      <p class="pauta-text-muted-sm pauta-text-center pauta-mb-md" style="font-size:13px">
         ${result.message}
       </p>
-      <div style="text-align:center;margin-bottom:12px">
+      <div class="pauta-text-center pauta-mb-md">
         <div id="cal-beat-display" style="font-size:48px;font-weight:700;color:var(--pauta-primary);margin-bottom:8px">0/${totalBeats}</div>
         <div id="cal-tap-btn" style="width:80px;height:80px;border-radius:50%;background:var(--pauta-primary);color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center">TAP</div>
       </div>
-      <div id="cal-result" style="text-align:center;font-size:12px;color:var(--pauta-text-muted);min-height:20px"></div>
-      <button class="modal-btn secondary" data-action="closeModal" style="margin-top:8px">Cancel</button>
+      <div id="cal-result" class="pauta-text-muted-sm pauta-text-center" style="min-height:20px"></div>
+      <button class="modal-btn secondary pauta-mt-sm" data-action="closeModal">Cancel</button>
     `);
 
     let beatInterval = setInterval(() => {
@@ -11255,21 +11137,21 @@ function _showSessionIntro(type, difficulty) {
       </div>
 
       <div class="pauta-modal-body">
-        <div style="background:rgba(192,86,33,0.05);border-left:3px solid var(--pauta-primary);padding:12px;margin-bottom:16px;border-radius:0 6px 6px 0">
+        <div class="pauta-card" style="border-left:3px solid var(--pauta-primary);padding:12px;margin-bottom:16px;border-radius:0 6px 6px 0">
           <div style="font-weight:600;color:var(--pauta-primary);margin-bottom:4px">Learning Goal</div>
           <div style="font-size:13px;color:var(--pauta-text)">${intro.goal}</div>
         </div>
 
-        <p style="font-size:13px;color:var(--pauta-text-muted);line-height:1.6;margin-bottom:16px">${intro.description}</p>
+        <p class="dialog-hint" style="line-height:1.5;margin-bottom:16px">${intro.description}</p>
 
         <div style="margin-bottom:16px">
-          <div style="font-weight:600;color:var(--pauta-text);margin-bottom:8px;font-size:12px">Tips</div>
+          <div class="pauta-dlg-section" style="margin:0 0 8px">Tips</div>
           <ul style="margin:0;padding-left:20px;font-size:12px;color:var(--pauta-text-muted);line-height:1.8">
             ${intro.tips.map(tip => `<li>${tip}</li>`).join('')}
           </ul>
         </div>
 
-        <div style="background:rgba(34,197,94,0.05);border-left:3px solid var(--pauta-success);padding:12px;border-radius:0 6px 6px 0">
+        <div class="pauta-card" style="border-left:3px solid var(--pauta-success);padding:12px;border-radius:0 6px 6px 0;border-top-color:transparent;border-right-color:transparent;border-bottom-color:transparent">
           <div style="font-weight:600;color:var(--pauta-success);margin-bottom:4px">Session Structure</div>
           <div style="font-size:12px;color:var(--pauta-text-muted)">
             • Warm-up: First 2-3 questions are easy to get you started<br>
@@ -11327,14 +11209,14 @@ function endExerciseSession() {
   // Determine next action based on recommendation
   let nextActionHtml = '';
   if (recommendation.action === 'advance') {
-    nextActionHtml = `<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-success);font-size:13px">Ready to advance!</div>
-      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
+    nextActionHtml = `<div class="pauta-dlg-card" style="text-align:center;border-color:rgba(34,197,94,0.2)">
+      <div class="pauta-text-success" style="font-weight:600;font-size:13px">Ready to advance!</div>
+      <div class="pauta-text-muted-sm">${recommendation.reason}</div>
     </div>`;
   } else if (recommendation.action === 'review') {
-    nextActionHtml = `<div style="background:rgba(230,168,23,0.1);border:1px solid rgba(230,168,23,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-warning);font-size:13px">Review recommended</div>
-      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
+    nextActionHtml = `<div class="pauta-dlg-card" style="text-align:center;border-color:rgba(230,168,23,0.2)">
+      <div class="pauta-text-warning" style="font-weight:600;font-size:13px">Review recommended</div>
+      <div class="pauta-text-muted-sm">${recommendation.reason}</div>
     </div>`;
   }
 
@@ -11347,8 +11229,8 @@ function endExerciseSession() {
   const cheer = encouragements[Math.floor(Math.random() * encouragements.length)];
 
   UI.makeModal(`
-    <div style="text-align:center">
-      <h2 style="font-size:22px;font-weight:700;margin-bottom:4px;color:var(--pauta-text)">Session Complete</h2>
+    <div class="pauta-hero">
+      <h2 class="pauta-hero-title">Session Complete</h2>
 
       <div class="pauta-score-circle" style="background:${scoreCircleColor};box-shadow:0 4px 20px ${scoreCircleColor}44">
         <span class="score-pct">${pct}%</span>
@@ -11363,17 +11245,17 @@ function endExerciseSession() {
 
       <div class="pauta-encouragement" style="color:${scoreCircleColor}">${cheer}</div>
 
-      <div style="font-size:12px;color:var(--pauta-text-muted);margin:6px 0 12px">
+      <div class="pauta-card-meta" style="margin:6px 0 12px">
         Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}
       </div>
     </div>
 
     ${nextActionHtml}
 
-    <div style="flex-shrink:0;margin-bottom:12px;max-height:180px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm);background:var(--pauta-bg);padding:8px">
+    <div class="pauta-scroll-y pauta-mb-md" style="max-height:180px;font-size:12px;color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm);background:var(--pauta-bg);padding:8px">
       ${s.completed.map((c,i) => {
         if (c.type === 'difficulty_change') {
-          return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
+          return `<div class="pauta-row pauta-mb0" style="gap:6px">
             <span style="width:16px;text-align:center;font-size:14px">↕</span>
             <span>#${i+1}: Difficulty ${c.difficultyChange === 'up' ? '↑' : '↓'} to ${c.answer}</span>
           </div>`;
@@ -11387,13 +11269,13 @@ function endExerciseSession() {
           : c.type === EXERCISE_TYPES.SCALE_ID ? 'Scale ' + c.answer
           : c.type === EXERCISE_TYPES.NOTE_CONSTRUCT ? 'Construct ' + c.answer
           : 'Rhythm';
-        return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
+        return `<div class="pauta-row pauta-mb0" style="gap:6px">
           <span style="width:16px;text-align:center;font-size:14px">${icon}</span>
           <span>#${i+1}: ${label}${c.nearMiss && !c.ok ? ' (off by 1)' : ''}</span>
         </div>`;
       }).join('')}
     </div>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    <div class="pauta-row center wrap">
       <button class="modal-btn primary" data-action="reviewExerciseSession">Review Answers</button>
       <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
       <button class="modal-btn secondary" data-action="closeModalExercise">Close</button>
@@ -11456,7 +11338,7 @@ function reviewExerciseSession() {
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
       const pc = pitch % 12;
       const noteName = noteNames[pc];
-      questionHtml = `<div style="font-size:20px;text-align:center;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>`;
+      questionHtml = `<div class="pauta-text-center" style="font-size:20px;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>`;
     } else if (c.type === EXERCISE_TYPES.INTERVAL_ID) {
       const bottom = c.target?.bottom;
       const top = c.target?.top;
@@ -11465,27 +11347,27 @@ function reviewExerciseSession() {
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
       const bName = noteNames[bottom % 12];
       const tName = noteNames[top % 12];
-      questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">${bName} → ${tName}</div>
-        <div style="text-align:center;color:var(--pauta-text-muted)">${semitones} semitones ${dir > 0 ? '↑' : '↓'}</div>`;
+      questionHtml = `<div class="pauta-text-center" style="font-size:18px;margin:8px 0">${bName} → ${tName}</div>
+        <div class="pauta-text-center pauta-text-muted-sm">${semitones} semitones ${dir > 0 ? '↑' : '↓'}</div>`;
     } else if (c.type === EXERCISE_TYPES.RHYTHM_READ || c.type === EXERCISE_TYPES.RHYTHM_WS) {
       const beats = c.target?.beats || c.target?.durations;
       if (beats) {
         const symbols = beats.map(d => d === 'q' ? '♩' : d === 'h' ? '𝅗𝅥' : d === '8' ? '♪' : d === '16' ? '𝅘𝅥𝅮' : d === 'r' ? '𝄽' : '·');
-        questionHtml = `<div style="font-size:20px;text-align:center;letter-spacing:8px;margin:12px 0;font-family:'Bravura',serif">${symbols.join(' ')}</div>`;
+        questionHtml = `<div class="pauta-text-center" style="font-size:20px;letter-spacing:8px;margin:12px 0;font-family:'Bravura',serif">${symbols.join(' ')}</div>`;
       }
     } else if (c.type === EXERCISE_TYPES.MELODY_DICT) {
       const notes = c.target?.notes;
       if (notes) {
         const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
         const names = notes.map(n => noteNames[n.pitch % 12]);
-        questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0;letter-spacing:4px">${names.join(' ')}</div>`;
+        questionHtml = `<div class="pauta-text-center" style="font-size:18px;margin:8px 0;letter-spacing:4px">${names.join(' ')}</div>`;
       }
     } else if (c.type === EXERCISE_TYPES.KEY_SIG_ID) {
       const ks = c.target?.keySig;
       const names = { '-7':'Cb','-6':'Gb','-5':'Db','-4':'Ab','-3':'Eb','-2':'Bb','-1':'F','0':'C','1':'G','2':'D','3':'A','4':'E','5':'B','6':'F#','7':'C#' };
       const minorNames = { '-7':'Abm','-6':'Ebm','-5':'Bbm','-4':'Fm','-3':'Cm','-2':'Gm','-1':'Dm','0':'Am','1':'Em','2':'Bm','3':'F#m','4':'C#m','5':'G#m','6':'D#m','7':'A#m' };
-      questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">Key Signature: ${ks > 0 ? '♯'.repeat(ks) : ks < 0 ? '♭'.repeat(-ks) : '(none)'}</div>
-        <div style="text-align:center;color:var(--pauta-text-muted)">Major: ${names[String(ks)]} · Minor: ${minorNames[String(ks)]}</div>`;
+      questionHtml = `<div class="pauta-text-center" style="font-size:18px;margin:8px 0">Key Signature: ${ks > 0 ? '♯'.repeat(ks) : ks < 0 ? '♭'.repeat(-ks) : '(none)'}</div>
+        <div class="pauta-text-center pauta-text-muted-sm">Major: ${names[String(ks)]} · Minor: ${minorNames[String(ks)]}</div>`;
     }
 
     const isCorrect = c.ok;
@@ -11495,26 +11377,26 @@ function reviewExerciseSession() {
 
     UI.makeModal(`
       <h2>Review: ${typeLabel} (${idx + 1}/${completed.length})</h2>
-      <div style="margin-bottom:12px;padding:12px;background:rgba(192,86,33,0.05);border-radius:8px">
+      <div class="pauta-card pauta-mb-md">
         <div style="font-weight:600;margin-bottom:6px">Question</div>
         ${questionHtml}
       </div>
-      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;flex-wrap:wrap">
-        <div style="padding:8px 16px;background:${isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(255,96,96,0.1)'};border-radius:8px;border:1px solid ${isCorrect ? 'var(--pauta-success)' : '#ff6060'}">
-          <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</div>
-          <div style="font-size:16px;font-weight:700;color:${isCorrect ? 'var(--pauta-success)' : '#c05421'}">${UI.escHtml(userAns)}</div>
+      <div class="pauta-dlg-input-group pauta-row center wrap pauta-mb-md">
+        <div style="padding:8px 16px;background:${isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(255,96,96,0.1)'};border-radius:var(--pauta-radius-md);border:1px solid ${isCorrect ? 'var(--pauta-success)' : '#ff6060'}">
+          <div class="pauta-text-muted-sm pauta-text-center" style="font-weight:600">${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</div>
+          <div class="pauta-text-center" style="font-size:16px;font-weight:700;color:${isCorrect ? 'var(--pauta-success)' : '#c05421'}">${UI.escHtml(userAns)}</div>
         </div>
         ${!isCorrect ? `
-        <div style="padding:8px 16px;background:rgba(34,197,94,0.1);border-radius:8px;border:1px solid var(--pauta-success)">
-          <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">Correct Answer</div>
-          <div style="font-size:16px;font-weight:700;color:var(--pauta-success)">${UI.escHtml(correctAns)}</div>
+        <div style="padding:8px 16px;background:rgba(34,197,94,0.1);border-radius:var(--pauta-radius-md);border:1px solid var(--pauta-success)">
+          <div class="pauta-text-muted-sm pauta-text-center" style="font-weight:600">Correct Answer</div>
+          <div class="pauta-text-center" style="font-size:16px;font-weight:700;color:var(--pauta-success)">${UI.escHtml(correctAns)}</div>
         </div>` : ''}
       </div>
-      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">${UI.escHtml(hint)}</div>` : ''}
-      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      ${hint ? `<div class="pauta-dlg-feedback-hint pauta-mb-md pauta-block" style="padding:8px 12px">${UI.escHtml(hint)}</div>` : ''}
+      <div class="pauta-row center wrap">
         ${idx > 0 ? `<button class="modal-btn secondary" data-action="reviewPrev">← Previous</button>` : ''}
         ${idx < completed.length - 1 ? `<button class="modal-btn primary" data-action="reviewNext">Next →</button>` : `<button class="modal-btn primary" data-action="closeModal">Done</button>`}
-        ${completed.length > 1 ? `<button class="modal-btn secondary" data-action="closeModal" style="margin-left:auto">Close Review</button>` : ''}
+        ${completed.length > 1 ? `<button class="modal-btn secondary" data-action="closeModal">Close Review</button>` : ''}
       </div>
     `);
   }
@@ -12169,11 +12051,11 @@ function _showDictationListenBar(ex) {
       <div style="font-size:14px;font-weight:700;color:var(--pauta-text)">${firstName}</div>
     </div>
     <button class="modal-btn primary" id="dictation-play" style="padding:6px 16px;font-size:13px">▶ Play Melody</button>
-    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:12px">I'm Ready</button>
-    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:var(--pauta-text-md)">I'm Ready</button>
+    <div class="pauta-dlg-input-group" style="margin-left:auto">
       <label style="font-size:11px;color:var(--pauta-text-muted);font-weight:600">♩</label>
       <input type="range" id="dictation-tempo" min="40" max="200" value="${currentTempo}" style="width:100px" aria-label="Tempo">
-      <span id="dictation-tempo-val" style="font-size:12px;font-weight:700;color:var(--pauta-primary);min-width:36px;text-align:right">${currentTempo}</span> BPM
+      <span style="font-size:12px;font-weight:700;color:var(--pauta-primary);min-width:36px;text-align:right" id="dictation-tempo-val">${currentTempo}</span> BPM
     </div>`;
   document.body.appendChild(bar);
   
@@ -12718,15 +12600,15 @@ function _showExerciseFeedback(ex, userAnswer) {
 
   const bar = document.createElement('div');
   bar.id = 'exercise-feedback-bar';
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%) translateY(20px);z-index:200;display:flex;align-items:flex-start;gap:10px;background:rgba(255,251,235,0.98);border:1px solid rgba(217,160,60,0.3);border-radius:10px;padding:12px 16px;box-shadow:0 3px 16px rgba(0,0,0,0.09);font-size:13px;color:var(--pauta-text-muted);flex-wrap:wrap;max-width:92vw;opacity:0;transition:opacity 0.3s ease, transform 0.3s ease;font-family:var(--pauta-font-sans)';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%) translateY(20px);z-index:200;display:flex;align-items:flex-start;gap:10px;background:rgba(255,251,235,0.98);border:1px solid rgba(217,160,60,0.3);border-radius:var(--pauta-radius-lg);padding:12px 16px;box-shadow:0 3px 16px rgba(0,0,0,0.09);font-size:var(--pauta-text-lg);color:var(--pauta-text-muted);flex-wrap:wrap;max-width:92vw;opacity:0;transition:opacity 0.3s ease, transform 0.3s ease;font-family:var(--pauta-font-sans)';
   bar.innerHTML = `
     <div style="flex:1;min-width:0">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="pauta-dlg-input-group" style="margin-bottom:6px;flex-wrap:wrap">
         <span style="font-weight:700;color:#b45309;font-size:14px">Not quite</span>
-        <div style="display:flex;gap:6px;align-items:center;font-size:12px">
-          <span style="background:rgba(239,68,68,0.1);padding:2px 8px;border-radius:4px;color:#dc2626">You: <b>${UI.escHtml(userAnswer)}</b></span>
+        <div class="pauta-dlg-input-group" style="font-size:12px;flex-wrap:wrap">
+          <span class="pauta-dlg-feedback-wrong">You: <b>${UI.escHtml(userAnswer)}</b></span>
           <span style="color:rgba(74,85,104,0.4)">→</span>
-          <span style="background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:4px;color:#16a34a">Correct: <b>${UI.escHtml(correctLabel)}</b>${extraNote}</span>
+          <span class="pauta-dlg-feedback-correct">Correct: <b>${UI.escHtml(correctLabel)}</b>${extraNote}</span>
         </div>
       </div>
       ${hintText ? `
@@ -12735,8 +12617,8 @@ function _showExerciseFeedback(ex, userAnswer) {
           <div style="margin-top:4px;font-size:11px;color:rgba(74,85,104,0.7);line-height:1.5">${hintText}</div>
         </details>` : ''}
     </div>
-    <div style="display:flex;gap:6px;flex-shrink:0;align-self:center">
-      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(192,86,33,0.2);color:var(--pauta-text-muted);border-radius:5px">Skip</button>
+    <div class="pauta-dlg-input-group" style="flex-shrink:0;align-self:center">
+      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(192,86,33,0.2);color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm)">Skip</button>
       <button class="modal-btn primary" data-action="retryExercise" style="padding:4px 12px;font-size:12px">Try Again</button>
       <button class="modal-btn secondary" data-action="endExerciseSession" style="padding:4px 10px;font-size:12px">End Session</button>
     </div>
@@ -13477,22 +13359,22 @@ function showAssignmentDialog() {
   UI.makeModal(`
     <h2>Create Assignment</h2>
     <div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Title</div>
-      <input id="asgn-title" type="text" value="Exercise ${(APP.score?.assignments?.length || 0) + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Title</div>
+      <input id="asgn-title" type="text" value="Exercise ${(APP.score?.assignments?.length || 0) + 1}" class="pauta-dlg-input">
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Start measure</div>
-        <input id="asgn-start" type="number" min="1" max="${measureCount}" value="${start + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <div class="pauta-dlg-grid2" style="margin-bottom:10px">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Start measure</div>
+        <input id="asgn-start" type="number" min="1" max="${measureCount}" value="${start + 1}" class="pauta-dlg-input">
       </div>
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">End measure</div>
-        <input id="asgn-end" type="number" min="1" max="${measureCount}" value="${end + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">End measure</div>
+        <input id="asgn-end" type="number" min="1" max="${measureCount}" value="${end + 1}" class="pauta-dlg-input">
       </div>
     </div>
     <div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Hide from student</div>
-      <select id="asgn-hidden" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Hide from student</div>
+      <select id="asgn-hidden" class="pauta-dlg-select">
         <option value="pitch">Pitches (student enters note names / MIDI)</option>
         <option value="duration">Rhythm (student enters durations)</option>
         <option value="pitch+duration">Pitches + Rhythm</option>
@@ -13505,7 +13387,7 @@ function showAssignmentDialog() {
         <input type="checkbox" id="asgn-hint-first" checked> Show first note as hint
       </label>
     </div>
-    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+    <div style="margin-bottom:12px;font-size:11px;color:var(--pauta-text-muted)">
       The assignment is saved inside the score file. Share the .mscz with students.
     </div>
     <button class="modal-btn primary" data-action="confirmCreateAssignment">Create</button>
@@ -14172,19 +14054,19 @@ function showExerciseBuilderDialog() {
     <h2>Exercise Builder</h2>
     ${existingHtml}
     <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Exercise Set Name</div>
-      <input id="exb-name" type="text" placeholder="e.g. Week 1: Treble Clef Basics" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Exercise Set Name</div>
+      <input id="exb-name" type="text" placeholder="e.g. Week 1: Treble Clef Basics" class="pauta-dlg-input">
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Difficulty</div>
-        <select id="exb-diff" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <div class="pauta-dlg-grid2" style="margin-bottom:12px">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Difficulty</div>
+        <select id="exb-diff" class="pauta-dlg-select">
           ${diffOptions.map(d => `<option value="${d.value}">${d.label}</option>`).join('')}
         </select>
       </div>
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Exercises per set</div>
-        <select id="exb-count" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Exercises per set</div>
+        <select id="exb-count" class="pauta-dlg-select">
           <option value="5">5</option>
           <option value="10" selected>10</option>
           <option value="15">15</option>
@@ -14193,7 +14075,7 @@ function showExerciseBuilderDialog() {
       </div>
     </div>
     <div id="exb-types" style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:6px">Exercise Types (check to include)</div>
+      <div class="pauta-dlg-section" style="margin:0 0 6px">Exercise Types (check to include)</div>
       ${typeOptions.map((t, idx) => `
         <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--pauta-text-muted);cursor:pointer">
           <input type="checkbox" class="exb-type-check" value="${t.value}" ${idx < 2 ? 'checked' : ''} style="accent-color:var(--pauta-primary)">
@@ -14201,7 +14083,7 @@ function showExerciseBuilderDialog() {
         </label>
       `).join('')}
     </div>
-    <div style="display:flex;gap:6px">
+    <div class="pauta-dlg-input-group" style="gap:6px">
       <button class="modal-btn primary" id="exb-save">Save Set</button>
       <button class="modal-btn secondary" id="exb-export">Export JSON</button>
       <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -14454,30 +14336,20 @@ function showClefSelectionDialog(templateId) {
   const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
   if (!tpl) { UI.showToast('Template not found'); return; }
   window._pendingStarterTemplate = templateId;
+  function clefCard(data) {
+    return `<button class="pauta-dlg-card" data-action="selectAssignmentClef" data-clef="${data.clef}" style="flex:1;padding:16px 12px;text-align:center;border-width:2px">
+      <div style="font-size:48px;line-height:1;margin-bottom:8px">${data.sym}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">${data.label}</div>
+      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${data.desc}</div>
+    </button>`;
+  }
   UI.makeModal(`
     <h2>Choose Clef</h2>
-    <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:16px">
-      Select the clef for this assignment:
-    </p>
-    <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
-      <button data-action="selectAssignmentClef" data-clef="treble"
-        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
-        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄞</div>
-        <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">Treble Clef</div>
-        <div style="font-size:11px;color:rgba(74,85,104,0.7)">G clef · Most common</div>
-      </button>
-      <button data-action="selectAssignmentClef" data-clef="alto"
-        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
-        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄡</div>
-        <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">Alto Clef</div>
-        <div style="font-size:11px;color:rgba(74,85,104,0.7)">C clef · Viola</div>
-      </button>
-      <button data-action="selectAssignmentClef" data-clef="bass"
-        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
-        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄢</div>
-        <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">Bass Clef</div>
-        <div style="font-size:11px;color:rgba(74,85,104,0.7)">F clef · Low instruments</div>
-      </button>
+    <p class="dialog-hint" style="margin-bottom:16px">Select the clef for this assignment:</p>
+    <div class="pauta-dlg-input-group" style="gap:12px;margin-bottom:16px">
+      ${clefCard({clef:'treble',sym:'𝄞',label:'Treble Clef',desc:'G clef · Most common'})}
+      ${clefCard({clef:'alto',sym:'𝄡',label:'Alto Clef',desc:'C clef · Viola'})}
+      ${clefCard({clef:'bass',sym:'𝄢',label:'Bass Clef',desc:'F clef · Low instruments'})}
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
@@ -15529,19 +15401,19 @@ function redo() {
 function showExportDialog() {
   UI.makeModal(`
     <h2>Export Audio</h2>
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Format</div>
-      <select id="export-format" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <div class="pauta-mb-md">
+      <div class="pauta-text-muted-sm pauta-mb0">Format</div>
+      <select id="export-format" class="pauta-dlg-select" style="padding:6px 8px">
         <option value="wav">WAV (lossless, large)</option>
         <option value="mp3">MP3 (compressed, smaller)</option>
       </select>
     </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Tempo (BPM) — override</div>
+    <div class="pauta-mb-md">
+      <div class="pauta-text-muted-sm pauta-mb0">Tempo (BPM) — override</div>
       <input id="export-bpm" type="number" value="${APP.tempo}" min="20" max="400"
-        style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+        class="pauta-dlg-input" style="padding:6px 8px">
     </div>
-    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+    <div class="pauta-text-muted-sm pauta-mb-md">
       Renders the current score using the internal synth and saves as ${APP.score?.parts?.length > 1 ? 'a stereo mix' : 'a mono/stereo'} file.
     </div>
     <button class="modal-btn primary" data-action="confirmExportAudio">Export</button>
@@ -15875,21 +15747,21 @@ function showWelcomeModal() {
   const seen = localStorage.getItem('pauta_welcome_seen');
   if (seen) return;
   UI.makeModal(`
-    <div style="text-align:center;padding:4px 0">
+    <div class="pauta-text-center" style="padding:4px 0">
       <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
-      <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:18px">Welcome! What would you like to do today?</div>
+      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:18px">Welcome! What would you like to do today?</div>
 
-      <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:10px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+      <button class="modal-btn primary pauta-mb-sm" data-action="startLearnerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
         <span style="font-size:22px">&#9835;</span>
         <span>I want to learn music!</span>
       </button>
 
-      <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+      <button class="modal-btn secondary pauta-mb-sm" data-action="startComposerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
         <span style="font-size:20px;font-weight:700">&#9998;</span>
         <span>I want to write music!</span>
       </button>
 
-      <div style="margin-top:6px;font-size:11px;color:var(--pauta-text-subtle)">
+      <div class="pauta-text-subtle pauta-mt-sm">
         You can change your mind anytime in the View menu.
       </div>
     </div>
@@ -17774,36 +17646,33 @@ function showMixer() {
   const masterPct = Math.round((APP.masterVolume || 0.65) * 100);
   const metPct = Math.round((APP.metronomeVolume || 0.5) * 100);
   const partSliders = parts.map((p, i) => `
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-      <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+    <div class="pauta-row" style="gap:6px;margin-bottom:6px">
+      <span class="pauta-text-muted-sm" style="flex:0 0 70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
       <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
         data-action="setPartVolume" data-idx="${i}"
-        style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer"
-        aria-label="${p.name} volume">
-      <span id="mix-part-${i}" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${Math.round((p.volume||1)*100)}</span>
+        class="pauta-range" aria-label="${p.name} volume">
+      <span id="mix-part-${i}" class="pauta-text-subtle" style="width:24px;text-align:right">${Math.round((p.volume||1)*100)}</span>
     </div>`).join('');
 
   makeModal(`
     <h2>Mixer</h2>
-    <div style="margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted)">Master</span>
+    <div class="pauta-mb-sm">
+      <div class="pauta-row" style="gap:6px;margin-bottom:6px">
+        <span class="pauta-text-muted-sm" style="flex:0 0 70px">Master</span>
         <input type="range" min="0" max="100" value="${masterPct}"
-          data-action="setMasterVolume"
-          style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer" aria-label="Master volume">
-        <span id="mix-master-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${masterPct}</span>
+          data-action="setMasterVolume" class="pauta-range" aria-label="Master volume">
+        <span id="mix-master-val" class="pauta-text-subtle" style="width:24px;text-align:right">${masterPct}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted)">Metronome</span>
+      <div class="pauta-row" style="gap:6px;margin-bottom:6px">
+        <span class="pauta-text-muted-sm" style="flex:0 0 70px">Metronome</span>
         <input type="range" min="0" max="100" value="${metPct}"
-          data-action="setMetronomeVolume"
-          style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer" aria-label="Metronome volume">
-        <span id="mix-met-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${metPct}</span>
+          data-action="setMetronomeVolume" class="pauta-range" aria-label="Metronome volume">
+        <span id="mix-met-val" class="pauta-text-subtle" style="width:24px;text-align:right">${metPct}</span>
       </div>
     </div>
     <div class="modal-sep"></div>
     ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
-    <button class="modal-btn secondary" style="margin-top:8px" data-action="closeModal">Close</button>
+    <button class="modal-btn secondary pauta-mt-sm" data-action="closeModal">Close</button>
   `);
 }
 
@@ -17830,20 +17699,20 @@ function showPickupDialog() {
   const maxPickup = Math.max(1, ts.num - 1);
   makeModal(`
     <h2>Pickup Measure (Anacrusis)</h2>
-    ${isPickup ? `<p style="color:var(--pal-label);font-size:11px">First measure is a pickup (<b>${firstM.pickup.num}/${firstM.pickup.den}</b>). Time signature shown at measure 2.</p>` :
-      `<p style="color:var(--pal-label);font-size:11px">First measure is full (<b>${ts.num}/${ts.den}</b>). Make it a pickup:</p>`}
+    <p class="dialog-hint">${isPickup ? `First measure is a pickup (<b>${firstM.pickup.num}/${firstM.pickup.den}</b>). Time signature shown at measure 2.` :
+      `First measure is full (<b>${ts.num}/${ts.den}</b>). Make it a pickup:`}</p>
     ${!isPickup ? `
-      <div class="panel-section-label" style="margin:8px 0 4px">Pickup duration</div>
-      <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px">
-        <select id="pu-num" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+      <div class="pauta-dlg-section">Pickup duration</div>
+      <div class="pauta-dlg-input-group" style="justify-content:center;margin-bottom:8px">
+        <select id="pu-num" class="pauta-dlg-select" style="width:auto;min-width:60px;text-align:center">
           ${Array.from({length: maxPickup}, (_, i) => i + 1).map(n => `<option value="${n}">${n}</option>`).join('')}
         </select>
         <span style="color:rgba(74,85,104,0.40);font-size:18px">/</span>
-        <select id="pu-den" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <select id="pu-den" class="pauta-dlg-select" style="width:auto;min-width:60px;text-align:center">
           <option value="4">4</option>
           <option value="8">8</option>
         </select>
-        <span style="color:var(--pal-label);font-size:11px">beats</span>
+        <span style="font-size:11px;color:var(--pauta-text-muted)">beats</span>
       </div>
       <button class="modal-btn primary" data-action="setPickupMeasure">Set Pickup</button>
     ` : `
@@ -18070,38 +17939,36 @@ function showScaleGeneratorDialog() {
 
   makeModal(`
     <h2>Generate Scale / Arpeggio</h2>
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px">
-      Creates a new score with the selected scale or arpeggio for the chosen instrument.
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <p class="dialog-hint">Creates a new score with the selected scale or arpeggio for the chosen instrument.</p>
+    <div class="pauta-dlg-grid2" style="margin-bottom:10px">
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Instrument</div>
-        <select id="sg-instr" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${instrOptions}</select>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Instrument</div>
+        <select id="sg-instr" class="pauta-dlg-select">${instrOptions}</select>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Type</div>
-        <select id="sg-type" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${scaleOptions}</select>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Type</div>
+        <select id="sg-type" class="pauta-dlg-select">${scaleOptions}</select>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div class="pauta-dlg-grid2" style="margin-bottom:10px">
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Key</div>
-        <select id="sg-ks" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${ksOptions.join('')}</select>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Key</div>
+        <select id="sg-ks" class="pauta-dlg-select">${ksOptions.join('')}</select>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Octaves</div>
-        <select id="sg-octaves" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Octaves</div>
+        <select id="sg-octaves" class="pauta-dlg-select">
           <option value="1">1 octave</option>
           <option value="2" selected>2 octaves</option>
         </select>
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Starting octave</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="modal-btn secondary" id="sg-oct-down" style="padding:2px 10px;font-size:14px">−</button>
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Starting octave</div>
+      <div class="pauta-dlg-input-group">
+        <button class="pauta-dlg-btn-sm" id="sg-oct-down">−</button>
         <span id="sg-oct-display" style="font-size:16px;font-weight:600;min-width:30px;text-align:center;color:var(--pauta-primary)">4</span>
-        <button class="modal-btn secondary" id="sg-oct-up" style="padding:2px 10px;font-size:14px">+</button>
+        <button class="pauta-dlg-btn-sm" id="sg-oct-up">+</button>
         <span style="font-size:11px;color:var(--pauta-text-muted)">(C<span id="sg-oct-sub">4</span> = middle C)</span>
       </div>
     </div>
@@ -18193,37 +18060,34 @@ function showPracticeMenu(btn) {
   const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
     {label:practiceLabel, fn:togglePracticeMode},
-    {sep:true},
     ...(APP.practiceMode ? [{
       label: `Mic Level: <div id="practice-mic-level" style="display:inline-block;width:80px;height:6px;background:var(--pauta-primary);border-radius:3px;vertical-align:middle;margin-left:8px"></div>`,
       fn: () => {},
-      danger: false,
       disabled: true
-    }, {sep:true}] : []),
-    {
+    }, {
       label: `Sensitivity: ${sens}%`,
       fn: () => {
         const newSens = Math.max(10, Math.min(50, sens + 10));
         APP.practiceSensitivity = newSens / 100;
         showPracticeMenu(btn);
       }
-    },
-    {sep:true},
+    }] : []),
+    {header:'Settings'},
     {
-      label: `Settings  (Tempo=${tempo}  Metronome=${metronome}  Loop=${loopEnabled}  Transpose=${transposition >= 0 ? '+' : ''}${transposition})`,
+      label: `Tempo ${tempo}  ·  Metronome ${metronome}  ·  Loop ${loopEnabled}  ·  Transpose ${transposition >= 0 ? '+' : ''}${transposition}`,
       fn: showPracticeSettingsMenu
     },
-    {sep:true},
-    {label:'Rhythm Workout…', fn:showRhythmWorkoutDialog},
-    {label:'Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
-    {label:'Rhythm Dictation', fn:showRhythmWorksheetDialog},
-    {sep:true},
+    {header:'Rhythm'},
+    {label:'Workout', fn:showRhythmWorkoutDialog},
+    {label:'Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
+    {label:'Dictation', fn:showRhythmWorksheetDialog},
+    {header:'Aural Skills'},
     {label:'Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Key Sig Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Scale Gym', fn:() => startExerciseSession('scale_id', APP.exerciseDifficulty || 'beginner')},
-    {sep:true},
-    {label:'Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
+    {header:'Melody'},
+    {label:'Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
   ]);
 }
 
@@ -18238,19 +18102,19 @@ function showPracticeSettingsMenu(btn) {
   const sens = Math.round((APP.practiceSensitivity || 0.3) * 100);
 
   function row(label, value, onMinus, onPlus) {
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(192,86,33,0.08)">
-      <span style="font-size:13px;color:var(--pauta-text)">${label}</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="pauta-btn ghost sm" data-action="psMinus" data-ps="${onMinus}" style="width:32px;height:32px;font-size:18px;padding:0">−</button>
-        <span style="font-size:14px;font-weight:600;min-width:60px;text-align:center;color:var(--pauta-primary)">${value}</span>
-        <button class="pauta-btn ghost sm" data-action="psPlus" data-ps="${onPlus}" style="width:32px;height:32px;font-size:18px;padding:0">+</button>
+    return `<div class="pauta-dlg-row">
+      <span class="pauta-dlg-label">${label}</span>
+      <div class="pauta-dlg-input-group">
+        <button class="pauta-dlg-btn-sm" data-action="psMinus" data-ps="${onMinus}">−</button>
+        <span class="pauta-dlg-value">${value}</span>
+        <button class="pauta-dlg-btn-sm" data-action="psPlus" data-ps="${onPlus}">+</button>
       </div>
     </div>`;
   }
   function toggleRow(label, isOn, action) {
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(192,86,33,0.08)">
-      <span style="font-size:13px;color:var(--pauta-text)">${label}</span>
-      <button class="pauta-btn ${isOn ? 'primary' : 'ghost'} sm" data-action="${action}" style="min-width:60px;height:32px">${isOn ? 'ON' : 'OFF'}</button>
+    return `<div class="pauta-dlg-row">
+      <span class="pauta-dlg-label">${label}</span>
+      <button class="pauta-dlg-toggle${isOn ? ' on' : ''}" data-action="${action}">${isOn ? 'ON' : 'OFF'}</button>
     </div>`;
   }
 
@@ -18264,7 +18128,7 @@ function showPracticeSettingsMenu(btn) {
     ${row('Transpose', `${transposition >= 0 ? '+' : ''}${transposition} st`, 'psTransMinus', 'psTransPlus')}
     ${row('Sensitivity', `${sens}%`, 'psSensMinus', 'psSensPlus')}
     <div style="margin-top:12px">
-      <button class="pauta-btn secondary block" data-action="closeModal">Done</button>
+      <button class="modal-btn secondary block" data-action="closeModal">Done</button>
     </div>
   `);
 
@@ -18297,30 +18161,26 @@ function showTeachMenu(btn) {
   const role = localStorage.getItem('pauta_role') || 'teacher';
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
-    // Mode
+    {header:'Mode'},
     {label:`${role==='student'?'✓':'○'} Student Mode`, fn:() => AUDIO.switchRole('student')},
     {label:`${role==='teacher'?'✓':'○'} Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
-    {sep:true},
-    // Create content
+    {header:'Content'},
     {label:'Starter Assignments', fn:showStarterAssignmentsDialog},
     ...(hasAssignments || APP.assignmentMode
       ? [{label:'Assignment', fn:showAssignmentSubmenu}]
       : [{label:'Create Assignment', fn:showAssignmentDialog}]),
     {label:'Exercise Builder', fn:showExerciseBuilderDialog},
     {label:'Import Exercise Set', fn:importCustomExercise},
-    {sep:true},
-    // Compose
+    {header:'Compose'},
     {label:'Rhythm Composer', fn:showRhythmComposer},
     {label:'Melody Composer', fn:showMelodyComposer},
-    {sep:true},
-    // Monitor
+    {header:'Monitor'},
     ...(role === 'teacher'
       ? [{label:'Class Progress', fn:showStudentProgress}]
       : [{label:'My Progress', fn:showStudentProgress}]),
-    {label:'Teacher Dashboard', fn:showTeacherDashboard},
+    {label:'Dashboard', fn:showTeacherDashboard},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
-    {sep:true},
-    // Settings
+    {header:'Tools'},
     {label:'Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
   ]);
 }
@@ -18360,9 +18220,8 @@ function showAddInstrumentDialog() {
   const instrs = INSTRUMENTS.filter(i => allowedNames.includes(i.name));
   makeModal(`
     <h2>Add Instrument</h2>
-    <p style="color:rgba(74,85,104,0.60);font-size:11px;margin-top:-6px;margin-bottom:10px">
-      Adds a new stave below the existing score</p>
-    <select id="ai-instr-select" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(192,86,33,0.25);font-size:13px;background:transparent;color:#111;margin-bottom:10px">
+    <p class="pauta-text-muted-sm" style="margin-top:-6px;margin-bottom:10px">Adds a new stave below the existing score</p>
+    <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:10px">
       ${instrs.map(i => `<option value="${i.name}">${i.name}</option>`).join('')}
     </select>
     <button class="modal-btn primary" data-action="confirmAddInstrument">Add</button>
@@ -18391,42 +18250,29 @@ function showTimeSigDialog() {
 
   makeModal(`
     <h2>Time Signature</h2>
-    <p class="dialog-hint">
-      From measure ${APP.selectedMeasure + 1} onward</p>
+    <p class="dialog-hint">From measure ${APP.selectedMeasure + 1} onward</p>
 
-    <div style="display:flex;align-items:center;justify-content:center;
-                gap:0;margin:4px 0 8px">
+    <div class="pauta-dlg-input-group" style="justify-content:center;margin:4px 0 8px">
       <div style="text-align:center;min-width:60px">
-        <div id="ts-preview-num"
-             style="font-size:42px;font-weight:700;color:var(--pauta-text);
-                     font-family:var(--pauta-font-sans);line-height:1">${curNum}</div>
-        <div id="ts-preview-den"
-             style="font-size:42px;font-weight:700;color:var(--pauta-text);
-                     font-family:var(--pauta-font-sans);line-height:1">${curDen}</div>
+        <div id="ts-preview-num" style="font-size:42px;font-weight:700;color:var(--pauta-text);font-family:var(--pauta-font-sans);line-height:1">${curNum}</div>
+        <div id="ts-preview-den" style="font-size:42px;font-weight:700;color:var(--pauta-text);font-family:var(--pauta-font-sans);line-height:1">${curDen}</div>
       </div>
-      <div style="color:rgba(74,85,104,0.4);font-size:12px;margin-left:10px"
-           id="ts-beat-label">
+      <div style="color:rgba(74,85,104,0.4);font-size:12px;margin-left:10px" id="ts-beat-label">
         ${beatDescLabel(curNum, curDen)}
       </div>
     </div>
 
     <div class="modal-sep"></div>
 
-    <label style="color:rgba(74,85,104,0.6);font-size:11px;
-                  letter-spacing:0.3px;text-transform:uppercase">
-      Beats per measure: <b id="ts-num-val" style="color:var(--pauta-text)">${curNum}</b>
+    <label class="pauta-dlg-section" style="margin:0 0 2px">
+      Beats per measure: <b style="color:var(--pauta-text)">${curNum}</b>
     </label>
-    <input type="range" id="ts-num" min="2" max="15" step="1" value="${curNum}"
-           style="width:100%;margin:2px 0 8px"
-           data-action="tsSliderChange">
+    <input type="range" id="ts-num" min="2" max="15" step="1" value="${curNum}" style="width:100%;margin:0 0 8px" data-action="tsSliderChange">
 
-    <label style="color:rgba(74,85,104,0.6);font-size:11px;
-                  letter-spacing:0.3px;text-transform:uppercase">
-      Beat unit: <b id="ts-den-val" style="color:var(--pauta-text)">${curDen} (${DEN_NAMES[curDen]})</b>
+    <label class="pauta-dlg-section" style="margin:0 0 2px">
+      Beat unit: <b style="color:var(--pauta-text)">${curDen} (${DEN_NAMES[curDen]})</b>
     </label>
-    <input type="range" id="ts-den" min="0" max="3" step="1" value="${denIdx}"
-           style="width:100%;margin:2px 0 8px"
-           data-action="tsSliderChange">
+    <input type="range" id="ts-den" min="0" max="3" step="1" value="${denIdx}" style="width:100%;margin:0 0 8px" data-action="tsSliderChange">
 
     <button class="modal-btn primary" data-action="tsApplyFromSliders">Apply</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -18508,13 +18354,13 @@ function showKeySigDialog() {
     const cls  = k.ks < 0 ? 'key-flat' : k.ks > 0 ? 'key-sharp' : 'key-nat';
     const sel  = k.ks === curKs ? ' selected' : '';
     const acc  = k.ks < 0
-      ? `<span style="font-size:9px;opacity:0.7">${Math.abs(k.ks)}♭</span>`
+      ? `<span class="pauta-text-tiny" style="opacity:0.7">${Math.abs(k.ks)}♭</span>`
       : k.ks > 0
-      ? `<span style="font-size:9px;opacity:0.7">${k.ks}♯</span>`
-      : `<span style="font-size:9px;opacity:0.5">♮</span>`;
+      ? `<span class="pauta-text-tiny" style="opacity:0.7">${k.ks}♯</span>`
+      : `<span class="pauta-text-tiny" style="opacity:0.5">♮</span>`;
     return `<button class="picker-btn ${cls}${sel}" data-action="applyKeySig" data-ks="${k.ks}">
       <div style="font-size:14px;font-weight:700">${k.label}</div>
-      <div style="font-size:9px;opacity:0.6">${k.sub}</div>
+      <div class="pauta-text-tiny" style="opacity:0.6">${k.sub}</div>
       ${acc}
     </button>`;
   }).join('');
@@ -18523,7 +18369,7 @@ function showKeySigDialog() {
     <h2>Key Signature</h2>
     <p class="dialog-hint">
       From measure ${APP.selectedMeasure + 1} onward · minor keys shown below</p>
-    <div class="picker-grid cols-4" style="flex-shrink:0;max-height:60vh;overflow-y:auto">${btns}</div>
+    <div class="picker-grid cols-4 pauta-scroll-y" style="max-height:60vh">${btns}</div>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
@@ -18690,10 +18536,10 @@ function showNewScoreDialog() {
   if (APP.score && APP.undoStack.length > 0) {
     UI.makeModal(`
       <h2>Unsaved Changes</h2>
-      <p style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:14px">The current score has unsaved changes. Create a new score anyway?</p>
-      <div style="display:flex;gap:8px">
-        <button class="pauta-btn primary" data-action="ndConfirmNew" style="flex:1">New Score</button>
-        <button class="pauta-btn secondary" data-action="closeModal" style="flex:1">Cancel</button>
+      <p class="pauta-text-muted-sm pauta-mb-md">The current score has unsaved changes. Create a new score anyway?</p>
+      <div class="pauta-row">
+        <button class="pauta-btn primary pauta-grow" data-action="ndConfirmNew">New Score</button>
+        <button class="pauta-btn secondary pauta-grow" data-action="closeModal">Cancel</button>
       </div>
     `);
     return;
@@ -18753,71 +18599,71 @@ function _renderNewScoreDialog(restoreScroll) {
   const prevPuDen   = document.getElementById('nd-pu-den')?.value   || '4';
 
   makeModal(`
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
-      <h2 style="margin:0">New Score</h2>
+    <div class="pauta-row between pauta-mb-sm" style="align-items:baseline">
+      <h2 class="pauta-mb0">New Score</h2>
       <div style="opacity:0.3"><span style="color:var(--pauta-primary);font-weight:700;font-size:16px">p</span><span style="color:var(--pauta-text);font-weight:300;font-size:16px">auta</span></div>
     </div>
 
     \x3C!-- Quick Start --\x3E
-    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+    <div class="pauta-row sm wrap pauta-mb-sm">
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">Piano</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Treble</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="bass">𝄢 Bass</button>
-      <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;margin-left:4px">or pick below</span>
+      <span class="pauta-text-subtle" style="margin-left:4px">or pick below</span>
     </div>
 
     \x3C!-- Title + Composer on one row --\x3E
-    <div style="display:flex;gap:6px;margin-bottom:4px">
-      <div style="flex:2">${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}</div>
-      <div style="flex:1">${input({id: 'nd-composer', placeholder: 'Composer', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}</div>
+    <div class="pauta-row" style="gap:6px;margin-bottom:4px">
+      <div class="pauta-grow" style="flex:2">${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}</div>
+      <div class="pauta-grow" style="flex:1">${input({id: 'nd-composer', placeholder: 'Composer', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}</div>
     </div>
 
     \x3C!-- Key + Time + Pickup in one compact row --\x3E
-    <div style="display:flex;gap:4px;align-items:stretch;margin-bottom:4px">
+    <div class="pauta-row stretch" style="gap:4px;margin-bottom:4px">
       \x3C!-- Key Signature --\x3E
-      <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
+      <div class="pauta-grow pauta-subtle-box" style="padding:4px 2px">
         <input type="hidden" id="nd-ks" value="${prevKS}">
-        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Key</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+        <div class="pauta-text-tiny pauta-mb0">Key</div>
+        <div class="pauta-row center" style="gap:2px">
           ${iconBtn('▼', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', title: 'Flats (◄)', dataAttrs: {delta: -1}})}
           <div style="min-width:40px">
             <div id="nd-ks-staff" style="line-height:0">${_ksMiniSVG(parseInt(prevKS))}</div>
-            <span id="nd-ks-label" style="font-size:9px;color:var(--pauta-primary);font-weight:600">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'}</span>
+            <span id="nd-ks-label" class="pauta-text-tiny pauta-text-primary" style="font-weight:600">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'}</span>
           </div>
           ${iconBtn('▲', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', title: 'Sharps (►)', dataAttrs: {delta: 1}})}
         </div>
         <div id="nd-ks-accel" style="font-size:8px;color:rgba(74,85,104,0.40)"></div>
       </div>
       \x3C!-- Time Signature --\x3E
-      <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
+      <div class="pauta-grow pauta-subtle-box" style="padding:4px 2px">
         <input type="hidden" id="nd-ts-num" value="${initTSnum}">
         <input type="hidden" id="nd-ts-den" value="${initTSden}">
-        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Time</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:12px">
-          <div style="display:flex;flex-direction:row;align-items:center;gap:8px">
+        <div class="pauta-text-tiny pauta-mb0">Time</div>
+        <div class="pauta-row center" style="gap:12px">
+          <div class="pauta-row" style="gap:8px">
             ${iconBtn('▲', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}, style: 'padding:4px 6px'})}
             ${iconBtn('▼', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}, style: 'padding:4px 6px'})}
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:0;position:relative;min-width:50px">
+          <div class="pauta-col" style="align-items:center;position:relative;min-width:50px">
             <span id="nd-ts-num-label" style="font-size:28px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSnum}</span>
-            <span style="position:relative;display:inline-block;width:48px;height:1px;background:rgba(74,85,104,0.30);margin:2px 0"></span>
+            <span style="display:inline-block;width:48px;height:1px;background:rgba(74,85,104,0.30);margin:2px 0"></span>
             <span id="nd-ts-den-label" style="font-size:28px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSden}</span>
           </div>
-          <div style="display:flex;flex-direction:row;align-items:center;gap:8px">
+          <div class="pauta-row" style="gap:8px">
             ${iconBtn('▲', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}, style: 'padding:4px 6px'})}
             ${iconBtn('▼', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}, style: 'padding:4px 6px'})}
           </div>
         </div>
       </div>
       \x3C!-- Pickup --\x3E
-      <div style="flex:0 0 72px;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
-        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Pickup</div>
+      <div class="pauta-subtle-box pauta-col" style="flex:0 0 72px;padding:4px 6px;justify-content:center">
+        <div class="pauta-text-tiny pauta-mb0">Pickup</div>
         ${checkbox({id: 'nd-pickup', label: '', checked: prevPickup, action: 'ndPickupToggle'})}
         <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};flex-direction:column;align-items:center;gap:0;margin-top:2px">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="pauta-col" style="align-items:center">
             ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum, style: 'width:40px'})}
             <span style="color:rgba(74,85,104,0.30);font-size:11px;line-height:1">—</span>
-            <span style="position:relative;display:inline-block;width:40px;height:1px;background:rgba(74,85,104,0.30)"></span>
+            <span style="display:inline-block;width:40px;height:1px;background:rgba(74,85,104,0.30)"></span>
             <span style="color:rgba(74,85,104,0.30);font-size:11px;line-height:1">—</span>
             ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen, style: 'width:40px'})}
           </div>
@@ -18827,17 +18673,12 @@ function _renderNewScoreDialog(restoreScroll) {
 
     ${FAMILY_KIT_MAP[_ndFamily] ? (() => {
       const _kitName = KIT_CONFIGS[FAMILY_KIT_MAP[_ndFamily]]?.name || '';
-      const _levelLabels = {
-        recorder: { beginner:'Soprano only', intermediate:'Soprano + Alto', advanced:'All recorders' },
-        keyboard: { beginner:'Piano only',   intermediate:'Piano + Celesta', advanced:'All keyboards' },
-      };
-      const _ll = _levelLabels[FAMILY_KIT_MAP[_ndFamily]] || { beginner:'', intermediate:'', advanced:'' };
       return `
-    <div style="display:flex;align-items:center;gap:8px;margin:6px 0 2px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.06)">
-      <span style="font-size:9px;color:rgba(74,85,104,0.60);text-transform:uppercase;letter-spacing:0.3px;font-weight:600">Level</span>
-      <span style="font-size:10px;color:var(--pauta-text-subtle)">— ${_kitName}</span>
+    <div class="pauta-row pauta-mt-sm" style="padding-top:6px;border-top:1px solid rgba(0,0,0,0.06)">
+      <span class="pauta-text-uc" style="color:rgba(74,85,104,0.60)">Level</span>
+      <span class="pauta-text-subtle">— ${_kitName}</span>
     </div>
-    <div style="display:flex;gap:4px;margin-bottom:4px">
+    <div class="pauta-row sm" style="margin-bottom:4px">
       ${['beginner','intermediate','advanced'].map(lvl => `
         <button data-action="ndSelectLevel" data-level="${lvl}"
           style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
@@ -18850,17 +18691,17 @@ function _renderNewScoreDialog(restoreScroll) {
     </div>`; })() : ''}
 
     \x3C!-- Instruments --\x3E
-    <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+    <div class="pauta-row sm">
       ${sectionLabel('Instruments')} <span id="nd-instr-count" style="font-weight:400">(0)</span>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">
+    <div class="pauta-row sm wrap">
       ${famBtns}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:140px;overflow-y:auto;flex-shrink:0">
       ${instrBtns}
     </div>
 
-    <div style="display:flex;gap:6px;margin-top:8px">
+    <div class="pauta-row" style="gap:6px;margin-top:8px">
       ${btn(createLabel, {variant: 'primary', block: true, disabled: totalSelected === 0, action: 'createNewScore'})}
       ${btn('Cancel', {variant: 'secondary', block: true, action: 'closeModal'})}
     </div>
@@ -19136,7 +18977,12 @@ function showDropdown(btnEl, items) {
   const dd = document.createElement('div');
   dd.className = 'dropdown';
   items.forEach(item => {
-    if (item.sep) {
+    if (item.header) {
+      const h = document.createElement('div');
+      h.className = 'dd-header';
+      h.textContent = item.header;
+      dd.appendChild(h);
+    } else if (item.sep) {
       const sep = document.createElement('div');
       sep.className = 'dd-sep';
       dd.appendChild(sep);
@@ -19185,34 +19031,34 @@ if (window.BUS) BUS.on('score:changed', updateStatusBar);
 function updateModeBanner() {
   const banner = document.getElementById('mode-banner');
   if (!banner) return;
-  let mode = null, label = '', bg = '', color = '';
+  let mode = null, label = '';
   if (APP.practiceMode) {
-    mode = 'practice'; label = '\u266A Practice Mode \u2014 play each highlighted note'; bg = 'rgba(34,197,94,0.15)'; color = '#16a34a';
+    mode = 'practice'; label = '\u266A Practice Mode \u2014 play each highlighted note';
   } else if (APP.exerciseMode) {
-    mode = 'exercise'; label = '\u270E Exercise Mode \u2014 answer the questions'; bg = 'rgba(132,204,22,0.12)'; color = '#65a30d';
+    mode = 'exercise'; label = '\u270E Exercise Mode \u2014 answer the questions';
   } else if (APP.assignmentMode) {
-    mode = 'assignment'; label = '\u2713 Assignment Mode \u2014 complete your assignment'; bg = 'rgba(59,130,246,0.12)'; color = '#2563eb';
+    mode = 'assignment'; label = '\u2713 Assignment Mode \u2014 complete your assignment';
   } else if (APP.inputMode) {
-    mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
+    mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name';
   } else if (APP.chordMode) {
-    mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat'; bg = 'rgba(236,72,153,0.12)'; color = '#db2777';
+    mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat';
   } else if (APP.eraserMode) {
-    mode = 'eraser'; label = '\uD83E\uDDF9 Eraser \u2014 tap a note to remove its markings'; bg = 'rgba(239,68,68,0.12)'; color = '#dc2626';
+    mode = 'eraser'; label = '\uD83E\uDDF9 Eraser \u2014 tap a note to remove its markings';
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
-    mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`; bg = 'rgba(168,85,247,0.12)'; color = '#9333ea';
+    mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`;
   } else if (APP.compositionMode === 'rhythm') {
-    mode = 'composition-rhythm'; label = '\u266A Rhythm Composition \u2014 tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
+    mode = 'composition-rhythm'; label = '\u266A Rhythm Composition \u2014 tap durations, then tap staff';
   } else if (APP.compositionMode === 'melody') {
-    mode = 'composition-melody'; label = '\u266B Melody Composition \u2014 choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
+    mode = 'composition-melody'; label = '\u266B Melody Composition \u2014 choose scale degrees, then tap staff';
   }
   if (mode) {
     banner.style.display = 'block';
-    banner.style.background = bg;
-    banner.style.color = color;
+    banner.dataset.mode = mode;
     banner.innerHTML = label;
   } else {
     banner.style.display = 'none';
+    delete banner.dataset.mode;
     banner.innerHTML = '';
   }
 }

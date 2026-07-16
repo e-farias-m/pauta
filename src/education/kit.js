@@ -24,22 +24,22 @@ function showAssignmentDialog() {
   UI.makeModal(`
     <h2>Create Assignment</h2>
     <div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Title</div>
-      <input id="asgn-title" type="text" value="Exercise ${(APP.score?.assignments?.length || 0) + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Title</div>
+      <input id="asgn-title" type="text" value="Exercise ${(APP.score?.assignments?.length || 0) + 1}" class="pauta-dlg-input">
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Start measure</div>
-        <input id="asgn-start" type="number" min="1" max="${measureCount}" value="${start + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <div class="pauta-dlg-grid2" style="margin-bottom:10px">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Start measure</div>
+        <input id="asgn-start" type="number" min="1" max="${measureCount}" value="${start + 1}" class="pauta-dlg-input">
       </div>
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">End measure</div>
-        <input id="asgn-end" type="number" min="1" max="${measureCount}" value="${end + 1}" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">End measure</div>
+        <input id="asgn-end" type="number" min="1" max="${measureCount}" value="${end + 1}" class="pauta-dlg-input">
       </div>
     </div>
     <div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Hide from student</div>
-      <select id="asgn-hidden" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Hide from student</div>
+      <select id="asgn-hidden" class="pauta-dlg-select">
         <option value="pitch">Pitches (student enters note names / MIDI)</option>
         <option value="duration">Rhythm (student enters durations)</option>
         <option value="pitch+duration">Pitches + Rhythm</option>
@@ -52,7 +52,7 @@ function showAssignmentDialog() {
         <input type="checkbox" id="asgn-hint-first" checked> Show first note as hint
       </label>
     </div>
-    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+    <div style="margin-bottom:12px;font-size:11px;color:var(--pauta-text-muted)">
       The assignment is saved inside the score file. Share the .mscz with students.
     </div>
     <button class="modal-btn primary" data-action="confirmCreateAssignment">Create</button>
@@ -719,19 +719,19 @@ function showExerciseBuilderDialog() {
     <h2>Exercise Builder</h2>
     ${existingHtml}
     <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Exercise Set Name</div>
-      <input id="exb-name" type="text" placeholder="e.g. Week 1: Treble Clef Basics" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Exercise Set Name</div>
+      <input id="exb-name" type="text" placeholder="e.g. Week 1: Treble Clef Basics" class="pauta-dlg-input">
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Difficulty</div>
-        <select id="exb-diff" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <div class="pauta-dlg-grid2" style="margin-bottom:12px">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Difficulty</div>
+        <select id="exb-diff" class="pauta-dlg-select">
           ${diffOptions.map(d => `<option value="${d.value}">${d.label}</option>`).join('')}
         </select>
       </div>
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Exercises per set</div>
-        <select id="exb-count" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <div>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Exercises per set</div>
+        <select id="exb-count" class="pauta-dlg-select">
           <option value="5">5</option>
           <option value="10" selected>10</option>
           <option value="15">15</option>
@@ -740,7 +740,7 @@ function showExerciseBuilderDialog() {
       </div>
     </div>
     <div id="exb-types" style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:6px">Exercise Types (check to include)</div>
+      <div class="pauta-dlg-section" style="margin:0 0 6px">Exercise Types (check to include)</div>
       ${typeOptions.map((t, idx) => `
         <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--pauta-text-muted);cursor:pointer">
           <input type="checkbox" class="exb-type-check" value="${t.value}" ${idx < 2 ? 'checked' : ''} style="accent-color:var(--pauta-primary)">
@@ -748,7 +748,7 @@ function showExerciseBuilderDialog() {
         </label>
       `).join('')}
     </div>
-    <div style="display:flex;gap:6px">
+    <div class="pauta-dlg-input-group" style="gap:6px">
       <button class="modal-btn primary" id="exb-save">Save Set</button>
       <button class="modal-btn secondary" id="exb-export">Export JSON</button>
       <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -1001,30 +1001,20 @@ function showClefSelectionDialog(templateId) {
   const tpl = STARTER_TEMPLATES.find(t => t.id === templateId);
   if (!tpl) { UI.showToast('Template not found'); return; }
   window._pendingStarterTemplate = templateId;
+  function clefCard(data) {
+    return `<button class="pauta-dlg-card" data-action="selectAssignmentClef" data-clef="${data.clef}" style="flex:1;padding:16px 12px;text-align:center;border-width:2px">
+      <div style="font-size:48px;line-height:1;margin-bottom:8px">${data.sym}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">${data.label}</div>
+      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${data.desc}</div>
+    </button>`;
+  }
   UI.makeModal(`
     <h2>Choose Clef</h2>
-    <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:16px">
-      Select the clef for this assignment:
-    </p>
-    <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
-      <button data-action="selectAssignmentClef" data-clef="treble"
-        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
-        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄞</div>
-        <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">Treble Clef</div>
-        <div style="font-size:11px;color:rgba(74,85,104,0.7)">G clef · Most common</div>
-      </button>
-      <button data-action="selectAssignmentClef" data-clef="alto"
-        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
-        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄡</div>
-        <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">Alto Clef</div>
-        <div style="font-size:11px;color:rgba(74,85,104,0.7)">C clef · Viola</div>
-      </button>
-      <button data-action="selectAssignmentClef" data-clef="bass"
-        style="flex:1;padding:16px 12px;border-radius:12px;border:2px solid rgba(192,86,33,0.2);background:rgba(192,86,33,0.04);cursor:pointer;text-align:center;font-family:inherit">
-        <div style="font-size:48px;line-height:1;margin-bottom:8px">𝄢</div>
-        <div style="font-size:13px;font-weight:600;color:var(--pauta-text)">Bass Clef</div>
-        <div style="font-size:11px;color:rgba(74,85,104,0.7)">F clef · Low instruments</div>
-      </button>
+    <p class="dialog-hint" style="margin-bottom:16px">Select the clef for this assignment:</p>
+    <div class="pauta-dlg-input-group" style="gap:12px;margin-bottom:16px">
+      ${clefCard({clef:'treble',sym:'𝄞',label:'Treble Clef',desc:'G clef · Most common'})}
+      ${clefCard({clef:'alto',sym:'𝄡',label:'Alto Clef',desc:'C clef · Viola'})}
+      ${clefCard({clef:'bass',sym:'𝄢',label:'Bass Clef',desc:'F clef · Low instruments'})}
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);

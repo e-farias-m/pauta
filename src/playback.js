@@ -196,19 +196,19 @@ function redo() {
 function showExportDialog() {
   UI.makeModal(`
     <h2>Export Audio</h2>
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Format</div>
-      <select id="export-format" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <div class="pauta-mb-md">
+      <div class="pauta-text-muted-sm pauta-mb0">Format</div>
+      <select id="export-format" class="pauta-dlg-select" style="padding:6px 8px">
         <option value="wav">WAV (lossless, large)</option>
         <option value="mp3">MP3 (compressed, smaller)</option>
       </select>
     </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Tempo (BPM) — override</div>
+    <div class="pauta-mb-md">
+      <div class="pauta-text-muted-sm pauta-mb0">Tempo (BPM) — override</div>
       <input id="export-bpm" type="number" value="${APP.tempo}" min="20" max="400"
-        style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+        class="pauta-dlg-input" style="padding:6px 8px">
     </div>
-    <div style="margin-bottom:12px;font-size:11px;color:rgba(74,85,104,0.7)">
+    <div class="pauta-text-muted-sm pauta-mb-md">
       Renders the current score using the internal synth and saves as ${APP.score?.parts?.length > 1 ? 'a stereo mix' : 'a mono/stereo'} file.
     </div>
     <button class="modal-btn primary" data-action="confirmExportAudio">Export</button>
@@ -542,21 +542,21 @@ function showWelcomeModal() {
   const seen = localStorage.getItem('pauta_welcome_seen');
   if (seen) return;
   UI.makeModal(`
-    <div style="text-align:center;padding:4px 0">
+    <div class="pauta-text-center" style="padding:4px 0">
       <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
-      <div style="font-size:14px;color:var(--pauta-text-muted);margin-bottom:18px">Welcome! What would you like to do today?</div>
+      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:18px">Welcome! What would you like to do today?</div>
 
-      <button class="modal-btn primary" data-action="startLearnerOnboarding" style="margin-bottom:10px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+      <button class="modal-btn primary pauta-mb-sm" data-action="startLearnerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
         <span style="font-size:22px">&#9835;</span>
         <span>I want to learn music!</span>
       </button>
 
-      <button class="modal-btn secondary" data-action="startComposerOnboarding" style="margin-bottom:8px;width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+      <button class="modal-btn secondary pauta-mb-sm" data-action="startComposerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
         <span style="font-size:20px;font-weight:700">&#9998;</span>
         <span>I want to write music!</span>
       </button>
 
-      <div style="margin-top:6px;font-size:11px;color:var(--pauta-text-subtle)">
+      <div class="pauta-text-subtle pauta-mt-sm">
         You can change your mind anytime in the View menu.
       </div>
     </div>

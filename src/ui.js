@@ -758,36 +758,33 @@ function showMixer() {
   const masterPct = Math.round((APP.masterVolume || 0.65) * 100);
   const metPct = Math.round((APP.metronomeVolume || 0.5) * 100);
   const partSliders = parts.map((p, i) => `
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-      <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+    <div class="pauta-row" style="gap:6px;margin-bottom:6px">
+      <span class="pauta-text-muted-sm" style="flex:0 0 70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
       <input type="range" min="0" max="100" value="${Math.round((p.volume||1)*100)}"
         data-action="setPartVolume" data-idx="${i}"
-        style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer"
-        aria-label="${p.name} volume">
-      <span id="mix-part-${i}" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${Math.round((p.volume||1)*100)}</span>
+        class="pauta-range" aria-label="${p.name} volume">
+      <span id="mix-part-${i}" class="pauta-text-subtle" style="width:24px;text-align:right">${Math.round((p.volume||1)*100)}</span>
     </div>`).join('');
 
   makeModal(`
     <h2>Mixer</h2>
-    <div style="margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted)">Master</span>
+    <div class="pauta-mb-sm">
+      <div class="pauta-row" style="gap:6px;margin-bottom:6px">
+        <span class="pauta-text-muted-sm" style="flex:0 0 70px">Master</span>
         <input type="range" min="0" max="100" value="${masterPct}"
-          data-action="setMasterVolume"
-          style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer" aria-label="Master volume">
-        <span id="mix-master-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${masterPct}</span>
+          data-action="setMasterVolume" class="pauta-range" aria-label="Master volume">
+        <span id="mix-master-val" class="pauta-text-subtle" style="width:24px;text-align:right">${masterPct}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="flex:0 0 70px;font-size:11px;color:var(--pauta-text-muted)">Metronome</span>
+      <div class="pauta-row" style="gap:6px;margin-bottom:6px">
+        <span class="pauta-text-muted-sm" style="flex:0 0 70px">Metronome</span>
         <input type="range" min="0" max="100" value="${metPct}"
-          data-action="setMetronomeVolume"
-          style="flex:1;height:4px;accent-color:var(--pauta-primary);cursor:pointer" aria-label="Metronome volume">
-        <span id="mix-met-val" style="width:24px;text-align:right;font-size:10px;color:rgba(74,85,104,0.6)">${metPct}</span>
+          data-action="setMetronomeVolume" class="pauta-range" aria-label="Metronome volume">
+        <span id="mix-met-val" class="pauta-text-subtle" style="width:24px;text-align:right">${metPct}</span>
       </div>
     </div>
     <div class="modal-sep"></div>
     ${parts.length > 0 ? `<div class="modal-sep"></div>${partSliders}` : ''}
-    <button class="modal-btn secondary" style="margin-top:8px" data-action="closeModal">Close</button>
+    <button class="modal-btn secondary pauta-mt-sm" data-action="closeModal">Close</button>
   `);
 }
 
@@ -814,20 +811,20 @@ function showPickupDialog() {
   const maxPickup = Math.max(1, ts.num - 1);
   makeModal(`
     <h2>Pickup Measure (Anacrusis)</h2>
-    ${isPickup ? `<p style="color:var(--pal-label);font-size:11px">First measure is a pickup (<b>${firstM.pickup.num}/${firstM.pickup.den}</b>). Time signature shown at measure 2.</p>` :
-      `<p style="color:var(--pal-label);font-size:11px">First measure is full (<b>${ts.num}/${ts.den}</b>). Make it a pickup:</p>`}
+    <p class="dialog-hint">${isPickup ? `First measure is a pickup (<b>${firstM.pickup.num}/${firstM.pickup.den}</b>). Time signature shown at measure 2.` :
+      `First measure is full (<b>${ts.num}/${ts.den}</b>). Make it a pickup:`}</p>
     ${!isPickup ? `
-      <div class="panel-section-label" style="margin:8px 0 4px">Pickup duration</div>
-      <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px">
-        <select id="pu-num" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+      <div class="pauta-dlg-section">Pickup duration</div>
+      <div class="pauta-dlg-input-group" style="justify-content:center;margin-bottom:8px">
+        <select id="pu-num" class="pauta-dlg-select" style="width:auto;min-width:60px;text-align:center">
           ${Array.from({length: maxPickup}, (_, i) => i + 1).map(n => `<option value="${n}">${n}</option>`).join('')}
         </select>
         <span style="color:rgba(74,85,104,0.40);font-size:18px">/</span>
-        <select id="pu-den" style="background:rgba(192,86,33,0.06);color:var(--pauta-text-subtle);border:1px solid rgba(192,86,33,0.30);border-radius:6px;padding:6px;font-size:14px;outline:none">
+        <select id="pu-den" class="pauta-dlg-select" style="width:auto;min-width:60px;text-align:center">
           <option value="4">4</option>
           <option value="8">8</option>
         </select>
-        <span style="color:var(--pal-label);font-size:11px">beats</span>
+        <span style="font-size:11px;color:var(--pauta-text-muted)">beats</span>
       </div>
       <button class="modal-btn primary" data-action="setPickupMeasure">Set Pickup</button>
     ` : `
@@ -1054,38 +1051,36 @@ function showScaleGeneratorDialog() {
 
   makeModal(`
     <h2>Generate Scale / Arpeggio</h2>
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px">
-      Creates a new score with the selected scale or arpeggio for the chosen instrument.
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <p class="dialog-hint">Creates a new score with the selected scale or arpeggio for the chosen instrument.</p>
+    <div class="pauta-dlg-grid2" style="margin-bottom:10px">
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Instrument</div>
-        <select id="sg-instr" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${instrOptions}</select>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Instrument</div>
+        <select id="sg-instr" class="pauta-dlg-select">${instrOptions}</select>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Type</div>
-        <select id="sg-type" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${scaleOptions}</select>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Type</div>
+        <select id="sg-type" class="pauta-dlg-select">${scaleOptions}</select>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div class="pauta-dlg-grid2" style="margin-bottom:10px">
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Key</div>
-        <select id="sg-ks" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">${ksOptions.join('')}</select>
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Key</div>
+        <select id="sg-ks" class="pauta-dlg-select">${ksOptions.join('')}</select>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Octaves</div>
-        <select id="sg-octaves" style="width:100%;padding:6px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:12px;background:transparent;color:#111">
+        <div class="pauta-dlg-section" style="margin:0 0 4px">Octaves</div>
+        <select id="sg-octaves" class="pauta-dlg-select">
           <option value="1">1 octave</option>
           <option value="2" selected>2 octaves</option>
         </select>
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Starting octave</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="modal-btn secondary" id="sg-oct-down" style="padding:2px 10px;font-size:14px">−</button>
+      <div class="pauta-dlg-section" style="margin:0 0 4px">Starting octave</div>
+      <div class="pauta-dlg-input-group">
+        <button class="pauta-dlg-btn-sm" id="sg-oct-down">−</button>
         <span id="sg-oct-display" style="font-size:16px;font-weight:600;min-width:30px;text-align:center;color:var(--pauta-primary)">4</span>
-        <button class="modal-btn secondary" id="sg-oct-up" style="padding:2px 10px;font-size:14px">+</button>
+        <button class="pauta-dlg-btn-sm" id="sg-oct-up">+</button>
         <span style="font-size:11px;color:var(--pauta-text-muted)">(C<span id="sg-oct-sub">4</span> = middle C)</span>
       </div>
     </div>
@@ -1177,37 +1172,34 @@ function showPracticeMenu(btn) {
   const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
     {label:practiceLabel, fn:togglePracticeMode},
-    {sep:true},
     ...(APP.practiceMode ? [{
       label: `Mic Level: <div id="practice-mic-level" style="display:inline-block;width:80px;height:6px;background:var(--pauta-primary);border-radius:3px;vertical-align:middle;margin-left:8px"></div>`,
       fn: () => {},
-      danger: false,
       disabled: true
-    }, {sep:true}] : []),
-    {
+    }, {
       label: `Sensitivity: ${sens}%`,
       fn: () => {
         const newSens = Math.max(10, Math.min(50, sens + 10));
         APP.practiceSensitivity = newSens / 100;
         showPracticeMenu(btn);
       }
-    },
-    {sep:true},
+    }] : []),
+    {header:'Settings'},
     {
-      label: `Settings  (Tempo=${tempo}  Metronome=${metronome}  Loop=${loopEnabled}  Transpose=${transposition >= 0 ? '+' : ''}${transposition})`,
+      label: `Tempo ${tempo}  ·  Metronome ${metronome}  ·  Loop ${loopEnabled}  ·  Transpose ${transposition >= 0 ? '+' : ''}${transposition}`,
       fn: showPracticeSettingsMenu
     },
-    {sep:true},
-    {label:'Rhythm Workout…', fn:showRhythmWorkoutDialog},
-    {label:'Rhythm Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
-    {label:'Rhythm Dictation', fn:showRhythmWorksheetDialog},
-    {sep:true},
+    {header:'Rhythm'},
+    {label:'Workout', fn:showRhythmWorkoutDialog},
+    {label:'Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
+    {label:'Dictation', fn:showRhythmWorksheetDialog},
+    {header:'Aural Skills'},
     {label:'Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Key Sig Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Scale Gym', fn:() => startExerciseSession('scale_id', APP.exerciseDifficulty || 'beginner')},
-    {sep:true},
-    {label:'Melody Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
+    {header:'Melody'},
+    {label:'Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
   ]);
 }
 
@@ -1222,19 +1214,19 @@ function showPracticeSettingsMenu(btn) {
   const sens = Math.round((APP.practiceSensitivity || 0.3) * 100);
 
   function row(label, value, onMinus, onPlus) {
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(192,86,33,0.08)">
-      <span style="font-size:13px;color:var(--pauta-text)">${label}</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="pauta-btn ghost sm" data-action="psMinus" data-ps="${onMinus}" style="width:32px;height:32px;font-size:18px;padding:0">−</button>
-        <span style="font-size:14px;font-weight:600;min-width:60px;text-align:center;color:var(--pauta-primary)">${value}</span>
-        <button class="pauta-btn ghost sm" data-action="psPlus" data-ps="${onPlus}" style="width:32px;height:32px;font-size:18px;padding:0">+</button>
+    return `<div class="pauta-dlg-row">
+      <span class="pauta-dlg-label">${label}</span>
+      <div class="pauta-dlg-input-group">
+        <button class="pauta-dlg-btn-sm" data-action="psMinus" data-ps="${onMinus}">−</button>
+        <span class="pauta-dlg-value">${value}</span>
+        <button class="pauta-dlg-btn-sm" data-action="psPlus" data-ps="${onPlus}">+</button>
       </div>
     </div>`;
   }
   function toggleRow(label, isOn, action) {
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(192,86,33,0.08)">
-      <span style="font-size:13px;color:var(--pauta-text)">${label}</span>
-      <button class="pauta-btn ${isOn ? 'primary' : 'ghost'} sm" data-action="${action}" style="min-width:60px;height:32px">${isOn ? 'ON' : 'OFF'}</button>
+    return `<div class="pauta-dlg-row">
+      <span class="pauta-dlg-label">${label}</span>
+      <button class="pauta-dlg-toggle${isOn ? ' on' : ''}" data-action="${action}">${isOn ? 'ON' : 'OFF'}</button>
     </div>`;
   }
 
@@ -1248,7 +1240,7 @@ function showPracticeSettingsMenu(btn) {
     ${row('Transpose', `${transposition >= 0 ? '+' : ''}${transposition} st`, 'psTransMinus', 'psTransPlus')}
     ${row('Sensitivity', `${sens}%`, 'psSensMinus', 'psSensPlus')}
     <div style="margin-top:12px">
-      <button class="pauta-btn secondary block" data-action="closeModal">Done</button>
+      <button class="modal-btn secondary block" data-action="closeModal">Done</button>
     </div>
   `);
 
@@ -1281,30 +1273,26 @@ function showTeachMenu(btn) {
   const role = localStorage.getItem('pauta_role') || 'teacher';
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
-    // Mode
+    {header:'Mode'},
     {label:`${role==='student'?'✓':'○'} Student Mode`, fn:() => AUDIO.switchRole('student')},
     {label:`${role==='teacher'?'✓':'○'} Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
-    {sep:true},
-    // Create content
+    {header:'Content'},
     {label:'Starter Assignments', fn:showStarterAssignmentsDialog},
     ...(hasAssignments || APP.assignmentMode
       ? [{label:'Assignment', fn:showAssignmentSubmenu}]
       : [{label:'Create Assignment', fn:showAssignmentDialog}]),
     {label:'Exercise Builder', fn:showExerciseBuilderDialog},
     {label:'Import Exercise Set', fn:importCustomExercise},
-    {sep:true},
-    // Compose
+    {header:'Compose'},
     {label:'Rhythm Composer', fn:showRhythmComposer},
     {label:'Melody Composer', fn:showMelodyComposer},
-    {sep:true},
-    // Monitor
+    {header:'Monitor'},
     ...(role === 'teacher'
       ? [{label:'Class Progress', fn:showStudentProgress}]
       : [{label:'My Progress', fn:showStudentProgress}]),
-    {label:'Teacher Dashboard', fn:showTeacherDashboard},
+    {label:'Dashboard', fn:showTeacherDashboard},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
-    {sep:true},
-    // Settings
+    {header:'Tools'},
     {label:'Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
   ]);
 }
@@ -1344,9 +1332,8 @@ function showAddInstrumentDialog() {
   const instrs = INSTRUMENTS.filter(i => allowedNames.includes(i.name));
   makeModal(`
     <h2>Add Instrument</h2>
-    <p style="color:rgba(74,85,104,0.60);font-size:11px;margin-top:-6px;margin-bottom:10px">
-      Adds a new stave below the existing score</p>
-    <select id="ai-instr-select" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(192,86,33,0.25);font-size:13px;background:transparent;color:#111;margin-bottom:10px">
+    <p class="pauta-text-muted-sm" style="margin-top:-6px;margin-bottom:10px">Adds a new stave below the existing score</p>
+    <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:10px">
       ${instrs.map(i => `<option value="${i.name}">${i.name}</option>`).join('')}
     </select>
     <button class="modal-btn primary" data-action="confirmAddInstrument">Add</button>
@@ -1375,42 +1362,29 @@ function showTimeSigDialog() {
 
   makeModal(`
     <h2>Time Signature</h2>
-    <p class="dialog-hint">
-      From measure ${APP.selectedMeasure + 1} onward</p>
+    <p class="dialog-hint">From measure ${APP.selectedMeasure + 1} onward</p>
 
-    <div style="display:flex;align-items:center;justify-content:center;
-                gap:0;margin:4px 0 8px">
+    <div class="pauta-dlg-input-group" style="justify-content:center;margin:4px 0 8px">
       <div style="text-align:center;min-width:60px">
-        <div id="ts-preview-num"
-             style="font-size:42px;font-weight:700;color:var(--pauta-text);
-                     font-family:var(--pauta-font-sans);line-height:1">${curNum}</div>
-        <div id="ts-preview-den"
-             style="font-size:42px;font-weight:700;color:var(--pauta-text);
-                     font-family:var(--pauta-font-sans);line-height:1">${curDen}</div>
+        <div id="ts-preview-num" style="font-size:42px;font-weight:700;color:var(--pauta-text);font-family:var(--pauta-font-sans);line-height:1">${curNum}</div>
+        <div id="ts-preview-den" style="font-size:42px;font-weight:700;color:var(--pauta-text);font-family:var(--pauta-font-sans);line-height:1">${curDen}</div>
       </div>
-      <div style="color:rgba(74,85,104,0.4);font-size:12px;margin-left:10px"
-           id="ts-beat-label">
+      <div style="color:rgba(74,85,104,0.4);font-size:12px;margin-left:10px" id="ts-beat-label">
         ${beatDescLabel(curNum, curDen)}
       </div>
     </div>
 
     <div class="modal-sep"></div>
 
-    <label style="color:rgba(74,85,104,0.6);font-size:11px;
-                  letter-spacing:0.3px;text-transform:uppercase">
-      Beats per measure: <b id="ts-num-val" style="color:var(--pauta-text)">${curNum}</b>
+    <label class="pauta-dlg-section" style="margin:0 0 2px">
+      Beats per measure: <b style="color:var(--pauta-text)">${curNum}</b>
     </label>
-    <input type="range" id="ts-num" min="2" max="15" step="1" value="${curNum}"
-           style="width:100%;margin:2px 0 8px"
-           data-action="tsSliderChange">
+    <input type="range" id="ts-num" min="2" max="15" step="1" value="${curNum}" style="width:100%;margin:0 0 8px" data-action="tsSliderChange">
 
-    <label style="color:rgba(74,85,104,0.6);font-size:11px;
-                  letter-spacing:0.3px;text-transform:uppercase">
-      Beat unit: <b id="ts-den-val" style="color:var(--pauta-text)">${curDen} (${DEN_NAMES[curDen]})</b>
+    <label class="pauta-dlg-section" style="margin:0 0 2px">
+      Beat unit: <b style="color:var(--pauta-text)">${curDen} (${DEN_NAMES[curDen]})</b>
     </label>
-    <input type="range" id="ts-den" min="0" max="3" step="1" value="${denIdx}"
-           style="width:100%;margin:2px 0 8px"
-           data-action="tsSliderChange">
+    <input type="range" id="ts-den" min="0" max="3" step="1" value="${denIdx}" style="width:100%;margin:0 0 8px" data-action="tsSliderChange">
 
     <button class="modal-btn primary" data-action="tsApplyFromSliders">Apply</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -1492,13 +1466,13 @@ function showKeySigDialog() {
     const cls  = k.ks < 0 ? 'key-flat' : k.ks > 0 ? 'key-sharp' : 'key-nat';
     const sel  = k.ks === curKs ? ' selected' : '';
     const acc  = k.ks < 0
-      ? `<span style="font-size:9px;opacity:0.7">${Math.abs(k.ks)}♭</span>`
+      ? `<span class="pauta-text-tiny" style="opacity:0.7">${Math.abs(k.ks)}♭</span>`
       : k.ks > 0
-      ? `<span style="font-size:9px;opacity:0.7">${k.ks}♯</span>`
-      : `<span style="font-size:9px;opacity:0.5">♮</span>`;
+      ? `<span class="pauta-text-tiny" style="opacity:0.7">${k.ks}♯</span>`
+      : `<span class="pauta-text-tiny" style="opacity:0.5">♮</span>`;
     return `<button class="picker-btn ${cls}${sel}" data-action="applyKeySig" data-ks="${k.ks}">
       <div style="font-size:14px;font-weight:700">${k.label}</div>
-      <div style="font-size:9px;opacity:0.6">${k.sub}</div>
+      <div class="pauta-text-tiny" style="opacity:0.6">${k.sub}</div>
       ${acc}
     </button>`;
   }).join('');
@@ -1507,7 +1481,7 @@ function showKeySigDialog() {
     <h2>Key Signature</h2>
     <p class="dialog-hint">
       From measure ${APP.selectedMeasure + 1} onward · minor keys shown below</p>
-    <div class="picker-grid cols-4" style="flex-shrink:0;max-height:60vh;overflow-y:auto">${btns}</div>
+    <div class="picker-grid cols-4 pauta-scroll-y" style="max-height:60vh">${btns}</div>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
   `);
 }
@@ -1674,10 +1648,10 @@ function showNewScoreDialog() {
   if (APP.score && APP.undoStack.length > 0) {
     UI.makeModal(`
       <h2>Unsaved Changes</h2>
-      <p style="font-size:13px;color:var(--pauta-text-muted);margin-bottom:14px">The current score has unsaved changes. Create a new score anyway?</p>
-      <div style="display:flex;gap:8px">
-        <button class="pauta-btn primary" data-action="ndConfirmNew" style="flex:1">New Score</button>
-        <button class="pauta-btn secondary" data-action="closeModal" style="flex:1">Cancel</button>
+      <p class="pauta-text-muted-sm pauta-mb-md">The current score has unsaved changes. Create a new score anyway?</p>
+      <div class="pauta-row">
+        <button class="pauta-btn primary pauta-grow" data-action="ndConfirmNew">New Score</button>
+        <button class="pauta-btn secondary pauta-grow" data-action="closeModal">Cancel</button>
       </div>
     `);
     return;
@@ -1737,71 +1711,71 @@ function _renderNewScoreDialog(restoreScroll) {
   const prevPuDen   = document.getElementById('nd-pu-den')?.value   || '4';
 
   makeModal(`
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
-      <h2 style="margin:0">New Score</h2>
+    <div class="pauta-row between pauta-mb-sm" style="align-items:baseline">
+      <h2 class="pauta-mb0">New Score</h2>
       <div style="opacity:0.3"><span style="color:var(--pauta-primary);font-weight:700;font-size:16px">p</span><span style="color:var(--pauta-text);font-weight:300;font-size:16px">auta</span></div>
     </div>
 
     \x3C!-- Quick Start --\x3E
-    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+    <div class="pauta-row sm wrap pauta-mb-sm">
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="piano">Piano</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="treble">𝄞 Treble</button>
       <button class="pauta-pill" data-action="ndQuickStart" data-preset="bass">𝄢 Bass</button>
-      <span style="font-size:10px;color:var(--pauta-text-subtle);align-self:center;margin-left:4px">or pick below</span>
+      <span class="pauta-text-subtle" style="margin-left:4px">or pick below</span>
     </div>
 
     \x3C!-- Title + Composer on one row --\x3E
-    <div style="display:flex;gap:6px;margin-bottom:4px">
-      <div style="flex:2">${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}</div>
-      <div style="flex:1">${input({id: 'nd-composer', placeholder: 'Composer', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}</div>
+    <div class="pauta-row" style="gap:6px;margin-bottom:4px">
+      <div class="pauta-grow" style="flex:2">${input({id: 'nd-title', placeholder: 'Title', value: prevTitle.replace(/"/g,'&quot;'), label: 'Title'})}</div>
+      <div class="pauta-grow" style="flex:1">${input({id: 'nd-composer', placeholder: 'Composer', value: prevComposer.replace(/"/g,'&quot;'), label: 'Composer'})}</div>
     </div>
 
     \x3C!-- Key + Time + Pickup in one compact row --\x3E
-    <div style="display:flex;gap:4px;align-items:stretch;margin-bottom:4px">
+    <div class="pauta-row stretch" style="gap:4px;margin-bottom:4px">
       \x3C!-- Key Signature --\x3E
-      <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
+      <div class="pauta-grow pauta-subtle-box" style="padding:4px 2px">
         <input type="hidden" id="nd-ks" value="${prevKS}">
-        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Key</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+        <div class="pauta-text-tiny pauta-mb0">Key</div>
+        <div class="pauta-row center" style="gap:2px">
           ${iconBtn('▼', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', title: 'Flats (◄)', dataAttrs: {delta: -1}})}
           <div style="min-width:40px">
             <div id="nd-ks-staff" style="line-height:0">${_ksMiniSVG(parseInt(prevKS))}</div>
-            <span id="nd-ks-label" style="font-size:9px;color:var(--pauta-primary);font-weight:600">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'}</span>
+            <span id="nd-ks-label" class="pauta-text-tiny pauta-text-primary" style="font-weight:600">${KEY_SIG_DATA.find(k=>String(k.ks)===prevKS)?.major ?? 'C'}</span>
           </div>
           ${iconBtn('▲', {action: 'ndKSAdj', size: 'sm', variant: 'ghost', title: 'Sharps (►)', dataAttrs: {delta: 1}})}
         </div>
         <div id="nd-ks-accel" style="font-size:8px;color:rgba(74,85,104,0.40)"></div>
       </div>
       \x3C!-- Time Signature --\x3E
-      <div style="flex:1;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 2px;text-align:center">
+      <div class="pauta-grow pauta-subtle-box" style="padding:4px 2px">
         <input type="hidden" id="nd-ts-num" value="${initTSnum}">
         <input type="hidden" id="nd-ts-den" value="${initTSden}">
-        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Time</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:12px">
-          <div style="display:flex;flex-direction:row;align-items:center;gap:8px">
+        <div class="pauta-text-tiny pauta-mb0">Time</div>
+        <div class="pauta-row center" style="gap:12px">
+          <div class="pauta-row" style="gap:8px">
             ${iconBtn('▲', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}, style: 'padding:4px 6px'})}
             ${iconBtn('▼', {action: 'ndTSNumAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}, style: 'padding:4px 6px'})}
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:0;position:relative;min-width:50px">
+          <div class="pauta-col" style="align-items:center;position:relative;min-width:50px">
             <span id="nd-ts-num-label" style="font-size:28px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSnum}</span>
-            <span style="position:relative;display:inline-block;width:48px;height:1px;background:rgba(74,85,104,0.30);margin:2px 0"></span>
+            <span style="display:inline-block;width:48px;height:1px;background:rgba(74,85,104,0.30);margin:2px 0"></span>
             <span id="nd-ts-den-label" style="font-size:28px;color:var(--pauta-primary);font-weight:700;line-height:1">${initTSden}</span>
           </div>
-          <div style="display:flex;flex-direction:row;align-items:center;gap:8px">
+          <div class="pauta-row" style="gap:8px">
             ${iconBtn('▲', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: 1}, style: 'padding:4px 6px'})}
             ${iconBtn('▼', {action: 'ndTSDenAdj', size: 'sm', variant: 'ghost', dataAttrs: {delta: -1}, style: 'padding:4px 6px'})}
           </div>
         </div>
       </div>
       \x3C!-- Pickup --\x3E
-      <div style="flex:0 0 72px;background:rgba(192,86,33,0.04);border:1px solid rgba(192,86,33,0.12);border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
-        <div style="font-size:9px;color:var(--pauta-text-subtle);margin-bottom:2px">Pickup</div>
+      <div class="pauta-subtle-box pauta-col" style="flex:0 0 72px;padding:4px 6px;justify-content:center">
+        <div class="pauta-text-tiny pauta-mb0">Pickup</div>
         ${checkbox({id: 'nd-pickup', label: '', checked: prevPickup, action: 'ndPickupToggle'})}
         <span id="nd-pickup-dur" style="display:${prevPickup ? 'flex' : 'none'};flex-direction:column;align-items:center;gap:0;margin-top:2px">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="pauta-col" style="align-items:center">
             ${select({id: 'nd-pu-num', options: [1,2,3,4,5,6,7].map(v => ({value: v, label: v})), value: prevPuNum, style: 'width:40px'})}
             <span style="color:rgba(74,85,104,0.30);font-size:11px;line-height:1">—</span>
-            <span style="position:relative;display:inline-block;width:40px;height:1px;background:rgba(74,85,104,0.30)"></span>
+            <span style="display:inline-block;width:40px;height:1px;background:rgba(74,85,104,0.30)"></span>
             <span style="color:rgba(74,85,104,0.30);font-size:11px;line-height:1">—</span>
             ${select({id: 'nd-pu-den', options: ['4','8'].map(v => ({value: v, label: v})), value: prevPuDen, style: 'width:40px'})}
           </div>
@@ -1811,17 +1785,12 @@ function _renderNewScoreDialog(restoreScroll) {
 
     ${FAMILY_KIT_MAP[_ndFamily] ? (() => {
       const _kitName = KIT_CONFIGS[FAMILY_KIT_MAP[_ndFamily]]?.name || '';
-      const _levelLabels = {
-        recorder: { beginner:'Soprano only', intermediate:'Soprano + Alto', advanced:'All recorders' },
-        keyboard: { beginner:'Piano only',   intermediate:'Piano + Celesta', advanced:'All keyboards' },
-      };
-      const _ll = _levelLabels[FAMILY_KIT_MAP[_ndFamily]] || { beginner:'', intermediate:'', advanced:'' };
       return `
-    <div style="display:flex;align-items:center;gap:8px;margin:6px 0 2px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.06)">
-      <span style="font-size:9px;color:rgba(74,85,104,0.60);text-transform:uppercase;letter-spacing:0.3px;font-weight:600">Level</span>
-      <span style="font-size:10px;color:var(--pauta-text-subtle)">— ${_kitName}</span>
+    <div class="pauta-row pauta-mt-sm" style="padding-top:6px;border-top:1px solid rgba(0,0,0,0.06)">
+      <span class="pauta-text-uc" style="color:rgba(74,85,104,0.60)">Level</span>
+      <span class="pauta-text-subtle">— ${_kitName}</span>
     </div>
-    <div style="display:flex;gap:4px;margin-bottom:4px">
+    <div class="pauta-row sm" style="margin-bottom:4px">
       ${['beginner','intermediate','advanced'].map(lvl => `
         <button data-action="ndSelectLevel" data-level="${lvl}"
           style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
@@ -1834,17 +1803,17 @@ function _renderNewScoreDialog(restoreScroll) {
     </div>`; })() : ''}
 
     \x3C!-- Instruments --\x3E
-    <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+    <div class="pauta-row sm">
       ${sectionLabel('Instruments')} <span id="nd-instr-count" style="font-weight:400">(0)</span>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">
+    <div class="pauta-row sm wrap">
       ${famBtns}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:140px;overflow-y:auto;flex-shrink:0">
       ${instrBtns}
     </div>
 
-    <div style="display:flex;gap:6px;margin-top:8px">
+    <div class="pauta-row" style="gap:6px;margin-top:8px">
       ${btn(createLabel, {variant: 'primary', block: true, disabled: totalSelected === 0, action: 'createNewScore'})}
       ${btn('Cancel', {variant: 'secondary', block: true, action: 'closeModal'})}
     </div>
@@ -2120,7 +2089,12 @@ function showDropdown(btnEl, items) {
   const dd = document.createElement('div');
   dd.className = 'dropdown';
   items.forEach(item => {
-    if (item.sep) {
+    if (item.header) {
+      const h = document.createElement('div');
+      h.className = 'dd-header';
+      h.textContent = item.header;
+      dd.appendChild(h);
+    } else if (item.sep) {
       const sep = document.createElement('div');
       sep.className = 'dd-sep';
       dd.appendChild(sep);
@@ -2169,34 +2143,34 @@ if (window.BUS) BUS.on('score:changed', updateStatusBar);
 function updateModeBanner() {
   const banner = document.getElementById('mode-banner');
   if (!banner) return;
-  let mode = null, label = '', bg = '', color = '';
+  let mode = null, label = '';
   if (APP.practiceMode) {
-    mode = 'practice'; label = '\u266A Practice Mode \u2014 play each highlighted note'; bg = 'rgba(34,197,94,0.15)'; color = '#16a34a';
+    mode = 'practice'; label = '\u266A Practice Mode \u2014 play each highlighted note';
   } else if (APP.exerciseMode) {
-    mode = 'exercise'; label = '\u270E Exercise Mode \u2014 answer the questions'; bg = 'rgba(132,204,22,0.12)'; color = '#65a30d';
+    mode = 'exercise'; label = '\u270E Exercise Mode \u2014 answer the questions';
   } else if (APP.assignmentMode) {
-    mode = 'assignment'; label = '\u2713 Assignment Mode \u2014 complete your assignment'; bg = 'rgba(59,130,246,0.12)'; color = '#2563eb';
+    mode = 'assignment'; label = '\u2713 Assignment Mode \u2014 complete your assignment';
   } else if (APP.inputMode) {
-    mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name'; bg = 'rgba(192,86,33,0.12)'; color = '#c05621';
+    mode = 'input'; label = '\u270E Note Input \u2014 tap a measure, then a note name';
   } else if (APP.chordMode) {
-    mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat'; bg = 'rgba(236,72,153,0.12)'; color = '#db2777';
+    mode = 'chord'; label = '\u266B Chord Mode \u2014 add notes to the selected beat';
   } else if (APP.eraserMode) {
-    mode = 'eraser'; label = '\uD83E\uDDF9 Eraser \u2014 tap a note to remove its markings'; bg = 'rgba(239,68,68,0.12)'; color = '#dc2626';
+    mode = 'eraser'; label = '\uD83E\uDDF9 Eraser \u2014 tap a note to remove its markings';
   } else if (APP.markingMode) {
     const markLabels = {tie:'Tie', slur:'Slur', cresc:'Crescendo', dim:'Diminuendo'};
-    mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`; bg = 'rgba(168,85,247,0.12)'; color = '#9333ea';
+    mode = 'marking'; label = `\u2322 ${markLabels[APP.markingMode] || 'Mark'} \u2014 now select the END note`;
   } else if (APP.compositionMode === 'rhythm') {
-    mode = 'composition-rhythm'; label = '\u266A Rhythm Composition \u2014 tap durations, then tap staff'; bg = 'rgba(255,152,0,0.12)'; color = '#e65100';
+    mode = 'composition-rhythm'; label = '\u266A Rhythm Composition \u2014 tap durations, then tap staff';
   } else if (APP.compositionMode === 'melody') {
-    mode = 'composition-melody'; label = '\u266B Melody Composition \u2014 choose scale degrees, then tap staff'; bg = 'rgba(0,150,136,0.12)'; color = '#00695c';
+    mode = 'composition-melody'; label = '\u266B Melody Composition \u2014 choose scale degrees, then tap staff';
   }
   if (mode) {
     banner.style.display = 'block';
-    banner.style.background = bg;
-    banner.style.color = color;
+    banner.dataset.mode = mode;
     banner.innerHTML = label;
   } else {
     banner.style.display = 'none';
+    delete banner.dataset.mode;
     banner.innerHTML = '';
   }
 }

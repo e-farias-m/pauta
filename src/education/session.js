@@ -96,21 +96,21 @@ function _showSessionIntro(type, difficulty) {
       </div>
 
       <div class="pauta-modal-body">
-        <div style="background:rgba(192,86,33,0.05);border-left:3px solid var(--pauta-primary);padding:12px;margin-bottom:16px;border-radius:0 6px 6px 0">
+        <div class="pauta-card" style="border-left:3px solid var(--pauta-primary);padding:12px;margin-bottom:16px;border-radius:0 6px 6px 0">
           <div style="font-weight:600;color:var(--pauta-primary);margin-bottom:4px">Learning Goal</div>
           <div style="font-size:13px;color:var(--pauta-text)">${intro.goal}</div>
         </div>
 
-        <p style="font-size:13px;color:var(--pauta-text-muted);line-height:1.6;margin-bottom:16px">${intro.description}</p>
+        <p class="dialog-hint" style="line-height:1.5;margin-bottom:16px">${intro.description}</p>
 
         <div style="margin-bottom:16px">
-          <div style="font-weight:600;color:var(--pauta-text);margin-bottom:8px;font-size:12px">Tips</div>
+          <div class="pauta-dlg-section" style="margin:0 0 8px">Tips</div>
           <ul style="margin:0;padding-left:20px;font-size:12px;color:var(--pauta-text-muted);line-height:1.8">
             ${intro.tips.map(tip => `<li>${tip}</li>`).join('')}
           </ul>
         </div>
 
-        <div style="background:rgba(34,197,94,0.05);border-left:3px solid var(--pauta-success);padding:12px;border-radius:0 6px 6px 0">
+        <div class="pauta-card" style="border-left:3px solid var(--pauta-success);padding:12px;border-radius:0 6px 6px 0;border-top-color:transparent;border-right-color:transparent;border-bottom-color:transparent">
           <div style="font-weight:600;color:var(--pauta-success);margin-bottom:4px">Session Structure</div>
           <div style="font-size:12px;color:var(--pauta-text-muted)">
             • Warm-up: First 2-3 questions are easy to get you started<br>
@@ -168,14 +168,14 @@ function endExerciseSession() {
   // Determine next action based on recommendation
   let nextActionHtml = '';
   if (recommendation.action === 'advance') {
-    nextActionHtml = `<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-success);font-size:13px">Ready to advance!</div>
-      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
+    nextActionHtml = `<div class="pauta-dlg-card" style="text-align:center;border-color:rgba(34,197,94,0.2)">
+      <div class="pauta-text-success" style="font-weight:600;font-size:13px">Ready to advance!</div>
+      <div class="pauta-text-muted-sm">${recommendation.reason}</div>
     </div>`;
   } else if (recommendation.action === 'review') {
-    nextActionHtml = `<div style="background:rgba(230,168,23,0.1);border:1px solid rgba(230,168,23,0.2);border-radius:6px;padding:8px;margin-bottom:12px;text-align:center">
-      <div style="font-weight:600;color:var(--pauta-warning);font-size:13px">Review recommended</div>
-      <div style="font-size:11px;color:rgba(74,85,104,0.7)">${recommendation.reason}</div>
+    nextActionHtml = `<div class="pauta-dlg-card" style="text-align:center;border-color:rgba(230,168,23,0.2)">
+      <div class="pauta-text-warning" style="font-weight:600;font-size:13px">Review recommended</div>
+      <div class="pauta-text-muted-sm">${recommendation.reason}</div>
     </div>`;
   }
 
@@ -188,8 +188,8 @@ function endExerciseSession() {
   const cheer = encouragements[Math.floor(Math.random() * encouragements.length)];
 
   UI.makeModal(`
-    <div style="text-align:center">
-      <h2 style="font-size:22px;font-weight:700;margin-bottom:4px;color:var(--pauta-text)">Session Complete</h2>
+    <div class="pauta-hero">
+      <h2 class="pauta-hero-title">Session Complete</h2>
 
       <div class="pauta-score-circle" style="background:${scoreCircleColor};box-shadow:0 4px 20px ${scoreCircleColor}44">
         <span class="score-pct">${pct}%</span>
@@ -204,17 +204,17 @@ function endExerciseSession() {
 
       <div class="pauta-encouragement" style="color:${scoreCircleColor}">${cheer}</div>
 
-      <div style="font-size:12px;color:var(--pauta-text-muted);margin:6px 0 12px">
+      <div class="pauta-card-meta" style="margin:6px 0 12px">
         Best streak: ${s.maxStreak} · Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}
       </div>
     </div>
 
     ${nextActionHtml}
 
-    <div style="flex-shrink:0;margin-bottom:12px;max-height:180px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm);background:var(--pauta-bg);padding:8px">
+    <div class="pauta-scroll-y pauta-mb-md" style="max-height:180px;font-size:12px;color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm);background:var(--pauta-bg);padding:8px">
       ${s.completed.map((c,i) => {
         if (c.type === 'difficulty_change') {
-          return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
+          return `<div class="pauta-row pauta-mb0" style="gap:6px">
             <span style="width:16px;text-align:center;font-size:14px">↕</span>
             <span>#${i+1}: Difficulty ${c.difficultyChange === 'up' ? '↑' : '↓'} to ${c.answer}</span>
           </div>`;
@@ -228,13 +228,13 @@ function endExerciseSession() {
           : c.type === EXERCISE_TYPES.SCALE_ID ? 'Scale ' + c.answer
           : c.type === EXERCISE_TYPES.NOTE_CONSTRUCT ? 'Construct ' + c.answer
           : 'Rhythm';
-        return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
+        return `<div class="pauta-row pauta-mb0" style="gap:6px">
           <span style="width:16px;text-align:center;font-size:14px">${icon}</span>
           <span>#${i+1}: ${label}${c.nearMiss && !c.ok ? ' (off by 1)' : ''}</span>
         </div>`;
       }).join('')}
     </div>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    <div class="pauta-row center wrap">
       <button class="modal-btn primary" data-action="reviewExerciseSession">Review Answers</button>
       <button class="modal-btn secondary" data-action="restartExerciseSession">Try Again</button>
       <button class="modal-btn secondary" data-action="closeModalExercise">Close</button>
@@ -297,7 +297,7 @@ function reviewExerciseSession() {
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
       const pc = pitch % 12;
       const noteName = noteNames[pc];
-      questionHtml = `<div style="font-size:20px;text-align:center;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>`;
+      questionHtml = `<div class="pauta-text-center" style="font-size:20px;margin:12px 0;font-family:'Bravura',serif">${noteName}</div>`;
     } else if (c.type === EXERCISE_TYPES.INTERVAL_ID) {
       const bottom = c.target?.bottom;
       const top = c.target?.top;
@@ -306,27 +306,27 @@ function reviewExerciseSession() {
       const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
       const bName = noteNames[bottom % 12];
       const tName = noteNames[top % 12];
-      questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">${bName} → ${tName}</div>
-        <div style="text-align:center;color:var(--pauta-text-muted)">${semitones} semitones ${dir > 0 ? '↑' : '↓'}</div>`;
+      questionHtml = `<div class="pauta-text-center" style="font-size:18px;margin:8px 0">${bName} → ${tName}</div>
+        <div class="pauta-text-center pauta-text-muted-sm">${semitones} semitones ${dir > 0 ? '↑' : '↓'}</div>`;
     } else if (c.type === EXERCISE_TYPES.RHYTHM_READ || c.type === EXERCISE_TYPES.RHYTHM_WS) {
       const beats = c.target?.beats || c.target?.durations;
       if (beats) {
         const symbols = beats.map(d => d === 'q' ? '♩' : d === 'h' ? '𝅗𝅥' : d === '8' ? '♪' : d === '16' ? '𝅘𝅥𝅮' : d === 'r' ? '𝄽' : '·');
-        questionHtml = `<div style="font-size:20px;text-align:center;letter-spacing:8px;margin:12px 0;font-family:'Bravura',serif">${symbols.join(' ')}</div>`;
+        questionHtml = `<div class="pauta-text-center" style="font-size:20px;letter-spacing:8px;margin:12px 0;font-family:'Bravura',serif">${symbols.join(' ')}</div>`;
       }
     } else if (c.type === EXERCISE_TYPES.MELODY_DICT) {
       const notes = c.target?.notes;
       if (notes) {
         const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
         const names = notes.map(n => noteNames[n.pitch % 12]);
-        questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0;letter-spacing:4px">${names.join(' ')}</div>`;
+        questionHtml = `<div class="pauta-text-center" style="font-size:18px;margin:8px 0;letter-spacing:4px">${names.join(' ')}</div>`;
       }
     } else if (c.type === EXERCISE_TYPES.KEY_SIG_ID) {
       const ks = c.target?.keySig;
       const names = { '-7':'Cb','-6':'Gb','-5':'Db','-4':'Ab','-3':'Eb','-2':'Bb','-1':'F','0':'C','1':'G','2':'D','3':'A','4':'E','5':'B','6':'F#','7':'C#' };
       const minorNames = { '-7':'Abm','-6':'Ebm','-5':'Bbm','-4':'Fm','-3':'Cm','-2':'Gm','-1':'Dm','0':'Am','1':'Em','2':'Bm','3':'F#m','4':'C#m','5':'G#m','6':'D#m','7':'A#m' };
-      questionHtml = `<div style="font-size:18px;text-align:center;margin:8px 0">Key Signature: ${ks > 0 ? '♯'.repeat(ks) : ks < 0 ? '♭'.repeat(-ks) : '(none)'}</div>
-        <div style="text-align:center;color:var(--pauta-text-muted)">Major: ${names[String(ks)]} · Minor: ${minorNames[String(ks)]}</div>`;
+      questionHtml = `<div class="pauta-text-center" style="font-size:18px;margin:8px 0">Key Signature: ${ks > 0 ? '♯'.repeat(ks) : ks < 0 ? '♭'.repeat(-ks) : '(none)'}</div>
+        <div class="pauta-text-center pauta-text-muted-sm">Major: ${names[String(ks)]} · Minor: ${minorNames[String(ks)]}</div>`;
     }
 
     const isCorrect = c.ok;
@@ -336,26 +336,26 @@ function reviewExerciseSession() {
 
     UI.makeModal(`
       <h2>Review: ${typeLabel} (${idx + 1}/${completed.length})</h2>
-      <div style="margin-bottom:12px;padding:12px;background:rgba(192,86,33,0.05);border-radius:8px">
+      <div class="pauta-card pauta-mb-md">
         <div style="font-weight:600;margin-bottom:6px">Question</div>
         ${questionHtml}
       </div>
-      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;flex-wrap:wrap">
-        <div style="padding:8px 16px;background:${isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(255,96,96,0.1)'};border-radius:8px;border:1px solid ${isCorrect ? 'var(--pauta-success)' : '#ff6060'}">
-          <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</div>
-          <div style="font-size:16px;font-weight:700;color:${isCorrect ? 'var(--pauta-success)' : '#c05421'}">${UI.escHtml(userAns)}</div>
+      <div class="pauta-dlg-input-group pauta-row center wrap pauta-mb-md">
+        <div style="padding:8px 16px;background:${isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(255,96,96,0.1)'};border-radius:var(--pauta-radius-md);border:1px solid ${isCorrect ? 'var(--pauta-success)' : '#ff6060'}">
+          <div class="pauta-text-muted-sm pauta-text-center" style="font-weight:600">${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</div>
+          <div class="pauta-text-center" style="font-size:16px;font-weight:700;color:${isCorrect ? 'var(--pauta-success)' : '#c05421'}">${UI.escHtml(userAns)}</div>
         </div>
         ${!isCorrect ? `
-        <div style="padding:8px 16px;background:rgba(34,197,94,0.1);border-radius:8px;border:1px solid var(--pauta-success)">
-          <div style="font-size:11px;color:rgba(74,85,104,0.6);font-weight:600">Correct Answer</div>
-          <div style="font-size:16px;font-weight:700;color:var(--pauta-success)">${UI.escHtml(correctAns)}</div>
+        <div style="padding:8px 16px;background:rgba(34,197,94,0.1);border-radius:var(--pauta-radius-md);border:1px solid var(--pauta-success)">
+          <div class="pauta-text-muted-sm pauta-text-center" style="font-weight:600">Correct Answer</div>
+          <div class="pauta-text-center" style="font-size:16px;font-weight:700;color:var(--pauta-success)">${UI.escHtml(correctAns)}</div>
         </div>` : ''}
       </div>
-      ${hint ? `<div style="font-size:12px;color:rgba(74,85,104,0.7);background:rgba(192,86,33,0.06);padding:8px 12px;border-radius:6px;margin-bottom:12px">${UI.escHtml(hint)}</div>` : ''}
-      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      ${hint ? `<div class="pauta-dlg-feedback-hint pauta-mb-md pauta-block" style="padding:8px 12px">${UI.escHtml(hint)}</div>` : ''}
+      <div class="pauta-row center wrap">
         ${idx > 0 ? `<button class="modal-btn secondary" data-action="reviewPrev">← Previous</button>` : ''}
         ${idx < completed.length - 1 ? `<button class="modal-btn primary" data-action="reviewNext">Next →</button>` : `<button class="modal-btn primary" data-action="closeModal">Done</button>`}
-        ${completed.length > 1 ? `<button class="modal-btn secondary" data-action="closeModal" style="margin-left:auto">Close Review</button>` : ''}
+        ${completed.length > 1 ? `<button class="modal-btn secondary" data-action="closeModal">Close Review</button>` : ''}
       </div>
     `);
   }
@@ -1010,11 +1010,11 @@ function _showDictationListenBar(ex) {
       <div style="font-size:14px;font-weight:700;color:var(--pauta-text)">${firstName}</div>
     </div>
     <button class="modal-btn primary" id="dictation-play" style="padding:6px 16px;font-size:13px">▶ Play Melody</button>
-    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:12px">I'm Ready</button>
-    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+    <button class="modal-btn secondary" id="dictation-ready" style="padding:6px 12px;font-size:var(--pauta-text-md)">I'm Ready</button>
+    <div class="pauta-dlg-input-group" style="margin-left:auto">
       <label style="font-size:11px;color:var(--pauta-text-muted);font-weight:600">♩</label>
       <input type="range" id="dictation-tempo" min="40" max="200" value="${currentTempo}" style="width:100px" aria-label="Tempo">
-      <span id="dictation-tempo-val" style="font-size:12px;font-weight:700;color:var(--pauta-primary);min-width:36px;text-align:right">${currentTempo}</span> BPM
+      <span style="font-size:12px;font-weight:700;color:var(--pauta-primary);min-width:36px;text-align:right" id="dictation-tempo-val">${currentTempo}</span> BPM
     </div>`;
   document.body.appendChild(bar);
   
@@ -1559,15 +1559,15 @@ function _showExerciseFeedback(ex, userAnswer) {
 
   const bar = document.createElement('div');
   bar.id = 'exercise-feedback-bar';
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%) translateY(20px);z-index:200;display:flex;align-items:flex-start;gap:10px;background:rgba(255,251,235,0.98);border:1px solid rgba(217,160,60,0.3);border-radius:10px;padding:12px 16px;box-shadow:0 3px 16px rgba(0,0,0,0.09);font-size:13px;color:var(--pauta-text-muted);flex-wrap:wrap;max-width:92vw;opacity:0;transition:opacity 0.3s ease, transform 0.3s ease;font-family:var(--pauta-font-sans)';
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%) translateY(20px);z-index:200;display:flex;align-items:flex-start;gap:10px;background:rgba(255,251,235,0.98);border:1px solid rgba(217,160,60,0.3);border-radius:var(--pauta-radius-lg);padding:12px 16px;box-shadow:0 3px 16px rgba(0,0,0,0.09);font-size:var(--pauta-text-lg);color:var(--pauta-text-muted);flex-wrap:wrap;max-width:92vw;opacity:0;transition:opacity 0.3s ease, transform 0.3s ease;font-family:var(--pauta-font-sans)';
   bar.innerHTML = `
     <div style="flex:1;min-width:0">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="pauta-dlg-input-group" style="margin-bottom:6px;flex-wrap:wrap">
         <span style="font-weight:700;color:#b45309;font-size:14px">Not quite</span>
-        <div style="display:flex;gap:6px;align-items:center;font-size:12px">
-          <span style="background:rgba(239,68,68,0.1);padding:2px 8px;border-radius:4px;color:#dc2626">You: <b>${UI.escHtml(userAnswer)}</b></span>
+        <div class="pauta-dlg-input-group" style="font-size:12px;flex-wrap:wrap">
+          <span class="pauta-dlg-feedback-wrong">You: <b>${UI.escHtml(userAnswer)}</b></span>
           <span style="color:rgba(74,85,104,0.4)">→</span>
-          <span style="background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:4px;color:#16a34a">Correct: <b>${UI.escHtml(correctLabel)}</b>${extraNote}</span>
+          <span class="pauta-dlg-feedback-correct">Correct: <b>${UI.escHtml(correctLabel)}</b>${extraNote}</span>
         </div>
       </div>
       ${hintText ? `
@@ -1576,8 +1576,8 @@ function _showExerciseFeedback(ex, userAnswer) {
           <div style="margin-top:4px;font-size:11px;color:rgba(74,85,104,0.7);line-height:1.5">${hintText}</div>
         </details>` : ''}
     </div>
-    <div style="display:flex;gap:6px;flex-shrink:0;align-self:center">
-      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(192,86,33,0.2);color:var(--pauta-text-muted);border-radius:5px">Skip</button>
+    <div class="pauta-dlg-input-group" style="flex-shrink:0;align-self:center">
+      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(192,86,33,0.2);color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm)">Skip</button>
       <button class="modal-btn primary" data-action="retryExercise" style="padding:4px 12px;font-size:12px">Try Again</button>
       <button class="modal-btn secondary" data-action="endExerciseSession" style="padding:4px 10px;font-size:12px">End Session</button>
     </div>

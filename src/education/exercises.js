@@ -251,40 +251,40 @@ function showCurriculumDialog() {
   const results = _loadResults();
   const totalSessions = results.length;
 
-  const gradeHtml = CURRICULUM.map((grade, idx) => {
+  const gradeHtml = CURRICULUM.map((grade) => {
     const unlocked = _isCurriculumUnlocked(grade);
     const p = _getCurriculumProgress(grade.id);
     const totalExercises = grade.exercises.reduce((s, e) => s + e.count, 0);
     const completedExercises = p.completed || 0;
     const pct = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
-    return `<div style="margin-bottom:10px;padding:10px;background:${unlocked ? 'rgba(192,86,33,0.04)' : 'rgba(0,0,0,0.03)'};border-radius:8px;border:1px solid ${unlocked ? 'rgba(192,86,33,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    return `<div class="pauta-subtle-card pauta-mb-sm" style="background:${unlocked ? 'rgba(192,86,33,0.04)' : 'rgba(0,0,0,0.03)'};border:1px solid ${unlocked ? 'rgba(192,86,33,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
+      <div class="pauta-row" style="gap:10px;margin-bottom:6px">
         <span style="font-size:24px">${grade.icon}</span>
-        <div style="flex:1">
+        <div class="pauta-grow">
           <div style="font-weight:600;font-size:13px;color:var(--pauta-text)">${grade.title}</div>
-          <div style="font-size:11px;color:rgba(74,85,104,0.7)">${grade.description}</div>
+          <div class="pauta-text-muted-sm">${grade.description}</div>
         </div>
-        <div style="text-align:right">
+        <div class="pauta-text-center">
           <div style="font-size:16px;font-weight:700;color:${pct >= 80 ? 'var(--pauta-success)' : pct >= 50 ? 'var(--pauta-warning)' : 'var(--pauta-primary)'}">${pct}%</div>
-          <div style="font-size:10px;color:rgba(74,85,104,0.5)">${completedExercises}/${totalExercises}</div>
+          <div class="pauta-text-tiny" style="opacity:0.5">${completedExercises}/${totalExercises}</div>
         </div>
       </div>
-      ${unlocked ? `<div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${unlocked ? `<div class="pauta-row sm wrap">
         ${grade.exercises.map((ex, exIdx) => {
           const ep = p.exercises?.[exIdx];
           const done = ep?.lastScore !== undefined;
           const score = ep?.bestScore || 0;
           return `<button class="modal-btn ${done ? 'secondary' : 'primary'}" 
             data-action="startCurriculumGrade" data-grade="${grade.id}" data-exercise="${exIdx}"
-            style="flex:1;min-width:120px;padding:6px 8px;font-size:11px;text-align:left">
-            <div style="display:flex;justify-content:space-between;align-items:center">
+            class="pauta-grow" style="min-width:120px;padding:6px 8px;font-size:11px;text-align:left">
+            <div class="pauta-row between">
               <span>${done ? '✓' : '▶'} ${ex.label}</span>
-              ${done ? `<span style="font-size:10px;color:${score >= 80 ? 'var(--pauta-success)' : 'var(--pauta-warning)'}">${score}%</span>` : ''}
+              ${done ? `<span class="pauta-text-subtle" style="color:${score >= 80 ? 'var(--pauta-success)' : 'var(--pauta-warning)'}">${score}%</span>` : ''}
             </div>
           </button>`;
         }).join('')}
-      </div>` : `<div style="font-size:11px;color:rgba(74,85,104,0.5);text-align:center;margin-top:4px">
+      </div>` : `<div class="pauta-text-tiny pauta-text-center pauta-mt-sm" style="opacity:0.5">
         Complete ${grade.unlockCondition.count} ${grade.unlockCondition.exerciseType ? TYPE_LABELS[grade.unlockCondition.exerciseType] : 'total'} sessions to unlock
       </div>`}
     </div>`;
@@ -292,10 +292,10 @@ function showCurriculumDialog() {
 
   UI.makeModal(`
     <h2>Curriculum</h2>
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:12px;text-align:center">
+    <div class="pauta-text-muted-sm pauta-text-center pauta-mb-md" style="font-size:12px">
       Structured learning path · ${totalSessions} total sessions completed
     </div>
-    <div style="flex-shrink:0;max-height:340px;overflow-y:auto">
+    <div class="pauta-scroll-y" style="max-height:340px">
       ${gradeHtml}
     </div>
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
@@ -1187,15 +1187,15 @@ const SESSION_MANAGER = {
 
     UI.makeModal(`
       <h2>Audio Latency Calibration</h2>
-      <p style="color:var(--pauta-text-muted);font-size:13px;margin-bottom:12px;text-align:center">
+      <p class="pauta-text-muted-sm pauta-text-center pauta-mb-md" style="font-size:13px">
         ${result.message}
       </p>
-      <div style="text-align:center;margin-bottom:12px">
+      <div class="pauta-text-center pauta-mb-md">
         <div id="cal-beat-display" style="font-size:48px;font-weight:700;color:var(--pauta-primary);margin-bottom:8px">0/${totalBeats}</div>
         <div id="cal-tap-btn" style="width:80px;height:80px;border-radius:50%;background:var(--pauta-primary);color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center">TAP</div>
       </div>
-      <div id="cal-result" style="text-align:center;font-size:12px;color:var(--pauta-text-muted);min-height:20px"></div>
-      <button class="modal-btn secondary" data-action="closeModal" style="margin-top:8px">Cancel</button>
+      <div id="cal-result" class="pauta-text-muted-sm pauta-text-center" style="min-height:20px"></div>
+      <button class="modal-btn secondary pauta-mt-sm" data-action="closeModal">Cancel</button>
     `);
 
     let beatInterval = setInterval(() => {
