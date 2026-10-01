@@ -517,6 +517,35 @@ function renderRehearsalMarks() {
 }
 
 // ── Help Tips ───────────────────────────────────────────────────
+// Shortcut table shown in the Help panel. Kept as data so it stays in step
+// with the keydown handler in initListeners, which is the real binding.
+const SHORTCUT_REFS = [
+  { keys: ['1'], desc: 'Whole note' },
+  { keys: ['2'], desc: 'Half note' },
+  { keys: ['3'], desc: 'Quarter note' },
+  { keys: ['4'], desc: 'Eighth note' },
+  { keys: ['5'], desc: 'Sixteenth note' },
+  { keys: ['6'], desc: 'Thirty-second note' },
+  { keys: ['7'], desc: 'Sixty-fourth note' },
+  { keys: ['C','D','E','F','G','A','B'], desc: 'Insert that note name (in input mode)' },
+  { keys: ['0'], desc: 'Insert a rest' },
+  { keys: ['.'], desc: 'Toggle augmentation dot' },
+  { keys: ['t'], desc: 'Toggle triplet' },
+  { keys: ['i'], desc: 'Toggle input mode' },
+  { keys: ['Enter'], desc: 'Toggle input mode' },
+  { keys: ['Space'], desc: 'Play / pause' },
+  { keys: ['←','→'], desc: 'Move selection by note' },
+  { keys: ['↑','↓'], desc: 'Move between staves (or change octave in input mode)' },
+  { keys: ['Shift','+ ← →'], desc: 'Move selection by measure' },
+  { keys: ['Delete'], desc: 'Delete the selected note' },
+  { keys: ['⌘/Ctrl','+ Z'], desc: 'Undo' },
+  { keys: ['⌘/Ctrl','+ Y'], desc: 'Redo' },
+  { keys: ['⌘/Ctrl','+ A'], desc: 'Select all notes' },
+  { keys: ['⌘/Ctrl','+ C / V / X'], desc: 'Copy, paste, cut' },
+  { keys: ['m'], desc: 'Toggle measure numbers' },
+  { keys: ['`'], desc: 'Toggle debug overlay' },
+];
+
 const HELP_TIPS = [
   { q: 'How do I add a note?', a: 'Tap Input, then tap a note name (C, D, E…) in the palette. The note is inserted at the selected measure.' },
   { q: 'How do I change a note\'s pitch?', a: 'Select the note (tap it on the score), then tap a different note name in the palette.' },
@@ -528,13 +557,20 @@ const HELP_TIPS = [
   { q: 'How do I use Practice Mode?', a: 'Tap the Practice button in the transport bar. Play each highlighted note on your MIDI keyboard or microphone.' },
   { q: 'How do I export to PDF?', a: 'File → Export Engraved PDF. The score is rendered as a high-resolution image and saved as a PDF.' },
   { q: 'How do assignments work?', a: 'Teach → Create Assignment to hide notes for students. Share the .mscz file. Students open it, fill in answers, and send it back.' },
-  { q: 'What keyboard shortcuts are available?', a: 'Space = play/pause, 0 = rest, Arrow keys = move selection, Home = rewind, Delete = remove note.' },
+  { q: 'What keyboard shortcuts are available?', a: 'See the Keyboard shortcuts table above — it covers note durations (1–7), note names (C–B), rests (0), and transport and editing keys.' },
   { q: 'How do I add a chord?', a: 'Select a note, tap Chord mode (the chord icon), then tap additional note names to stack them.' },
 ];
 
 function showHelpPanel() {
   makeModal(`
-    <h2>Help & Tips</h2>
+    <h2>Help &amp; Tips</h2>
+    <h3 class="help-sub">Keyboard shortcuts</h3>
+    <div class="shortcut-grid" id="help-shortcuts">
+      ${SHORTCUT_REFS.map(s => `<div class="shortcut-row">
+        <span class="shortcut-keys">${s.keys.map(k => `<kbd>${k}</kbd>`).join('')}</span>
+        <span class="shortcut-desc">${s.desc}</span>
+      </div>`).join('')}
+    </div>
     <input id="help-search" type="text" placeholder="Search tips…" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111;margin-bottom:10px">
     <div id="help-list" style="flex-shrink:0;max-height:280px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);line-height:1.5">
       ${HELP_TIPS.map((t,i) => `<div class="help-tip" data-idx="${i}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(192,86,33,0.08)">

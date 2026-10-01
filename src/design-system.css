@@ -820,3 +820,50 @@
 .pauta-dlg-feedback-correct { display:inline-block; background:#dcfce7; color:#16a34a; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
 .pauta-dlg-feedback-wrong { display:inline-block; background:#fef2f2; color:#dc2626; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
 .pauta-dlg-feedback-hint { display:inline-block; background:#fffbeb; color:#b45309; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
+
+/* ── Keyboard Shortcut Table ─────────────────────────────────────
+   Used by the Help panel. Two columns so a long key combo ("⌘/Ctrl + Z")
+   never pushes the description out of alignment. */
+.help-sub {
+  font-size: var(--pauta-text-lg);
+  font-weight: 700;
+  color: var(--pauta-text);
+  margin: var(--pauta-space-xs) 0 var(--pauta-space-sm);
+}
+.shortcut-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: var(--pauta-space-xs);
+  font-size: var(--pauta-text-md);
+}
+.shortcut-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pauta-space-sm);
+}
+.shortcut-keys {
+  flex: 0 0 33%;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  justify-content: flex-end;
+}
+.shortcut-keys kbd {
+  display: inline-block;
+  min-width: 17px;
+  padding: 1px 4px;
+  font-family: var(--pauta-font-sans);
+  font-size: var(--pauta-text-sm);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--pauta-text);
+  background: rgba(74,85,104,0.08);
+  border-radius: var(--pauta-radius-sm);
+  box-shadow: inset 0 0 0 1px rgba(74,85,104,0.14);
+}
+.shortcut-desc {
+  flex: 1;
+  color: var(--pauta-text-muted);
+}

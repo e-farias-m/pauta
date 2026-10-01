@@ -1328,6 +1328,58 @@ for (const f of files) {
   }
 }
 
+// ── 17. PALETTE SHORTCUT BADGES MATCH THE KEY BINDINGS ───────────
+// The duration/note buttons render a faded key hint (src/index.html
+// .pal-kbd). A badge that disagrees with src/ui.js's handler is worse
+// than no badge at all, so compare them directly instead of trusting
+// that someone updated both by hand.
+const uiCode   = readFileSync(join(srcDir, 'ui.js'), 'utf8');
+const tplCode   = readFileSync(join(srcDir, 'index.html'), 'utf8');
+
+// Pull the live bindings out of the keydown handler.
+const durLit  = uiCode.match(/const\s+durMap\s*=\s*\{([^}]*)\}/);
+const noteLit = uiCode.match(/const\s+noteKeys\s*=\s*\{([^}]*)\}/);
+assert(!!durLit,  'ui.js — durMap literal is still parseable by the badge drift test');
+assert(!!noteLit, 'ui.js — noteKeys literal is still parseable by the badge drift test');
+
+// Keys may be quoted ('1') or bare (c), so accept either and strip quotes.
+function _parsePairs(literal) {
+  return (literal.match(/(?:'[^']*'|[\w$]+)\s*:\s*'([^']*)'/g) || []).map(p => {
+    const m = p.match(/^(?:'([^']*)'|([\w$]+))\s*:\s*'([^']*)'$/);
+    return [m[1] !== undefined ? m[1] : m[2], m[3]];
+  });
+}
+const durPairs  = durLit  ? _parsePairs(durLit[1])  : [];   // ['1','w'], ...
+const notePairs = noteLit ? _parsePairs(noteLit[1]) : [];   // ['c','C'], ...
+const keyForDur = new Map(durPairs.map(([k, d]) => [d, k]));
+
+// Badge markup, in the order the palette lists them.
+const badgeForDur = [...tplCode.matchAll(
+  /data-dur="([^"]+)"[^>]*>\s*<span class="pal-kbd" aria-hidden="true">([^<]*)<\/span>/g
+)].map(m => [m[1], m[2]]);
+const badgeForNote = [...tplCode.matchAll(
+  /data-name="([A-G])"[^>]*><span class="pal-kbd" aria-hidden="true">([^<]*)<\/span>/g
+)].map(m => [m[1], m[2]]);
+
+assertEq(badgeForDur.length, durPairs.length,
+  'every duration in durMap has exactly one badge in the palette');
+for (const [dur, key] of badgeForDur) {
+  assertEq(key, keyForDur.get(dur) ?? null,
+    `palette badge for duration "${dur}" matches its key binding`);
+}
+assertEq(badgeForNote.length, notePairs.length,
+  'every note name in noteKeys has exactly one badge in the palette');
+for (const [name, key] of badgeForNote) {
+  const expected = (notePairs.find(([, n]) => n === name) || [null, null])[0];
+  assertEq(key, expected ? expected.toUpperCase() : null,
+    `palette badge for note "${name}" matches its key binding`);
+}
+
+// The badge must be a static hint, not a hover reveal: iPad has no hover.
+assert(/\.pal-kbd\s*\{[^}]*position:\s*absolute/.test(
+    readFileSync(join(srcDir, 'styles', 'main.css'), 'utf8')),
+  '.pal-kbd is absolutely positioned (no hover dependency)');
+
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
