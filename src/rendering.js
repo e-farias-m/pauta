@@ -802,7 +802,10 @@ function _renderRhythmCounting() {
   const svgEl = document.getElementById('score-svg')?.querySelector('svg');
   if (!svgEl || !APP.score) return;
   for (const sl of APP.staveLayout) {
-    const m = APP.score.parts[0]?.staves?.[sl.si]?.measures?.[sl.mi];
+    // staveLayout covers every staff in every part, and sl.si is a global
+    // index, so resolve it with getStaveBySI — indexing part 1 silently
+    // dropped the counting labels on every staff past the first part.
+    const m = getStaveBySI(sl.si)?.measures?.[sl.mi];
     if (!m || !m.notes) continue;
     const beatUnit = 4 / (resolvedTimeSig(sl.mi, sl.si).den || 4);
     let beatPos = 0;
@@ -832,7 +835,8 @@ function _renderRhythmCounting() {
 
 // ── Note lookup helper for theory overlay ──────────────────────
 function getNoteByLayout(nl) {
-  return APP.score?.parts?.[0]?.staves?.[nl.si]?.measures?.[nl.mi]?.notes?.[nl.ni];
+  // nl.si is a global staff index, so it must not index part 1 directly.
+  return getStaveBySI(nl.si)?.measures?.[nl.mi]?.notes?.[nl.ni];
 }
 
 function _renderScoreAnnotations(rc) {

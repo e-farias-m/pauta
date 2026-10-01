@@ -3350,7 +3350,9 @@ function getMeasureActiveAccidentals(mi, si) {
   // key signature + any accidentals already entered in this measure
   const ks     = getResolvedKeySig(mi, si);
   const active = getKeyAccidentals(ks); // start from key sig
-  const notes  = APP.score?.parts[0]?.staves[si]?.measures[mi]?.notes || [];
+  // `si` is a global staff index across all parts, so it has to be resolved
+  // with getStaveBySI rather than used to index part 1 directly.
+  const notes  = getStaveBySI(si)?.measures?.[mi]?.notes || [];
   notes.forEach(n => {
     if (n.type === 'note') {
       const pc = n.pitch % 12;
@@ -3954,6 +3956,54 @@ function setKeySig(score, mi, ks) {
     for (const stave of part.staves || []) {
       const m = stave.measures?.[mi];
       if (m) m.keySig = ks;
+    }
+  }
+}
+
+/** Navigation markers. These describe the score, not an individual stave. */
+const MARKER_KEYS = ['segno', 'coda', 'fine', 'dc', 'ds'];
+
+/**
+ * Toggle a navigation marker at measure `mi` on every stave in the score.
+ * Rendering only draws markers on the first stave, but the value has to be
+ * stored on every stave: a score can be saved and reloaded at any time, and
+ * a marker that exists only on part 1 disappears from any view anchored to
+ * another stave.
+ * @returns {boolean} true if the marker is now set, false if it was cleared
+ */
+function toggleMarker(score, mi, type) {
+  let added = false;
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (!m) continue;
+      if (m[type]) { delete m[type]; } else { m[type] = true; added = true; }
+    }
+  }
+  return added;
+}
+
+/** Clear every navigation marker at measure `mi` on every stave. */
+function clearMarkers(score, mi) {
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (!m) continue;
+      for (const key of MARKER_KEYS) delete m[key];
+    }
+  }
+}
+
+/**
+ * Set the line-break flag at measure `mi` on every stave in the score.
+ * Engraving reads it from a single reference stave, so writing it to only
+ * part 1 leaves any other stave's copy disagreeing with the layout.
+ */
+function setLineBreak(score, mi, val) {
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (m) m.lineBreak = val;
     }
   }
 }
@@ -5179,7 +5229,8 @@ function exportMSCXFromScore(s) {
 
 // ── Assign notation functions to SCORE namespace ─────────
 [createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
- validateScore, adoptScore, commitChange, setTimeSig, setKeySig, parseMSCX, parseMusicXML,
+ validateScore, adoptScore, commitChange, setTimeSig, setKeySig, toggleMarker, clearMarkers,
+ setLineBreak, parseMSCX, parseMusicXML,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });
 
@@ -5989,7 +6040,10 @@ function _renderRhythmCounting() {
   const svgEl = document.getElementById('score-svg')?.querySelector('svg');
   if (!svgEl || !APP.score) return;
   for (const sl of APP.staveLayout) {
-    const m = APP.score.parts[0]?.staves?.[sl.si]?.measures?.[sl.mi];
+    // staveLayout covers every staff in every part, and sl.si is a global
+    // index, so resolve it with getStaveBySI — indexing part 1 silently
+    // dropped the counting labels on every staff past the first part.
+    const m = getStaveBySI(sl.si)?.measures?.[sl.mi];
     if (!m || !m.notes) continue;
     const beatUnit = 4 / (resolvedTimeSig(sl.mi, sl.si).den || 4);
     let beatPos = 0;
@@ -6019,7 +6073,8 @@ function _renderRhythmCounting() {
 
 // ── Note lookup helper for theory overlay ──────────────────────
 function getNoteByLayout(nl) {
-  return APP.score?.parts?.[0]?.staves?.[nl.si]?.measures?.[nl.mi]?.notes?.[nl.ni];
+  // nl.si is a global staff index, so it must not index part 1 directly.
+  return getStaveBySI(nl.si)?.measures?.[nl.mi]?.notes?.[nl.ni];
 }
 
 function _renderScoreAnnotations(rc) {
@@ -9535,25 +9590,22 @@ function applyClefChange(clef) {
 function applyMarker(type) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (APP.selectedMeasure < 0) { UI.showToast('Select a measure first'); return; }
-  SCORE.commitChange(score => {
-    score.parts[0].staves.forEach(s => {
-      const m = s.measures[APP.selectedMeasure];
-      if (m) {
-        if (m[type]) { delete m[type]; } else { m[type] = true; }
-      }
-    });
-  }, { toast: `${{segno:'Segno', coda:'Coda', fine:'Fine', dc:'D.C.', ds:'D.S.'}[type] || type} ${APP.score.parts[0].staves[0].measures[APP.selectedMeasure]?.[type] ? 'added' : 'removed'}` });
+  const mi = APP.selectedMeasure;
+  // Read the current state from the first stave, which is the one markers
+  // are drawn on. The old inline ternary read the pre-change value and so
+  // reported "added" exactly when it had just removed the marker.
+  const wasSet = !!getStaveBySI(0)?.measures?.[mi]?.[type];
+  const label = {segno:'Segno', coda:'Coda', fine:'Fine', dc:'D.C.', ds:'D.S.'}[type] || type;
+  SCORE.commitChange(score => SCORE.toggleMarker(score, mi, type),
+    { toast: `${label} ${wasSet ? 'removed' : 'added'}` });
 }
 
 function clearMarker() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (APP.selectedMeasure < 0) { UI.showToast('Select a measure first'); return; }
-  SCORE.commitChange(score => {
-    score.parts[0].staves.forEach(s => {
-      const m = s.measures[APP.selectedMeasure];
-      if (m) { delete m.segno; delete m.coda; delete m.fine; delete m.dc; delete m.ds; }
-    });
-  }, { toast: 'Navigation markers cleared' });
+  const mi = APP.selectedMeasure;
+  SCORE.commitChange(score => SCORE.clearMarkers(score, mi),
+    { toast: 'Navigation markers cleared' });
 }
 
 function clearTie() {
@@ -9945,12 +9997,14 @@ function deleteMeasure() {
 function toggleLineBreak() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
-  const measure = APP.score.parts[0].staves[0].measures[mi];
+  // getStaveBySI tolerates a null score and an out-of-range measure; the old
+  // direct index threw on either, and the write loop indexed measures[mi]
+  // without a guard.
+  const measure = getStaveBySI(0)?.measures?.[mi];
   if (!measure) return;
   const newVal = !measure.lineBreak;
-  SCORE.commitChange(score => {
-    score.parts.forEach(p => p.staves[0].measures[mi].lineBreak = newVal);
-  }, { toast: newVal ? 'Line break' : 'Line break removed' });
+  SCORE.commitChange(score => SCORE.setLineBreak(score, mi, newVal),
+    { toast: newVal ? 'Line break' : 'Line break removed' });
 }
 
 function toggleContinuousView() {

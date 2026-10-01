@@ -1113,25 +1113,22 @@ function applyClefChange(clef) {
 function applyMarker(type) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (APP.selectedMeasure < 0) { UI.showToast('Select a measure first'); return; }
-  SCORE.commitChange(score => {
-    score.parts[0].staves.forEach(s => {
-      const m = s.measures[APP.selectedMeasure];
-      if (m) {
-        if (m[type]) { delete m[type]; } else { m[type] = true; }
-      }
-    });
-  }, { toast: `${{segno:'Segno', coda:'Coda', fine:'Fine', dc:'D.C.', ds:'D.S.'}[type] || type} ${APP.score.parts[0].staves[0].measures[APP.selectedMeasure]?.[type] ? 'added' : 'removed'}` });
+  const mi = APP.selectedMeasure;
+  // Read the current state from the first stave, which is the one markers
+  // are drawn on. The old inline ternary read the pre-change value and so
+  // reported "added" exactly when it had just removed the marker.
+  const wasSet = !!getStaveBySI(0)?.measures?.[mi]?.[type];
+  const label = {segno:'Segno', coda:'Coda', fine:'Fine', dc:'D.C.', ds:'D.S.'}[type] || type;
+  SCORE.commitChange(score => SCORE.toggleMarker(score, mi, type),
+    { toast: `${label} ${wasSet ? 'removed' : 'added'}` });
 }
 
 function clearMarker() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   if (APP.selectedMeasure < 0) { UI.showToast('Select a measure first'); return; }
-  SCORE.commitChange(score => {
-    score.parts[0].staves.forEach(s => {
-      const m = s.measures[APP.selectedMeasure];
-      if (m) { delete m.segno; delete m.coda; delete m.fine; delete m.dc; delete m.ds; }
-    });
-  }, { toast: 'Navigation markers cleared' });
+  const mi = APP.selectedMeasure;
+  SCORE.commitChange(score => SCORE.clearMarkers(score, mi),
+    { toast: 'Navigation markers cleared' });
 }
 
 function clearTie() {
@@ -1523,12 +1520,14 @@ function deleteMeasure() {
 function toggleLineBreak() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
-  const measure = APP.score.parts[0].staves[0].measures[mi];
+  // getStaveBySI tolerates a null score and an out-of-range measure; the old
+  // direct index threw on either, and the write loop indexed measures[mi]
+  // without a guard.
+  const measure = getStaveBySI(0)?.measures?.[mi];
   if (!measure) return;
   const newVal = !measure.lineBreak;
-  SCORE.commitChange(score => {
-    score.parts.forEach(p => p.staves[0].measures[mi].lineBreak = newVal);
-  }, { toast: newVal ? 'Line break' : 'Line break removed' });
+  SCORE.commitChange(score => SCORE.setLineBreak(score, mi, newVal),
+    { toast: newVal ? 'Line break' : 'Line break removed' });
 }
 
 function toggleContinuousView() {

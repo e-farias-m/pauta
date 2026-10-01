@@ -214,6 +214,54 @@ function setKeySig(score, mi, ks) {
   }
 }
 
+/** Navigation markers. These describe the score, not an individual stave. */
+const MARKER_KEYS = ['segno', 'coda', 'fine', 'dc', 'ds'];
+
+/**
+ * Toggle a navigation marker at measure `mi` on every stave in the score.
+ * Rendering only draws markers on the first stave, but the value has to be
+ * stored on every stave: a score can be saved and reloaded at any time, and
+ * a marker that exists only on part 1 disappears from any view anchored to
+ * another stave.
+ * @returns {boolean} true if the marker is now set, false if it was cleared
+ */
+function toggleMarker(score, mi, type) {
+  let added = false;
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (!m) continue;
+      if (m[type]) { delete m[type]; } else { m[type] = true; added = true; }
+    }
+  }
+  return added;
+}
+
+/** Clear every navigation marker at measure `mi` on every stave. */
+function clearMarkers(score, mi) {
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (!m) continue;
+      for (const key of MARKER_KEYS) delete m[key];
+    }
+  }
+}
+
+/**
+ * Set the line-break flag at measure `mi` on every stave in the score.
+ * Engraving reads it from a single reference stave, so writing it to only
+ * part 1 leaves any other stave's copy disagreeing with the layout.
+ */
+function setLineBreak(score, mi, val) {
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (m) m.lineBreak = val;
+    }
+  }
+}
+
 /** @param {Score} score @returns {Score} */
 function _ensureScoreAnnotationArrays(score) {
   for (const rule of SCORE_MEASURE_REF_RULES) {
@@ -1435,6 +1483,7 @@ function exportMSCXFromScore(s) {
 
 // ── Assign notation functions to SCORE namespace ─────────
 [createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
- validateScore, adoptScore, commitChange, setTimeSig, setKeySig, parseMSCX, parseMusicXML,
+ validateScore, adoptScore, commitChange, setTimeSig, setKeySig, toggleMarker, clearMarkers,
+ setLineBreak, parseMSCX, parseMusicXML,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });

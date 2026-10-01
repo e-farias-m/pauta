@@ -24,6 +24,7 @@ const {
   setTimeSig, setKeySig, resolvedTimeSig,
   mkNote, mkRest, emptyMeasure,
   exportMSCXFromScore, parseMSCX,
+  getMeasureActiveAccidentals, getResolvedKeySig, getStaveBySI,
 } = { ...M, ...M.SCORE };
 
 // ── Tests ──────────────────────────────────────────────────────
@@ -548,6 +549,97 @@ assertEq(rtParsed.parts[0].staves[0].measures[0].notes.length, 4, 'roundtrip not
 assertEq(rtParsed.parts[0].staves[0].measures[0].notes[0].pitch, 60, 'roundtrip C4');
 assertEq(rtParsed.parts[0].staves[0].measures[0].notes[1].accidental, '#', 'roundtrip sharp');
 assertEq(rtParsed.parts[0].staves[0].measures[0].notes[3].accidental, 'b', 'roundtrip flat');
+
+
+// ── Multi-part propagation regressions ─────────────────────────────
+//
+// Four sites resolved a global staff index (or a score-wide value) as if
+// part 1 were the only part. Every case below fails against the old code.
+
+// A score-wide helper: two parts, one stave each.
+const mp = createScore({ instruments: ['Piano'] });
+addInstrumentToScore(mp, 'Cello');
+APP.score = mp; // getStaveBySI reads APP.score, so bind it before asserting on it
+assertEq(mp.parts.length, 2, 'multi-part fixture has two parts');
+const _mpStaffCount = mp.parts.reduce((n, p) => n + p.staves.length, 0);
+assert(_mpStaffCount > mp.parts[0].staves.length, 'fixture has staves past part 1');
+// Part 2's only stave is not global index 1: piano already owns staves 0-1.
+const _celloSi = mp.parts[0].staves.length;
+assertEq(getStaveBySI(_celloSi), mp.parts[1].staves[0], 'computed index resolves to part 2');
+
+// getMeasureActiveAccidentals must read the stave named by the global index.
+// Part 2 carries an explicit C# that part 1 does not have.
+const celloMi = 0;
+mp.parts[1].staves[0].measures[celloMi].notes = [mkNote(61, 'q', 0, '#')];
+mp.parts[0].staves[0].measures[celloMi].notes = [mkNote(60, 'q', 0, null)];
+const celloAcc = getMeasureActiveAccidentals(celloMi, _celloSi);
+assertEq(celloAcc[1], '#', 'accidental on part 2 is detected');
+const pianoAcc = getMeasureActiveAccidentals(celloMi, 0);
+assertEq(pianoAcc[1], undefined, 'staff 0 does not inherit part 2 accidentals');
+// The key-signature read on the same measure must agree with the note read.
+assertEq(getResolvedKeySig(celloMi, _celloSi), 0, 'key sig resolves on part 2');
+
+// An explicit natural must clear a key-signature sharp on part 2.
+const mp2 = createScore({ instruments: ['Piano'] });
+setKeySig(mp2, 0, 1); // one sharp: F#
+addInstrumentToScore(mp2, 'Cello');
+setKeySig(mp2, 0, 1);
+APP.score = mp2;
+const _celloSi2 = mp2.parts[0].staves.length;
+assertEq(getMeasureActiveAccidentals(0, _celloSi2)[5], '#', 'part 2 inherits the G-major F#');
+mp2.parts[1].staves[0].measures[0].notes = [mkNote(65, 'q', 0, 'n')];
+assertEq(getMeasureActiveAccidentals(0, _celloSi2)[5], 'n', 'explicit natural on part 2 wins');
+
+// Markers are score-wide: toggling must reach every stave in every part.
+const mp3 = createScore({ instruments: ['Piano'] });
+addInstrumentToScore(mp3, 'Cello');
+APP.score = mp3;
+assertEq(SCORE.toggleMarker(mp3, 0, 'segno'), true, 'toggleMarker reports the marker is now set');
+for (const [pi, part] of mp3.parts.entries()) {
+  for (const [sti, stave] of part.staves.entries()) {
+    assertEq(stave.measures[0].segno, true, `segno set on part ${pi + 1} stave ${sti + 1}`);
+  }
+}
+assertEq(SCORE.toggleMarker(mp3, 0, 'segno'), false, 'toggleMarker reports the marker is now cleared');
+for (const [pi, part] of mp3.parts.entries()) {
+  assertEq(part.staves[0].measures[0].segno, undefined, `segno cleared on part ${pi + 1}`);
+}
+
+// Every marker key clears across every part.
+for (const k of ['segno', 'coda', 'fine', 'dc', 'ds']) SCORE.toggleMarker(mp3, 0, k);
+mp3.parts[1].staves[0].measures[0].fine = true; // stray marker the clear must reach
+SCORE.clearMarkers(mp3, 0);
+for (const part of mp3.parts) {
+  const m = part.staves[0].measures[0];
+  assert(!('segno' in m) && !('coda' in m) && !('fine' in m) && !('dc' in m) && !('ds' in m),
+    'clearMarkers clears every key on every part');
+}
+
+// Line breaks are read by the engraver from one reference stave, so all
+// staves have to agree.
+const mp4 = createScore({ instruments: ['Organ'] });
+addInstrumentToScore(mp4, 'Cello');
+APP.score = mp4;
+const _organStaves = mp4.parts[0].staves.length;
+SCORE.setLineBreak(mp4, 0, true);
+for (const [pi, part] of mp4.parts.entries()) {
+  for (const [sti, stave] of part.staves.entries()) {
+    assertEq(stave.measures[0].lineBreak, true, `line break set on part ${pi + 1} stave ${sti + 1}`);
+  }
+}
+assert(_organStaves >= 1, 'organ fixture has at least one stave');
+SCORE.setLineBreak(mp4, 0, false);
+for (const part of mp4.parts) {
+  assertEq(part.staves[0].measures[0].lineBreak, false, 'line break cleared on every part');
+}
+
+// Out-of-range measures are skipped, not thrown on.
+assertEq(SCORE.toggleMarker(mp4, 99, 'segno'), false, 'toggleMarker ignores a missing measure');
+assertEq(SCORE.setLineBreak(mp4, 99, true), undefined, 'setLineBreak ignores a missing measure');
+SCORE.clearMarkers(mp4, 99);
+assertEq(SCORE.toggleMarker(null, 0, 'segno'), false, 'toggleMarker tolerates a null score');
+SCORE.setLineBreak(undefined, 0, true);
+SCORE.clearMarkers(null, 0);
 
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);

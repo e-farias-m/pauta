@@ -48,6 +48,7 @@ window.__PAUTA_MODEL__ = {
   // instead of re-implementing them — that is how the suite drifted.
   instrByName, getStaveBySI, getMeasureBySI, resolvedTimeSig, keySigName,
   durBeats, findBestDuration, beatsUsed, midiToVexKey,
+  getMeasureActiveAccidentals, getResolvedKeySig,
   shiftMeasureRefs, _repairNote, _repairMeasure, _syncMeasureCounts,
   _ensureScoreAnnotationArrays,
   _nextPartName, _partIndexForSI, _firstSIOfPart, _shiftStaffRefs,
@@ -132,6 +133,8 @@ const APP_EXPORT_NAMES = [
   'generateExercise', '_genNoteId', '_genIntervalId', '_genRhythmRead',
   '_genRhythmWorksheet', '_genMelodyDict', '_genKeySigId',
   '_renderRhythmBeatGrid', 'checkRhythmWorksheet',
+  '_renderRhythmCounting', 'getNoteByLayout',
+  'applyMarker', 'clearMarker', 'toggleLineBreak',
 ];
 
 /**

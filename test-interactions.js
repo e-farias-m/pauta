@@ -61,6 +61,8 @@ const {
   generateExercise, _genNoteId, _genIntervalId, _genRhythmRead,
   _genRhythmWorksheet, _genMelodyDict, _genKeySigId,
   _renderRhythmBeatGrid, checkRhythmWorksheet,
+  _renderRhythmCounting, getNoteByLayout,
+  applyMarker, clearMarker, toggleLineBreak,
 } = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
@@ -958,6 +960,164 @@ for (const [name, key] of badgeForNote) {
 assert(/\.pal-kbd\s*\{[^}]*position:\s*absolute/.test(
     readFileSync(join(srcDir, 'styles', 'main.css'), 'utf8')),
   '.pal-kbd is absolutely positioned (no hover dependency)');
+
+// ── 18. Multi-part layout lookups ─────────────────────────────────
+//
+// Rendering resolves a note through its layout entry, whose `si` is a
+// global staff index. Reading part 1 by that index silently returned the
+// wrong measure — or nothing — for every staff past the first part.
+
+function _multiPartFixture() {
+  const sc = SCORE.createScore({ instruments: ['Piano'] });
+  SCORE.addInstrumentToScore(sc, 'Cello');
+  APP.score = sc;
+  return sc;
+}
+
+// 18a. getNoteByLayout resolves the staff named by the layout index
+const mpScore = _multiPartFixture();
+const _pianoStaves = mpScore.parts[0].staves.length;
+const _celloPitch = 43; // low G on the cello stave
+mpScore.parts[1].staves[0].measures[0].notes = [SCORE.mkNote(_celloPitch, 'q')];
+mpScore.parts[0].staves[0].measures[0].notes = [SCORE.mkNote(60, 'q')];
+mpScore.parts[0].staves[1].measures[0].notes = [SCORE.mkNote(48, 'q')];
+assertEq(getNoteByLayout({ si: 0, mi: 0, ni: 0 }).pitch, 60, 'layout on staff 0 reads the piano treble');
+assertEq(getNoteByLayout({ si: _pianoStaves, mi: 0, ni: 0 }).pitch, _celloPitch,
+  'layout past part 1 resolves to the cello stave, not part 1');
+assertEq(getNoteByLayout({ si: 1, mi: 0, ni: 0 }).pitch, 48,
+  'layout on staff 1 reads the piano bass stave');
+assertEq(getNoteByLayout({ si: 99, mi: 0, ni: 0 }), undefined, 'out-of-range staff yields undefined');
+
+// 18b. _renderRhythmCounting labels every staff in the score
+// It only needs an <svg> to write into, so it runs without VexFlow.
+// The template already ships an empty #score-svg; getElementById would find
+// that one first, so reuse it rather than adding a second.
+const _svgHost = document.getElementById('score-svg');
+const _freshSvg = () => {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  _svgHost.replaceChildren(el);
+  return el;
+};
+const _svg = _freshSvg();
+
+APP.showRhythmCounting = true;
+APP.staveLayout = [
+  { si: 0, mi: 0, x: 10, bottomY: 40 },
+  { si: _pianoStaves, mi: 0, x: 10, bottomY: 90 },
+];
+// Four quarter notes in each measure: labels "1".."4" on both staves.
+for (const part of mpScore.parts) {
+  for (const stave of part.staves) {
+    stave.measures[0].notes = [
+      SCORE.mkNote(60, 'q'), SCORE.mkNote(60, 'q'),
+      SCORE.mkNote(60, 'q'), SCORE.mkNote(60, 'q'),
+    ];
+  }
+}
+// noteLayout must match each (si, mi, ni) or the labels are skipped.
+APP.noteLayout = [];
+for (const sl of APP.staveLayout) {
+  for (let ni = 0; ni < 4; ni++) APP.noteLayout.push({ ...sl, ni, x: 10 + ni * 20, y: 60 });
+}
+_renderRhythmCounting();
+const _labels = Array.from(_svg.querySelectorAll('text')).map(t => t.textContent);
+assertEq(_labels.length, 8, 'four counting labels per staff across two staves');
+assertEq(_labels.slice(0, 4).join(','), '1,2,3,4', 'staff 0 is counted 1-4');
+assertEq(_labels.slice(4, 8).join(','), '1,2,3,4', 'the staff in part 2 is counted too');
+
+// 18c. a score with only one stave still counts once
+const _solo = SCORE.createScore({ instruments: ['Flute'] });
+APP.score = _solo;
+APP.staveLayout = [{ si: 0, mi: 0, x: 0, bottomY: 40 }];
+APP.noteLayout = [{ si: 0, mi: 0, ni: 0, x: 5, y: 50 }];
+_solo.parts[0].staves[0].measures[0].notes = [SCORE.mkNote(72, 'h')];
+const _svg2 = _freshSvg();
+_renderRhythmCounting();
+// Counting labels mark note onsets, not every beat a note spans, so a half
+// note is labelled once at its start.
+assertEq(Array.from(_svg2.querySelectorAll('text')).map(t => t.textContent).join(','), '1',
+  'a half note is labelled once at its onset');
+// Eighth notes do label each onset, including the off-beat "+".
+_solo.parts[0].staves[0].measures[0].notes = [SCORE.mkNote(72, '8'), SCORE.mkNote(74, '8')];
+APP.noteLayout = [
+  { si: 0, mi: 0, ni: 0, x: 5, y: 50 },
+  { si: 0, mi: 0, ni: 1, x: 9, y: 50 },
+];
+const _svg3 = _freshSvg();
+_renderRhythmCounting();
+assertEq(Array.from(_svg3.querySelectorAll('text')).map(t => t.textContent).join(','), '1,+',
+  'eighth notes are counted 1 then e');
+_svgHost.replaceChildren();
+
+// ── 19. Marker and line-break handlers reach every part ───────────
+//
+// The handlers used to loop score.parts[0].staves, so a segno placed on a
+// two-part score existed on the piano and not on the cello. The toast also
+// read the pre-change value, so it said "added" while removing the marker.
+
+function _toastText() {
+  const el = document.querySelector('.toast, #toast, .pauta-toast');
+  return el ? el.textContent : null;
+}
+
+const hScore = SCORE.createScore({ instruments: ['Piano'] });
+SCORE.addInstrumentToScore(hScore, 'Cello');
+APP.score = hScore;
+APP.selectedMeasure = 0;
+APP.selectedStaff = 0;
+
+// 19a. applying a marker sets it on every stave of every part
+applyMarker('segno');
+for (const [pi, part] of hScore.parts.entries()) {
+  for (const [sti, stave] of part.staves.entries()) {
+    assertEq(stave.measures[0].segno, true, `segno reaches part ${pi + 1} stave ${sti + 1}`);
+  }
+}
+
+// 19b. toggling again clears it everywhere and says "removed", not "added"
+applyMarker('segno');
+assert(!hScore.parts.some(p => p.staves.some(s => s.measures[0].segno)),
+  'toggling a marker off clears it on every part');
+applyMarker('coda');
+const _codaToast = _toastText();
+applyMarker('coda');
+const _codaToast2 = _toastText();
+assert(_codaToast && /Coda added/i.test(_codaToast), 'first toggle reports the marker added');
+assert(_codaToast2 && /Coda removed/i.test(_codaToast2), 'second toggle reports the marker removed');
+
+// 19c. clearMarker wipes every marker key on every part
+for (const k of ['segno', 'coda', 'fine', 'dc', 'ds']) applyMarker(k);
+hScore.parts[1].staves[0].measures[0].fine = true;
+clearMarker();
+for (const [pi, part] of hScore.parts.entries()) {
+  const m = part.staves[0].measures[0];
+  assert(!('segno' in m) && !('coda' in m) && !('fine' in m) && !('dc' in m) && !('ds' in m),
+    `clearMarker clears every key on part ${pi + 1}`);
+}
+
+// 19d. toggleLineBreak reaches every stave and toggles back
+toggleLineBreak();
+for (const [pi, part] of hScore.parts.entries()) {
+  for (const [sti, stave] of part.staves.entries()) {
+    assertEq(stave.measures[0].lineBreak, true, `line break reaches part ${pi + 1} stave ${sti + 1}`);
+  }
+}
+toggleLineBreak();
+for (const part of hScore.parts) {
+  for (const stave of part.staves) {
+    assertEq(stave.measures[0].lineBreak, false, 'line break clears on every stave');
+  }
+}
+
+// 19e. an out-of-range or missing selection is a no-op, not a crash
+APP.selectedMeasure = 99;
+toggleLineBreak();
+applyMarker('segno');
+assert(!hScore.parts[1].staves[0].measures[0].segno, 'marker on a missing measure is skipped');
+APP.selectedMeasure = -1;
+applyMarker('segno');
+clearMarker();
+APP.selectedMeasure = 0;
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);

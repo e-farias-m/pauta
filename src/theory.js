@@ -144,7 +144,9 @@ function getMeasureActiveAccidentals(mi, si) {
   // key signature + any accidentals already entered in this measure
   const ks     = getResolvedKeySig(mi, si);
   const active = getKeyAccidentals(ks); // start from key sig
-  const notes  = APP.score?.parts[0]?.staves[si]?.measures[mi]?.notes || [];
+  // `si` is a global staff index across all parts, so it has to be resolved
+  // with getStaveBySI rather than used to index part 1 directly.
+  const notes  = getStaveBySI(si)?.measures?.[mi]?.notes || [];
   notes.forEach(n => {
     if (n.type === 'note') {
       const pc = n.pitch % 12;
