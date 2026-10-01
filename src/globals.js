@@ -290,6 +290,9 @@ const SCORE_MEASURE_REF_RULES = [
   { key: 'staffTexts',     range: false, field: 'mi' },
 ];
 
+// Score-level lists whose items reference a global stave index (si).
+const SCORE_STAFF_REF_KEYS = ['slurs', 'hairpins'];
+
 // ── UI Difficulty Profiles ────────────────────────────────────────
 const UI_PROFILES = {
   beginner: {

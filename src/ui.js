@@ -885,7 +885,8 @@ function showScoreMenu(btn) {
     {label:'Time Signature', fn:showTimeSigDialog},
     {label:'Key Signature', fn:showKeySigDialog},
     {label:'Transpose…', fn:showTransposeDialog},
-    {label:'Add Instrument', fn:showMixer},
+    {label:'Add Instrument', fn:showAddInstrumentDialog},
+    {label:'Mixer', fn:showMixer},
     {sep:true},
     {label:'Pickup Measure', fn:showPickupDialog},
     {sep:true},
@@ -1328,24 +1329,58 @@ function showAssignmentSubmenu() {
 }
 
 function showAddInstrumentDialog() {
-  const allowedNames = _kitInstrumentList();
-  const instrs = INSTRUMENTS.filter(i => allowedNames.includes(i.name));
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  const parts      = APP.score?.parts || [];
+  const allowed    = _kitInstrumentList();
+  const inUse      = parts.map(p => p.instrument || p.name);
+  const available  = INSTRUMENTS.filter(i => allowed.includes(i.name) && !inUse.includes(i.name));
+  const canRemove  = parts.length > 1;
+
+  const partRows = parts.map((p, i) => `
+    <div class="pauta-row between" style="margin-bottom:4px">
+      <span class="pauta-text-muted-sm">
+        ${p.name}
+        <span class="pauta-text-subtle">${p.staves.length === 1 ? '1 stave' : `${p.staves.length} staves`}</span>
+      </span>
+      <button class="modal-btn secondary" data-action="removeInstrument" data-idx="${i}"
+        ${canRemove ? '' : 'disabled'}
+        title="${canRemove ? `Remove ${p.name}` : 'A score needs at least one part'}">Remove</button>
+    </div>`).join('');
+
   makeModal(`
-    <h2>Add Instrument</h2>
-    <p class="pauta-text-muted-sm" style="margin-top:-6px;margin-bottom:10px">Adds a new stave below the existing score</p>
-    <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:10px">
-      ${instrs.map(i => `<option value="${i.name}">${i.name}</option>`).join('')}
-    </select>
-    <button class="modal-btn primary" data-action="confirmAddInstrument">Add</button>
+    <h2>Parts</h2>
+    <p class="pauta-text-muted-sm" style="margin-top:-6px;margin-bottom:10px">Add an instrument, or remove a part from this score.</p>
+    <div class="pauta-dlg-section">Current parts</div>
+    ${partRows}
+    <div class="pauta-dlg-section">Add instrument</div>
+    ${available.length ? `
+      <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:10px">
+        ${available.map(i => `<option value="${i.name}">${i.name}</option>`).join('')}
+      </select>
+      <button class="modal-btn primary" data-action="confirmAddInstrument">Add</button>
+    ` : `<p class="dialog-hint">No further instruments available${allowed.length < INSTRUMENTS.length ? ' for this teaching kit' : ''}.</p>`}
     <button class="modal-btn secondary" data-action="closeModal">Close</button>
   `);
 }
 
 function confirmAddInstrument() {
-  const instrName = document.getElementById('ai-instr-select')?.value || 'Piano';
-  SCORE.commitChange(score => {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  const instrName = document.getElementById('ai-instr-select')?.value;
+  if (!instrName) return;
+  const ok = SCORE.commitChange(score => {
     SCORE.addInstrumentToScore(score, instrName);
   }, { toast: `${instrName} added` });
+  if (ok) showAddInstrumentDialog();
+}
+
+function removeInstrument(partIdx) {
+  try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
+  const partName = APP.score?.parts[partIdx]?.name;
+  if (!partName) return;
+  const ok = SCORE.commitChange(score => {
+    if (!SCORE.removeInstrumentFromScore(score, partIdx)) throw new Error('Cannot remove the last part');
+  }, { toast: `${partName} removed` });
+  if (ok) showAddInstrumentDialog();
 }
 
 // ── Time Signature Dialog (slider-based) ─────────────────────────
@@ -2629,6 +2664,7 @@ _registerAction('showTeachMenu', (e) => showTeachMenu(e.target));
 _registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.dataset.kit, e.target.closest('[data-level]')?.dataset.level); closeModal(); });
 _registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
+_registerAction('removeInstrument', (e) => removeInstrument(parseInt(e.target.closest('[data-idx]')?.dataset.idx, 10)));
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
 _registerAction('startAssignment', (e) => startAssignment(e.target.closest('[data-id]')?.dataset.id));

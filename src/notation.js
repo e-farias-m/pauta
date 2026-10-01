@@ -1,7 +1,7 @@
 /**
  * @namespace SCORE
  * Score model: create, mutate, repair, validate, MSCX I/O.
- * Provides: createScore, addInstrumentToScore, mkNote, mkRest,
+ * Provides: createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest,
  * emptyMeasure, repairScore, validateScore, adoptScore, commitChange,
  * parseMSCX, parseMusicXML, exportMSCX, exportMSCXFromScore.
  */
@@ -55,6 +55,42 @@ function addInstrumentToScore(score, instrName) {
       })
     }))
   });
+}
+// Remove a part by index. Refuses to remove the last remaining part.
+// Shifts staff-indexed annotations (slurs, hairpins) past the removed staves
+// and remaps the active staff selection. Returns true when the score changed.
+/** @param {Score} score @param {number} partIdx @returns {boolean} */
+function removeInstrumentFromScore(score, partIdx) {
+  if (!score || !Array.isArray(score.parts)) return false;
+  if (!Number.isInteger(partIdx) || partIdx < 0 || partIdx >= score.parts.length) return false;
+  if (score.parts.length <= 1) return false;
+
+  const removedStaves = (score.parts[partIdx].staves || []).length;
+  const firstSi = score.parts
+    .slice(0, partIdx)
+    .reduce((sum, p) => sum + (p.staves || []).length, 0);
+  score.parts.splice(partIdx, 1);
+
+  for (const key of SCORE_STAFF_REF_KEYS) {
+    const arr = score[key];
+    if (!Array.isArray(arr)) continue;
+    score[key] = arr
+      .filter(item => typeof item.si !== 'number'
+        || item.si < firstSi
+        || item.si >= firstSi + removedStaves)
+      .map(item => (typeof item.si === 'number' && item.si > firstSi)
+        ? { ...item, si: item.si - removedStaves }
+        : item);
+  }
+
+  if (typeof APP.selectedStaff === 'number') {
+    if (APP.selectedStaff >= firstSi && APP.selectedStaff < firstSi + removedStaves) {
+      APP.selectedStaff = Math.max(0, firstSi - 1);
+    } else if (APP.selectedStaff >= firstSi + removedStaves) {
+      APP.selectedStaff -= removedStaves;
+    }
+  }
+  return true;
 }
 /** @param {number} pitch @param {string} dur @param {number} [dots] @param {string|null} [acc] @param {number} [voice] @returns {Note} */
 function mkNote(pitch, dur, dots=0, acc=null, voice=1) {
@@ -1289,7 +1325,7 @@ function exportMSCXFromScore(s) {
 }
 
 // ── Assign notation functions to SCORE namespace ─────────
-[createScore, addInstrumentToScore, mkNote, mkRest, emptyMeasure, repairScore,
+[createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
  validateScore, adoptScore, commitChange, parseMSCX, parseMusicXML,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });

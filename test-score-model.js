@@ -87,9 +87,75 @@ function emptyMeasure() {
 
 const INSTRUMENTS = [
   {name:'Piano', family:'Keyboards', staves:['treble','bass'], osc:'piano'},
+  {name:'Flute', family:'Woodwinds', staves:['treble'], osc:'flute'},
+  {name:'Violin', family:'Strings', staves:['treble'], osc:'violin'},
+  {name:'Cello', family:'Strings', staves:['bass'], osc:'cello'},
 ];
 function instrByName(name) {
   return INSTRUMENTS.find(i => i.name === name) || INSTRUMENTS[0];
+}
+
+// Selection state the model touches. src reads this from APP.selectedStaff.
+const APP = { selectedStaff: 0 };
+
+// Score-level lists whose items reference a global stave index (si).
+const SCORE_STAFF_REF_KEYS = ['slurs', 'hairpins'];
+
+// Mirrors src/notation.js — strict lookup returns null for unknown names,
+// unlike the forgiving instrByName() above.
+function addInstrumentToScore(score, instrName) {
+  const instr = INSTRUMENTS.find(i => i.name === instrName);
+  if (!instr) return;
+  const nM = score.parts[0].staves[0].measures.length;
+  const refS = score.parts[0].staves[0];
+  score.parts.push({
+    name: instr.name, instrument: instr.name, osc: instr.osc,
+    staves: instr.staves.map(clef => ({
+      clef,
+      measures: Array.from({length: nM}, (_, mi) => {
+        const ref = refS.measures[mi] || {};
+        return {
+          timeSigNum: mi === 0 ? (ref.timeSigNum || 4) : null,
+          timeSigDen: mi === 0 ? (ref.timeSigDen || 4) : null,
+          keySig:     mi === 0 ? (ref.keySig    || 0) : null,
+          lineBreak:  false,
+          notes: [mkRest('w')]
+        };
+      })
+    }))
+  });
+}
+function removeInstrumentFromScore(score, partIdx) {
+  if (!score || !Array.isArray(score.parts)) return false;
+  if (!Number.isInteger(partIdx) || partIdx < 0 || partIdx >= score.parts.length) return false;
+  if (score.parts.length <= 1) return false;
+
+  const removedStaves = (score.parts[partIdx].staves || []).length;
+  const firstSi = score.parts
+    .slice(0, partIdx)
+    .reduce((sum, p) => sum + (p.staves || []).length, 0);
+  score.parts.splice(partIdx, 1);
+
+  for (const key of SCORE_STAFF_REF_KEYS) {
+    const arr = score[key];
+    if (!Array.isArray(arr)) continue;
+    score[key] = arr
+      .filter(item => typeof item.si !== 'number'
+        || item.si < firstSi
+        || item.si >= firstSi + removedStaves)
+      .map(item => (typeof item.si === 'number' && item.si > firstSi)
+        ? { ...item, si: item.si - removedStaves }
+        : item);
+  }
+
+  if (typeof APP.selectedStaff === 'number') {
+    if (APP.selectedStaff >= firstSi && APP.selectedStaff < firstSi + removedStaves) {
+      APP.selectedStaff = Math.max(0, firstSi - 1);
+    } else if (APP.selectedStaff >= firstSi + removedStaves) {
+      APP.selectedStaff -= removedStaves;
+    }
+  }
+  return true;
 }
 
 function createScore(opts={}) {
@@ -306,6 +372,92 @@ assertEq(s1.slurs.length, 0, 'createScore empty slurs');
 
 const s2 = createScore({instruments: ['Piano'], ts: {num:3, den:4}});
 assertEq(s2.parts[0].staves[0].measures[0].timeSigNum, 3, 'createScore 3/4');
+
+// ── Parts: add / remove instrument ────────────────────────────
+
+// addInstrumentToScore — appended after existing parts
+const addS = createScore({ts: {num:3, den:4}, ks: 2});
+addInstrumentToScore(addS, 'Flute');
+assertEq(addS.parts.length, 2, 'addInstrumentToScore appends a part');
+assertEq(addS.parts[1].name, 'Flute', 'addInstrumentToScore sets part name');
+assertEq(addS.parts[1].instrument, 'Flute', 'addInstrumentToScore sets instrument');
+assertEq(addS.parts[1].staves.length, 1, 'addInstrumentToScore honours single-stave instrument');
+assertEq(addS.parts[1].staves[0].measures.length, 1, 'addInstrumentToScore matches measure count');
+assertEq(addS.parts[1].staves[0].measures[0].timeSigNum, 3, 'addInstrumentToScore inherits time sig');
+assertEq(addS.parts[1].staves[0].measures[0].keySig, 2, 'addInstrumentToScore inherits key sig');
+assertEq(addS.parts[1].staves[0].measures[0].notes[0].type, 'rest', 'addInstrumentToScore seeds a rest');
+
+// addInstrumentToScore — multi-measure score, sigs only on measure 0
+const addM = createScore();
+addM.parts[0].staves[0].measures.push(emptyMeasure(), emptyMeasure());
+addInstrumentToScore(addM, 'Violin');
+assertEq(addM.parts[1].staves[0].measures.length, 3, 'addInstrumentToScore matches 3-measure score');
+assertEq(addM.parts[1].staves[0].measures[1].timeSigNum, null, 'addInstrumentToScore leaves later measures sigless');
+
+// addInstrumentToScore — keeps the instrument clef stack
+const addD = createScore();
+addInstrumentToScore(addD, 'Piano');
+assertEq(addD.parts[1].staves.length, 2, 'addInstrumentToScore Piano gets 2 staves');
+assertEq(addD.parts[1].staves[0].clef, 'treble', 'addInstrumentToScore treble clef');
+assertEq(addD.parts[1].staves[1].clef, 'bass', 'addInstrumentToScore bass clef');
+
+// addInstrumentToScore — unknown instrument is a no-op
+const addX = createScore();
+addInstrumentToScore(addX, 'Kazoo');
+assertEq(addX.parts.length, 1, 'addInstrumentToScore ignores unknown instrument');
+
+// removeInstrumentFromScore — happy path and ordering
+const rmS = createScore({instruments: ['Piano', 'Flute', 'Cello']});
+assertEq(rmS.parts.length, 3, 'remove fixture starts with 3 parts');
+assertEq(removeInstrumentFromScore(rmS, 1), true, 'removeInstrumentFromScore returns true');
+assertEq(rmS.parts.length, 2, 'removeInstrumentFromScore drops the part');
+assertEq(rmS.parts[1].name, 'Cello', 'removeInstrumentFromScore preserves part order');
+assertEq(removeInstrumentFromScore(rmS, 99), false, 'removeInstrumentFromScore rejects out-of-range index');
+assertEq(rmS.parts.length, 2, 'removeInstrumentFromScore out-of-range is a no-op');
+assertEq(removeInstrumentFromScore(rmS, -1), false, 'removeInstrumentFromScore rejects negative index');
+assertEq(removeInstrumentFromScore(rmS, 0), true, 'removeInstrumentFromScore removes first part');
+assertEq(rmS.parts.length, 1, 'removeInstrumentFromScore count drops again');
+assertEq(rmS.parts[0].name, 'Cello', 'removeInstrumentFromScore keeps the last part');
+assertEq(removeInstrumentFromScore(rmS, 0), false, 'removeInstrumentFromScore refuses the last part');
+assertEq(rmS.parts.length, 1, 'removeInstrumentFromScore last part survives');
+
+// removeInstrumentFromScore — staff-indexed annotation shifting
+// Piano = si 0,1 · Flute = si 2 · Cello = si 3
+const rmA = createScore({instruments: ['Piano', 'Flute', 'Cello']});
+rmA.slurs = [
+  {si: 0, startMi: 0, endMi: 0},
+  {si: 2, startMi: 0, endMi: 0},
+  {si: 3, startMi: 0, endMi: 0},
+];
+removeInstrumentFromScore(rmA, 1); // removes Flute (si 2, 1 stave)
+assertEq(rmA.slurs.length, 2, 'removeInstrumentFromScore drops only slurs on the removed staff');
+assertEq(rmA.slurs[0].si, 0, 'removeInstrumentFromScore leaves earlier staff refs alone');
+assertEq(rmA.slurs[1].si, 2, 'removeInstrumentFromScore shifts later staff refs down');
+
+// removeInstrumentFromScore — multi-stave part shift
+const rmB = createScore({instruments: ['Piano', 'Flute']});
+rmB.slurs = [{si: 0, startMi: 0, endMi: 0}, {si: 2, startMi: 0, endMi: 0}];
+removeInstrumentFromScore(rmB, 0); // removes Piano (si 0 and 1)
+assertEq(rmB.slurs.length, 1, 'removeInstrumentFromScore drops slurs across all removed staves');
+assertEq(rmB.slurs[0].si, 0, 'removeInstrumentFromScore shifts past a multi-stave part');
+
+// removeInstrumentFromScore — selection clamp
+APP.selectedStaff = 2;
+const rmSel = createScore({instruments: ['Piano', 'Flute']});
+removeInstrumentFromScore(rmSel, 1); // selection pointed at the removed Flute stave
+assertEq(APP.selectedStaff, 1, 'removeInstrumentFromScore clamps selection to the stave before the removed part');
+
+APP.selectedStaff = 3;
+const rmSel2 = createScore({instruments: ['Piano', 'Flute']});
+removeInstrumentFromScore(rmSel2, 0); // Flute's stave 3 becomes stave 1
+assertEq(APP.selectedStaff, 1, 'removeInstrumentFromScore shifts a selection past the removed part');
+
+APP.selectedStaff = 0;
+const rmSel3 = createScore({instruments: ['Piano', 'Flute']});
+removeInstrumentFromScore(rmSel3, 1); // selection on surviving Piano treble
+assertEq(APP.selectedStaff, 0, 'removeInstrumentFromScore keeps a surviving selection');
+
+APP.selectedStaff = 0;
 
 // repairScore
 const broken = {title: '', parts: []};
