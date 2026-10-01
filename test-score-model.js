@@ -185,6 +185,56 @@ assertEq(APP.selectedStaff, 0, 'a selection before the insert point is untouched
 
 APP.selectedStaff = 0;
 
+// ── Parts: signature layout is mirrored onto a new part ─────────
+
+// A mid-score time-sig change must reach the new part, not just measure 0.
+const sigS = createScore({ts: {num:4, den:4}, ks: 0});
+sigS.parts[0].staves[0].measures.push(emptyMeasure(), emptyMeasure());
+sigS.parts[0].staves[0].measures[2].timeSigNum = 3;
+sigS.parts[0].staves[0].measures[2].timeSigDen = 4;
+addInstrumentToScore(sigS, 'Violin');
+const sigM = sigS.parts[1].staves[0].measures;
+assertEq(sigM[0].timeSigNum, 4, 'new part inherits measure 1 time sig');
+assertEq(sigM[1].timeSigNum, null, 'new part keeps measure 2 as unchanged (null)');
+assertEq(sigM[2].timeSigNum, 3, 'new part inherits a mid-score time-sig change');
+assertEq(sigM[2].timeSigDen, 4, 'new part inherits the mid-score denominator');
+
+// Same for a mid-score key change.
+const keyS = createScore();
+keyS.parts[0].staves[0].measures.push(emptyMeasure());
+keyS.parts[0].staves[0].measures[1].keySig = -3;
+addInstrumentToScore(keyS, 'Cello');
+assertEq(keyS.parts[1].staves[0].measures[0].keySig, 0, 'new part inherits measure 1 key sig');
+assertEq(keyS.parts[1].staves[0].measures[1].keySig, -3, 'new part inherits a mid-score key change');
+
+// Pickup measures and system breaks carry over structurally.
+const pickS = createScore();
+pickS.parts[0].staves[0].measures.push(emptyMeasure());
+pickS.parts[0].staves[0].measures[0].pickup = {num:1, den:4};
+pickS.parts[0].staves[0].measures[1].lineBreak = true;
+addInstrumentToScore(pickS, 'Flute');
+const pickM = pickS.parts[1].staves[0].measures;
+assertEq(pickM[0].pickup?.num, 1, 'new part inherits the pickup measure');
+assertEq(pickM[0].pickup?.den, 4, 'new part inherits the pickup denominator');
+assertEq(pickM[1].lineBreak, true, 'new part inherits a system break');
+assertEq(pickM[1].pickup, undefined, 'a normal measure does not gain a pickup');
+
+// Notes are never copied — the new part starts empty.
+const noteS = createScore();
+noteS.parts[0].staves[0].measures[0].notes = [mkNote(60, 'q'), mkNote(64, 'q'), mkNote(67, 'q'), mkNote(72, 'q')];
+addInstrumentToScore(noteS, 'Trombone');
+assertEq(noteS.parts[1].staves[0].measures[0].notes.length, 1, 'new part starts with a single rest');
+assertEq(noteS.parts[1].staves[0].measures[0].notes[0].type, 'rest', 'new part does not copy source notes');
+
+// The reference stave is not mutated by the copy (pickup is a fresh object).
+const aliasS = createScore();
+aliasS.parts[0].staves[0].measures[0].pickup = {num:1, den:4};
+addInstrumentToScore(aliasS, 'Flute');
+const aliasM = aliasS.parts[1].staves[0].measures[0];
+assertEq(aliasM.pickup?.num, 1, 'new part inherits the pickup measure before aliasing check');
+if (aliasM.pickup) aliasM.pickup.num = 3;
+assertEq(aliasS.parts[0].staves[0].measures[0].pickup?.num, 1, 'pickup copy is not aliased to the source');
+
 // removeInstrumentFromScore — happy path and ordering
 const rmS = createScore({instruments: ['Piano', 'Flute', 'Cello']});
 assertEq(rmS.parts.length, 3, 'remove fixture starts with 3 parts');

@@ -3750,19 +3750,24 @@ function addInstrumentToScore(score, instrName, opts = {}) {
   if (!instr || !Array.isArray(score?.parts) || !score.parts.length) return null;
   const nM   = score.parts[0].staves[0].measures.length;
   const refS = score.parts[0].staves[0];
+  // Mirror the reference stave's signature layout measure for measure, so a
+  // new part stays aligned with mid-score time/key changes and a pickup.
+  // `null` means "unchanged here" and is preserved rather than defaulted.
   const part = {
     name: _nextPartName(score, instr.name), instrument: instr.name, osc: instr.osc,
     staves: instr.staves.map(clef => ({
       clef,
       measures: Array.from({length: nM}, (_, mi) => {
         const ref = refS.measures[mi] || {};
-        return {
-          timeSigNum: mi===0 ? (ref.timeSigNum||4) : null,
-          timeSigDen: mi===0 ? (ref.timeSigDen||4) : null,
-          keySig:     mi===0 ? (ref.keySig    ||0) : null,
-          lineBreak:  false,
+        const measure = {
+          timeSigNum: ref.timeSigNum ?? (mi === 0 ? 4 : null),
+          timeSigDen: ref.timeSigDen ?? (mi === 0 ? 4 : null),
+          keySig:     ref.keySig     ?? (mi === 0 ? 0 : null),
+          lineBreak:  ref.lineBreak === true,
           notes: [mkRest('w')]
         };
+        if (ref.pickup) measure.pickup = { ...ref.pickup };
+        return measure;
       })
     }))
   };
