@@ -1328,13 +1328,24 @@ function showAssignmentSubmenu() {
   showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
 
+// Parts dialog state: kit filtering can be lifted, and the new part can be
+// placed above the selected part instead of appended below the score.
+let AI_SHOW_ALL  = false;
+let AI_POSITION  = 'below';
+
 function showAddInstrumentDialog() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  const parts      = APP.score?.parts || [];
-  const allowed    = _kitInstrumentList();
-  const inUse      = parts.map(p => p.instrument || p.name);
-  const available  = INSTRUMENTS.filter(i => allowed.includes(i.name) && !inUse.includes(i.name));
-  const canRemove  = parts.length > 1;
+  const parts     = APP.score?.parts || [];
+  const kitNames  = _kitInstrumentList();
+  const inKit     = new Set(kitNames);
+  const available = AI_SHOW_ALL ? INSTRUMENTS : INSTRUMENTS.filter(i => inKit.has(i.name));
+  const canRemove = parts.length > 1;
+  const nStaves   = parts.reduce((n, p) => n + p.staves.length, 0);
+
+  // "Above" means above the part owning the selected staff; -1 = unresolvable.
+  const refIdx  = (AI_POSITION === 'above' && Number.isInteger(APP.selectedStaff) && APP.selectedStaff < nStaves)
+    ? _partIndexForSI(APP.score, APP.selectedStaff) : -1;
+  const aboveRef = refIdx !== -1 ? parts[refIdx].name : null;
 
   const partRows = parts.map((p, i) => `
     <div class="pauta-row between" style="margin-bottom:4px">
@@ -1347,6 +1358,14 @@ function showAddInstrumentDialog() {
         title="${canRemove ? `Remove ${p.name}` : 'A score needs at least one part'}">Remove</button>
     </div>`).join('');
 
+  const posPills = ['above', 'below'].map(pos => pillBtn(
+    pos === 'above' ? 'Above' : 'Below',
+    {active: AI_POSITION === pos, action: 'setAIPosition', dataAttrs: {pos}}
+  )).join('');
+
+  // Preserve the user's pick across re-renders triggered by the toggles.
+  const prevInstr = document.getElementById('ai-instr-select')?.value;
+
   makeModal(`
     <h2>Parts</h2>
     <p class="pauta-text-muted-sm" style="margin-top:-6px;margin-bottom:10px">Add an instrument, or remove a part from this score.</p>
@@ -1354,12 +1373,22 @@ function showAddInstrumentDialog() {
     ${partRows}
     <div class="pauta-dlg-section">Add instrument</div>
     ${available.length ? `
-      <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:10px">
-        ${available.map(i => `<option value="${i.name}">${i.name}</option>`).join('')}
+      <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:8px">
+        ${available.map(i => `<option value="${i.name}"${i.name === prevInstr ? ' selected' : ''}>${i.name}${inKit.has(i.name) ? '' : ' (not in kit)'}</option>`).join('')}
       </select>
+      <div class="pauta-dlg-section">Place</div>
+      <div class="pauta-pills" style="margin-bottom:10px">${posPills}</div>
+      <p class="dialog-hint">${AI_POSITION === 'below'
+        ? 'Appends below the score.'
+        : aboveRef
+          ? `Inserts above <b>${aboveRef}</b>.`
+          : 'No part selected — appends below the score.'}</p>
       <button class="modal-btn primary" data-action="confirmAddInstrument">Add</button>
-    ` : `<p class="dialog-hint">No further instruments available${allowed.length < INSTRUMENTS.length ? ' for this teaching kit' : ''}.</p>`}
-    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+    ` : `<p class="dialog-hint">No instruments available for this teaching kit.</p>`}
+    ${!AI_SHOW_ALL && inKit.size < INSTRUMENTS.length
+      ? `<button class="modal-btn secondary pauta-mt-sm" data-action="toggleAIShowAll" style="width:100%;margin-top:10px">Show all ${INSTRUMENTS.length} instruments</button>`
+      : ''}
+    <button class="modal-btn secondary pauta-mt-sm" data-action="closeModal" style="width:100%;margin-top:8px">Close</button>
   `);
 }
 
@@ -1368,9 +1397,19 @@ function confirmAddInstrument() {
   const instrName = document.getElementById('ai-instr-select')?.value;
   if (!instrName) return;
   const ok = SCORE.commitChange(score => {
-    SCORE.addInstrumentToScore(score, instrName);
-  }, { toast: `${instrName} added` });
+    SCORE.addInstrumentToScore(score, instrName, { position: AI_POSITION });
+  }, { toast: `${instrName} added${AI_POSITION === 'above' ? ' above' : ''}` });
   if (ok) showAddInstrumentDialog();
+}
+
+function setAIPosition(pos) {
+  AI_POSITION = pos === 'above' ? 'above' : 'below';
+  showAddInstrumentDialog();
+}
+
+function toggleAIShowAll() {
+  AI_SHOW_ALL = !AI_SHOW_ALL;
+  showAddInstrumentDialog();
 }
 
 function removeInstrument(partIdx) {
@@ -2664,6 +2703,8 @@ _registerAction('showTeachMenu', (e) => showTeachMenu(e.target));
 _registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.dataset.kit, e.target.closest('[data-level]')?.dataset.level); closeModal(); });
 _registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
+_registerAction('setAIPosition', (e) => setAIPosition(e.target.closest('[data-pos]')?.dataset.pos));
+_registerAction('toggleAIShowAll', () => toggleAIShowAll());
 _registerAction('removeInstrument', (e) => removeInstrument(parseInt(e.target.closest('[data-idx]')?.dataset.idx, 10)));
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));

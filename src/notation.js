@@ -17,30 +17,77 @@ function createScore(opts={}) {
   const ks         = opts.ks          || 0;
   const instrNames = opts.instruments || ['Piano'];
 
-  const parts = instrNames.map(instrName => {
+  const parts = [];
+  instrNames.forEach(instrName => {
     const instr = instrByName(instrName);
-    return {
-      name: instr.name, instrument: instr.name, osc: instr.osc,
+    parts.push({
+      name: _nextPartName({parts}, instr.name), instrument: instr.name, osc: instr.osc,
       staves: instr.staves.map(clef => ({
         clef,
         measures: [{timeSigNum:ts.num, timeSigDen:ts.den, keySig:ks, lineBreak:false, notes:[mkRest('w')]}]
       }))
-    };
+    });
   });
   return {title: opts.title||'Untitled Score', composer: opts.composer||'',
           scoreVersion: SCORE_FORMAT_VERSION,
           slurs:[], hairpins:[], rehearsalMarks:[], staffTexts:[],
           assignments: [], studentAnswers: {}, parts};
 }
+// Global stave index of the first stave owned by part `partIdx`.
+function _firstSIOfPart(score, partIdx) {
+  return score.parts
+    .slice(0, partIdx)
+    .reduce((sum, p) => sum + (p.staves || []).length, 0);
+}
 
-// Add a new instrument part to the current score
-function addInstrumentToScore(score, instrName) {
-  const instr  = instrByName(instrName);
-  if (!instr) return;
-  const nM     = score.parts[0].staves[0].measures.length;
-  const refS   = score.parts[0].staves[0];
-  score.parts.push({
-    name: instr.name, instrument: instr.name, osc: instr.osc,
+// Part index owning a global stave index, or -1 when si is out of range.
+function _partIndexForSI(score, si) {
+  if (!Number.isInteger(si) || si < 0) return -1;
+  let idx = 0;
+  for (let pi = 0; pi < score.parts.length; pi++) {
+    const count = (score.parts[pi].staves || []).length;
+    if (si < idx + count) return pi;
+    idx += count;
+  }
+  return -1;
+}
+
+// Nudge every si annotation at or past `firstSi` by `delta`.
+// `si` is global, so inserting/removing staves mid-score renumbers the rest.
+function _shiftStaffRefs(score, firstSi, delta) {
+  if (!delta) return;
+  for (const key of SCORE_STAFF_REF_KEYS) {
+    const arr = score[key];
+    if (!Array.isArray(arr)) continue;
+    for (const item of arr) {
+      if (item && typeof item.si === 'number' && item.si >= firstSi) item.si += delta;
+    }
+  }
+}
+
+// Display name for a new part, disambiguating repeats: Violin, Violin (2), …
+function _nextPartName(score, instrName) {
+  const used = (score.parts || []).filter(p => (p.instrument || p.name) === instrName).length;
+  return used === 0 ? instrName : `${instrName} (${used + 1})`;
+}
+
+/**
+ * Add a new instrument part to a score.
+ * @param {Score} score
+ * @param {string} instrName
+ * @param {{position?: 'below'|'above', refStaff?: number|null}} [opts]
+ *   'below' (default) appends to the end. 'above' inserts directly above the
+ *   part owning `refStaff` (defaults to APP.selectedStaff) and falls back to
+ *   appending when that staff cannot be resolved.
+ * @returns {Part|null} the new part, or null if the instrument is unknown
+ */
+function addInstrumentToScore(score, instrName, opts = {}) {
+  const instr = instrByName(instrName);
+  if (!instr || !Array.isArray(score?.parts) || !score.parts.length) return null;
+  const nM   = score.parts[0].staves[0].measures.length;
+  const refS = score.parts[0].staves[0];
+  const part = {
+    name: _nextPartName(score, instr.name), instrument: instr.name, osc: instr.osc,
     staves: instr.staves.map(clef => ({
       clef,
       measures: Array.from({length: nM}, (_, mi) => {
@@ -54,11 +101,31 @@ function addInstrumentToScore(score, instrName) {
         };
       })
     }))
-  });
+  };
+
+  const { position = 'below', refStaff = null } = opts;
+  let insertAt = score.parts.length;
+  if (position === 'above') {
+    const owner = _partIndexForSI(score, refStaff ?? APP.selectedStaff);
+    if (owner !== -1) insertAt = owner;
+  }
+
+  if (insertAt >= score.parts.length) {
+    score.parts.push(part);
+    return part;
+  }
+  // Existing staves from here down shift right by the new part's stave count.
+  _shiftStaffRefs(score, _firstSIOfPart(score, insertAt), part.staves.length);
+  if (typeof APP.selectedStaff === 'number' && APP.selectedStaff >= _firstSIOfPart(score, insertAt)) {
+    APP.selectedStaff += part.staves.length;
+  }
+  score.parts.splice(insertAt, 0, part);
+  return part;
 }
+
 // Remove a part by index. Refuses to remove the last remaining part.
-// Shifts staff-indexed annotations (slurs, hairpins) past the removed staves
-// and remaps the active staff selection. Returns true when the score changed.
+// Drops annotations on the removed staves, shifts the rest past the gap, and
+// remaps the active staff selection. Returns true when the score changed.
 /** @param {Score} score @param {number} partIdx @returns {boolean} */
 function removeInstrumentFromScore(score, partIdx) {
   if (!score || !Array.isArray(score.parts)) return false;
@@ -66,9 +133,7 @@ function removeInstrumentFromScore(score, partIdx) {
   if (score.parts.length <= 1) return false;
 
   const removedStaves = (score.parts[partIdx].staves || []).length;
-  const firstSi = score.parts
-    .slice(0, partIdx)
-    .reduce((sum, p) => sum + (p.staves || []).length, 0);
+  const firstSi = _firstSIOfPart(score, partIdx);
   score.parts.splice(partIdx, 1);
 
   for (const key of SCORE_STAFF_REF_KEYS) {

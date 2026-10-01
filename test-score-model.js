@@ -90,6 +90,7 @@ const INSTRUMENTS = [
   {name:'Flute', family:'Woodwinds', staves:['treble'], osc:'flute'},
   {name:'Violin', family:'Strings', staves:['treble'], osc:'violin'},
   {name:'Cello', family:'Strings', staves:['bass'], osc:'cello'},
+  {name:'Trombone', family:'Brass', staves:['bass'], osc:'trombone'},
 ];
 function instrByName(name) {
   return INSTRUMENTS.find(i => i.name === name) || INSTRUMENTS[0];
@@ -101,15 +102,41 @@ const APP = { selectedStaff: 0 };
 // Score-level lists whose items reference a global stave index (si).
 const SCORE_STAFF_REF_KEYS = ['slurs', 'hairpins'];
 
-// Mirrors src/notation.js — strict lookup returns null for unknown names,
-// unlike the forgiving instrByName() above.
-function addInstrumentToScore(score, instrName) {
+function _firstSIOfPart(score, partIdx) {
+  return score.parts.slice(0, partIdx).reduce((sum, p) => sum + (p.staves || []).length, 0);
+}
+function _partIndexForSI(score, si) {
+  if (!Number.isInteger(si) || si < 0) return -1;
+  let idx = 0;
+  for (let pi = 0; pi < score.parts.length; pi++) {
+    const count = (score.parts[pi].staves || []).length;
+    if (si < idx + count) return pi;
+    idx += count;
+  }
+  return -1;
+}
+function _shiftStaffRefs(score, firstSi, delta) {
+  if (!delta) return;
+  for (const key of SCORE_STAFF_REF_KEYS) {
+    const arr = score[key];
+    if (!Array.isArray(arr)) continue;
+    for (const item of arr) {
+      if (item && typeof item.si === 'number' && item.si >= firstSi) item.si += delta;
+    }
+  }
+}
+function _nextPartName(score, instrName) {
+  const used = (score.parts || []).filter(p => (p.instrument || p.name) === instrName).length;
+  return used === 0 ? instrName : `${instrName} (${used + 1})`;
+}
+
+function addInstrumentToScore(score, instrName, opts = {}) {
   const instr = INSTRUMENTS.find(i => i.name === instrName);
-  if (!instr) return;
-  const nM = score.parts[0].staves[0].measures.length;
+  if (!instr || !Array.isArray(score?.parts) || !score.parts.length) return null;
+  const nM   = score.parts[0].staves[0].measures.length;
   const refS = score.parts[0].staves[0];
-  score.parts.push({
-    name: instr.name, instrument: instr.name, osc: instr.osc,
+  const part = {
+    name: _nextPartName(score, instr.name), instrument: instr.name, osc: instr.osc,
     staves: instr.staves.map(clef => ({
       clef,
       measures: Array.from({length: nM}, (_, mi) => {
@@ -123,7 +150,26 @@ function addInstrumentToScore(score, instrName) {
         };
       })
     }))
-  });
+  };
+
+  const { position = 'below', refStaff = null } = opts;
+  let insertAt = score.parts.length;
+  if (position === 'above') {
+    const owner = _partIndexForSI(score, refStaff ?? APP.selectedStaff);
+    if (owner !== -1) insertAt = owner;
+  }
+
+  if (insertAt >= score.parts.length) {
+    score.parts.push(part);
+    return part;
+  }
+  const firstSi = _firstSIOfPart(score, insertAt);
+  _shiftStaffRefs(score, firstSi, part.staves.length);
+  if (typeof APP.selectedStaff === 'number' && APP.selectedStaff >= firstSi) {
+    APP.selectedStaff += part.staves.length;
+  }
+  score.parts.splice(insertAt, 0, part);
+  return part;
 }
 function removeInstrumentFromScore(score, partIdx) {
   if (!score || !Array.isArray(score.parts)) return false;
@@ -162,15 +208,16 @@ function createScore(opts={}) {
   const ts = opts.ts || {num:4,den:4};
   const ks = opts.ks || 0;
   const instrNames = opts.instruments || ['Piano'];
-  const parts = instrNames.map(instrName => {
+  const parts = [];
+  instrNames.forEach(instrName => {
     const instr = instrByName(instrName);
-    return {
-      name: instr.name, instrument: instr.name, osc: instr.osc,
+    parts.push({
+      name: _nextPartName({parts}, instr.name), instrument: instr.name, osc: instr.osc,
       staves: instr.staves.map(clef => ({
         clef,
         measures: [{timeSigNum:ts.num, timeSigDen:ts.den, keySig:ks, lineBreak:false, notes:[mkRest('w')]}]
       }))
-    };
+    });
   });
   return {title: opts.title||'Untitled Score', composer: opts.composer||'',
           scoreVersion: SCORE_FORMAT_VERSION,
@@ -403,8 +450,86 @@ assertEq(addD.parts[1].staves[1].clef, 'bass', 'addInstrumentToScore bass clef')
 
 // addInstrumentToScore — unknown instrument is a no-op
 const addX = createScore();
-addInstrumentToScore(addX, 'Kazoo');
+assertEq(addInstrumentToScore(addX, 'Kazoo'), null, 'addInstrumentToScore returns null for unknown instrument');
 assertEq(addX.parts.length, 1, 'addInstrumentToScore ignores unknown instrument');
+
+// ── Parts: cross-family adds, duplicates, placement ────────────
+
+// Cross-family: a brass part onto a strings-only score
+const xFam = createScore({instruments: ['Violin']});
+addInstrumentToScore(xFam, 'Cello');       // different family, allowed
+assertEq(xFam.parts.length, 2, 'cross-family add is allowed');
+assertEq(xFam.parts[1].family || 'Cello', 'Cello', 'cross-family part is the requested instrument');
+
+// Duplicates are allowed and get disambiguating display names
+const dupS = createScore({instruments: ['Violin']});
+addInstrumentToScore(dupS, 'Violin');
+addInstrumentToScore(dupS, 'Violin');
+assertEq(dupS.parts.length, 3, 'duplicate adds are allowed');
+assertEq(dupS.parts[1].name, 'Violin (2)', 'second violin is disambiguated');
+assertEq(dupS.parts[2].name, 'Violin (3)', 'third violin is disambiguated');
+assertEq(dupS.parts[2].instrument, 'Violin', 'display suffix does not leak into instrument lookup');
+assertEq(dupS.parts[2].staves.length, 1, 'duplicate add still builds a stave');
+
+// createScore disambiguates duplicates too
+const dupC = createScore({instruments: ['Flute', 'Flute']});
+assertEq(dupC.parts.length, 2, 'createScore keeps duplicate instruments');
+assertEq(dupC.parts[1].name, 'Flute (2)', 'createScore disambiguates duplicate parts');
+assertEq(dupC.parts[1].instrument, 'Flute', 'createScore keeps the canonical instrument name');
+
+// Placement: default appends and leaves si refs alone
+const plS = createScore({instruments: ['Piano', 'Flute']});
+plS.slurs = [{si: 2, startMi: 0, endMi: 0}];
+addInstrumentToScore(plS, 'Cello');
+assertEq(plS.parts.length, 3, 'below appends');
+assertEq(plS.parts[2].name, 'Cello', 'below puts the new part last');
+assertEq(plS.slurs[0].si, 2, 'appending does not renumber existing staves');
+assertEq(APP.selectedStaff, 0, 'appending leaves the selection alone');
+
+// Placement: above the part owning refStaff
+// Piano = si 0,1 · Flute = si 2 · Cello = si 3
+const plA = createScore({instruments: ['Piano', 'Flute', 'Cello']});
+plA.slurs = [{si: 0, startMi: 0, endMi: 0}, {si: 2, startMi: 0, endMi: 0}, {si: 3, startMi: 0, endMi: 0}];
+addInstrumentToScore(plA, 'Trombone', {position: 'above', refStaff: 2}); // above Flute
+assertEq(plA.parts.length, 4, 'above inserts a part');
+assertEq(plA.parts[1].name, 'Trombone', 'above places the part above the referenced one');
+assertEq(plA.parts.map(p => p.name).join(','), 'Piano,Trombone,Flute,Cello', 'above preserves surrounding order');
+// Trombone adds 1 stave at si 2, so Flute moves 2→3 and Cello 3→4
+assertEq(plA.slurs.map(s => s.si).join(','), '0,3,4', 'above shifts later staff refs up');
+
+// Placement: above a multi-stave part shifts by that part's stave count
+const plB = createScore({instruments: ['Piano', 'Flute']});
+plB.slurs = [{si: 0, startMi: 0, endMi: 0}, {si: 2, startMi: 0, endMi: 0}];
+addInstrumentToScore(plB, 'Violin', {position: 'above', refStaff: 2}); // above Flute, si 2
+assertEq(plB.slurs.map(s => s.si).join(','), '0,3', 'above shifts by the new part stave count');
+
+// Placement: above the first part needs no ref shift
+const plC = createScore({instruments: ['Piano', 'Flute']});
+plC.slurs = [{si: 2, startMi: 0, endMi: 0}];
+addInstrumentToScore(plC, 'Violin', {position: 'above', refStaff: 0}); // above Piano
+assertEq(plC.parts[0].name, 'Violin', 'above refStaff 0 inserts at the top');
+assertEq(plC.slurs[0].si, 3, 'above the first part shifts every existing staff ref up');
+
+// Placement: unresolvable reference falls back to appending
+const plD = createScore({instruments: ['Violin']});
+addInstrumentToScore(plD, 'Flute', {position: 'above', refStaff: 99});
+assertEq(plD.parts.length, 2, 'unresolvable above still adds a part');
+assertEq(plD.parts[1].name, 'Flute', 'unresolvable above falls back to appending below');
+
+// Placement: selectedStaff defaults to APP.selectedStaff and shifts up
+const plE = createScore({instruments: ['Piano', 'Flute']});
+APP.selectedStaff = 2;                    // Flute
+addInstrumentToScore(plE, 'Violin', {position: 'above'});
+assertEq(APP.selectedStaff, 3, 'above shifts the selection up by the new stave count');
+assertEq(plE.parts[1].name, 'Violin', 'above uses APP.selectedStaff by default');
+
+APP.selectedStaff = 0;                    // Piano treble, before the insert point
+const plF = createScore({instruments: ['Piano', 'Flute']});
+APP.selectedStaff = 0;
+addInstrumentToScore(plF, 'Violin', {position: 'above', refStaff: 2});
+assertEq(APP.selectedStaff, 0, 'a selection before the insert point is untouched');
+
+APP.selectedStaff = 0;
 
 // removeInstrumentFromScore — happy path and ordering
 const rmS = createScore({instruments: ['Piano', 'Flute', 'Cello']});

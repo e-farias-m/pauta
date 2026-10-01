@@ -3681,30 +3681,77 @@ function createScore(opts={}) {
   const ks         = opts.ks          || 0;
   const instrNames = opts.instruments || ['Piano'];
 
-  const parts = instrNames.map(instrName => {
+  const parts = [];
+  instrNames.forEach(instrName => {
     const instr = instrByName(instrName);
-    return {
-      name: instr.name, instrument: instr.name, osc: instr.osc,
+    parts.push({
+      name: _nextPartName({parts}, instr.name), instrument: instr.name, osc: instr.osc,
       staves: instr.staves.map(clef => ({
         clef,
         measures: [{timeSigNum:ts.num, timeSigDen:ts.den, keySig:ks, lineBreak:false, notes:[mkRest('w')]}]
       }))
-    };
+    });
   });
   return {title: opts.title||'Untitled Score', composer: opts.composer||'',
           scoreVersion: SCORE_FORMAT_VERSION,
           slurs:[], hairpins:[], rehearsalMarks:[], staffTexts:[],
           assignments: [], studentAnswers: {}, parts};
 }
+// Global stave index of the first stave owned by part `partIdx`.
+function _firstSIOfPart(score, partIdx) {
+  return score.parts
+    .slice(0, partIdx)
+    .reduce((sum, p) => sum + (p.staves || []).length, 0);
+}
 
-// Add a new instrument part to the current score
-function addInstrumentToScore(score, instrName) {
-  const instr  = instrByName(instrName);
-  if (!instr) return;
-  const nM     = score.parts[0].staves[0].measures.length;
-  const refS   = score.parts[0].staves[0];
-  score.parts.push({
-    name: instr.name, instrument: instr.name, osc: instr.osc,
+// Part index owning a global stave index, or -1 when si is out of range.
+function _partIndexForSI(score, si) {
+  if (!Number.isInteger(si) || si < 0) return -1;
+  let idx = 0;
+  for (let pi = 0; pi < score.parts.length; pi++) {
+    const count = (score.parts[pi].staves || []).length;
+    if (si < idx + count) return pi;
+    idx += count;
+  }
+  return -1;
+}
+
+// Nudge every si annotation at or past `firstSi` by `delta`.
+// `si` is global, so inserting/removing staves mid-score renumbers the rest.
+function _shiftStaffRefs(score, firstSi, delta) {
+  if (!delta) return;
+  for (const key of SCORE_STAFF_REF_KEYS) {
+    const arr = score[key];
+    if (!Array.isArray(arr)) continue;
+    for (const item of arr) {
+      if (item && typeof item.si === 'number' && item.si >= firstSi) item.si += delta;
+    }
+  }
+}
+
+// Display name for a new part, disambiguating repeats: Violin, Violin (2), …
+function _nextPartName(score, instrName) {
+  const used = (score.parts || []).filter(p => (p.instrument || p.name) === instrName).length;
+  return used === 0 ? instrName : `${instrName} (${used + 1})`;
+}
+
+/**
+ * Add a new instrument part to a score.
+ * @param {Score} score
+ * @param {string} instrName
+ * @param {{position?: 'below'|'above', refStaff?: number|null}} [opts]
+ *   'below' (default) appends to the end. 'above' inserts directly above the
+ *   part owning `refStaff` (defaults to APP.selectedStaff) and falls back to
+ *   appending when that staff cannot be resolved.
+ * @returns {Part|null} the new part, or null if the instrument is unknown
+ */
+function addInstrumentToScore(score, instrName, opts = {}) {
+  const instr = instrByName(instrName);
+  if (!instr || !Array.isArray(score?.parts) || !score.parts.length) return null;
+  const nM   = score.parts[0].staves[0].measures.length;
+  const refS = score.parts[0].staves[0];
+  const part = {
+    name: _nextPartName(score, instr.name), instrument: instr.name, osc: instr.osc,
     staves: instr.staves.map(clef => ({
       clef,
       measures: Array.from({length: nM}, (_, mi) => {
@@ -3718,11 +3765,31 @@ function addInstrumentToScore(score, instrName) {
         };
       })
     }))
-  });
+  };
+
+  const { position = 'below', refStaff = null } = opts;
+  let insertAt = score.parts.length;
+  if (position === 'above') {
+    const owner = _partIndexForSI(score, refStaff ?? APP.selectedStaff);
+    if (owner !== -1) insertAt = owner;
+  }
+
+  if (insertAt >= score.parts.length) {
+    score.parts.push(part);
+    return part;
+  }
+  // Existing staves from here down shift right by the new part's stave count.
+  _shiftStaffRefs(score, _firstSIOfPart(score, insertAt), part.staves.length);
+  if (typeof APP.selectedStaff === 'number' && APP.selectedStaff >= _firstSIOfPart(score, insertAt)) {
+    APP.selectedStaff += part.staves.length;
+  }
+  score.parts.splice(insertAt, 0, part);
+  return part;
 }
+
 // Remove a part by index. Refuses to remove the last remaining part.
-// Shifts staff-indexed annotations (slurs, hairpins) past the removed staves
-// and remaps the active staff selection. Returns true when the score changed.
+// Drops annotations on the removed staves, shifts the rest past the gap, and
+// remaps the active staff selection. Returns true when the score changed.
 /** @param {Score} score @param {number} partIdx @returns {boolean} */
 function removeInstrumentFromScore(score, partIdx) {
   if (!score || !Array.isArray(score.parts)) return false;
@@ -3730,9 +3797,7 @@ function removeInstrumentFromScore(score, partIdx) {
   if (score.parts.length <= 1) return false;
 
   const removedStaves = (score.parts[partIdx].staves || []).length;
-  const firstSi = score.parts
-    .slice(0, partIdx)
-    .reduce((sum, p) => sum + (p.staves || []).length, 0);
+  const firstSi = _firstSIOfPart(score, partIdx);
   score.parts.splice(partIdx, 1);
 
   for (const key of SCORE_STAFF_REF_KEYS) {
@@ -18255,13 +18320,24 @@ function showAssignmentSubmenu() {
   showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
 
+// Parts dialog state: kit filtering can be lifted, and the new part can be
+// placed above the selected part instead of appended below the score.
+let AI_SHOW_ALL  = false;
+let AI_POSITION  = 'below';
+
 function showAddInstrumentDialog() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
-  const parts      = APP.score?.parts || [];
-  const allowed    = _kitInstrumentList();
-  const inUse      = parts.map(p => p.instrument || p.name);
-  const available  = INSTRUMENTS.filter(i => allowed.includes(i.name) && !inUse.includes(i.name));
-  const canRemove  = parts.length > 1;
+  const parts     = APP.score?.parts || [];
+  const kitNames  = _kitInstrumentList();
+  const inKit     = new Set(kitNames);
+  const available = AI_SHOW_ALL ? INSTRUMENTS : INSTRUMENTS.filter(i => inKit.has(i.name));
+  const canRemove = parts.length > 1;
+  const nStaves   = parts.reduce((n, p) => n + p.staves.length, 0);
+
+  // "Above" means above the part owning the selected staff; -1 = unresolvable.
+  const refIdx  = (AI_POSITION === 'above' && Number.isInteger(APP.selectedStaff) && APP.selectedStaff < nStaves)
+    ? _partIndexForSI(APP.score, APP.selectedStaff) : -1;
+  const aboveRef = refIdx !== -1 ? parts[refIdx].name : null;
 
   const partRows = parts.map((p, i) => `
     <div class="pauta-row between" style="margin-bottom:4px">
@@ -18274,6 +18350,14 @@ function showAddInstrumentDialog() {
         title="${canRemove ? `Remove ${p.name}` : 'A score needs at least one part'}">Remove</button>
     </div>`).join('');
 
+  const posPills = ['above', 'below'].map(pos => pillBtn(
+    pos === 'above' ? 'Above' : 'Below',
+    {active: AI_POSITION === pos, action: 'setAIPosition', dataAttrs: {pos}}
+  )).join('');
+
+  // Preserve the user's pick across re-renders triggered by the toggles.
+  const prevInstr = document.getElementById('ai-instr-select')?.value;
+
   makeModal(`
     <h2>Parts</h2>
     <p class="pauta-text-muted-sm" style="margin-top:-6px;margin-bottom:10px">Add an instrument, or remove a part from this score.</p>
@@ -18281,12 +18365,22 @@ function showAddInstrumentDialog() {
     ${partRows}
     <div class="pauta-dlg-section">Add instrument</div>
     ${available.length ? `
-      <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:10px">
-        ${available.map(i => `<option value="${i.name}">${i.name}</option>`).join('')}
+      <select id="ai-instr-select" class="pauta-dlg-select" style="margin-bottom:8px">
+        ${available.map(i => `<option value="${i.name}"${i.name === prevInstr ? ' selected' : ''}>${i.name}${inKit.has(i.name) ? '' : ' (not in kit)'}</option>`).join('')}
       </select>
+      <div class="pauta-dlg-section">Place</div>
+      <div class="pauta-pills" style="margin-bottom:10px">${posPills}</div>
+      <p class="dialog-hint">${AI_POSITION === 'below'
+        ? 'Appends below the score.'
+        : aboveRef
+          ? `Inserts above <b>${aboveRef}</b>.`
+          : 'No part selected — appends below the score.'}</p>
       <button class="modal-btn primary" data-action="confirmAddInstrument">Add</button>
-    ` : `<p class="dialog-hint">No further instruments available${allowed.length < INSTRUMENTS.length ? ' for this teaching kit' : ''}.</p>`}
-    <button class="modal-btn secondary" data-action="closeModal">Close</button>
+    ` : `<p class="dialog-hint">No instruments available for this teaching kit.</p>`}
+    ${!AI_SHOW_ALL && inKit.size < INSTRUMENTS.length
+      ? `<button class="modal-btn secondary pauta-mt-sm" data-action="toggleAIShowAll" style="width:100%;margin-top:10px">Show all ${INSTRUMENTS.length} instruments</button>`
+      : ''}
+    <button class="modal-btn secondary pauta-mt-sm" data-action="closeModal" style="width:100%;margin-top:8px">Close</button>
   `);
 }
 
@@ -18295,9 +18389,19 @@ function confirmAddInstrument() {
   const instrName = document.getElementById('ai-instr-select')?.value;
   if (!instrName) return;
   const ok = SCORE.commitChange(score => {
-    SCORE.addInstrumentToScore(score, instrName);
-  }, { toast: `${instrName} added` });
+    SCORE.addInstrumentToScore(score, instrName, { position: AI_POSITION });
+  }, { toast: `${instrName} added${AI_POSITION === 'above' ? ' above' : ''}` });
   if (ok) showAddInstrumentDialog();
+}
+
+function setAIPosition(pos) {
+  AI_POSITION = pos === 'above' ? 'above' : 'below';
+  showAddInstrumentDialog();
+}
+
+function toggleAIShowAll() {
+  AI_SHOW_ALL = !AI_SHOW_ALL;
+  showAddInstrumentDialog();
 }
 
 function removeInstrument(partIdx) {
@@ -19591,6 +19695,8 @@ _registerAction('showTeachMenu', (e) => showTeachMenu(e.target));
 _registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.dataset.kit, e.target.closest('[data-level]')?.dataset.level); closeModal(); });
 _registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
+_registerAction('setAIPosition', (e) => setAIPosition(e.target.closest('[data-pos]')?.dataset.pos));
+_registerAction('toggleAIShowAll', () => toggleAIShowAll());
 _registerAction('removeInstrument', (e) => removeInstrument(parseInt(e.target.closest('[data-idx]')?.dataset.idx, 10)));
 _registerAction('showTimeSigDialog', () => showTimeSigDialog());
 _registerAction('startMarking', (e) => startMarking(e.target.closest('[data-type]')?.dataset.type));
