@@ -1,11 +1,28 @@
+// ── Interaction + education tests against the REAL app ──────────
+//
+// This suite used to carry its own copies of the mode guards, undo
+// snapshots, invariant checks and exercise generators, and those copies
+// had drifted from src/ without anything failing. Everything below is now
+// imported from test-harness.js, which evaluates the real src/index.html
+// DOM and every module in build.js order.
+//
+// No mirrored logic and no local scaffolding remain: the phantom rhythm
+// MCQ helpers the old suite defined (_renderRhythmMCQ and friends, for a
+// 4-option UI that src/ never had) were replaced by tests that drive the
+// real _renderRhythmBeatGrid.
+//
+// _validateModeState and _checkInvariants report through console.warn and
+// return nothing, so the warning-capturing helpers below collect them.
+// Rendering is out of scope: VexFlow is not available headless, so the
+// five "[Pauta] renderScore failed" lines during the undo tests are
+// expected — renderScore catches and logs the failure itself.
+
 import { Window } from 'happy-dom';
 import { readFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-
-const window = new Window();
-globalThis.window = window;
-globalThis.document = window.document;
+import { loadApp, APP_MODULES } from './test-harness.js';
+import { readFileSync as _rf } from 'fs';
 
 // ── Test counters ──
 let _pass = 0, _fail = 0;
@@ -17,573 +34,43 @@ function assertEq(a, b, msg) {
   if (a === b) { _pass++; }
   else { console.error(`FAIL: ${msg} — expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); _fail++; }
 }
-
-// ── Mock APP ──
-const APP = {
-  selectedMeasure: -1,
-  selectedStaff: 0,
-  selectedNoteIdx: -1,
-  selStartIdx: -1,
-  inputMode: false,
-  chordMode: false,
-  markingMode: false,
-  exerciseMode: false,
-  exerciseDifficulty: 'beginner',
-  assignmentMode: false,
-  markingStart: null,
-  exerciseSession: null,
-  currentAssignment: null,
-  practiceMode: false,
-  curDur: 'q',
-  curDot: false,
-  curRest: false,
-  curAcc: null,
-  curOctave: 0,
-  curVoice: 1,
-  curTuplet: null,
-  tupletPending: 0,
-  tupletGroupId: null,
-  score: null,
-  undoStack: [],
-  redoStack: [],
-  _lastUndoFP: '',
-};
-
 function die(msg) { throw new Error(msg); }
 
-// ── MODEL HELPERS (from pauta.html) ──
-const VALID_DURATIONS = new Set(['w', 'h', 'q', '8', '16', '32', '64']);
-const NOTE_NAMES   = ['c','d','e','f','g','a','b'];
-const CHROMATIC    = [0,2,4,5,7,9,11];
-const PC_TO_DIA    = [0,0,1,1,2,3,3,4,4,5,5,6];
-const DUR_BEATS    = {w:4,h:2,q:1,'8':0.5,'16':0.25,'32':0.125,'64':0.0625};
-
-function durBeats(dur, dots, tuplet) {
-  let b = DUR_BEATS[dur];
-  if (b === undefined) return 0;
-  if (dots) { let d = b; for (let i=0;i<dots;i++) { d/=2; b+=d; } }
-  if (tuplet) { b *= (tuplet.den||2) / (tuplet.num||3); }
-  return b;
+// The harness concatenates src/ in its own order, so pin it to build.js.
+// Without this the two lists could drift and the suite would quietly load a
+// different program order than the shipped bundle.
+const _buildSrc = _rf(new URL('./build.js', import.meta.url), 'utf8');
+const _buildMods = _buildSrc.slice(_buildSrc.indexOf('const modules = ['), _buildSrc.indexOf('];', _buildSrc.indexOf('const modules = [')))
+  .split('\n').map(l => l.match(/'([^']+)'/)).filter(Boolean).map(m => m[1]);
+assertEq(APP_MODULES.length, _buildMods.length, 'harness loads the same module count as build.js');
+for (let _i = 0; _i < _buildMods.length; _i++) {
+  assertEq(APP_MODULES[_i], _buildMods[_i], `harness module ${_i} matches build.js order`);
 }
 
-// ── Mode Guards ─────────────────────────────────────────────────
-const MODE_RULES = [
-  () => APP.inputMode && APP.markingMode ? { ok: false, msg: 'inputMode + markingMode' } : null,
-  () => APP.exerciseMode && APP.inputMode ? { ok: false, msg: 'exerciseMode + inputMode' } : null,
-  () => APP.exerciseMode && APP.chordMode ? { ok: false, msg: 'exerciseMode + chordMode' } : null,
-  () => APP.exerciseMode && APP.markingMode ? { ok: false, msg: 'exerciseMode + markingMode' } : null,
-  () => APP.assignmentMode && APP.inputMode ? { ok: false, msg: 'assignmentMode + inputMode' } : null,
-  () => APP.assignmentMode && APP.chordMode ? { ok: false, msg: 'assignmentMode + chordMode' } : null,
-  () => APP.assignmentMode && APP.markingMode ? { ok: false, msg: 'assignmentMode + markingMode' } : null,
-  () => APP.markingMode && APP.inputMode ? { ok: false, msg: 'markingMode + inputMode' } : null,
-  () => APP.exerciseMode && !APP.exerciseSession ? { ok: false, msg: 'exerciseMode true but session null' } : null,
-  () => !APP.exerciseMode && APP.exerciseSession ? { ok: false, msg: 'exerciseSession set but mode false' } : null,
-  () => APP.assignmentMode && !APP.currentAssignment ? { ok: false, msg: 'assignmentMode true but currentAssignment null' } : null,
-  () => !APP.assignmentMode && APP.currentAssignment ? { ok: false, msg: 'currentAssignment set but mode false' } : null,
-  () => APP.tupletPending > 0 && !APP.curTuplet ? { ok: false, msg: 'tupletPending > 0 but no curTuplet' } : null,
-];
+const A = loadApp();
+const {
+  APP, SCORE, AUDIO, MODE_RULES, VALID_DURATIONS, NOTE_NAMES, CHROMATIC,
+  PC_TO_DIA, DUR_BEATS, SCORE_MEASURE_REF_RULES, KIT_CONFIGS,
+  EXERCISE_TYPES, INTERVAL_NAMES, INTERVAL_ALIASES,
+  KEY_SIG_NAMES, KEY_SIG_MINOR_NAMES, NATURAL_PITCHES,
+  durBeats, _require, _validateModeState,
+  pushUndo, undo, redo,
+  _scoreFingerprint, _snapshotUIState, _restoreUIState, _uiFingerprint,
+  _ensureScoreAnnotationArrays, _checkInvariants,
+  _intervalMatches, _kitExerciseRange, _kitExerciseKeys,
+  generateExercise, _genNoteId, _genIntervalId, _genRhythmRead,
+  _genRhythmWorksheet, _genMelodyDict, _genKeySigId,
+  _renderRhythmBeatGrid, checkRhythmWorksheet,
+} = A;
 
-function _validateModeState() {
-  const results = [];
-  for (const rule of MODE_RULES) {
-    const result = rule();
-    if (result && !result.ok) results.push(result.msg);
-  }
-  return results;
-}
+// A few tests touch the DOM directly; point the globals at the harness
+// document so they exercise the same tree the modules rendered into.
+globalThis.window = A.window;
+globalThis.document = A.document;
 
-function _require(opts = {}) {
-  const require = opts.require || [];
-  const forbid  = opts.forbid  || [];
-  const checks = {
-    selectedNote: () => APP.selectedNoteIdx >= 0 || die('Select a note first'),
-    inputMode:    () => APP.inputMode    || die('Enter note input mode first'),
-    noInputMode:  () => !APP.inputMode   || die('Exit input mode first'),
-    noMarking:    () => !APP.markingMode || die('Complete or cancel current marking first'),
-    noExercise:   () => !APP.exerciseMode || die('Exit exercise mode first'),
-    noAssignment: () => !APP.assignmentMode || die('Exit assignment mode first'),
-    score:        () => APP.score        || die('No score open'),
-    selection:    () => APP.selectedMeasure >= 0 || die('Select a measure first'),
-  };
-  for (const key of require) {
-    if (checks[key]) checks[key]();
-  }
-  for (const key of forbid) {
-    const negKey = 'no' + key.charAt(0).toUpperCase() + key.slice(1);
-    if (checks[negKey]) checks[negKey]();
-  }
-}
-
-// ── Undo Helpers ────────────────────────────────────────────────
 const _cloneScore = typeof structuredClone === 'function'
-  ? s => structuredClone(s)
-  : s => JSON.parse(JSON.stringify(s));
-
-function _scoreFingerprint(score) {
-  if (!score) return '';
-  try {
-    const s = JSON.stringify(score);
-    let h = 5381;
-    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
-    return (h >>> 0).toString(36);
-  } catch(e) { return Math.random().toString(); }
-}
-
-function _snapshotUIState() {
-  return {
-    selectedMeasure: APP.selectedMeasure,
-    selectedStaff: APP.selectedStaff,
-    selectedNoteIdx: APP.selectedNoteIdx,
-    selStartIdx: APP.selStartIdx,
-    inputMode: APP.inputMode,
-    chordMode: APP.chordMode,
-    markingMode: APP.markingMode,
-    markingStart: APP.markingStart,
-    exerciseMode: APP.exerciseMode,
-    exerciseSession: APP.exerciseSession,
-    exerciseDifficulty: APP.exerciseDifficulty,
-    assignmentMode: APP.assignmentMode,
-    currentAssignment: APP.currentAssignment,
-    practiceMode: APP.practiceMode,
-    curDur: APP.curDur,
-    curDot: APP.curDot,
-    curRest: APP.curRest,
-    curAcc: APP.curAcc,
-    curOctave: APP.curOctave,
-    curVoice: APP.curVoice,
-    curTuplet: APP.curTuplet,
-    tupletPending: APP.tupletPending,
-    tupletGroupId: APP.tupletGroupId,
-  };
-}
-
-function _restoreUIState(snapshot) {
-  if (!snapshot) return;
-  Object.assign(APP, snapshot);
-}
-
-function _uiFingerprint() {
-  return JSON.stringify(_snapshotUIState());
-}
-
-function pushUndo() {
-  const fp = _scoreFingerprint(APP.score) + '|' + _uiFingerprint();
-  if (APP._lastUndoFP === fp) return;
-  APP._lastUndoFP = fp;
-  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
-  APP.redoStack = [];
-  if (APP.undoStack.length > 60) APP.undoStack.shift();
-}
-
-function undo() {
-  if (!APP.undoStack.length) return false;
-  APP.redoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
-  const entry = APP.undoStack.pop();
-  APP.score = entry.score;
-  _restoreUIState(entry.ui);
-  APP._lastUndoFP = _scoreFingerprint(APP.score);
-  return true;
-}
-
-function redo() {
-  if (!APP.redoStack.length) return false;
-  APP.undoStack.push({ score: _cloneScore(APP.score), ui: _cloneScore(_snapshotUIState()) });
-  const entry = APP.redoStack.pop();
-  APP.score = entry.score;
-  _restoreUIState(entry.ui);
-  APP._lastUndoFP = _scoreFingerprint(APP.score);
-  return true;
-}
-
-// ── Invariant Checks ────────────────────────────────────────────
-const SCORE_MEASURE_REF_RULES = [
-  { key: 'slurs',          range: true,  start: 'startMi', end: 'endMi' },
-  { key: 'hairpins',       range: true,  start: 'startMi', end: 'endMi' },
-  { key: 'rehearsalMarks', range: false, field: 'mi' },
-  { key: 'staffTexts',     range: false, field: 'mi' },
-];
-
-function _ensureScoreAnnotationArrays(score) {
-  for (const rule of SCORE_MEASURE_REF_RULES) {
-    if (!Array.isArray(score[rule.key])) score[rule.key] = [];
-  }
-  if (!Array.isArray(score.assignments)) score.assignments = [];
-  if (!score.studentAnswers || typeof score.studentAnswers !== 'object') score.studentAnswers = {};
-  return score;
-}
-
-function _checkInvariants(score) {
-  if (!score || typeof score !== 'object') return [];
-  const warnings = [];
-  let expectedMeasures = -1;
-  if (Array.isArray(score.parts)) {
-    score.parts.forEach((part, pi) => {
-      if (!Array.isArray(part.staves)) return;
-      part.staves.forEach((stave, si) => {
-        const mCount = Array.isArray(stave.measures) ? stave.measures.length : 0;
-        if (expectedMeasures === -1) expectedMeasures = mCount;
-        else if (mCount !== expectedMeasures) warnings.push(`Part ${pi + 1} stave ${si + 1} has ${mCount} measures; expected ${expectedMeasures}`);
-        if (Array.isArray(stave.measures)) {
-          stave.measures.forEach((m, mi) => {
-            if (!Array.isArray(m.notes)) warnings.push(`Part ${pi + 1} stave ${si + 1} measure ${mi} has no notes array`);
-            else {
-              m.notes.forEach((n, ni) => {
-                if (n && !VALID_DURATIONS.has(n.duration)) warnings.push(`Part ${pi + 1} stave ${si + 1} measure ${mi} note ${ni} has invalid duration: '${n.duration}'`);
-                if (n && n.type === 'note' && typeof n.pitch !== 'number') warnings.push(`Part ${pi + 1} stave ${si + 1} measure ${mi} note ${ni} is type 'note' but has no pitch`);
-              });
-            }
-          });
-        }
-      });
-    });
-  }
-  if (expectedMeasures > 0) {
-    for (const rule of SCORE_MEASURE_REF_RULES) {
-      const arr = score[rule.key];
-      if (!Array.isArray(arr)) continue;
-      arr.forEach((item, idx) => {
-        if (rule.range) {
-          const start = item[rule.start];
-          const end = item[rule.end];
-          if (typeof start !== 'number' || start < 0 || start >= expectedMeasures)
-            warnings.push(`${rule.key}[${idx}].${rule.start}=${start} out of range`);
-          if (typeof end !== 'number' || end < (start || 0) || end >= expectedMeasures)
-            warnings.push(`${rule.key}[${idx}].${rule.end}=${end} invalid`);
-        } else {
-          const mi = item[rule.field];
-          if (typeof mi !== 'number' || mi < 0 || mi >= expectedMeasures)
-            warnings.push(`${rule.key}[${idx}].${rule.field}=${mi} out of range`);
-        }
-      });
-    }
-  }
-  if (Array.isArray(score.slurs)) {
-    const seen = new Set();
-    score.slurs.forEach((s, idx) => {
-      const key = `${s.startMi}:${s.startNoteIdx}:${s.endMi}:${s.endNoteIdx}`;
-      if (seen.has(key)) warnings.push(`slurs[${idx}] duplicates existing slur at ${key}`);
-      seen.add(key);
-    });
-  }
-  return warnings;
-}
-
-// ── Exercise Generators ────────────────────────────────────────
-const EXERCISE_TYPES = {
-  NOTE_ID:      'note_id',
-  INTERVAL_ID:  'interval_id',
-  RHYTHM_READ:  'rhythm_read',
-  MELODY_DICT:  'melody_dictation',
-  KEY_SIG_ID:   'key_sig_id',
-  RHYTHM_WS:    'rhythm_worksheet',
-};
-
-const INTERVAL_NAMES = {
-  0: 'Unison', 1: 'Minor 2nd', 2: 'Major 2nd', 3: 'Minor 3rd',
-  4: 'Major 3rd', 5: 'Perfect 4th', 6: 'Tritone', 7: 'Perfect 5th',
-  8: 'Minor 6th', 9: 'Major 6th', 10: 'Minor 7th', 11: 'Major 7th', 12: 'Octave',
-};
-
-const INTERVAL_ALIASES = {
-  'unison':        ['unison','p1','u','0','perfectunison','perfect1st'],
-  'minor 2nd':     ['minor2nd','m2','minorsecond','semitone','halfstep'],
-  'major 2nd':     ['major2nd','M2','majorsecond','tone','wholestep','wholetone','2nd','second'],
-  'minor 3rd':     ['minor3rd','m3','minorthird','3rd','third'],
-  'major 3rd':     ['major3rd','M3','majorthird'],
-  'perfect 4th':   ['perfect4th','P4','perfectfourth','fourth','4th'],
-  'tritone':       ['tritone','aug4','dim5','A4','d5','tt'],
-  'perfect 5th':   ['perfect5th','P5','perfectfifth','fifth','5th'],
-  'minor 6th':     ['minor6th','m6','minorsixth','6th','sixth'],
-  'major 6th':     ['major6th','M6','majorsixth'],
-  'minor 7th':     ['minor7th','m7','minorseventh','7th','seventh'],
-  'major 7th':     ['major7th','M7','majorseventh'],
-  'octave':        ['octave','P8','perfectoctave','8ve','8va','8'],
-};
-
-const KEY_SIG_NAMES = {
-  '-7':'Cb', '-6':'Gb', '-5':'Db', '-4':'Ab', '-3':'Eb', '-2':'Bb', '-1':'F',
-  '0':'C', '1':'G', '2':'D', '3':'A', '4':'E', '5':'B', '6':'F#', '7':'C#',
-};
-const KEY_SIG_MINOR_NAMES = {
-  '-7':'Abm', '-6':'Ebm', '-5':'Bbm', '-4':'Fm', '-3':'Cm', '-2':'Gm', '-1':'Dm',
-  '0':'Am', '1':'Em', '2':'Bm', '3':'F#m', '4':'C#m', '5':'G#m', '6':'D#m', '7':'A#m',
-};
-
-function _intervalMatches(userInput, targetName) {
-  const norm = s => s.toLowerCase().replace(/[\s\-_]/g,'');
-  const n = norm(userInput);
-  const aliases = INTERVAL_ALIASES[targetName.toLowerCase()] || [];
-  return n === norm(targetName) || aliases.some(a => norm(a) === n);
-}
-
-const NATURAL_PITCHES = {
-  beginner:     [60,62,64,65,67,69,71,72],
-  intermediate: [57,59,60,62,64,65,67,69,71,72,74,76],
-  advanced:     null,
-};
-
-// Mock kit helpers (no kit active = null)
-function _kitExerciseRange() { return null; }
-function _kitExerciseKeys() { return null; }
-
-function _genNoteId(difficulty) {
-  const levelNames = ['beginner','intermediate','advanced'];
-  const kitRange = _kitExerciseRange();
-  let pitch;
-  if (kitRange) {
-    const pool = NATURAL_PITCHES[levelNames[difficulty]];
-    const validPool = pool ? pool.filter(p => p >= kitRange.min && p <= kitRange.max) : null;
-    pitch = validPool?.length
-      ? validPool[Math.floor(Math.random() * validPool.length)]
-      : Math.floor(Math.random() * (kitRange.max - kitRange.min + 1)) + kitRange.min;
-  } else {
-    const pool = NATURAL_PITCHES[levelNames[difficulty]];
-    pitch = pool
-      ? pool[Math.floor(Math.random() * pool.length)]
-      : Math.floor(Math.random() * 37) + 48;
-  }
-  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  const pc = pitch % 12;
-  const oct = Math.floor(pitch / 12) - 1;
-  const answer = names[pc] + oct;
-  return {
-    type: EXERCISE_TYPES.NOTE_ID,
-    difficulty,
-    target: { pitch, name: names[pc], octave: oct },
-    answer,
-    hint: `Count lines and spaces from the bottom of the staff.`,
-  };
-}
-
-function _genIntervalId(difficulty) {
-  const intervals = difficulty === 0 ? [2,3,4,5,7] : difficulty === 1 ? [1,2,3,4,5,6,7,8] : [0,1,2,3,4,5,6,7,8,9,10,11,12];
-  const semitones = intervals[Math.floor(Math.random() * intervals.length)];
-  const dir = Math.random() > 0.5 ? 1 : -1;
-  const kitRange = _kitExerciseRange();
-  const baseMin = kitRange ? kitRange.min : 60;
-  const baseMax = kitRange ? kitRange.max : 72;
-  const range = Math.max(1, baseMax - baseMin - semitones + 1);
-  const bottom = Math.max(baseMin, Math.min(baseMax - semitones, baseMin + Math.floor(Math.random() * range)));
-  const top = Math.max(baseMin, Math.min(baseMax, bottom + semitones * dir));
-  const actualSemitones = Math.abs(top - bottom);
-  return {
-    type: EXERCISE_TYPES.INTERVAL_ID,
-    difficulty,
-    target: { bottom, top, semitones: actualSemitones, direction: dir },
-    answer: INTERVAL_NAMES[actualSemitones] || 'Unknown',
-    hint: `Count the half steps between the two notes.`,
-  };
-}
-
-function _genRhythmRead(difficulty) {
-  const patterns = [
-    [['q','q','q','q'], ['q','q','h'], ['h','q','q'], ['q','h','q']],
-    [['q','q','8','8','q'], ['q','8','8','q','q'], ['h','8','8'], ['q.','8','q','q']],
-    [['q','8','8','8','8','q'], ['q.','8','q.','8'], ['8','8','8','8','q','q'], ['q','q','8','16','16','q']],
-  ];
-  const pool = patterns[difficulty];
-  const durations = pool[Math.floor(Math.random() * pool.length)];
-  return {
-    type: EXERCISE_TYPES.RHYTHM_READ,
-    difficulty,
-    target: { durations },
-    answer: durations.join(','),
-    hint: `Tap or clap the rhythm you see, then compare with playback.`,
-  };
-}
-
-function _genRhythmDistractors(beats, difficulty, count = 3) {
-  const dist = [];
-  const numChanges = difficulty === 0 ? 1 : difficulty === 1 ? 2 : 3;
-  const totalBeats = beats.length;
-  for (let d = 0; d < count; d++) {
-    let candidate, attempts = 0;
-    do {
-      candidate = [...beats];
-      const numCh = numChanges + (Math.random() < 0.5 ? 1 : 0);
-      const indices = [];
-      for (let c = 0; c < Math.min(numCh, totalBeats); c++) {
-        let idx;
-        do { idx = Math.floor(Math.random() * totalBeats); } while (indices.includes(idx));
-        indices.push(idx);
-        candidate[idx] = candidate[idx] === 'q' ? 'r' : 'q';
-      }
-      for (let m = 0; m < totalBeats / 4; m++) {
-        const start = m * 4;
-        const slice = candidate.slice(start, start + 4);
-        if (slice.every(b => b === 'r')) candidate[start + Math.floor(Math.random() * 4)] = 'q';
-      }
-      attempts++;
-    } while (attempts < 50 && (
-      candidate.join(',') === beats.join(',') ||
-      dist.some(d => d.join(',') === candidate.join(','))
-    ));
-    dist.push(candidate);
-  }
-  return dist;
-}
-
-function _genRhythmWorksheet(difficulty, measuresCount = 8) {
-  const d = typeof difficulty === 'number' ? difficulty : ({beginner:0,intermediate:1,advanced:2})[difficulty] || 0;
-  const measures = measuresCount;
-  const beatsPerMeasure = 4;
-  const totalBeats = measures * beatsPerMeasure;
-  const noteWeight = d === 0 ? 0.75 : d === 1 ? 0.5 : 0.35;
-  const beats = [];
-  for (let i = 0; i < totalBeats; i++) {
-    beats.push(Math.random() < noteWeight ? 'q' : 'r');
-  }
-  for (let m = 0; m < measures; m++) {
-    const start = m * 4;
-    const slice = beats.slice(start, start + 4);
-    if (slice.every(b => b === 'r')) beats[start + Math.floor(Math.random() * 4)] = 'q';
-    if (d >= 1 && slice.every(b => b === 'q')) beats[start + Math.floor(Math.random() * 4)] = 'r';
-  }
-  const distractors = _genRhythmDistractors(beats, d, 3);
-  const opts = [
-    { beats: [...beats], id: 0 },
-    { beats: distractors[0], id: 1 },
-    { beats: distractors[1], id: 2 },
-    { beats: distractors[2], id: 3 },
-  ];
-  for (let i = opts.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [opts[i], opts[j]] = [opts[j], opts[i]];
-  }
-  const correctIdx = opts.findIndex(o => o.beats.join(',') === beats.join(','));
-  return {
-    type: EXERCISE_TYPES.RHYTHM_WS,
-    difficulty: d,
-    target: { beats, measures, timeSigNum: 4, timeSigDen: 4 },
-    options: opts,
-    correctIdx,
-    answer: beats.join(','),
-    hint: 'Listen carefully and choose the rhythm you heard.',
-  };
-}
-
-function _genMelodyDict(difficulty) {
-  const lengths = [4, 6, 8];
-  const len = lengths[Math.min(difficulty, 2)];
-  const kitRange = _kitExerciseRange();
-  const baseMin = kitRange ? kitRange.min : 60;
-  const baseMax = kitRange ? kitRange.max : 72;
-  const basePitch = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
-  const notes = [];
-  for (let i = 0; i < len; i++) {
-    const step = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
-    const pitch = Math.max(baseMin, Math.min(baseMax, (notes.length ? notes[i-1].pitch : basePitch) + step));
-    const durs = difficulty === 0 ? ['q','h'] : difficulty === 1 ? ['q','h','8'] : ['q','h','8','16'];
-    notes.push({ pitch, duration: durs[Math.floor(Math.random() * durs.length)] });
-  }
-  return {
-    type: EXERCISE_TYPES.MELODY_DICT,
-    difficulty,
-    target: { notes },
-    answer: notes.map(n => n.pitch).join(','),
-    hint: 'Listen first, then enter one note at a time.',
-  };
-}
-
-function _genKeySigId(difficulty) {
-  const kitKeys = _kitExerciseKeys();
-  const keys = (kitKeys && kitKeys.length) ? kitKeys : [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7];
-  if (!keys.length) return { type:EXERCISE_TYPES.KEY_SIG_ID, difficulty, target:{keySig:0}, askMinor:false, answer:'C', answerMinor:'Am', hint:'No keys available' };
-  const ks = keys[Math.floor(Math.random() * keys.length)];
-  const major = KEY_SIG_NAMES[String(ks)];
-  const minor = KEY_SIG_MINOR_NAMES[String(ks)];
-  const askMinor = Math.random() < 0.5;
-  return {
-    type: EXERCISE_TYPES.KEY_SIG_ID,
-    difficulty,
-    target: { keySig: ks },
-    askMinor,
-    answer: askMinor ? minor : major,
-    answerMajor: major,
-    answerMinor: minor,
-    answerLabel: askMinor ? minor : major,
-    hint: askMinor
-      ? (ks === 0 ? 'Minor key with no sharps/flats = A minor (down a minor third from C major).' :
-         ks > 0 ? `Find the major key (last sharp up a half step), then go down a minor third (3 half-steps).` :
-         `Find the major key (second-to-last flat), then go down a minor third (3 half-steps).`)
-      : (ks === 0 ? 'No sharps or flats = C major.' :
-         ks > 0 ? `Last sharp up a half step.` :
-         `Second-to-last flat is the key name.`),
-  };
-}
-
-function generateExercise(type, difficulty = 'beginner') {
-  const diffs = { beginner: 0, intermediate: 1, advanced: 2 };
-  const d = diffs[difficulty] ?? 0;
-  switch (type) {
-    case EXERCISE_TYPES.NOTE_ID:      return _genNoteId(d);
-    case EXERCISE_TYPES.INTERVAL_ID:  return _genIntervalId(d);
-    case EXERCISE_TYPES.RHYTHM_READ:  return _genRhythmRead(d);
-    case EXERCISE_TYPES.MELODY_DICT:  return _genMelodyDict(d);
-    case EXERCISE_TYPES.KEY_SIG_ID:   return _genKeySigId(d);
-    case EXERCISE_TYPES.RHYTHM_WS:    return _genRhythmWorksheet(d);
-    default:                          return _genNoteId(d);
-  }
-}
-
-// ── DOM Helpers (rhythm MCQ) ────────────────────────────────────
-function _renderRhythmNotation(beats, measures, beatsPerMeasure = 4) {
-  let html = '<div class="rg-notation">';
-  for (let m = 0; m < measures; m++) {
-    html += '<div class="rg-measure">';
-    html += '<span class="r-bar">|</span>';
-    for (let b = 0; b < beatsPerMeasure; b++) {
-      const idx = m * beatsPerMeasure + b;
-      const isNote = beats[idx] === 'q';
-      html += `<span class="r-beat ${isNote ? 'r-note' : 'r-rest'}">${isNote ? '♩' : '𝄽'}</span>`;
-    }
-    html += '</div>';
-  }
-  html += '<span class="r-bar">|</span></div>';
-  return html;
-}
-
-function _lockMCQOptions(locked) {
-  document.querySelectorAll('#rhythm-beat-grid .rg-option').forEach(o => o.classList.toggle('rg-locked', locked));
-}
-
-function _selectRhythmAnswer(ex, selectedIdx) {
-  const opts = document.querySelectorAll('#rhythm-beat-grid .rg-option');
-  const isCorrect = selectedIdx === ex.correctIdx;
-  opts.forEach((o, i) => {
-    o.classList.add('rg-locked');
-    if (i === ex.correctIdx) o.classList.add('rg-correct');
-    if (i === selectedIdx && !isCorrect) o.classList.add('rg-incorrect');
-  });
-}
-
-function _renderRhythmMCQ(ex) {
-  const existing = document.getElementById('rhythm-beat-grid');
-  if (existing) existing.remove();
-  const container = document.createElement('div');
-  container.id = 'rhythm-beat-grid';
-  let html = '<div class="rg-mcq-prompt">Which rhythm did you hear?</div><div class="rg-options">';
-  const labels = ['A','B','C','D'];
-  ex.options.forEach((opt, idx) => {
-    html += `<div class="rg-option" data-opt-idx="${idx}"><span class="rg-opt-label">${labels[idx]}</span>`;
-    html += _renderRhythmNotation(opt.beats, opt.measures);
-    html += '</div>';
-  });
-  html += '</div><div class="rg-feedback" id="rg-feedback"></div>';
-  html += '<div class="rg-controls"><button class="modal-btn primary" id="rg-check-btn">✔ Check Answers</button></div>';
-  container.innerHTML = html;
-  container.addEventListener('click', e => {
-    const opt = e.target.closest('.rg-option');
-    if (opt && !opt.classList.contains('rg-locked')) {
-      _selectRhythmAnswer(ex, parseInt(opt.dataset.optIdx));
-    }
-  });
-  document.body.appendChild(container);
-}
-
-// ══════════════════════════════════════════════════════════════════
-// TESTS
-// ══════════════════════════════════════════════════════════════════
+  ? structuredClone
+  : (v) => JSON.parse(JSON.stringify(v));
 
 // ── 1. Mode Guard Tests ─────────────────────────────────────────
 
@@ -595,6 +82,7 @@ function resetApp() {
   APP.assignmentMode = false;
   APP.exerciseSession = null;
   APP.currentAssignment = null;
+  APP.eraserMode = false;
   APP.selectedNoteIdx = -1;
   APP.selectedMeasure = -1;
   APP.score = null;
@@ -646,40 +134,57 @@ try { _require({require: ['score']}); assert(true, '_require passes when score e
 catch(e) { assert(false, '_require should not throw when score exists'); }
 resetApp();
 
-// 1e. MODE_RULES — valid states produce no violations
+// _validateModeState reports through console.warn and returns nothing; the
+// mirrored copy used to hand back an array of violation strings, so these
+// tests captured the warnings instead.
+function captureModeWarnings() {
+  const seen = [];
+  const real = console.warn;
+  console.warn = (...args) => { seen.push(args.join(' ')); };
+  try { _validateModeState(); } finally { console.warn = real; }
+  return seen;
+}
+
+// 1e. MODE_RULES — valid states produce no warnings
 resetApp();
-let violations = _validateModeState();
-assertEq(violations.length, 0, 'no violations when all modes off');
+assertEq(captureModeWarnings().length, 0, 'no violations when all modes off');
 
-// 1f. MODE_RULES — exercise+input flagged
-resetApp(); APP.exerciseMode = true; APP.exerciseSession = {}; APP.inputMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('exerciseMode + inputMode')), 'exercise+input flagged');
+// 1f-1k. MODE_RULES — every single rule warns with its own message.
+// The table is exhaustive on purpose: dropping any one rule from
+// MODE_RULES must fail here rather than silently disabling a guard.
+const MODE_GUARD_CASES = [
+  ['input+marking',                 { inputMode: true, markingMode: true },                              'inputMode + markingMode'],
+  ['exercise+input',                { exerciseMode: true, exerciseSession: {}, inputMode: true },         'exerciseMode + inputMode'],
+  ['exercise+chord',                { exerciseMode: true, exerciseSession: {}, chordMode: true },          'exerciseMode + chordMode'],
+  ['exercise+marking',              { exerciseMode: true, exerciseSession: {}, markingMode: true },       'exerciseMode + markingMode'],
+  ['assignment+input',              { assignmentMode: true, currentAssignment: {}, inputMode: true },     'assignmentMode + inputMode'],
+  ['assignment+chord',              { assignmentMode: true, currentAssignment: {}, chordMode: true },      'assignmentMode + chordMode'],
+  ['assignment+marking',            { assignmentMode: true, currentAssignment: {}, markingMode: true },   'assignmentMode + markingMode'],
+  ['marking+input',                 { markingMode: true, inputMode: true },                               'markingMode + inputMode'],
+  ['exercise without session',      { exerciseMode: true, exerciseSession: null },                       'exerciseMode true but session null'],
+  ['session without mode',          { exerciseMode: false, exerciseSession: {} },                        'exerciseSession set but mode false'],
+  ['assignment without assignment', { assignmentMode: true, currentAssignment: null },                   'assignmentMode true but currentAssignment null'],
+  ['assignment without mode',       { assignmentMode: false, currentAssignment: {} },                    'currentAssignment set but mode false'],
+  ['tupletPending without tuplet',  { tupletPending: 3, curTuplet: null },                                'tupletPending > 0 but no curTuplet'],
+  ['eraser+input',                  { eraserMode: true, inputMode: true },                               'eraserMode + inputMode'],
+  ['eraser+marking',                { eraserMode: true, markingMode: true },                             'eraserMode + markingMode'],
+  ['eraser+chord',                  { eraserMode: true, chordMode: true },                               'eraserMode + chordMode'],
+  ['eraser+exercise',               { eraserMode: true, exerciseMode: true, exerciseSession: {} },       'eraserMode + exerciseMode'],
+  ['eraser+assignment',             { eraserMode: true, assignmentMode: true, currentAssignment: {} },   'eraserMode + assignmentMode'],
+];
+for (const [label, setup, expectedMsg] of MODE_GUARD_CASES) {
+  resetApp();
+  Object.assign(APP, setup);
+  assert(captureModeWarnings().some(w => w.includes(expectedMsg)), `${label} is flagged`);
+}
+// Every rule in MODE_RULES is covered by the table above; if src/ grows a
+// new rule, this count forces the test to be updated with it.
+assertEq(MODE_GUARD_CASES.length, MODE_RULES.length, 'MODE_RULES table covers every rule in src/');
 
-// 1g. MODE_RULES — exercise+marking flagged
-resetApp(); APP.exerciseMode = true; APP.exerciseSession = {}; APP.markingMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('exerciseMode + markingMode')), 'exercise+marking flagged');
-
-// 1h. MODE_RULES — assignment+input flagged
-resetApp(); APP.assignmentMode = true; APP.currentAssignment = {}; APP.inputMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('assignmentMode + inputMode')), 'assignment+input flagged');
-
-// 1i. MODE_RULES — exerciseMode without session flagged
-resetApp(); APP.exerciseMode = true; APP.exerciseSession = null;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('exerciseMode true but session null')), 'exerciseMode without session flagged');
-
-// 1j. MODE_RULES — session without mode flagged
-resetApp(); APP.exerciseMode = false; APP.exerciseSession = {};
-violations = _validateModeState();
-assert(violations.some(v => v.includes('exerciseSession set but mode false')), 'session without mode flagged');
-
-// 1k. MODE_RULES — tupletPending without curTuplet flagged
-resetApp(); APP.tupletPending = 3; APP.curTuplet = null;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('tupletPending > 0 but no curTuplet')), 'tupletPending without curTuplet flagged');
+// 1l. _validateModeState never throws on a garbage state
+resetApp();
+APP.tupletPending = 5;
+assert(Array.isArray(captureModeWarnings()), 'mode check survives inconsistent state');
 
 // ── 2. Undo Snapshot Tests ─────────────────────────────────────
 
@@ -721,14 +226,18 @@ redo();
 assertEq(APP.score.parts[0].staves[0].measures[0].notes[0].pitch, 64, 'redo restores post-change pitch 64');
 assertEq(APP.undoStack.length, 1, 'undoStack has 1 after redo');
 
-// 2f. undo with empty stack does nothing
+// 2f/2g. undo/redo with an empty stack leave the score untouched.
+// Neither returns a boolean; they toast and return undefined, so assert on
+// the observable effect instead of the mirrored return value.
 resetApp();
-const result = undo();
-assertEq(result, false, 'undo returns false when stack empty');
-
-// 2g. redo with empty stack does nothing
-const result2 = redo();
-assertEq(result2, false, 'redo returns false when stack empty');
+APP.score = SCORE.createScore({ instruments: ['Piano'] });
+const scoreBefore = APP.score;
+undo();
+assertEq(APP.score, scoreBefore, 'undo with an empty stack leaves the score alone');
+assertEq(APP.undoStack.length, 0, 'undo with an empty stack pops nothing');
+redo();
+assertEq(APP.score, scoreBefore, 'redo with an empty stack leaves the score alone');
+assertEq(APP.redoStack.length, 0, 'redo with an empty stack pops nothing');
 
 // 2h. _snapshotUIState captures all 17 fields
 resetApp();
@@ -763,8 +272,15 @@ typeKeys.forEach(t => {
   assertEq(ex.type, t, `generated exercise has correct type '${t}'`);
   assert(typeof ex.answer === 'string', `exercise '${t}' has string answer`);
   assert(typeof ex.hint === 'string', `exercise '${t}' has string hint`);
-  // difficulty stored as numeric (0=beginner, 1=intermediate, 2=advanced)
-  assert(typeof ex.difficulty === 'number', `exercise '${t}' has numeric difficulty`);
+  // difficulty is numeric (0=beginner, 1=intermediate, 2=advanced), except
+  // scale_id: _genScaleId ignores the difficulty argument by design and
+  // reports a name, because scale exercises progress through unlocked
+  // scale types rather than through difficulty bands.
+  if (t !== EXERCISE_TYPES.SCALE_ID) {
+    assert(typeof ex.difficulty === 'number', `exercise '${t}' has numeric difficulty`);
+  } else {
+    assert(typeof ex.difficulty === 'string', `exercise '${t}' reports a named difficulty`);
+  }
 });
 
 // 3b. _genNoteId returns correct shape
@@ -774,7 +290,10 @@ assert(typeof noteEx.target.pitch === 'number', 'note_id target.pitch is number'
 assert(noteEx.target.pitch >= 48 && noteEx.target.pitch <= 84, 'note_id pitch in range');
 assert(typeof noteEx.target.name === 'string', 'note_id target.name is string');
 assert(typeof noteEx.target.octave === 'number', 'note_id target.octave is number');
-assertEq(noteEx.answer, noteEx.target.name + noteEx.target.octave, 'note_id answer matches target');
+// answer is the pitch-class name only ("A"); the octave is carried in
+// target.octave, so a graded answer can never disagree with the prompt.
+assertEq(noteEx.answer, noteEx.target.name, 'note_id answer is the target pitch name');
+assert(noteEx.answer !== noteEx.target.name + noteEx.target.octave, 'note_id answer does not embed the octave');
 
 // 3c. _genIntervalId returns correct shape
 const intEx = _genIntervalId(1);
@@ -801,21 +320,25 @@ wsEx.target.beats.forEach((b, i) => {
 assertEq(wsEx.target.timeSigNum, 4, 'rhythm_worksheet timeSigNum 4');
 assertEq(wsEx.target.timeSigDen, 4, 'rhythm_worksheet timeSigDen 4');
 // custom measure count
-const wsEx4 = _genRhythmWorksheet(0, 4);
-assertEq(wsEx4.target.measures, 4, 'rhythm_worksheet accepts custom 4 measures');
-assertEq(wsEx4.target.beats.length, 16, 'rhythm_worksheet has 16 beats (4x4)');
-// MCQ options
-assert(Array.isArray(wsEx.options) && wsEx.options.length === 4, 'rhythm_worksheet has 4 options');
-assert(wsEx.correctIdx >= 0 && wsEx.correctIdx <= 3, 'correctIdx is valid (0-3)');
-wsEx.options.forEach((o, i) => {
-  assert(Array.isArray(o.beats) && o.beats.length === 32, `option ${i} has 32 beats`);
-  assert(o.id !== undefined, `option ${i} has id`);
+// The worksheet is a fixed 8x4 grid: _genRhythmWorksheet takes only a
+// difficulty and hardcodes the measure count. The mirror had invented a
+// measuresCount parameter and an MCQ option list that src/ never had --
+// the grid itself (target.grid) is the interaction surface.
+assertEq(wsEx.target.measures, 8, 'rhythm_worksheet measure count is fixed at 8');
+assertEq(wsEx.target.beats.length, 32, 'rhythm_worksheet beat count is always 8x4');
+assert(Array.isArray(wsEx.target.grid) && wsEx.target.grid.length === 32, 'rhythm_worksheet grid has one glyph per beat');
+wsEx.target.grid.forEach((g, i) => {
+  assert(g === '\u2669' || g === '\ud834\udd3d', `grid glyph ${i} is a quarter note or a rest, got '${g}'`);
+  assert(typeof wsEx.target.beats[i] === 'string', `grid glyph ${i} lines up with a beat`);
 });
-assert(wsEx.options[wsEx.correctIdx].beats.join(',') === wsEx.answer, 'correct option matches answer');
+assertEq(wsEx.answer, wsEx.target.beats.join(','), 'worksheet answer is the beat sequence');
 // difficulty conversion
-const strDiffEx = _genRhythmWorksheet('beginner', 4);
-assertEq(strDiffEx.target.beats.length, 16, 'string "beginner" works');
-assertEq(strDiffEx.difficulty, 0, 'difficulty normalized to 0');
+// Difficulty names are normalised by generateExercise, not by the
+// generator itself: _genRhythmWorksheet compares difficulty against 0/1
+// numerically, so handing it "beginner" would silently mis-branch.
+const strDiffEx = generateExercise(EXERCISE_TYPES.RHYTHM_WS, 'beginner');
+assertEq(strDiffEx.difficulty, 0, 'generateExercise normalises "beginner" to 0');
+assertEq(strDiffEx.target.beats.length, 32, 'normalised worksheet still has 32 beats');
 
 // 3f. _genMelodyDict returns correct shape
 const melEx = _genMelodyDict(2);
@@ -858,6 +381,16 @@ assert(begNoteCount > begWs.target.beats.length / 2, 'beginner worksheet has >50
 
 // ── 4. Invariant Check Tests ────────────────────────────────────
 
+// _checkInvariants reports through console.warn and returns nothing; the
+// mirrored copy handed back the warning array. Capture the warnings.
+function captureInvariantWarnings(score) {
+  const seen = [];
+  const real = console.warn;
+  console.warn = (...args) => { seen.push(args.join(' ')); };
+  try { _checkInvariants(score); } finally { console.warn = real; }
+  return seen;
+}
+
 function makeScore(measureCount) {
   const measures = [];
   for (let i = 0; i < measureCount; i++) {
@@ -866,15 +399,19 @@ function makeScore(measureCount) {
   return { parts: [{ staves: [{ measures }] }] };
 }
 
-// 4a. Valid score produces no invariants
+// 4a. Valid score produces no invariants.
+// The real check also validates live APP selection state, so start clean.
+resetApp();
+APP.selectedMeasure = 0;
+APP.selectedStaff = 0;
 const valid = makeScore(4);
 _validAnnotations(valid);
-let warns = _checkInvariants(valid);
+let warns = captureInvariantWarnings(valid);
 assertEq(warns.length, 0, 'valid 4-measure score has no warnings');
 
 // 4b. Annotation out of range produces warnings
 valid.slurs = [{ startMi: 0, startNoteIdx: 0, endMi: 10, endNoteIdx: 0, si: 0 }];
-warns = _checkInvariants(valid);
+warns = captureInvariantWarnings(valid);
 assert(warns.some(w => w.includes('endMi') && w.includes('10')), 'slur endMi out of range flagged');
 delete valid.slurs;
 
@@ -883,13 +420,13 @@ valid.slurs = [
   { startMi: 0, startNoteIdx: 0, endMi: 2, endNoteIdx: 0, si: 0 },
   { startMi: 0, startNoteIdx: 0, endMi: 2, endNoteIdx: 0, si: 0 },
 ];
-warns = _checkInvariants(valid);
+warns = captureInvariantWarnings(valid);
 assert(warns.some(w => w.includes('duplicates')), 'duplicate slur flagged');
 delete valid.slurs;
 
 // 4d. Invalid duration flagged
 valid.parts[0].staves[0].measures[0].notes[0].duration = 'xyz';
-warns = _checkInvariants(valid);
+warns = captureInvariantWarnings(valid);
 assert(warns.some(w => w.includes('xyz')), 'invalid duration flagged');
 valid.parts[0].staves[0].measures[0].notes[0].duration = 'q';
 
@@ -912,31 +449,86 @@ function _validAnnotations(score) {
   score.assignments = [];
 }
 
-// ── 5. DOM Interaction Tests ────────────────────────────────────
+// ── 5. Rhythm Worksheet DOM Tests ────────────────────────────────
+// These drive the real _renderRhythmBeatGrid. The old mirror invented a
+// 4-option MCQ (rg-option / rg-mcq-prompt) that no source file ever had,
+// so it tested its own hand-written HTML rather than app behaviour.
 
-// 5a. _renderRhythmMCQ creates option cards
-const domEx = _genRhythmWorksheet(0);
-_renderRhythmMCQ(domEx);
-const grid = document.getElementById('rhythm-beat-grid');
-assert(grid !== null, 'beat grid container created');
-const opts = grid.querySelectorAll('.rg-option');
-assertEq(opts.length, 4, '4 rhythm options created');
-assert(opts[0].dataset.optIdx !== undefined, 'each option has data-opt-idx');
+function _renderWs(ex) {
+  APP.exerciseSession = { current: ex, playsLeft: Infinity, totalCount: 0,
+                          correctCount: 0, streak: 0, maxStreak: 0, completed: [] };
+  _renderRhythmBeatGrid(ex);
+  return document.getElementById('rhythm-beat-grid');
+}
 
-// 5b. Clicking an option selects it and locks
-opts[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-assert(opts[0].classList.contains('rg-locked'), 'clicked option is locked');
-assert(opts[0].classList.contains('rg-correct') || opts[0].classList.contains('rg-incorrect'), 'clicked option has correct/incorrect class');
-const allLocked = Array.from(opts).every(o => o.classList.contains('rg-locked'));
-assert(allLocked, 'all options locked after selection');
+// 5a. one .rg-beat button per beat, carrying the graded answer
+resetApp();
+const wsDomEx = _genRhythmWorksheet(0);
+const wsGrid = _renderWs(wsDomEx);
+assert(wsGrid !== null, 'beat grid container created');
+const beatBtns = wsGrid.querySelectorAll('.rg-beat');
+assertEq(beatBtns.length, wsDomEx.target.beats.length, 'one beat button per beat');
+beatBtns.forEach((btn, i) => {
+  assertEq(btn.dataset.beat, String(i), `beat button ${i} carries its index`);
+  assertEq(btn.dataset.answer, wsDomEx.target.beats[i] === 'q' ? '\u2669' : '\ud834\udd3d',
+    `beat button ${i} carries the correct answer glyph`);
+  assertEq(btn.textContent, '\u00b7', `beat button ${i} starts unmarked`);
+});
 
-// 5c. Check button exists
-const checkBtn = document.getElementById('rg-check-btn');
-assert(checkBtn !== null, 'check button exists');
-assertEq(checkBtn.textContent, '✔ Check Answers', 'check button has correct text');
+// 5b. rows are grouped into measures with a play button and controls
+assertEq(wsGrid.querySelectorAll('.rg-row').length, wsDomEx.target.measures, 'one row per measure');
+assertEq(wsGrid.querySelectorAll('.rg-measure-label').length, wsDomEx.target.measures, 'each row is labelled');
+assert(wsGrid.querySelector('#rg-play-btn') !== null, 'play button exists');
+assert(wsGrid.querySelector('#rg-tempo') !== null, 'tempo slider exists');
+assertEq(wsGrid.querySelector('#rg-check-btn').textContent, '\u2714 Check Answers', 'check button label');
 
-// 5d. Clean up DOM
-grid.remove();
+// 5c. clicking cycles unmarked -> note -> rest -> unmarked
+const b0 = beatBtns[0];
+b0.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+assertEq(b0.textContent, '\u2669', 'first click marks a note');
+assert(b0.classList.contains('rg-note'), 'note class applied');
+b0.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+assertEq(b0.textContent, '\ud834\udd3d', 'second click marks a rest');
+assert(b0.classList.contains('rg-rest'), 'rest class applied');
+b0.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+assertEq(b0.textContent, '\u00b7', 'third click clears the mark');
+assert(!b0.classList.contains('rg-note') && !b0.classList.contains('rg-rest'), 'classes cleared with the mark');
+
+// 5d. answering every beat correctly scores 100 and credits the session
+beatBtns.forEach(btn => {
+  while (btn.textContent !== btn.dataset.answer) {
+    btn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  }
+});
+wsGrid.querySelector('#rg-check-btn').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+assert(Array.from(beatBtns).every(b => b.dataset.locked === '1'), 'every beat locks after checking');
+assert(Array.from(beatBtns).every(b => b.classList.contains('rg-correct')), 'every correct beat is marked correct');
+assert(!Array.from(beatBtns).some(b => b.classList.contains('rg-incorrect')), 'no beat marked incorrect');
+assertEq(APP.exerciseSession.correctCount, 1, 'a perfect round credits correctCount');
+assertEq(APP.exerciseSession.completed[0].ok, true, 'perfect round recorded ok');
+
+// 5e. grading a wrong answer locks the beats without crediting the round
+const wsGrid2 = _renderWs(_genRhythmWorksheet(2));
+const beats2 = wsGrid2.querySelectorAll('.rg-beat');
+const wrongBtn = beats2[beats2.length - 1];
+// Cycle past the correct glyph so this is wrong regardless of the random beat.
+wrongBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+while (wrongBtn.textContent === wrongBtn.dataset.answer) {
+  wrongBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+}
+assert(wrongBtn.textContent !== wrongBtn.dataset.answer, 'beat is deliberately marked wrong');
+wsGrid2.querySelector('#rg-check-btn').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+assertEq(wrongBtn.classList.contains('rg-incorrect'), true, 'wrong beat marked incorrect');
+assertEq(APP.exerciseSession.correctCount, 0, 'imperfect round is not credited');
+assertEq(APP.exerciseSession.streak, 0, 'imperfect round resets the streak');
+wsGrid2.remove();
+
+// 5f. locked beats ignore further clicks
+const b1 = beatBtns[0];
+const before = b1.textContent;
+b1.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+assertEq(b1.textContent, before, 'a locked beat ignores clicks');
+wsGrid.remove();
 
 // ── 6. Edge Case Tests ──────────────────────────────────────────
 
@@ -957,13 +549,11 @@ assert(Array.isArray(APP.redoStack), 'redoStack is array');
 
 // 6d. MODE_RULES — chordMode is a sticky modifier, no rule fires when alone
 resetApp(); APP.chordMode = true; APP.inputMode = false; APP.selectedNoteIdx = -1;
-violations = _validateModeState();
-assertEq(violations.length, 0, 'chordMode without input/selection is OK (sticky modifier)');
+assertEq(captureModeWarnings().length, 0, 'chordMode without input/selection is OK (sticky modifier)');
 
 // 6e. MODE_RULES — marking+input flagged (duplicate check, different rule path)
 resetApp(); APP.markingMode = true; APP.inputMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('markingMode + inputMode')), 'marking+input flagged');
+assert(captureModeWarnings().some(v => v.includes('markingMode + inputMode')), 'marking+input flagged');
 
 // ── 7. Full Undo/Redo with Mode Restoration ─────────────────────
 
@@ -1039,46 +629,40 @@ assertEq(APP.inputMode, true, 'undo restores inputMode from first push');
 resetApp();
 APP.inputMode = true;
 APP.chordMode = true;
-violations = _validateModeState();
-assertEq(violations.length, 0, 'inputMode + chordMode allowed');
+assertEq(captureModeWarnings().length, 0, 'inputMode + chordMode allowed');
 
 // 8b. inputMode + markingMode invalid
 resetApp();
 APP.inputMode = true;
 APP.markingMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('inputMode + markingMode')), 'input+marking flagged');
+assert(captureModeWarnings().some(v => v.includes('inputMode + markingMode')), 'input+marking flagged');
 
 // 8c. exerciseMode blocks inputMode
 resetApp();
 APP.exerciseMode = true;
 APP.exerciseSession = {};
 APP.inputMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('exerciseMode + inputMode')), 'exercise+input flagged');
+assert(captureModeWarnings().some(v => v.includes('exerciseMode + inputMode')), 'exercise+input flagged');
 
 // 8d. assignmentMode blocks chordMode
 resetApp();
 APP.assignmentMode = true;
 APP.currentAssignment = {};
 APP.chordMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('assignmentMode + chordMode')), 'assignment+chord flagged');
+assert(captureModeWarnings().some(v => v.includes('assignmentMode + chordMode')), 'assignment+chord flagged');
 
 // 8e. chordMode persists after inputMode off
 resetApp();
 APP.inputMode = true;
 APP.chordMode = true;
 APP.inputMode = false;
-violations = _validateModeState();
-assertEq(violations.length, 0, 'chordMode persists after inputMode off');
+assertEq(captureModeWarnings().length, 0, 'chordMode persists after inputMode off');
 
 // 8f. markingMode + inputMode invalid (separate rule)
 resetApp();
 APP.markingMode = true;
 APP.inputMode = true;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('markingMode + inputMode')), 'marking+input flagged');
+assert(captureModeWarnings().some(v => v.includes('markingMode + inputMode')), 'marking+input flagged');
 
 // ── 9. Guarded Handler Pattern Tests (using _require directly) ───
 
@@ -1180,32 +764,27 @@ assertEq(APP.exerciseSession.totalCount, 0, 'undo restores totalCount=0');
 // 12a. exerciseMode without session flagged
 resetApp();
 APP.exerciseMode = true; APP.exerciseSession = null;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('exerciseMode true but session null')), 'exerciseMode without session flagged');
+assert(captureModeWarnings().some(v => v.includes('exerciseMode true but session null')), 'exerciseMode without session flagged');
 
 // 12b. session without exerciseMode flagged
 resetApp();
 APP.exerciseMode = false; APP.exerciseSession = {};
-violations = _validateModeState();
-assert(violations.some(v => v.includes('exerciseSession set but mode false')), 'session without mode flagged');
+assert(captureModeWarnings().some(v => v.includes('exerciseSession set but mode false')), 'session without mode flagged');
 
 // 12c. assignmentMode without currentAssignment flagged
 resetApp();
 APP.assignmentMode = true; APP.currentAssignment = null;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('assignmentMode true but currentAssignment null')), 'assignmentMode without assignment flagged');
+assert(captureModeWarnings().some(v => v.includes('assignmentMode true but currentAssignment null')), 'assignmentMode without assignment flagged');
 
 // 12d. currentAssignment without assignmentMode flagged
 resetApp();
 APP.assignmentMode = false; APP.currentAssignment = {};
-violations = _validateModeState();
-assert(violations.some(v => v.includes('currentAssignment set but mode false')), 'assignment without mode flagged');
+assert(captureModeWarnings().some(v => v.includes('currentAssignment set but mode false')), 'assignment without mode flagged');
 
 // 12e. tupletPending without curTuplet flagged
 resetApp();
 APP.tupletPending = 3; APP.curTuplet = null;
-violations = _validateModeState();
-assert(violations.some(v => v.includes('tupletPending > 0 but no curTuplet')), 'tupletPending without curTuplet flagged');
+assert(captureModeWarnings().some(v => v.includes('tupletPending > 0 but no curTuplet')), 'tupletPending without curTuplet flagged');
 
 // ── 13. DESIGN SYSTEM REGRESSION GUARDS ─────────────────────────
 // These tests prevent bulk find-and-replace from breaking music notation

@@ -99,6 +99,105 @@ export function freshAPP() {
   };
 }
 
+// ── Full application loader ──────────────────────────────────────
+//
+// loadModel() covers the score model only. The education layer
+// (exercise generation, mode guards, undo snapshots) lives in modules
+// that need the real page DOM, so loadApp() builds the document from
+// src/index.html and evaluates every module in build.js order.
+//
+// Rendering and audio still cannot run here — there is no VexFlow and no
+// AudioContext — but module-level init does run, so any function that
+// only touches the DOM or plain objects is genuinely exercised.
+
+export const APP_MODULES = [
+  'globals.js', 'theory.js', 'instruments.js', 'notation.js', 'rendering.js', 'input.js',
+  'education/exercises.js', 'education/session.js', 'education/kit.js', 'playback.js', 'ui.js',
+];
+
+// Names the education tests need. Listed explicitly rather than scraped so
+// that a rename in src/ fails the suite instead of silently yielding
+// undefined — that silent case is exactly how the mirror drifted.
+const APP_EXPORT_NAMES = [
+  'APP', 'SCORE', 'AUDIO', 'UI', 'THEORY', 'INSTRUMENTS', 'MODE_RULES', 'KIT_CONFIGS',
+  'VALID_DURATIONS', 'NOTE_NAMES', 'CHROMATIC', 'PC_TO_DIA', 'DUR_BEATS',
+  'SCORE_MEASURE_REF_RULES', 'SCORE_STAFF_REF_KEYS',
+  'EXERCISE_TYPES', 'INTERVAL_NAMES', 'INTERVAL_ALIASES',
+  'KEY_SIG_NAMES', 'KEY_SIG_MINOR_NAMES', 'NATURAL_PITCHES',
+  'durBeats', '_require', '_validateModeState',
+  'pushUndo', 'undo', 'redo',
+  '_scoreFingerprint', '_snapshotUIState', '_restoreUIState', '_uiFingerprint',
+  '_ensureScoreAnnotationArrays', '_checkInvariants',
+  '_intervalMatches', '_kitExerciseRange', '_kitExerciseKeys',
+  'generateExercise', '_genNoteId', '_genIntervalId', '_genRhythmRead',
+  '_genRhythmWorksheet', '_genMelodyDict', '_genKeySigId',
+  '_renderRhythmBeatGrid', 'checkRhythmWorksheet',
+];
+
+/**
+ * Evaluate every module from src/ against the real page DOM.
+ * @returns {Object} the exported app surface (see APP_EXPORT_NAMES)
+ */
+export function loadApp() {
+  const dom = new Window({ url: 'http://localhost/' });
+  const template = readFileSync(join(__dirname, 'src', 'index.html'), 'utf8')
+    .replace('<!-- CSS_INJECT -->', '')
+    .replace('<!-- JS_INJECT -->', '');
+  dom.document.write(template);
+  dom.document.close();
+
+  let source = APP_MODULES
+    .map(name => `\n// ─── ${name} ───\n` + readFileSync(join(__dirname, 'src', name), 'utf8'))
+    .join('\n');
+
+  // ui.js closes the IIFE that globals.js opened, so the export list has to
+  // be spliced in just before that close rather than appended.
+  const closeRe = /\}\)\(\);\s*$/;
+  if (!closeRe.test(source)) {
+    throw new Error('test-harness: expected ui.js to close the IIFE with "})();"');
+  }
+  source = source.replace(closeRe, '');
+  source += `\nwindow.__PAUTA_APP__ = { ${APP_EXPORT_NAMES.join(', ')} };\n})();`;
+
+  const sandbox = {
+    console,
+    window: dom.window,
+    document: dom.document,
+    navigator: dom.navigator,
+    localStorage: dom.localStorage,
+    Node: dom.Node,
+    HTMLElement: dom.HTMLElement,
+    getComputedStyle: dom.getComputedStyle,
+    DOMParser: makeXMLDOMParser(),
+    XMLSerializer: dom.XMLSerializer,
+    Event: dom.Event,
+    CustomEvent: dom.CustomEvent,
+    setTimeout, clearTimeout, setInterval, clearInterval, Blob, URL,
+    structuredClone,
+    requestAnimationFrame: cb => setTimeout(cb, 0),
+    cancelAnimationFrame: id => clearTimeout(id),
+  };
+  sandbox.globalThis = sandbox;
+  sandbox.self = dom.window;
+
+  const ctx = vm.createContext(sandbox);
+  vm.runInContext(source, ctx, { filename: 'pauta-app.js' });
+
+  const app = dom.window.__PAUTA_APP__;
+  if (!app) throw new Error('test-harness: app failed to initialise');
+
+  // Surface a missing/renamed export rather than letting a test call
+  // undefined and fail somewhere unrelated.
+  const missing = APP_EXPORT_NAMES.filter(n => app[n] === undefined);
+  if (missing.length) {
+    throw new Error(`test-harness: expected export(s) not found in src/: ${missing.join(', ')}`);
+  }
+  app.window = dom.window;
+  app.document = dom.document;
+  app._dom = dom;
+  return app;
+}
+
 // ── Case-preserving XML DOMParser stand-in ──────────────────────
 //
 // happy-dom normalises XML case (localName lowercased, tagName
