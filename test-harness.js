@@ -50,7 +50,7 @@ window.__PAUTA_MODEL__ = {
   durBeats, findBestDuration, beatsUsed, midiToVexKey,
   getMeasureActiveAccidentals, getResolvedKeySig,
   shiftMeasureRefs, _repairNote, _repairMeasure, _syncMeasureCounts,
-  _ensureScoreAnnotationArrays,
+  _ensureScoreAnnotationArrays, _syncScoreWideFlags,
   _nextPartName, _partIndexForSI, _firstSIOfPart, _shiftStaffRefs,
   _require, _kitInstrumentList,
 };

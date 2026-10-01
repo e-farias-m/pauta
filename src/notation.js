@@ -218,6 +218,13 @@ function setKeySig(score, mi, ks) {
 const MARKER_KEYS = ['segno', 'coda', 'fine', 'dc', 'ds'];
 
 /**
+ * Measure flags that belong to the score rather than to one stave. Older
+ * files only stored them on part 1, because the handlers that set them
+ * looped score.parts[0].staves.
+ */
+const SCORE_WIDE_MEASURE_FLAGS = [...MARKER_KEYS, 'lineBreak'];
+
+/**
  * Toggle a navigation marker at measure `mi` on every stave in the score.
  * Rendering only draws markers on the first stave, but the value has to be
  * stored on every stave: a score can be saved and reloaded at any time, and
@@ -331,6 +338,38 @@ function _syncMeasureCounts(score) {
   return maxM;
 }
 
+/**
+ * Back-fill score-wide measure flags onto every stave.
+ *
+ * A flag set on any stave is set on all of them — union rather than
+ * reference-stave-wins, so repairing can never discard a marker somebody
+ * placed. Nothing is ever cleared here: there is no source of truth that
+ * says a marker "should not" exist, and silently dropping one would be
+ * worse than leaving a stray copy behind.
+ *
+ * Idempotent, which matters because repairScore runs after every
+ * commitChange and not just on file open.
+ */
+function _syncScoreWideFlags(score) {
+  const staves = [];
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) staves.push(stave);
+  }
+  if (staves.length < 2) return score;
+  const maxM = staves.reduce((n, s) => Math.max(n, s.measures?.length || 0), 0);
+  for (let mi = 0; mi < maxM; mi++) {
+    const present = SCORE_WIDE_MEASURE_FLAGS
+      .filter(key => staves.some(stave => stave.measures?.[mi]?.[key] === true));
+    if (!present.length) continue;
+    for (const stave of staves) {
+      const m = stave.measures?.[mi];
+      if (!m) continue;
+      for (const key of present) m[key] = true;
+    }
+  }
+  return score;
+}
+
 /** Normalize imported, autosaved, or legacy score data to the current contract. @param {*} raw @returns {Score} */
 function repairScore(raw) {
   if (!raw || typeof raw !== 'object') return createScore();
@@ -341,6 +380,7 @@ function repairScore(raw) {
   if (!Array.isArray(score.parts) || !score.parts.length) score.parts = createScore().parts;
   _ensureScoreAnnotationArrays(score);
   _syncMeasureCounts(score);
+  _syncScoreWideFlags(score);
   return score;
 }
 

@@ -25,6 +25,7 @@ const {
   mkNote, mkRest, emptyMeasure,
   exportMSCXFromScore, parseMSCX,
   getMeasureActiveAccidentals, getResolvedKeySig, getStaveBySI,
+  _syncScoreWideFlags,
 } = { ...M, ...M.SCORE };
 
 // ── Tests ──────────────────────────────────────────────────────
@@ -640,6 +641,109 @@ SCORE.clearMarkers(mp4, 99);
 assertEq(SCORE.toggleMarker(null, 0, 'segno'), false, 'toggleMarker tolerates a null score');
 SCORE.setLineBreak(undefined, 0, true);
 SCORE.clearMarkers(null, 0);
+
+
+// ── Legacy score-wide flag repair ─────────────────────────────────
+//
+// The marker and line-break handlers used to write only to part 1, so files
+// saved before that fix carry those flags on one stave. repairScore now
+// back-fills them, which runs both on file open and after every edit.
+
+function _legacyScore() {
+  const sc = createScore({ instruments: ['Piano'] });
+  addInstrumentToScore(sc, 'Cello');
+  for (const part of sc.parts) for (const stave of part.staves) stave.measures.push(emptyMeasure());
+  return sc;
+}
+
+// A marker stored on one stave reaches every stave on repair.
+const leg = _legacyScore();
+leg.parts[1].staves[0].measures[1].coda = true; // only the cello stave
+repairScore(leg);
+for (const [pi, part] of leg.parts.entries()) {
+  for (const [sti, stave] of part.staves.entries()) {
+    assertEq(stave.measures[1].coda, true, `coda back-filled to part ${pi + 1} stave ${sti + 1}`);
+  }
+}
+
+// A line break stored on part 1's second stave reaches every stave.
+const leg2 = _legacyScore();
+leg2.parts[0].staves[1].measures[1].lineBreak = true;
+repairScore(leg2);
+for (const [pi, part] of leg2.parts.entries()) {
+  for (const [sti, stave] of part.staves.entries()) {
+    assertEq(stave.measures[1].lineBreak, true, `line break back-filled to part ${pi + 1} stave ${sti + 1}`);
+  }
+}
+
+// Every marker key is covered, not just coda.
+for (const key of ['segno', 'coda', 'fine', 'dc', 'ds']) {
+  const s2 = _legacyScore();
+  s2.parts[0].staves[0].measures[1][key] = true;
+  repairScore(s2);
+  assert(s2.parts.every(p => p.staves.every(st => st.measures[1][key] === true)),
+    `${key} is back-filled to every stave`);
+}
+
+// Repair never clears a flag: a measure with nothing set stays clear.
+const leg3 = _legacyScore();
+repairScore(leg3);
+for (const part of leg3.parts) {
+  for (const stave of part.staves) {
+    for (const mi of [0, 1]) {
+      const m = stave.measures[mi];
+      assert(!('segno' in m) && !('coda' in m) && !('fine' in m) && !('dc' in m) && !('ds' in m),
+        'repair does not invent markers');
+      assertEq(m.lineBreak, false, `line break stays false at measure ${mi + 1}`);
+    }
+  }
+}
+
+// Idempotent: repairScore runs after every commitChange, so a second pass
+// must not change anything.
+const leg4 = _legacyScore();
+leg4.parts[0].staves[1].measures[1].segno = true;
+leg4.parts[1].staves[0].measures[1].lineBreak = true;
+repairScore(leg4);
+const _once = JSON.stringify(leg4);
+repairScore(leg4);
+repairScore(leg4);
+assertEq(JSON.stringify(leg4), _once, 'repairing an already-repaired score is a no-op');
+
+// A marker set on any stave wins, whichever stave that is.
+const leg5 = _legacyScore();
+leg5.parts[0].staves[1].measures[0].fine = true;
+leg5.parts[1].staves[0].measures[0].fine = true;
+repairScore(leg5);
+assertEq(leg5.parts[0].staves[0].measures[0].fine, true,
+  'a marker on part 1 stave 2 and part 2 both reaches part 1 stave 1');
+
+// Single-stave scores are left alone and must not crash.
+const legSolo = createScore({ instruments: ['Flute'] });
+legSolo.parts[0].staves[0].measures[0].segno = true;
+repairScore(legSolo);
+assertEq(legSolo.parts[0].staves[0].measures[0].segno, true, 'single-stave marker survives repair');
+assertEq(_syncScoreWideFlags(legSolo), legSolo, '_syncScoreWideFlags returns the score');
+assertEq(_syncScoreWideFlags(null), null, '_syncScoreWideFlags tolerates null');
+
+
+// Called directly, the helper must not measure the score by the length of
+// the first stave. repairScore pads every stave first, but standalone the
+// function still has to reach a flag that sits past the first stave.
+const ragged = createScore({ instruments: ['Flute'] });   // 1 stave, 1 measure
+addInstrumentToScore(ragged, 'Violin');
+addInstrumentToScore(ragged, 'Cello');
+for (const part of ragged.parts.slice(1)) {
+  for (let i = 1; i < 4; i++) part.staves[0].measures.push(emptyMeasure());
+}
+assertEq(ragged.parts[0].staves[0].measures.length, 1, 'part 1 stays one measure long');
+assertEq(ragged.parts[2].staves[0].measures.length, 4, 'part 3 has four measures');
+ragged.parts[1].staves[0].measures[3].segno = true; // flagged past the first stave's length
+_syncScoreWideFlags(ragged);
+assertEq(ragged.parts[2].staves[0].measures[3].segno, true,
+  'a flag past the first stave measure count still reaches the other parts');
+assertEq(ragged.parts[1].staves[0].measures[3].segno, true,
+  'and the stave that set it keeps it');
 
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
