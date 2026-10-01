@@ -1534,18 +1534,13 @@ function applyTimeSig(num, den) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   SCORE.commitChange(score => {
-    score.parts[0].staves.forEach(stave => {
-      const m = stave.measures[mi];
-      if (!m) return;
-      m.timeSigNum = num;
-      m.timeSigDen = den;
-      const cap   = num * (4 / den);
-      const isEmpty = isWholeRestPlaceholder(m.notes);
-      const used  = isEmpty ? 0 : beatsUsed(m.notes);
-      if (used > cap + 0.001) {
-        showToast(`⚠ Measure ${mi+1} has more notes than ${num}/${den} allows — edit to fit`);
-      }
-    });
+    // SCORE.setTimeSig writes every stave of every part; warn once for the
+    // measure rather than once per stave, which is what a parts[0].staves
+    // loop did.
+    const over = SCORE.setTimeSig(score, mi, num, den);
+    if (over.length) {
+      showToast(`⚠ Measure ${mi+1} has more notes than ${num}/${den} allows — edit to fit`);
+    }
   }, { toast: `Time signature: ${num}/${den}` });
 }
 
@@ -1601,10 +1596,7 @@ function applyKeySig(ks) {
   const mi = APP.selectedMeasure;
   const info = ALL_KEY_SIGS.find(k => k.ks === ks);
   SCORE.commitChange(score => {
-    score.parts[0].staves.forEach(stave => {
-      const m = stave.measures[mi];
-      if (m) m.keySig = ks;
-    });
+    SCORE.setKeySig(score, mi, ks);
   }, { toast: `Key: ${info ? info.label + ' major / ' + info.sub : ks}` });
 }
 

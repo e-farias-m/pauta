@@ -175,6 +175,45 @@ function emptyMeasure() {
   return {timeSigNum:null, timeSigDen:null, keySig:null, lineBreak:false, notes:[mkRest('w')]};
 }
 
+// ── Score-wide signature changes ─────────────────────────────────
+// Time and key signatures are score-wide in effect but stored per stave,
+// and the renderer reads each stave's own measure (see rendering.js).
+// A change therefore has to reach every stave of every part, or the
+// staves visibly disagree. These live in the model rather than ui.js so
+// the cross-stave guarantee is testable and reusable.
+
+/**
+ * Set the time signature at measure `mi` on every stave in the score.
+ * @returns {Stave[]} the staves whose existing content no longer fits, so
+ *   the caller can warn once per measure instead of once per stave.
+ */
+function setTimeSig(score, mi, num, den) {
+  const over = [];
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (!m) continue;
+      m.timeSigNum = num;
+      m.timeSigDen = den;
+      const cap     = num * (4 / den);
+      const isEmpty = isWholeRestPlaceholder(m.notes);
+      const used    = isEmpty ? 0 : beatsUsed(m.notes);
+      if (used > cap + 0.001) over.push(stave);
+    }
+  }
+  return over;
+}
+
+/** Set the key signature at measure `mi` on every stave in the score. */
+function setKeySig(score, mi, ks) {
+  for (const part of score?.parts || []) {
+    for (const stave of part.staves || []) {
+      const m = stave.measures?.[mi];
+      if (m) m.keySig = ks;
+    }
+  }
+}
+
 /** @param {Score} score @returns {Score} */
 function _ensureScoreAnnotationArrays(score) {
   for (const rule of SCORE_MEASURE_REF_RULES) {
@@ -1396,6 +1435,6 @@ function exportMSCXFromScore(s) {
 
 // ── Assign notation functions to SCORE namespace ─────────
 [createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
- validateScore, adoptScore, commitChange, parseMSCX, parseMusicXML,
+ validateScore, adoptScore, commitChange, setTimeSig, setKeySig, parseMSCX, parseMusicXML,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });

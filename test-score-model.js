@@ -21,9 +21,12 @@ const {
   shiftMeasureRefs, _repairNote, _repairMeasure,
   addInstrumentToScore, removeInstrumentFromScore,
   createScore, repairScore, validateScore,
+  setTimeSig, setKeySig, resolvedTimeSig,
   mkNote, mkRest, emptyMeasure,
   exportMSCXFromScore, parseMSCX,
-} = { ...M, ...M.SCORE };// ── Tests ──────────────────────────────────────────────────────
+} = { ...M, ...M.SCORE };
+
+// ── Tests ──────────────────────────────────────────────────────
 
 // keySigName
 assertEq(keySigName(0), 'C', 'keySigName(0)');
@@ -184,6 +187,74 @@ addInstrumentToScore(plF, 'Violin', {position: 'above', refStaff: 2});
 assertEq(APP.selectedStaff, 0, 'a selection before the insert point is untouched');
 
 APP.selectedStaff = 0;
+
+// ── Signature changes must reach every stave, not just part 0 ───
+// Time/key sigs are stored per stave and the renderer reads each stave's
+// own measure, so a change that only touches part 0 leaves the remaining
+// staves rendering a different signature.
+
+const sigAll = createScore({instruments: ['Piano', 'Flute']});   // 2 + 1 staves
+sigAll.parts[0].staves[0].measures.push(emptyMeasure(), emptyMeasure());
+repairScore(sigAll);   // pads every stave to a uniform measure count
+assertEq(sigAll.parts[0].staves[1].measures.length, 3, 'repairScore grew the piano bass stave too');
+setTimeSig(sigAll, 2, 3, 4);
+assertEq(sigAll.parts[0].staves[0].measures[2].timeSigNum, 3, 'setTimeSig reaches piano treble');
+assertEq(sigAll.parts[0].staves[1].measures[2].timeSigNum, 3, 'setTimeSig reaches piano bass');
+assertEq(sigAll.parts[1].staves[0].measures[2].timeSigNum, 3, 'setTimeSig reaches the flute part');
+assertEq(sigAll.parts[1].staves[0].measures[2].timeSigDen, 4, 'setTimeSig sets the denominator on every stave');
+// resolvedTimeSig reads APP.score, so this checks the whole path:
+// setTimeSig wrote every stave, and the reader agrees on every stave.
+// (assertEq is identity-based, so compare the fields, not the object.)
+APP.score = sigAll;
+assertEq(resolvedTimeSig(2, 0).num, 3, 'stave 0 resolves the new signature numerator');
+assertEq(resolvedTimeSig(2, 0).den, 4, 'stave 0 resolves the new signature denominator');
+assertEq(resolvedTimeSig(2, 1).num, 3, 'stave 1 resolves the new signature numerator');
+assertEq(resolvedTimeSig(2, 2).num, 3, 'stave 2 resolves the new signature numerator');
+// Untouched measures stay null so inheritance is preserved.
+assertEq(sigAll.parts[1].staves[0].measures[1].timeSigNum, null, 'setTimeSig leaves earlier measures null');
+
+const ksAll = createScore({instruments: ['Piano', 'Cello']});
+ksAll.parts[0].staves[1].measures[0].keySig = -3;
+setKeySig(ksAll, 0, 2);
+assertEq(ksAll.parts[0].staves[0].measures[0].keySig, 2, 'setKeySig reaches piano treble');
+assertEq(ksAll.parts[0].staves[1].measures[0].keySig, 2, 'setKeySig overwrites a conflicting piano bass key');
+assertEq(ksAll.parts[1].staves[0].measures[0].keySig, 2, 'setKeySig reaches the cello part');
+
+// Overflow reporting: one entry per offending stave, so the caller can
+// warn once per measure rather than once per stave.
+const overS = createScore({instruments: ['Piano', 'Flute']});
+const fourQ = [mkNote(60,'q',0,null,1), mkNote(62,'q',0,null,1), mkNote(64,'q',0,null,1), mkNote(65,'q',0,null,1)];
+const twoQ   = [mkNote(60,'q',0,null,1), mkNote(62,'q',0,null,1)];
+overS.parts[0].staves[0].measures[0].notes = fourQ;   // too much for 2/4
+overS.parts[0].staves[1].measures[0].notes = twoQ;   // fits in 2/4
+const over = setTimeSig(overS, 0, 2, 4);
+assertEq(over.length, 1, 'setTimeSig reports only the staves that actually overflow');
+assertEq(over[0], overS.parts[0].staves[0], 'setTimeSig reports the offending piano treble stave');
+assertEq(overS.parts[0].staves[1].measures[0].timeSigNum, 2, 'setTimeSig still wrote the fitting stave');
+// Overflow in another part is reported independently.
+overS.parts[1].staves[0].measures[0].notes = fourQ.slice();
+const over2 = setTimeSig(overS, 0, 2, 4);
+assertEq(over2.length, 2, 'setTimeSig reports overflow in a second part too');
+assertEq(over2[1], overS.parts[1].staves[0], 'setTimeSig reports the offending flute stave');
+assertEq(setTimeSig(overS, 0, 4, 4).length, 0, 'setTimeSig reports no overflow once the content fits');
+
+// A whole-rest placeholder is not real content, so it must not trip the
+// overflow check.
+const restS = createScore();
+assertEq(setTimeSig(restS, 0, 1, 4).length, 0, 'a whole-rest placeholder never overflows');
+assertEq(restS.parts[0].staves[0].measures[0].timeSigNum, 1, 'setTimeSig still records 1/4 on a rest measure');
+
+// Out-of-range and empty inputs are inert rather than throwing.
+const oobS = createScore();
+const oobBefore = oobS.parts[0].staves[0].measures[0].timeSigNum;
+setTimeSig(oobS, 999, 3, 4);
+assertEq(oobS.parts[0].staves[0].measures[0].timeSigNum, oobBefore, 'setTimeSig with an out-of-range measure is a no-op');
+setKeySig(oobS, 999, 1);
+assertEq(oobS.parts[0].staves[0].measures[0].keySig, 0, 'setKeySig with an out-of-range measure is a no-op');
+assertEq(setTimeSig({}, 0, 3, 4).length, 0, 'setTimeSig tolerates a score with no parts');
+assertEq(setTimeSig({parts:[{staves:[]}]}, 0, 3, 4).length, 0, 'setTimeSig tolerates a part with no staves');
+setKeySig({}, 0, 3);
+setKeySig({parts:[{staves:[{measures:[]}]}]}, 0, 3);
 
 // ── Parts: signature layout is mirrored onto a new part ─────────
 
