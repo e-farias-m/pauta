@@ -3964,9 +3964,11 @@ function setKeySig(score, mi, ks) {
 const MARKER_KEYS = ['segno', 'coda', 'fine', 'dc', 'ds'];
 
 /**
- * Measure flags that belong to the score rather than to one stave. Older
- * files only stored them on part 1, because the handlers that set them
- * looped score.parts[0].staves.
+ * Measure flags that belong to the score rather than to one stave. The
+ * first stave — part 1, stave 1 — is authoritative, because that is the
+ * one both renderers read and the one every known writer has always
+ * written to. Flags found anywhere else cannot come from the app, so they
+ * are treated as strays rather than as extra copies.
  */
 const SCORE_WIDE_MEASURE_FLAGS = [...MARKER_KEYS, 'lineBreak'];
 
@@ -4085,13 +4087,21 @@ function _syncMeasureCounts(score) {
 }
 
 /**
- * Back-fill score-wide measure flags onto every stave.
+ * Reconcile score-wide measure flags onto every stave.
  *
- * A flag set on any stave is set on all of them — union rather than
- * reference-stave-wins, so repairing can never discard a marker somebody
- * placed. Nothing is ever cleared here: there is no source of truth that
- * says a marker "should not" exist, and silently dropping one would be
- * worse than leaving a stray copy behind.
+ * Part 1, stave 1 is authoritative rather than the union of what every
+ * stave claims. That choice is safe because every writer that has ever
+ * existed — the old part-1-only marker handler, the old first-stave-of-
+ * every-part line-break handler, and the current handlers — writes the
+ * reference stave, and the MusicXML importer does not write these flags at
+ * all. So a flag found only outside the reference stave cannot have come
+ * from the app: it is a stray from an external edit or corruption, and
+ * union would have promoted it across the whole score.
+ *
+ * Erasing it is deliberate. The failure mode this avoids is a marker
+ * appearing on every stave where the user never put one; the failure mode
+ * it risks — dropping a genuine marker — needs a writer that skips part 1
+ * stave 1, and none exists.
  *
  * Idempotent, which matters because repairScore runs after every
  * commitChange and not just on file open.
@@ -4102,15 +4112,20 @@ function _syncScoreWideFlags(score) {
     for (const stave of part.staves || []) staves.push(stave);
   }
   if (staves.length < 2) return score;
-  const maxM = staves.reduce((n, s) => Math.max(n, s.measures?.length || 0), 0);
-  for (let mi = 0; mi < maxM; mi++) {
-    const present = SCORE_WIDE_MEASURE_FLAGS
-      .filter(key => staves.some(stave => stave.measures?.[mi]?.[key] === true));
-    if (!present.length) continue;
-    for (const stave of staves) {
-      const m = stave.measures?.[mi];
+  const refMeasures = staves[0].measures || [];
+  // Only the reference stave's range is walked: its measures are the
+  // authority, so a measure index it does not have is not something we can
+  // decide about. repairScore runs _syncMeasureCounts first, which pads
+  // every stave to a common length, so that gap does not arise in practice.
+  for (let mi = 0; mi < refMeasures.length; mi++) {
+    const refM = refMeasures[mi];
+    for (let i = 1; i < staves.length; i++) {
+      const m = staves[i].measures?.[mi];
       if (!m) continue;
-      for (const key of present) m[key] = true;
+      for (const key of SCORE_WIDE_MEASURE_FLAGS) {
+        if (key === 'lineBreak') { m.lineBreak = refM.lineBreak === true; continue; }
+        if (refM[key] === true) m[key] = true; else delete m[key];
+      }
     }
   }
   return score;

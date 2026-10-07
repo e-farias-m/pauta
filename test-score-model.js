@@ -643,11 +643,13 @@ SCORE.setLineBreak(undefined, 0, true);
 SCORE.clearMarkers(null, 0);
 
 
-// ── Legacy score-wide flag repair ─────────────────────────────────
+// ── Score-wide flag reconciliation ────────────────────────────────
 //
-// The marker and line-break handlers used to write only to part 1, so files
-// saved before that fix carry those flags on one stave. repairScore now
-// back-fills them, which runs both on file open and after every edit.
+// The marker and line-break handlers used to write only to part 1, and the
+// line-break handler to the first stave of every part, so older files carry
+// these flags unevenly. repairScore reconciles them against part 1 stave 1,
+// which is what both renderers read. It runs on file open and after every
+// edit.
 
 function _legacyScore() {
   const sc = createScore({ instruments: ['Piano'] });
@@ -656,23 +658,26 @@ function _legacyScore() {
   return sc;
 }
 
-// A marker stored on one stave reaches every stave on repair.
+// Legacy markers: written across part 1 only, part 2 missing out.
 const leg = _legacyScore();
-leg.parts[1].staves[0].measures[1].coda = true; // only the cello stave
+leg.parts[0].staves[0].measures[1].coda = true;
+leg.parts[0].staves[1].measures[1].coda = true;
 repairScore(leg);
 for (const [pi, part] of leg.parts.entries()) {
   for (const [sti, stave] of part.staves.entries()) {
-    assertEq(stave.measures[1].coda, true, `coda back-filled to part ${pi + 1} stave ${sti + 1}`);
+    assertEq(stave.measures[1].coda, true, `coda reaches part ${pi + 1} stave ${sti + 1}`);
   }
 }
 
-// A line break stored on part 1's second stave reaches every stave.
+// Legacy line break: written to the first stave of every part, so part 1's
+// second stave is the one missing out.
 const leg2 = _legacyScore();
-leg2.parts[0].staves[1].measures[1].lineBreak = true;
+leg2.parts[0].staves[0].measures[1].lineBreak = true;
+leg2.parts[1].staves[0].measures[1].lineBreak = true;
 repairScore(leg2);
 for (const [pi, part] of leg2.parts.entries()) {
   for (const [sti, stave] of part.staves.entries()) {
-    assertEq(stave.measures[1].lineBreak, true, `line break back-filled to part ${pi + 1} stave ${sti + 1}`);
+    assertEq(stave.measures[1].lineBreak, true, `line break reaches part ${pi + 1} stave ${sti + 1}`);
   }
 }
 
@@ -682,10 +687,40 @@ for (const key of ['segno', 'coda', 'fine', 'dc', 'ds']) {
   s2.parts[0].staves[0].measures[1][key] = true;
   repairScore(s2);
   assert(s2.parts.every(p => p.staves.every(st => st.measures[1][key] === true)),
-    `${key} is back-filled to every stave`);
+    `${key} reaches every stave`);
 }
 
-// Repair never clears a flag: a measure with nothing set stays clear.
+// A flag on a non-reference stave alone is a stray, not a legacy copy: no
+// writer has ever skipped part 1 stave 1, so it cannot be genuine. Repair
+// clears it rather than promoting it across the score.
+const stray = _legacyScore();
+stray.parts[0].staves[1].measures[1].segno = true;
+repairScore(stray);
+assert(stray.parts.every(p => p.staves.every(st => !('segno' in st.measures[1]))),
+  'a marker found only on part 1 stave 2 is cleared everywhere');
+
+const stray2 = _legacyScore();
+stray2.parts[1].staves[0].measures[1].segno = true;
+stray2.parts[1].staves[0].measures[1].lineBreak = true;
+repairScore(stray2);
+assert(stray2.parts.every(p => p.staves.every(st => !('segno' in st.measures[1]))),
+  'a marker found only on part 2 is cleared everywhere');
+assert(stray2.parts.every(p => p.staves.every(st => st.measures[1].lineBreak === false)),
+  'a line break found only on part 2 is cleared everywhere');
+
+// The reference stave decides, including when the other staves disagree
+// with it in both directions.
+const dis = _legacyScore();
+dis.parts[0].staves[0].measures[0].segno = true;   // reference has it
+dis.parts[0].staves[1].measures[0].segno = false;  // one stave lacks it
+dis.parts[1].staves[0].measures[0].fine = true;    // and one stave has a stray
+repairScore(dis);
+assert(dis.parts.every(p => p.staves.every(st => st.measures[0].segno === true)),
+  'a marker on the reference stave is pushed to every stave');
+assert(dis.parts.every(p => p.staves.every(st => !('fine' in st.measures[0]))),
+  'a stray on part 2 is cleared even when the reference stave has a marker elsewhere');
+
+// Repair never invents a flag: a measure with nothing set stays clear.
 const leg3 = _legacyScore();
 repairScore(leg3);
 for (const part of leg3.parts) {
@@ -702,7 +737,7 @@ for (const part of leg3.parts) {
 // Idempotent: repairScore runs after every commitChange, so a second pass
 // must not change anything.
 const leg4 = _legacyScore();
-leg4.parts[0].staves[1].measures[1].segno = true;
+leg4.parts[0].staves[0].measures[1].segno = true;
 leg4.parts[1].staves[0].measures[1].lineBreak = true;
 repairScore(leg4);
 const _once = JSON.stringify(leg4);
@@ -710,13 +745,15 @@ repairScore(leg4);
 repairScore(leg4);
 assertEq(JSON.stringify(leg4), _once, 'repairing an already-repaired score is a no-op');
 
-// A marker set on any stave wins, whichever stave that is.
-const leg5 = _legacyScore();
-leg5.parts[0].staves[1].measures[0].fine = true;
-leg5.parts[1].staves[0].measures[0].fine = true;
-repairScore(leg5);
-assertEq(leg5.parts[0].staves[0].measures[0].fine, true,
-  'a marker on part 1 stave 2 and part 2 both reaches part 1 stave 1');
+// Reconciliation is symmetrical: one pass settles both directions at once.
+const sym = _legacyScore();
+sym.parts[0].staves[1].measures[0].fine = true;    // stray on a non-reference stave
+sym.parts[0].staves[0].measures[0].dc = true;      // genuine flag on the reference stave
+repairScore(sym);
+assert(sym.parts.every(p => p.staves.every(st => st.measures[0].dc === true)),
+  'the genuine flag reaches every stave');
+assert(sym.parts.every(p => p.staves.every(st => !('fine' in st.measures[0]))),
+  'the stray is cleared from every stave');
 
 // Single-stave scores are left alone and must not crash.
 const legSolo = createScore({ instruments: ['Flute'] });
@@ -726,24 +763,19 @@ assertEq(legSolo.parts[0].staves[0].measures[0].segno, true, 'single-stave marke
 assertEq(_syncScoreWideFlags(legSolo), legSolo, '_syncScoreWideFlags returns the score');
 assertEq(_syncScoreWideFlags(null), null, '_syncScoreWideFlags tolerates null');
 
-
-// Called directly, the helper must not measure the score by the length of
-// the first stave. repairScore pads every stave first, but standalone the
-// function still has to reach a flag that sits past the first stave.
-const ragged = createScore({ instruments: ['Flute'] });   // 1 stave, 1 measure
+// The reference stave may be longer than the staves it is compared
+// against, which happens when it is called directly rather than through
+// repairScore. Those short staves are skipped instead of crashing.
+const ragged = createScore({ instruments: ['Flute'] });
 addInstrumentToScore(ragged, 'Violin');
-addInstrumentToScore(ragged, 'Cello');
-for (const part of ragged.parts.slice(1)) {
-  for (let i = 1; i < 4; i++) part.staves[0].measures.push(emptyMeasure());
-}
-assertEq(ragged.parts[0].staves[0].measures.length, 1, 'part 1 stays one measure long');
-assertEq(ragged.parts[2].staves[0].measures.length, 4, 'part 3 has four measures');
-ragged.parts[1].staves[0].measures[3].segno = true; // flagged past the first stave's length
+for (let i = 1; i < 4; i++) ragged.parts[0].staves[0].measures.push(emptyMeasure());
+ragged.parts[0].staves[0].measures[2].segno = true;
 _syncScoreWideFlags(ragged);
-assertEq(ragged.parts[2].staves[0].measures[3].segno, true,
-  'a flag past the first stave measure count still reaches the other parts');
-assertEq(ragged.parts[1].staves[0].measures[3].segno, true,
-  'and the stave that set it keeps it');
+assertEq(ragged.parts[0].staves[0].measures.length, 4, 'the reference stave keeps its measures');
+assertEq(ragged.parts[1].staves[0].measures.length, 1, 'the shorter stave keeps its length');
+assert(!('segno' in ragged.parts[1].staves[0].measures[0]),
+  'a stave with no measure to compare against is skipped');
+assertEq(_syncScoreWideFlags(undefined), undefined, '_syncScoreWideFlags tolerates undefined');
 
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
