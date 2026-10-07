@@ -53,7 +53,12 @@ function midiAutoAcc(midi, ks) {
 function durBeats(dur, dots, tuplet) {
   let v = DUR_BEATS[dur] || 1;
   if (dots) v *= 1.5;
-  if (tuplet) v = v * tuplet.den / tuplet.num;
+  // Read the ratio defensively: repairScore normalizes note.tuplet, but
+  // every caller sums these values, so one NaN would poison a whole bar.
+  if (tuplet && Number.isFinite(tuplet.num) && Number.isFinite(tuplet.den) &&
+      tuplet.num > 0 && tuplet.den > 0) {
+    v = v * tuplet.den / tuplet.num;
+  }
   return v;
 }
 function findBestDuration(beats) {

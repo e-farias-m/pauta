@@ -330,6 +330,20 @@ function _repairNote(n, voiceDefault = 1) {
   if (!VALID_DURATIONS.has(n.duration)) n.duration = 'q';
   if (typeof n.dots !== 'number' || n.dots < 0) n.dots = n.dots ? 1 : 0;
   n.voice = voice;
+  // A tuplet is a ratio plus a group id, and both are trusted downstream:
+  // durBeats multiplies by den/num, so a non-numeric pair turns a beat
+  // total into NaN, and the renderer brackets by groupId, so two groups
+  // left sharing an undefined id would fuse into one bracket. Anything
+  // else is dropped rather than patched into something plausible.
+  if ('tuplet' in n) {
+    const t = n.tuplet;
+    const ok = t && typeof t === 'object' &&
+      Number.isInteger(t.num) && t.num > 0 &&
+      Number.isInteger(t.den) && t.den > 0 &&
+      Number.isInteger(t.groupId) && t.groupId >= 0;
+    if (ok) n.tuplet = { num: t.num, den: t.den, groupId: t.groupId };
+    else delete n.tuplet;
+  }
   if (n.type === 'note') {
     if (typeof n.pitch !== 'number') n.pitch = 60;
     n.pitch = Math.max(12, Math.min(120, n.pitch));

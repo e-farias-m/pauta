@@ -1197,5 +1197,71 @@ assert(voltParts.parts.every(p => p.staves.every(st => _ends(st.measures[2]) ===
 assert(repairScore(voltParts).parts.every(p => p.staves.every(st => _ends(st.measures[2]) === '1')),
   'the imported volta still holds after repair');
 
+// ── Note repair: tuplets ─────────────────────────────────────────
+//
+// durBeats multiplies by tuplet.den / tuplet.num and every consumer sums
+// the result — measure capacity, filler rests, beam grouping, playback
+// timing. A ratio of zero or a non-numeric one therefore poisons a whole
+// bar with NaN, and a group id left undefined fuses unrelated brackets.
+
+const _tupRepair = (raw) => {
+  const n = mkNote(60, 'q');
+  if (raw !== undefined) n.tuplet = raw;
+  return _repairNote(n);
+};
+
+const _goodTuplet = { num: 3, den: 2, groupId: 7 };
+const _keptTuplet = _tupRepair(_goodTuplet);
+assertEq(_keptTuplet.tuplet.num, 3, 'a valid tuplet ratio survives repair');
+assertEq(_keptTuplet.tuplet.den, 2, 'and keeps its denominator');
+assertEq(_keptTuplet.tuplet.groupId, 7, 'and keeps its group id');
+assert(!('junk' in _tupRepair({ ..._goodTuplet, junk: 'x' }).tuplet),
+  'unrecognised tuplet keys are stripped');
+
+for (const [label, bad] of [
+  ['null', null],
+  ['a number', 5],
+  ['a string', '3:2'],
+  ['an array', [3, 2]],
+  ['a zero numerator', { num: 0, den: 2, groupId: 0 }],
+  ['a zero denominator', { num: 3, den: 0, groupId: 0 }],
+  ['a non-integer ratio', { num: '3', den: 2, groupId: 0 }],
+  ['a negative ratio', { num: -3, den: 2, groupId: 0 }],
+  ['a missing group id', { num: 3, den: 2 }],
+  ['a fractional group id', { num: 3, den: 2, groupId: 1.5 }],
+]) {
+  assert(!('tuplet' in _tupRepair(bad)), `a tuplet with ${label} is dropped`);
+}
+
+assert(!('tuplet' in _tupRepair(undefined)), 'a note without a tuplet does not gain one');
+
+const _tupRest = mkRest('8');
+_tupRest.tuplet = { num: 3, den: 2, groupId: 0 };
+assertEq(_repairNote(_tupRest).tuplet.num, 3, 'a rest keeps a valid tuplet');
+_tupRest.tuplet = { num: 0, den: 2, groupId: 0 };
+assert(!('tuplet' in _repairNote(_tupRest)), 'a rest loses a malformed tuplet');
+
+// durBeats has to ignore a ratio it cannot use, since callers sum across
+// a whole bar rather than checking each note.
+assertEq(durBeats('q', 0, { num: 3, den: 2 }), 2 / 3, 'a valid tuplet scales the beat count');
+assertEq(durBeats('q', 1, { num: 3, den: 2 }), 1, 'and scales a dotted value too');
+assertEq(durBeats('q', 0, null), 1, 'no tuplet is a plain beat');
+assertEq(durBeats('q', 0, { num: 0, den: 2, groupId: 0 }), 1, 'a zero numerator is ignored');
+assertEq(durBeats('q', 0, { num: 3, den: 0, groupId: 0 }), 1, 'a zero denominator is ignored');
+assertEq(durBeats('q', 0, { num: '3', den: 2, groupId: 0 }), 1, 'a non-numeric ratio is ignored');
+assertEq(durBeats('q', 0, 5), 1, 'a stray number is ignored');
+assertEq(durBeats('q', 0, { num: -3, den: 2, groupId: 0 }), 1, 'a negative ratio is ignored');
+
+// End to end: repairScore is what a loaded file goes through, and
+// beatsUsed is what the renderer and the transport add up.
+const _tupScore = createScore({ instruments: ['Piano'] });
+const _badNote = mkNote(60, 'q');
+_badNote.tuplet = { num: 0, den: 2, groupId: 0 };
+_tupScore.parts[0].staves[0].measures[0].notes = [_badNote];
+repairScore(_tupScore);
+const _repairedTup = _tupScore.parts[0].staves[0].measures[0].notes[0];
+assert(!('tuplet' in _repairedTup), 'repairScore drops a malformed tuplet from a loaded score');
+assertEq(beatsUsed([_repairedTup]), 1, 'and the bar adds up to a finite beat count again');
+
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
