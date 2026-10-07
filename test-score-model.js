@@ -1263,5 +1263,97 @@ const _repairedTup = _tupScore.parts[0].staves[0].measures[0].notes[0];
 assert(!('tuplet' in _repairedTup), 'repairScore drops a malformed tuplet from a loaded score');
 assertEq(beatsUsed([_repairedTup]), 1, 'and the bar adds up to a finite beat count again');
 
+// ── Assignments and answer key round-trip ────────────────────────
+//
+// The assignment dialog tells the teacher to share the saved file, so
+// anything the exporter leaves out is lost the moment that file is sent.
+
+function _asgnScore() {
+  const sc = createScore({ instruments: ['Piano'] });
+  for (let i = 0; i < 3; i++) sc.parts[0].staves[0].measures.push(emptyMeasure());
+  sc.assignments = [{
+    id: 'a4242',
+    title: 'Enter the missing "notes" & rests',
+    range: { startMi: 1, endMi: 2 },
+    hidden: ['pitch', 'duration'],
+    hints: { showFirstNote: false },
+    createdAt: 1712345678901,
+  }];
+  sc.answerKey = '60,62,64 & friends';
+  return sc;
+}
+
+const rtA = repairScore(parseMSCX(exportMSCXFromScore(_asgnScore())));
+assertEq(rtA.assignments.length, 1, 'the assignment survives export, parse and repair');
+const _ra = rtA.assignments[0] || { range: {}, hidden: [], hints: {} };
+assertEq(_ra.id, 'a4242', 'with its id');
+assertEq(_ra.title, 'Enter the missing "notes" & rests', 'and a title carrying XML metacharacters');
+assertEq(_ra.range.startMi, 1, 'and the start of its range');
+assertEq(_ra.range.endMi, 2, 'and the end of its range');
+assertEq(_ra.hidden.join('+'), 'pitch+duration', 'and every field it hides');
+assertEq(_ra.hints.showFirstNote, false, 'and its hint setting');
+assertEq(_ra.createdAt, 1712345678901, 'and when it was written');
+assertEq(rtA.answerKey, '60,62,64 & friends', 'the answer key round-trips too');
+
+const plainX = exportMSCXFromScore(createScore());
+assert(plainX.indexOf('PautaAssignments') === -1, 'a score with no assignments emits no assignment element');
+assert(plainX.indexOf('PautaAnswerKey') === -1, 'and no answer key element');
+
+// repairScore decides what is usable, so a half-written element from a
+// hand-edited or foreign file is refused rather than imported broken.
+const _dropA = (mutate) => {
+  const sc = _asgnScore();
+  mutate(sc.assignments[0]);
+  return repairScore(sc).assignments.length;
+};
+assertEq(_dropA(a => { a.id = ''; }), 0, 'an assignment with no id is dropped');
+assertEq(_dropA(a => { a.id = 7; }), 0, 'and one whose id is not a string');
+assertEq(_dropA(a => { delete a.range; }), 0, 'and one with no range');
+assertEq(_dropA(a => { a.range = null; }), 0, 'and one whose range is null');
+assertEq(_dropA(a => { a.range.startMi = '1'; }), 0, 'and one whose range is not integral');
+assertEq(_dropA(a => { a.range.startMi = -1; }), 0, 'and one starting before the score');
+assertEq(_dropA(a => { a.range.startMi = 2; a.range.endMi = 1; }), 0, 'and one whose range runs backwards');
+
+// A range that merely runs past the end is kept and clamped: the score
+// may have been shortened since the assignment was written, and the
+// teacher's work should not vanish with it.
+const _clampA = (range) => {
+  const sc = _asgnScore();
+  sc.assignments[0].range = range;
+  return repairScore(sc).assignments[0];
+};
+assertEq(_clampA({ startMi: 6, endMi: 11 }).range.startMi, 3, 'a start past the end clamps to the last measure');
+assertEq(_clampA({ startMi: 6, endMi: 11 }).range.endMi, 3, 'and the end follows it down');
+const _clampedTail = _clampA({ startMi: 1, endMi: 99 });
+assertEq(_clampedTail.range.startMi, 1, 'a range running off the end leaves its start alone');
+assertEq(_clampedTail.range.endMi, 3, 'and stops at the last measure');
+
+// Every field the grader reads is defaulted rather than left undefined.
+const _defSc = _asgnScore();
+_defSc.assignments[0].title = '';
+_defSc.assignments[0].hidden = [];
+delete _defSc.assignments[0].hints;
+const _defA = repairScore(_defSc).assignments[0] || {};
+assertEq(_defA.title, 'Untitled', 'a missing title becomes Untitled');
+assertEq((_defA.hidden || []).join(','), 'pitch', 'an empty hidden list falls back to pitch');
+assertEq(_defA.hints?.showFirstNote, true, 'a missing hint block is rebuilt with its default');
+
+// The file itself can omit optional attributes.
+const _handXML = (attrs) => repairScore(parseMSCX(
+  exportMSCXFromScore(_asgnScore()).replace(/<Assignment [^>]*\/>/, `<Assignment ${attrs}/>`))
+).assignments;
+assertEq(_handXML('id="a1" title="x"').length, 0, 'an assignment with no range in the file is refused');
+assertEq(_handXML('title="x" startMi="0" endMi="1"').length, 0, 'and one with no id is refused');
+const _handOK = _handXML('id="a1" title="x" startMi="0" endMi="1"');
+assertEq(_handOK.length, 1, 'an assignment with only the required attributes is accepted');
+assertEq((_handOK[0] || { hidden: [] }).hidden.join(','), 'pitch', 'and defaults its hidden list to pitch');
+
+// repairScore runs after every edit, so it has to be idempotent.
+const _idem = _asgnScore();
+repairScore(_idem);
+const _idemFirst = JSON.stringify(_idem.assignments);
+repairScore(_idem);
+assertEq(JSON.stringify(_idem.assignments), _idemFirst, 'repairing an assignment twice changes nothing');
+
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);

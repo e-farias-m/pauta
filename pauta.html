@@ -4215,6 +4215,39 @@ function _normalizeScoreWideFlag(key, value) {
   return value === true ? true : undefined;
 }
 
+/**
+ * Bring `score.assignments` back to a shape the grader can use.
+ *
+ * An assignment is dropped only when it has no identity or no usable
+ * range — dropping is how a half-written element from a foreign file is
+ * refused. A range that simply points past the end of the score is kept
+ * and clamped instead, because that is the teacher's work and the score
+ * may have been shortened since the assignment was written.
+ * @param {Score} score @returns {Score}
+ */
+function _repairAssignments(score) {
+  const nM = score.parts?.[0]?.staves?.[0]?.measures?.length || 0;
+  const last = Math.max(0, nM - 1);
+  const kept = [];
+  for (const a of Array.isArray(score.assignments) ? score.assignments : []) {
+    if (!a || typeof a !== 'object') continue;
+    if (typeof a.id !== 'string' || !a.id) continue;
+    if (!a.range || !Number.isInteger(a.range.startMi) || !Number.isInteger(a.range.endMi)) continue;
+    if (a.range.startMi < 0 || a.range.endMi < a.range.startMi) continue;
+    a.range.startMi = Math.min(a.range.startMi, last);
+    a.range.endMi = Math.min(Math.max(a.range.endMi, a.range.startMi), last);
+    if (typeof a.title !== 'string' || !a.title) a.title = 'Untitled';
+    const hidden = Array.isArray(a.hidden)
+      ? a.hidden.filter(h => typeof h === 'string' && h)
+      : [];
+    a.hidden = hidden.length ? hidden : ['pitch'];
+    if (!a.hints || typeof a.hints !== 'object') a.hints = { showFirstNote: true };
+    kept.push(a);
+  }
+  score.assignments = kept;
+  return score;
+}
+
 /** Normalize imported, autosaved, or legacy score data to the current contract. @param {*} raw @returns {Score} */
 function repairScore(raw) {
   if (!raw || typeof raw !== 'object') return createScore();
@@ -4226,6 +4259,7 @@ function repairScore(raw) {
   _ensureScoreAnnotationArrays(score);
   _syncMeasureCounts(score);
   _syncScoreWideFlags(score);
+  _repairAssignments(score);
   return score;
 }
 
@@ -4627,6 +4661,28 @@ function parseMSCX(xmlStr) {
     score.showMultiMeasureRests  = mps.getAttribute('showMultiMeasureRests') === '1';
 
   }
+  // Decode only. Shapes and measure ranges are enforced by repairScore,
+  // which also sees the score this file actually describes.
+  const asgnEl = nq(doc, 'PautaAssignments');
+  if (asgnEl) {
+    score.assignments = nqa(asgnEl, 'Assignment').map(el => {
+      const a = {
+        id: el.getAttribute('id') || '',
+        title: el.getAttribute('title') || '',
+        range: {
+          startMi: parseInt(el.getAttribute('startMi'), 10),
+          endMi: parseInt(el.getAttribute('endMi'), 10),
+        },
+        hidden: (el.getAttribute('hidden') || '').split(',').filter(Boolean),
+        hints: { showFirstNote: el.getAttribute('showFirstNote') === '1' },
+      };
+      const createdAt = parseInt(el.getAttribute('createdAt'), 10);
+      if (Number.isFinite(createdAt)) a.createdAt = createdAt;
+      return a;
+    });
+  }
+  const asgnKey = txt(doc, 'PautaAnswerKey');
+  if (asgnKey) score.answerKey = asgnKey;
   score.parts    = [];
 
   const staffEls = nqa(doc, 'Staff');
@@ -5373,6 +5429,27 @@ function exportMSCXFromScore(s) {
   x += `    <Title>${esc(s.title)}</Title>\n`;
   if (s.composer) x += `    <Composer>${esc(s.composer)}</Composer>\n`;
   x += `    <PautaEngravingSettings showMeasureNumbers="${APP.showMeasureNumbers?'1':'0'}" showMultiMeasureRests="${APP.showMultiMeasureRests?'1':'0'}"/>\n`;
+  // Assignments and the answer key belong to the score itself: the dialog
+  // tells the teacher to share the saved file, so anything left out here is
+  // lost the moment that file is sent. Both are Pauta-only tags, which
+  // MuseScore skips the same way it skips PautaEngravingSettings above.
+  if (Array.isArray(s.assignments) && s.assignments.length) {
+    x += `    <PautaAssignments>\n`;
+    for (const a of s.assignments) {
+      if (!a || typeof a !== 'object' || !a.id) continue;
+      if (!Number.isInteger(a.range?.startMi) || !Number.isInteger(a.range?.endMi)) continue;
+      const hidden = Array.isArray(a.hidden) && a.hidden.length ? a.hidden.join(',') : 'pitch';
+      const showFirst = a.hints?.showFirstNote ? '1' : '0';
+      x += `      <Assignment id="${esc(a.id)}" title="${esc(a.title || '')}"` +
+        ` startMi="${a.range.startMi}" endMi="${a.range.endMi}"` +
+        ` hidden="${esc(hidden)}" showFirstNote="${showFirst}"` +
+        (Number.isFinite(a.createdAt) ? ` createdAt="${a.createdAt}"` : '') + `/>\n`;
+    }
+    x += `    </PautaAssignments>\n`;
+  }
+  if (typeof s.answerKey === 'string' && s.answerKey) {
+    x += `    <PautaAnswerKey>${esc(s.answerKey)}</PautaAnswerKey>\n`;
+  }
 
   // Part metadata
   s.parts.forEach((part, pi) => {
@@ -15143,14 +15220,10 @@ function previewStarterScore() {
 }
 
 function _exportMSCZ(score, answerKey, filename) {
+  // The exporter now writes score.answerKey itself, so one pass is enough.
+  if (answerKey) score.answerKey = answerKey;
   const mscx = SCORE.exportMSCXFromScore(score);
-  if (answerKey) {
-    score.answerKey = answerKey;
-    const mscxWithKey = SCORE.exportMSCXFromScore(score);
-    _downloadBlob(new Blob([mscxWithKey], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
-  } else {
-    _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
-  }
+  _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
   UI.showToast('Downloaded: ' + filename + '.mscx');
 }
 

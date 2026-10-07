@@ -1109,14 +1109,10 @@ function previewStarterScore() {
 }
 
 function _exportMSCZ(score, answerKey, filename) {
+  // The exporter now writes score.answerKey itself, so one pass is enough.
+  if (answerKey) score.answerKey = answerKey;
   const mscx = SCORE.exportMSCXFromScore(score);
-  if (answerKey) {
-    score.answerKey = answerKey;
-    const mscxWithKey = SCORE.exportMSCXFromScore(score);
-    _downloadBlob(new Blob([mscxWithKey], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
-  } else {
-    _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
-  }
+  _downloadBlob(new Blob([mscx], { type: 'application/vnd.recordare.musicxml' }), filename + '.mscx');
   UI.showToast('Downloaded: ' + filename + '.mscx');
 }
 
