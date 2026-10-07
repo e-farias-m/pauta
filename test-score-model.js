@@ -822,6 +822,49 @@ assertEq(_markersOf(_mkM[3]), 'ds', 'measure 4 carries only the ds');
 assertEq(_mkM.filter((m, i) => m.lineBreak && i !== 1).length, 0,
   'the line break lands only on measure 2');
 
+// Volta membership is score-wide like the markers above, so it is written
+// on the reference stave only and repair has to spread it back across the
+// system when the file is read in.
+const mkVol = _markerScore();
+mkVol.parts[0].staves[0].measures[0].ending = [1];
+mkVol.parts[0].staves[0].measures[1].ending = [1, 2];
+const mkVolXml = exportMSCXFromScore(mkVol);
+const mkVolBack = parseMSCX(mkVolXml);
+assertEq(JSON.stringify(mkVolBack.parts[0].staves[0].measures[0].ending), JSON.stringify([1]),
+  'a single-ending volta round-trips');
+assertEq(JSON.stringify(mkVolBack.parts[0].staves[0].measures[1].ending), JSON.stringify([1, 2]),
+  'a shared 1.–2. bracket round-trips');
+assertEq(_count(mkVolXml, '<Volta>'), 2, 'voltas are emitted once, not once per stave');
+assert(!('ending' in mkVolBack.parts[0].staves[1].measures[1]),
+  'the second stave is left for repair to fill in');
+repairScore(mkVolBack);
+assert(mkVolBack.parts.every(p => p.staves.every(st => JSON.stringify(st.measures[1].ending) === '[1,2]')),
+  'repair spreads imported voltas to every stave');
+assert(mkVolBack.parts.every(p => p.staves.every(st => !('ending' in st.measures[2]))),
+  'repair leaves measures outside every volta untagged');
+
+// The reference stave decides a disagreement, like every other score-wide flag.
+const vtDisagree = _markerScore();
+vtDisagree.parts[0].staves[0].measures[1].ending = [1];
+vtDisagree.parts[0].staves[1].measures[1].ending = [2];
+repairScore(vtDisagree);
+assert(vtDisagree.parts.every(p => p.staves.every(st => JSON.stringify(st.measures[1].ending) === '[1]')),
+  'a disagreement over a volta settles on the reference stave');
+
+// A stale volta on a later stave is a stray, not a second opinion.
+const vtStray = _markerScore();
+vtStray.parts[0].staves[1].measures[1].ending = [2];
+repairScore(vtStray);
+assert(vtStray.parts.every(p => p.staves.every(st => !('ending' in st.measures[1]))),
+  'a volta found only on the second stave is cleared everywhere');
+
+// A malformed value is dropped rather than copied through.
+const vtBad = _markerScore();
+vtBad.parts[0].staves[0].measures[1].ending = 2;
+repairScore(vtBad);
+assert(vtBad.parts.every(p => p.staves.every(st => !('ending' in st.measures[1]))),
+  'a volta that is not a list of numbers is dropped');
+
 // Score-wide flags are written once, not once per stave: MuseScore would
 // otherwise place a marker on every staff of the system.
 assertEq(_count(mkXml, '<LayoutBreak>'), 1, 'the line break is emitted exactly once');
@@ -1094,6 +1137,65 @@ assert(repParts.parts.every(p => p.staves.every(st => st.measures[2].barline ===
   'a repeat found only in part 2 is applied to every part');
 assert(repairScore(repParts).parts.every(p => p.staves.every(st => st.measures[2].barline === 'repeat_end')),
   'the imported repeat still holds after repair');
+
+// ── Voltas ───────────────────────────────────────────────────────
+//
+// m.ending lists the volta numbers a measure belongs to. MusicXML writes
+// the bracket as an <ending type="start"> and an <ending type="stop">, so
+// membership has to be resolved by walking the measures in order: start
+// opens, stop closes, and every measure in between carries the number —
+// the stopping measure included.
+
+const _ends = m => (Array.isArray(m.ending) ? m.ending.join(',') : '');
+
+const voltas = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<barline location="left"><repeat direction="forward"/></barline>', true) +
+  _mxMeasure(2, '<barline location="left"><ending number="1" type="start"/></barline>') +
+  _mxMeasure(3, '<barline location="right"><ending number="1" type="stop"/>' +
+                '<repeat direction="backward"/></barline>') +
+  _mxMeasure(4, '<barline location="left"><ending number="2" type="start"/></barline>' +
+                '<barline location="right"><ending number="2" type="stop"/></barline>')));
+const vtM = voltas.parts[0].staves[0].measures;
+assertEq(_ends(vtM[0]), '', 'a measure before the bracket carries no ending');
+assertEq(_ends(vtM[1]), '1', 'the measure holding the start joins its ending');
+assertEq(_ends(vtM[2]), '1', 'the measure holding the stop belongs to it too');
+assertEq(_ends(vtM[3]), '2', 'the second ending is read on its own');
+assertEq(vtM[1].barline, undefined, 'a barline with no style or repeat still yields none');
+
+// A shared 1.–2. bracket carries both numbers on every measure it covers.
+const sharedV = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<barline location="left"><ending number="1,2" type="start"/></barline>', true) +
+  _mxMeasure(2, '<barline location="right"><ending number="1,2" type="stop"/></barline>')));
+assertEq(_ends(sharedV.parts[0].staves[0].measures[0]), '1,2', 'a shared bracket lists both endings');
+assertEq(_ends(sharedV.parts[0].staves[0].measures[1]), '1,2', 'and lists them on every measure');
+
+// The number attribute occasionally arrives as a range.
+const rangeV = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<barline location="left"><ending number="1-2" type="start"/></barline>', true) +
+  _mxMeasure(2)));
+assertEq(_ends(rangeV.parts[0].staves[0].measures[0]), '1,2', 'a number range expands to both endings');
+
+// discontinue closes the bracket as well; it only says the line does not
+// run on to the next ending.
+const discV = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<barline location="left"><ending number="1" type="start"/></barline>', true) +
+  _mxMeasure(2, '<barline location="right"><ending number="1" type="discontinue"/></barline>') +
+  _mxMeasure(3)));
+const discM = discV.parts[0].staves[0].measures;
+assertEq(_ends(discM[1]), '1', 'discontinue closes the bracket like stop');
+assertEq(_ends(discM[2]), '', 'the measure after a closed bracket carries no ending');
+
+// A volta written in only one part still reaches every part, and holds
+// once repair has run — otherwise part 1 would clear it again.
+const voltParts = parseMusicXML(_mxTwo(
+  _mxMeasure(1, '', true) + _mxMeasure(2) + _mxMeasure(3),
+  _mxMeasure(1, '', true) + _mxMeasure(2) + _mxMeasure(3,
+    '<barline location="left"><ending number="1" type="start"/></barline>' +
+    '<barline location="right"><ending number="1" type="stop"/></barline>')));
+assert(voltParts.parts.every(p => p.staves.every(st => _ends(st.measures[2]) === '1')),
+  'a volta found only in part 2 is applied to every part');
+assert(repairScore(voltParts).parts.every(p => p.staves.every(st => _ends(st.measures[2]) === '1')),
+  'the imported volta still holds after repair');
 
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);

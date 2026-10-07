@@ -262,9 +262,10 @@ const BARLINE_FROM_MSCX = Object.fromEntries(
  * are treated as strays rather than as extra copies.
  *
  * The markers and lineBreak are booleans; barline is a string, and its
- * absence means the default.
+ * absence means the default; ending is the list of volta numbers the measure
+ * belongs to, and an absent or empty list means it sits outside every volta.
  */
-const SCORE_WIDE_MEASURE_FLAGS = [...MARKER_KEYS, 'lineBreak', 'barline'];
+const SCORE_WIDE_MEASURE_FLAGS = [...MARKER_KEYS, 'lineBreak', 'barline', 'ending'];
 
 /**
  * Toggle a navigation marker at measure `mi` on every stave in the score.
@@ -351,6 +352,16 @@ function _repairMeasure(m) {
   if (!Array.isArray(m.notes) || !m.notes.length) m.notes = [mkRest('w')];
   else m.notes = m.notes.map(n => _repairNote(n, n?.voice || 1));
   if (m.lineBreak !== true) m.lineBreak = false;
+  // A volta is a list of ending numbers. Anything else is dropped here
+  // rather than left for the readers to defend against: repairScore's
+  // contract is that the measure is well formed when it returns, and this
+  // runs on the reference stave too, which _syncScoreWideFlags copies
+  // from but never rewrites.
+  if ('ending' in m) {
+    const ok = Array.isArray(m.ending) && m.ending.length > 0 &&
+      m.ending.every(n => Number.isInteger(n) && n > 0);
+    if (!ok) delete m.ending;
+  }
   return m;
 }
 
@@ -417,16 +428,26 @@ function _syncScoreWideFlags(score) {
       const m = staves[i].measures?.[mi];
       if (!m) continue;
       for (const key of SCORE_WIDE_MEASURE_FLAGS) {
-        if (key === 'lineBreak') { m.lineBreak = refM.lineBreak === true; continue; }
-        if (key === 'barline') {
-          if (refM.barline) m.barline = refM.barline; else delete m.barline;
-          continue;
-        }
-        if (refM[key] === true) m[key] = true; else delete m[key];
+        const v = _normalizeScoreWideFlag(key, refM[key]);
+        if (v === undefined) delete m[key]; else m[key] = v;
       }
     }
   }
   return score;
+}
+
+/**
+ * Score-wide measure flags come in three shapes, and each needs its own
+ * normalization when the reference stave's value is copied onto the other
+ * staves: markers are booleans that are dropped when absent, the barline is
+ * an opaque string, and a volta is a list of ending numbers.
+ * @returns the value to store, or undefined to drop the flag
+ */
+function _normalizeScoreWideFlag(key, value) {
+  if (key === 'lineBreak') return value === true;
+  if (key === 'barline') return value || undefined;
+  if (key === 'ending') return Array.isArray(value) && value.length ? value.slice() : undefined;
+  return value === true ? true : undefined;
 }
 
 /** Normalize imported, autosaved, or legacy score data to the current contract. @param {*} raw @returns {Score} */
@@ -1005,6 +1026,14 @@ function parseMSCX(xmlStr) {
         measure.lineBreak = true;
       }
 
+      // Volta membership, written on every measure the bracket covers.
+      const voltaEl = nq(mEl, 'Volta') || nq(mEl, 'volta');
+      if (voltaEl) {
+        const nums = (txt(voltaEl, 'numbers') || '')
+          .split(/[,\s]+/).map(s => parseInt(s, 10)).filter(Number.isFinite);
+        if (nums.length) measure.ending = nums;
+      }
+
       // Barline. Unlike the score-wide flags above this is stored per
       // stave, so it is read from this stave's own measure element.
       const blEl = nq(mEl, 'BarLine') || nq(mEl, 'barline');
@@ -1163,6 +1192,25 @@ function parseMusicXML(xmlStr) {
     return null;
   }
 
+  // The ending attribute holds the numbers of a shared bracket: "1", "1,2"
+  // for a 1.–2. volta, and occasionally a range like "1-2". Anything that
+  // does not parse to a number is dropped rather than guessed at.
+  function mxmlEndingNumbers(eEl) {
+    const raw = (eEl.getAttribute('number') || eEl.getAttribute('text') || '').trim();
+    const out = [];
+    for (const tok of raw.split(/[,\s]+/).filter(Boolean)) {
+      const range = tok.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+      if (range) {
+        const lo = parseInt(range[1], 10), hi = parseInt(range[2], 10);
+        for (let n = Math.min(lo, hi); n <= Math.max(lo, hi); n++) out.push(n);
+        continue;
+      }
+      const n = parseInt(tok, 10);
+      if (Number.isFinite(n)) out.push(n);
+    }
+    return out;
+  }
+
   const _typeToDur = {
     'maxima':'w','long':'w','breve':'w','whole':'w',
     'half':'h','quarter':'q','eighth':'8',
@@ -1213,6 +1261,7 @@ function parseMusicXML(xmlStr) {
   const mxmlLineBreakAt = new Set();
   const mxmlMarkersAt = new Map();
   const mxmlBarlineAt = new Map();
+  const mxmlEndingsAt = new Map();
   partEls.forEach(pEl => {
     nqa(pEl, 'measure').forEach((pmEl, mi) => {
       const printEl = nq(pmEl, 'print');
@@ -1231,6 +1280,31 @@ function parseMusicXML(xmlStr) {
       // First part wins, so a file whose parts disagree settles the same
       // way every time instead of depending on which part came last.
       if (barline && !mxmlBarlineAt.has(mi)) mxmlBarlineAt.set(mi, barline);
+    });
+  });
+
+  // A volta is a span, not a point: <ending> marks where the bracket starts
+  // and where it stops, and every measure between them belongs to it. The
+  // membership is therefore resolved by walking each part forward with an
+  // open set — start adds the ending, stop or discontinue takes it away
+  // again, and every measure seen while it is open carries the number.
+  // MusicXML repeats the markup in every part, so a measure already filled
+  // in by an earlier part is left alone.
+  partEls.forEach(pEl => {
+    const open = new Set();
+    nqa(pEl, 'measure').forEach((pmEl, mi) => {
+      const starts = new Set(), stops = new Set();
+      for (const eEl of nqa(pmEl, 'ending')) {
+        const nums = mxmlEndingNumbers(eEl);
+        const type = (eEl.getAttribute('type') || '').trim().toLowerCase();
+        // 'discontinue' closes the bracket too; it only says the line does
+        // not run on to the next ending.
+        if (type === 'start') nums.forEach(n => starts.add(n));
+        else nums.forEach(n => stops.add(n));
+      }
+      starts.forEach(n => open.add(n));
+      if (open.size && !mxmlEndingsAt.has(mi)) mxmlEndingsAt.set(mi, new Set(open));
+      stops.forEach(n => open.delete(n));
     });
   });
 
@@ -1502,6 +1576,9 @@ function parseMusicXML(xmlStr) {
     for (const [mi, value] of mxmlBarlineAt) {
       stampFlag(mi, m => { m.barline = value; });
     }
+    for (const [mi, nums] of mxmlEndingsAt) {
+      stampFlag(mi, m => { m.ending = [...nums].sort((a, b) => a - b); });
+    }
 
     score.parts.push(part);
   });
@@ -1593,6 +1670,14 @@ function exportMSCXFromScore(s) {
           x += `        <${tag}>\n          <subtype>${subtype}</subtype>\n        </${tag}>\n`;
         }
         if (m.lineBreak) x += `        <LayoutBreak>\n          <subtype>system</subtype>\n        </LayoutBreak>\n`;
+        // A volta carries its membership on every measure it covers rather
+        // than as a bracket with two ends, so round-tripping needs no span
+        // bookkeeping: import just reads the numbers back. MuseScore spells
+        // voltas as spanners and will drop this, the same way it already
+        // ignores PautaEngravingSettings above.
+        if (Array.isArray(m.ending) && m.ending.length) {
+          x += `        <Volta>\n          <numbers>${m.ending.join(',')}</numbers>\n        </Volta>\n`;
+        }
       }
 
       // Tempo
