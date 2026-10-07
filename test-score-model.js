@@ -1076,6 +1076,14 @@ const dbl = parseMusicXML(_mxDoc(
 assertEq(dbl.parts[0].staves[0].measures[1].barline, 'double',
   'a light-light barline is read as a double barline');
 
+// heavy-light is a thick-thin section divider, not the thin-thin graphic
+// 'double' draws, so it is left alone rather than mapped to the wrong one.
+const heavyLight = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '', true) +
+  _mxMeasure(2, '<barline location="left"><bar-style>heavy-light</bar-style></barline>')));
+assert(!('barline' in heavyLight.parts[0].staves[0].measures[1]),
+  'a heavy-light section divider is not read as a double barline');
+
 // A repeat written in only one part still reaches every part, and holds
 // once repair has run.
 const repParts = parseMusicXML(_mxTwo(

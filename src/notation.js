@@ -1159,7 +1159,7 @@ function parseMusicXML(xmlStr) {
     if (forward) return 'repeat_begin';
     if (backward) return 'repeat_end';
     if (rightStyle === 'light-heavy') return 'end';
-    if (rightStyle === 'light-light' || leftStyle === 'light-light' || leftStyle === 'heavy-light') return 'double';
+    if (rightStyle === 'light-light' || leftStyle === 'light-light') return 'double';
     return null;
   }
 
