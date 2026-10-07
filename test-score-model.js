@@ -777,5 +777,117 @@ assert(!('segno' in ragged.parts[1].staves[0].measures[0]),
   'a stave with no measure to compare against is skipped');
 assertEq(_syncScoreWideFlags(undefined), undefined, '_syncScoreWideFlags tolerates undefined');
 
+// ── MSCX round-trip: markers and line breaks ─────────────────────
+//
+// exportMSCXFromScore used to emit neither navigation markers nor line
+// breaks, and parseMSCX read back neither, so saving to .mscx and reopening
+// quietly destroyed every one of them.
+
+const _count = (hay, needle) => hay.split(needle).length - 1;
+
+function _markerScore() {
+  const sc = createScore({ title: 'Round trip', instruments: ['Piano'] });
+  for (let i = 1; i < 4; i++) sc.parts[0].staves[0].measures.push(emptyMeasure());
+  for (const stave of sc.parts[0].staves) while (stave.measures.length < 4) stave.measures.push(emptyMeasure());
+  return sc;
+}
+
+// Every marker key and the line break survive export then reparse.
+const mkSc = _markerScore();
+SCORE.toggleMarker(mkSc, 0, 'segno');
+SCORE.toggleMarker(mkSc, 1, 'coda');
+SCORE.toggleMarker(mkSc, 2, 'fine');
+SCORE.toggleMarker(mkSc, 2, 'dc');
+SCORE.toggleMarker(mkSc, 3, 'ds');
+SCORE.setLineBreak(mkSc, 1, true);
+const mkXml = exportMSCXFromScore(mkSc);
+const mkBack = parseMSCX(mkXml);
+assertEq(mkBack.parts[0].staves[0].measures[0].segno, true, 'segno round-trips');
+assertEq(mkBack.parts[0].staves[0].measures[1].coda, true, 'coda round-trips');
+assertEq(mkBack.parts[0].staves[0].measures[2].fine, true, 'fine round-trips');
+assertEq(mkBack.parts[0].staves[0].measures[2].dc, true, 'dc round-trips');
+assertEq(mkBack.parts[0].staves[0].measures[3].ds, true, 'ds round-trips');
+assertEq(mkBack.parts[0].staves[0].measures[1].lineBreak, true, 'line break round-trips');
+assertEq(mkBack.parts[0].staves[0].measures[0].lineBreak, false, 'untagged measures stay clear');
+
+// Exactly the markers that were set come back — asserting only "segno is
+// true" would pass even if a wrong tag/subtype mapping had written segno
+// onto the wrong measure, so pin the whole set per measure.
+const _markersOf = m => ['segno','coda','fine','dc','ds'].filter(k => m[k] === true).join(',');
+const _mkM = mkBack.parts[0].staves[0].measures;
+assertEq(_markersOf(_mkM[0]), 'segno', 'measure 1 carries only the segno');
+assertEq(_markersOf(_mkM[1]), 'coda', 'measure 2 carries only the coda');
+assertEq(_markersOf(_mkM[2]), 'fine,dc', 'measure 3 carries only fine and dc');
+assertEq(_markersOf(_mkM[3]), 'ds', 'measure 4 carries only the ds');
+assertEq(_mkM.filter((m, i) => m.lineBreak && i !== 1).length, 0,
+  'the line break lands only on measure 2');
+
+// Score-wide flags are written once, not once per stave: MuseScore would
+// otherwise place a marker on every staff of the system.
+assertEq(_count(mkXml, '<LayoutBreak>'), 1, 'the line break is emitted exactly once');
+assertEq(_count(mkXml, '<subtype>segno</subtype>'), 1, 'the segno is emitted exactly once');
+
+// Export only carries them on the reference stave, so repair has to spread
+// them back across the system when the file is read in.
+assert(!('segno' in mkBack.parts[0].staves[1].measures[0]),
+  'the second stave is left for repair to fill in');
+repairScore(mkBack);
+assert(mkBack.parts.every(p => p.staves.every(st => st.measures[0].segno === true)),
+  'repair spreads imported markers to every stave');
+assertEq(mkBack.parts[0].staves[1].measures[1].lineBreak, true,
+  'repair spreads the imported line break to every stave');
+
+// A score with none of these emits none.
+const mkClean = _markerScore();
+const mkCleanXml = exportMSCXFromScore(mkClean);
+assertEq(_count(mkCleanXml, '<LayoutBreak>'), 0, 'a score without line breaks emits none');
+assertEq(_count(mkCleanXml, '<Marker>'), 0, 'a score without markers emits none');
+const mkCleanBack = parseMSCX(mkCleanXml);
+assert(mkCleanBack.parts.every(p => p.staves.every(st =>
+  [0,1,2,3].every(mi => !('segno' in st.measures[mi]) && !('coda' in st.measures[mi]) &&
+                        !('fine' in st.measures[mi]) && !('dc' in st.measures[mi]) &&
+                        !('ds' in st.measures[mi]) && st.measures[mi].lineBreak === false))),
+  'an unmarked score round-trips as unmarked');
+
+// The parser takes a marker from whichever stave carries it, so a file
+// written by another tool that puts markers on staff 2 still reads back.
+const foreign = `
+<museScore version="4.0"><Score>
+  <Part><Staff id="1"/><trackName>Flute</trackName></Part>
+  <Staff id="1">
+    <Measure number="1"><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+    <Measure number="2"><Marker><subtype>coda</subtype></Marker><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+    <Measure number="3"><Jump><subtype>ds_al_fine</subtype></Jump><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+    <Measure number="4"><LayoutBreak><subtype>system</subtype></LayoutBreak><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+    <Measure number="5"><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+  </Staff>
+</Score></museScore>`;
+const foreignBack = parseMSCX(foreign);
+const fStave = foreignBack.parts[0].staves[0];
+assertEq(fStave.measures.length, 5, 'the foreign fixture parses five measures');
+assertEq(fStave.measures[1].coda, true, 'a Marker is read');
+assertEq(fStave.measures[2].ds, true, 'a Jump is read');
+assertEq(fStave.measures[3].lineBreak, true, 'a LayoutBreak is read');
+
+// Neither the subtype value nor the element casing of the system break is
+// assumed, so files written by other tools still parse.
+const cased = `
+<museScore version="4.0"><Score>
+  <Part><Staff id="1"/><trackName>Flute</trackName></Part>
+  <Staff id="1">
+    <Measure number="1"><Marker><subtype>Segno</subtype></Marker><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+    <Measure number="2"><Jump><subtype>DC_AL_FINE</subtype></Jump><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+    <Measure number="3"><LayoutBreak><subtype>System</subtype></LayoutBreak><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+    <Measure number="4"><layoutBreak><subtype>system-break</subtype></layoutBreak><voice><Rest><durationType>whole</durationType></Rest></voice></Measure>
+  </Staff>
+</Score></museScore>`;
+const casedBack = parseMSCX(cased);
+const cStave = casedBack.parts[0].staves[0];
+assertEq(cStave.measures[0].segno, true, 'a capitalized Marker subtype is read');
+assertEq(cStave.measures[1].dc, true, 'a capitalized Jump subtype is read');
+assertEq(cStave.measures[2].lineBreak, true, 'a capitalized LayoutBreak subtype is read');
+assertEq(cStave.measures[3].lineBreak, true, 'a lowercase layoutBreak element is read');
+assertEq(_markersOf(cStave.measures[1]), 'dc', 'a Jump subtype reads as dc, not ds');
+
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);

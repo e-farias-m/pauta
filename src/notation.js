@@ -218,6 +218,23 @@ function setKeySig(score, mi, ks) {
 const MARKER_KEYS = ['segno', 'coda', 'fine', 'dc', 'ds'];
 
 /**
+ * How each marker is spelled in .mscx, so export and import agree on one
+ * contract instead of drifting. MuseScore writes these as Marker elements
+ * for where-to-play anchors and as Jump elements for the D.C./D.S. family;
+ * the system break is a LayoutBreak.
+ */
+const MARKER_MSCX = {
+  segno: { tag: 'Marker', subtype: 'segno' },
+  coda:  { tag: 'Marker', subtype: 'coda' },
+  fine:  { tag: 'Marker', subtype: 'fine' },
+  dc:    { tag: 'Jump',   subtype: 'dc_al_fine' },
+  ds:    { tag: 'Jump',   subtype: 'ds_al_fine' },
+};
+
+/** LayoutBreak subtypes that mean "start a new system here". */
+const LAYOUT_BREAK_MSCX = ['system', 'system-break'];
+
+/**
  * Measure flags that belong to the score rather than to one stave. The
  * first stave — part 1, stave 1 — is authoritative, because that is the
  * one both renderers read and the one every known writer has always
@@ -947,6 +964,20 @@ function parseMSCX(xmlStr) {
         if (!measure.tempo) measure.tempo = {name, bpm};
       }
 
+      // Navigation markers and system break. Read from any stave even though
+      // export writes them on the reference stave only, so a file edited by
+      // an older build or by another tool still comes back intact.
+      for (const key of MARKER_KEYS) {
+        const { tag, subtype } = MARKER_MSCX[key];
+        if (nqa(mEl, tag).some(e => (txt(e, 'subtype') || '').trim().toLowerCase() === subtype)) {
+          measure[key] = true;
+        }
+      }
+      const breaks = nqa(mEl, 'LayoutBreak').concat(nqa(mEl, 'layoutBreak'));
+      if (breaks.some(e => LAYOUT_BREAK_MSCX.includes((txt(e, 'subtype') || '').trim().toLowerCase()))) {
+        measure.lineBreak = true;
+      }
+
       if (!measure.notes.length) measure.notes.push(mkRest('w'));
 
       out.push(measure);
@@ -1422,6 +1453,19 @@ function exportMSCXFromScore(s) {
       // Rehearsal mark
       const rm = (s.rehearsalMarks||[]).find(r => r.mi === mi);
       if (rm) x += `        <RehearsalMark>\n          <text>${esc(rm.label)}</text>\n        </RehearsalMark>\n`;
+
+      // Navigation markers and system break. These belong to the score, so
+      // only the reference stave emits them; repairScore spreads them back
+      // over every stave when the file is read in. Writing them per stave
+      // would hand MuseScore a duplicate marker on every staff.
+      if (si === 0) {
+        for (const key of MARKER_KEYS) {
+          if (!m[key]) continue;
+          const { tag, subtype } = MARKER_MSCX[key];
+          x += `        <${tag}>\n          <subtype>${subtype}</subtype>\n        </${tag}>\n`;
+        }
+        if (m.lineBreak) x += `        <LayoutBreak>\n          <subtype>system</subtype>\n        </LayoutBreak>\n`;
+      }
 
       // Tempo
       if (m.tempo && si === 0) {
