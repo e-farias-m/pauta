@@ -65,6 +65,7 @@ const {
   applyMarker, clearMarker, toggleLineBreak,
   buildPlaybackOrder,
   renderVoltaBrackets,
+  yToPitchAccurate,
 } = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
@@ -1257,6 +1258,74 @@ assertEq(svg.querySelectorAll('line').length, 0, 'and no bracket lines');
 // Restores the state later tests were written against.
 APP.score = vrClean;
 APP.staveLayout = [];
+
+// ── Staff line → pitch hit-testing ───────────────────────────────
+//
+// yToPitchAccurate is the whole of "click the staff, get a note": it
+// turns a pointer Y into a diatonic position and snaps to the nearest
+// one. It is pure, so it is pinned directly rather than through a tap —
+// every ledger position, clef and rounding boundary below is a real
+// click target that previously had no test at all.
+
+const _staff = (clef, top = 100, bottom = 140) => ({ topLineY: top, bottomY: bottom, clef });
+
+// Treble, top line down to bottom line: nine positions, one every 5 px
+// across a 40 px staff.
+const _treble = _staff('treble');
+for (const [y, midi, label] of [
+  [100, 77, 'top line F5'],
+  [105, 76, 'top space E5'],
+  [110, 74, 'line 1 D5'],
+  [115, 72, 'space C5'],
+  [120, 71, 'middle line B4'],
+  [125, 69, 'space A4'],
+  [130, 67, 'line 3 G4'],
+  [135, 65, 'space F4'],
+  [140, 64, 'bottom line E4'],
+]) {
+  assertEq(yToPitchAccurate(y, _treble), midi, `treble y=${y} is the ${label}`);
+}
+
+// Ledger positions are not clamped to the staff: above the top line and
+// below the bottom line the mapping keeps walking outward one step at a
+// time, which is what makes a click on a ledger line land on its note.
+assertEq(yToPitchAccurate(95, _treble), 79, 'the space above the top line is G5');
+assertEq(yToPitchAccurate(90, _treble), 81, 'the first ledger above is A5');
+assertEq(yToPitchAccurate(145, _treble), 62, 'the space below the bottom line is D4');
+assertEq(yToPitchAccurate(150, _treble), 60, 'the first ledger below is C4');
+
+// Each position is 5 px tall, so the snap boundary sits half a pixel
+// either side of the middle line. Math.round takes .5 upward, which puts
+// the lower boundary just above 117.5 rather than on it — this is the
+// exact behaviour that decides which of two adjacent notes a click lands.
+assertEq(yToPitchAccurate(117.499, _treble), 72, 'a hair above the boundary snaps up to C5');
+assertEq(yToPitchAccurate(117.5, _treble), 72, 'exactly on the boundary rounds upward');
+assertEq(yToPitchAccurate(117.501, _treble), 71, 'a hair below it snaps to B4');
+assertEq(yToPitchAccurate(122.5, _treble), 71, 'the far boundary still counts as B4');
+assertEq(yToPitchAccurate(122.501, _treble), 69, 'and one pixel further is A4');
+
+// Each clef anchors the middle line to a different reference pitch.
+assertEq(yToPitchAccurate(120, _staff('treble')), 71, 'the treble middle line is B4');
+assertEq(yToPitchAccurate(120, _staff('alto')), 60, 'the alto middle line is C4');
+assertEq(yToPitchAccurate(120, _staff('bass')), 50, 'the bass middle line is D3');
+assertEq(yToPitchAccurate(120, _staff('whistle-blower')), 71,
+  'an unrecognised clef falls back to treble instead of throwing');
+
+// Percussion maps Y straight to a drum rather than a diatonic position:
+// there is no staff to snap to, only a hit zone per line and space.
+const _perc = _staff('percussion');
+assertEq(yToPitchAccurate(99, _perc), 42, 'above the staff is a closed hi-hat');
+assertEq(yToPitchAccurate(100, _perc), 42, 'the top line is a closed hi-hat');
+assertEq(yToPitchAccurate(105, _perc), 49, 'the top space is the crash');
+assertEq(yToPitchAccurate(110, _perc), 50, 'the next line down is the high tom');
+assertEq(yToPitchAccurate(120, _perc), 45, 'the middle line is the mid tom');
+assertEq(yToPitchAccurate(125, _perc), 38, 'the middle space is the snare');
+assertEq(yToPitchAccurate(140, _perc), 36, 'the bottom line is the bass drum');
+
+// Far off the score the result is clamped to a playable range rather
+// than running away with the arithmetic.
+assertEq(yToPitchAccurate(-1000, _treble), 120, 'far above the score clamps to MIDI 120');
+assertEq(yToPitchAccurate(10000, _treble), 12, 'far below it clamps to MIDI 12');
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);
