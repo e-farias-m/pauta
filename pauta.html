@@ -6407,6 +6407,7 @@ function _renderScoreAnnotations(rc) {
   UI.renderChordSymbols();
   UI.renderLyrics();
   renderNavigationMarkers();
+  renderVoltaBrackets();
   renderLyricClickHandlers();
   renderBWNoteheads();
   if (APP.showTheoryOverlay) _renderTheoryOverlay();
@@ -7379,9 +7380,56 @@ function renderNavigationMarkers() {
   });
 }
 
+// ── Volta brackets ───────────────────────────────────────────────
+// Draws the numbered bracket over every run of measures that share a
+// volta. A run is cut at a system break, because the bracket cannot span
+// two lines of music; the remainder is picked up on the next line.
+function renderVoltaBrackets() {
+  const svgEl = document.getElementById('score-svg')?.querySelector('svg');
+  if (!svgEl || !APP.score) return;
+  const measures = APP.score.parts[0].staves[0].measures;
+  const runOf = (m) => (Array.isArray(m?.ending) && m.ending.length) ? m.ending : null;
+  const sameRun = (a, b) => a.length === b.length && a.every((n, i) => n === b[i]);
+  const label = (nums) => nums.length === 1
+    ? `${nums[0]}.`
+    : `${nums[0]}.–${nums[nums.length - 1]}.`;
+
+  // Offsets from the top line of the stave. The bracket clears the
+  // navigation markers at -14 so a segno under the first measure of a
+  // volta is not covered.
+  const Y_LINE = -24, Y_TICK = 7, Y_LABEL = -28;
+
+  for (let mi = 0; mi < measures.length; mi++) {
+    const run = runOf(measures[mi]);
+    const startSL = APP.staveLayout.find(l => l.mi === mi && l.si === 0);
+    if (!run || !startSL) continue;
+    let endSL = startSL;
+    for (let j = mi + 1; j < measures.length; j++) {
+      const next = runOf(measures[j]);
+      if (!next || !sameRun(run, next)) break;
+      const sl = APP.staveLayout.find(l => l.mi === j && l.si === 0);
+      // A new system starts back at the left margin and sits at a
+      // different height, so either signal ends the run here.
+      if (!sl || sl.x <= endSL.x || sl.topLineY !== endSL.topLineY) break;
+      endSL = sl;
+    }
+    const x1 = startSL.x;
+    const x2 = endSL.x + endSL.w;
+    const y = startSL.topLineY + Y_LINE;
+    svgLine(svgEl, {x1, y1: y, x2, y2: y, stroke: '#111', strokeWidth: 1.2, strokeLinecap: 'butt'});
+    svgLine(svgEl, {x1, y1: y, x2: x1, y2: y + Y_TICK, stroke: '#111', strokeWidth: 1.2});
+    svgLine(svgEl, {x1: x2, y1: y, x2, y2: y + Y_TICK, stroke: '#111', strokeWidth: 1.2});
+    svgText(svgEl, {
+      x: (x1 + x2) / 2, y: startSL.topLineY + Y_LABEL, text: label(run),
+      fontSize: 11, fontWeight: '600', fill: '#111', anchor: 'middle', pointerEvents: 'none'
+    });
+    mi = endSL.mi;
+  }
+}
+
 // ── Playback Order Builder ───────────────────────────────────────
 // Builds a flat array of measure indices in play order, handling
-// repeat barlines, D.C., D.S., segno, coda, and Fine markers.
+// repeat barlines, volta endings, D.C., D.S., segno, coda, and Fine.
 function buildPlaybackOrder(score) {
   const refM = score.parts[0].staves[0].measures;
   const nM = refM.length;
@@ -7393,23 +7441,51 @@ function buildPlaybackOrder(score) {
     if (m.coda)  codaIdx = i;
     if (m.fine)  fineIdx = i;
   }
+
+  // A volta numbers the passes through the repeat around it: [1] plays the
+  // first time and is dropped on the second, [2] waits for the second, and
+  // [1,2] — a shared 1.–2. bracket — plays both. A measure with no ending
+  // plays every time, so a score without voltas is unaffected. The value is
+  // read defensively so that a score which has not been through repair
+  // still plays instead of throwing.
+  const inPass = (m, pass) => {
+    const e = m.ending;
+    return !Array.isArray(e) || !e.length || e.includes(pass);
+  };
+
   // Step 1: linear order with repeat barlines expanded
-  let order = [];
-  let i = 0;
-  while (i < nM) {
-    order.push(i);
+  const order = [];
+  let inRepeat = false;
+  for (let i = 0; i < nM; i++) {
     const m = refM[i];
-    if ((m.barline === 'repeat_end' || m.barline === 'repeat_both') && i > 0) {
+    const endsRepeat = i > 0 && (m.barline === 'repeat_end' || m.barline === 'repeat_both');
+    const beginsRepeat = m.barline === 'repeat_begin' || m.barline === 'repeat_both';
+
+    // A later ending waits for the repeat to come round again. The repeat
+    // end is still examined when this pass does not play it, since it is
+    // what sends playback round — hence endsRepeat is handled below whether
+    // or not the measure itself went in.
+    if (!(inRepeat && !inPass(m, 1))) order.push(i);
+
+    if (endsRepeat) {
       let found = -1;
-      for (let j = order.length - 2; j >= 0; j--) {
+      // If the measure just went in, skip it: a repeat-both would otherwise
+      // match itself as the start of the span it is about to repeat.
+      const lastJ = order[order.length - 1] === i ? order.length - 2 : order.length - 1;
+      for (let j = lastJ; j >= 0; j--) {
         const pM = refM[order[j]];
         if (pM.barline === 'repeat_begin' || pM.barline === 'repeat_both') { found = order[j]; break; }
       }
       if (found >= 0) {
-        for (let k = found; k <= i; k++) order.push(k);
+        for (let k = found; k <= i; k++) {
+          if (!inPass(refM[k], 2)) continue;
+          order.push(k);
+        }
       }
+      inRepeat = beginsRepeat;
+    } else if (beginsRepeat) {
+      inRepeat = true;
     }
-    i++;
   }
   // Step 2: Build result from base order
   const result = [...order];
@@ -7420,12 +7496,12 @@ function buildPlaybackOrder(score) {
 
   if (hasDC) {
     const endAt = fineIdx >= 0 ? fineIdx : nM - 1;
-    for (let k = 0; k <= endAt; k++) result.push(k);
+    for (let k = 0; k <= endAt; k++) if (inPass(refM[k], 2)) result.push(k);
   }
 
   if (hasDS && segnoIdx >= 0) {
     const endAt = fineIdx >= 0 ? fineIdx : nM - 1;
-    for (let k = segnoIdx; k <= endAt; k++) result.push(k);
+    for (let k = segnoIdx; k <= endAt; k++) if (inPass(refM[k], 2)) result.push(k);
   }
 
   // Step 3: Coda section — append measures after coda marker

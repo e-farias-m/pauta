@@ -63,6 +63,8 @@ const {
   _renderRhythmBeatGrid, checkRhythmWorksheet,
   _renderRhythmCounting, getNoteByLayout,
   applyMarker, clearMarker, toggleLineBreak,
+  buildPlaybackOrder,
+  renderVoltaBrackets,
 } = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
@@ -1118,6 +1120,143 @@ APP.selectedMeasure = -1;
 applyMarker('segno');
 clearMarker();
 APP.selectedMeasure = 0;
+
+// ── Playback order and volta endings ─────────────────────────────
+//
+// A volta numbers the passes through the repeat around it: [1] plays the
+// first time and is dropped on the second, [2] waits for the second, and
+// [1,2] — a shared 1.–2. bracket — plays both. The order is read off the
+// reference stave only, which is what buildPlaybackOrder has always used.
+
+// A single-stave score with `n` measures, so the assertions are about
+// playback rather than about how the fixture was laid out.
+function _playScore(n) {
+  const sc = SCORE.createScore({ title: 'Playback', instruments: ['Flute'] });
+  for (const stave of sc.parts[0].staves) {
+    while (stave.measures.length < n) stave.measures.push(SCORE.emptyMeasure());
+  }
+  return sc;
+}
+const _ref = sc => sc.parts[0].staves[0].measures;
+const _order = sc => buildPlaybackOrder(sc).join(',');
+
+// A score with no repeats and no voltas plays straight through.
+assertEq(_order(_playScore(3)), '0,1,2', 'a plain score plays in measure order');
+
+// A repeat without endings still plays the span twice — the volta logic
+// must be a no-op when nothing carries an ending.
+const plainRep = _playScore(2);
+_ref(plainRep)[0].barline = 'repeat_begin';
+_ref(plainRep)[1].barline = 'repeat_end';
+assertEq(_order(plainRep), '0,1,0,1', 'a repeat without endings still plays twice');
+
+// |: A |1 B :|2 C |  —  first pass takes the first ending, second the second.
+const classic = _playScore(3);
+_ref(classic)[0].barline = 'repeat_begin';
+_ref(classic)[1].barline = 'repeat_end';
+_ref(classic)[1].ending = [1];
+_ref(classic)[2].ending = [2];
+assertEq(_order(classic), '0,1,0,2', 'the first ending plays once, the second waits its turn');
+
+// A bracket covering two measures drops both on the second pass.
+const wide = _playScore(4);
+_ref(wide)[0].barline = 'repeat_begin';
+_ref(wide)[2].barline = 'repeat_end';
+_ref(wide)[1].ending = [1];
+_ref(wide)[2].ending = [1];
+_ref(wide)[3].ending = [2];
+assertEq(_order(wide), '0,1,2,0,3', 'a multi-measure first ending is skipped whole on pass 2');
+
+// A shared 1.–2. bracket belongs to both passes.
+const sharedOrder = _playScore(3);
+_ref(sharedOrder)[0].barline = 'repeat_begin';
+_ref(sharedOrder)[1].barline = 'repeat_end';
+_ref(sharedOrder)[1].ending = [1, 2];
+_ref(sharedOrder)[2].ending = [2];
+assertEq(_order(sharedOrder), '0,1,0,1,2', 'a shared 1.–2. bracket plays on both passes');
+
+// A second ending sitting inside the repeat is held back until the repeat
+// comes round, rather than being played on the first pass.
+const held = _playScore(3);
+_ref(held)[0].barline = 'repeat_begin';
+_ref(held)[2].barline = 'repeat_end';
+_ref(held)[1].ending = [2];
+_ref(held)[2].ending = [1];
+assertEq(_order(held), '0,2,0,1', 'a later ending inside the repeat waits for pass 2');
+
+// D.C. re-enters the material for a second time, so it drops the first
+// ending on the way back.
+const dcscore = _playScore(4);
+_ref(dcscore)[0].barline = 'repeat_begin';
+_ref(dcscore)[1].barline = 'repeat_end';
+_ref(dcscore)[1].ending = [1];
+_ref(dcscore)[2].ending = [2];
+_ref(dcscore)[3].dc = true;
+assertEq(_order(dcscore), '0,1,0,2,3,0,2,3', 'D.C. skips the first ending on the way back');
+
+// The reader defends against a malformed ending rather than throwing on it.
+const malformed = _playScore(3);
+_ref(malformed)[1].ending = 2;
+assertEq(_order(malformed), '0,1,2', 'an ending that is not a list of numbers is ignored');
+
+// ── Volta bracket rendering ──────────────────────────────────────
+//
+// The bracket is drawn over the run of measures that share a volta — a
+// line with a tick at each end and the ending number above it — and a run
+// is cut where the system breaks so the bracket never spans two lines.
+const _svgNS = 'http://www.w3.org/2000/svg';
+const _voltaHost = A.document.getElementById('score-svg');
+function _voltaSvg() {
+  _voltaHost.innerHTML = '';
+  const s = A.document.createElementNS(_svgNS, 'svg');
+  _voltaHost.appendChild(s);
+  return s;
+}
+const _voltaLayout = rows => rows.map((r, i) => ({ mi: i, si: 0, x: r[0], w: 60, topLineY: r[1] }));
+const _voltaLabels = svg => Array.from(svg.querySelectorAll('text')).map(t => t.textContent).join('|');
+
+const vrScore = _playScore(4);
+_ref(vrScore)[1].ending = [1];
+_ref(vrScore)[2].ending = [1];
+_ref(vrScore)[3].ending = [2];
+APP.score = vrScore;
+
+let svg = _voltaSvg();
+APP.staveLayout = _voltaLayout([[100, 200], [160, 200], [220, 200], [280, 200]]);
+renderVoltaBrackets();
+assertEq(_voltaLabels(svg), '1.|2.', 'one bracket is drawn per volta, labelled with its ending');
+assertEq(svg.querySelectorAll('line').length, 6, 'each bracket is a line with a tick at both ends');
+
+// The same two-measure run, now split across a system break: the bracket
+// is drawn twice rather than being stretched over the gap.
+svg = _voltaSvg();
+APP.staveLayout = _voltaLayout([[100, 200], [160, 200], [100, 340], [160, 340]]);
+renderVoltaBrackets();
+assertEq(_voltaLabels(svg), '1.|1.|2.', 'a run is cut at the system break and continued on the next line');
+assertEq(svg.querySelectorAll('line').length, 9, 'each of the three fragments gets its own bracket');
+
+// A shared 1.–2. bracket is labelled with the range it covers.
+svg = _voltaSvg();
+const vrShared = _playScore(3);
+_ref(vrShared)[1].ending = [1, 2];
+APP.score = vrShared;
+APP.staveLayout = _voltaLayout([[100, 200], [160, 200], [220, 200]]);
+renderVoltaBrackets();
+assertEq(_voltaLabels(svg), '1.–2.', 'a shared bracket is labelled with the range it covers');
+assertEq(svg.querySelectorAll('line').length, 3, 'and is still a single bracket');
+
+// A score with no voltas draws nothing.
+svg = _voltaSvg();
+const vrClean = _playScore(3);
+APP.score = vrClean;
+APP.staveLayout = _voltaLayout([[100, 200], [160, 200], [220, 200]]);
+renderVoltaBrackets();
+assertEq(_voltaLabels(svg), '', 'a score without voltas draws no bracket');
+assertEq(svg.querySelectorAll('line').length, 0, 'and no bracket lines');
+
+// Restores the state later tests were written against.
+APP.score = vrClean;
+APP.staveLayout = [];
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);

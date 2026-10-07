@@ -135,6 +135,7 @@ const APP_EXPORT_NAMES = [
   '_renderRhythmBeatGrid', 'checkRhythmWorksheet',
   '_renderRhythmCounting', 'getNoteByLayout',
   'applyMarker', 'clearMarker', 'toggleLineBreak',
+  'buildPlaybackOrder', 'renderVoltaBrackets',
 ];
 
 /**
