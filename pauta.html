@@ -3981,13 +3981,36 @@ const MARKER_MSCX = {
 const LAYOUT_BREAK_MSCX = ['system', 'system-break'];
 
 /**
+ * Barline type as the model stores it and as .mscx spells it, so export
+ * and import share one contract. 'single' maps to 'normal' rather than
+ * being left out: clicking "Normal barline" stores an explicit value, and
+ * a round trip should keep it rather than quietly turn it into an absent
+ * one. The reverse table accepts both separator spellings.
+ */
+const BARLINE_MSCX = {
+  single:       'normal',
+  double:       'double',
+  end:          'end',
+  repeat_begin: 'start-repeat',
+  repeat_end:   'end-repeat',
+  repeat_both:  'startend-repeat',
+};
+
+const BARLINE_FROM_MSCX = Object.fromEntries(
+  Object.entries(BARLINE_MSCX).map(([mine, theirs]) => [theirs, mine])
+);
+
+/**
  * Measure flags that belong to the score rather than to one stave. The
  * first stave — part 1, stave 1 — is authoritative, because that is the
  * one both renderers read and the one every known writer has always
  * written to. Flags found anywhere else cannot come from the app, so they
  * are treated as strays rather than as extra copies.
+ *
+ * The markers and lineBreak are booleans; barline is a string, and its
+ * absence means the default.
  */
-const SCORE_WIDE_MEASURE_FLAGS = [...MARKER_KEYS, 'lineBreak'];
+const SCORE_WIDE_MEASURE_FLAGS = [...MARKER_KEYS, 'lineBreak', 'barline'];
 
 /**
  * Toggle a navigation marker at measure `mi` on every stave in the score.
@@ -4141,6 +4164,10 @@ function _syncScoreWideFlags(score) {
       if (!m) continue;
       for (const key of SCORE_WIDE_MEASURE_FLAGS) {
         if (key === 'lineBreak') { m.lineBreak = refM.lineBreak === true; continue; }
+        if (key === 'barline') {
+          if (refM.barline) m.barline = refM.barline; else delete m.barline;
+          continue;
+        }
         if (refM[key] === true) m[key] = true; else delete m[key];
       }
     }
@@ -4724,6 +4751,15 @@ function parseMSCX(xmlStr) {
         measure.lineBreak = true;
       }
 
+      // Barline. Unlike the score-wide flags above this is stored per
+      // stave, so it is read from this stave's own measure element.
+      const blEl = nq(mEl, 'BarLine') || nq(mEl, 'barline');
+      const blSub = blEl ? txt(blEl, 'subtype') : null;
+      if (blSub) {
+        const mine = BARLINE_FROM_MSCX[blSub.trim().toLowerCase().replace(/_/g, '-')];
+        if (mine) measure.barline = mine;
+      }
+
       if (!measure.notes.length) measure.notes.push(mkRest('w'));
 
       out.push(measure);
@@ -4846,6 +4882,33 @@ function parseMusicXML(xmlStr) {
     return found;
   }
 
+  // MusicXML puts repeats in a <repeat> child of <barline> and plain
+  // styles in <bar-style>. A repeat end and a final barline are both drawn
+  // as 'light-heavy', so the repeat has to be checked first or every end
+  // repeat would be read as the end of the piece.
+  function mxmlBarline(mEl) {
+    let forward = false, backward = false;
+    let rightStyle = null, leftStyle = null;
+    for (const bl of nqa(mEl, 'barline')) {
+      const rep = nq(bl, 'repeat');
+      if (rep) {
+        const dir = rep.getAttribute('direction');
+        if (dir === 'forward') forward = true;
+        else if (dir === 'backward') backward = true;
+      }
+      const style = (txt(bl, 'bar-style') || '').trim().toLowerCase();
+      if (!style) continue;
+      if ((bl.getAttribute('location') || 'right') === 'left') leftStyle = leftStyle || style;
+      else rightStyle = rightStyle || style;
+    }
+    if (forward && backward) return 'repeat_both';
+    if (forward) return 'repeat_begin';
+    if (backward) return 'repeat_end';
+    if (rightStyle === 'light-heavy') return 'end';
+    if (rightStyle === 'light-light' || leftStyle === 'light-light' || leftStyle === 'heavy-light') return 'double';
+    return null;
+  }
+
   const _typeToDur = {
     'maxima':'w','long':'w','breve':'w','whole':'w',
     'half':'h','quarter':'q','eighth':'8',
@@ -4895,6 +4958,7 @@ function parseMusicXML(xmlStr) {
   // repairScore, which treats part 1 stave 1 as the authority.
   const mxmlLineBreakAt = new Set();
   const mxmlMarkersAt = new Map();
+  const mxmlBarlineAt = new Map();
   partEls.forEach(pEl => {
     nqa(pEl, 'measure').forEach((pmEl, mi) => {
       const printEl = nq(pmEl, 'print');
@@ -4909,6 +4973,10 @@ function parseMusicXML(xmlStr) {
         found.forEach(k => cur.add(k));
         mxmlMarkersAt.set(mi, cur);
       }
+      const barline = mxmlBarline(pmEl);
+      // First part wins, so a file whose parts disagree settles the same
+      // way every time instead of depending on which part came last.
+      if (barline && !mxmlBarlineAt.has(mi)) mxmlBarlineAt.set(mi, barline);
     });
   });
 
@@ -5177,6 +5245,9 @@ function parseMusicXML(xmlStr) {
     for (const [mi, keys] of mxmlMarkersAt) {
       stampFlag(mi, m => { for (const k of keys) m[k] = true; });
     }
+    for (const [mi, value] of mxmlBarlineAt) {
+      stampFlag(mi, m => { m.barline = value; });
+    }
 
     score.parts.push(part);
   });
@@ -5353,6 +5424,16 @@ function exportMSCXFromScore(s) {
         voices[v].forEach(n => writeNoteEl(n, true));
         x += `        </voice>\n`;
       });
+
+      // Barline. Unlike the score-wide markers above this is stored per
+      // staff, which is how MuseScore writes it too, so every stave emits
+      // its own rather than only the reference one.
+      if (m.barline && BARLINE_MSCX[m.barline]) {
+        const location = m.barline === 'repeat_begin' ? 'left' : 'right';
+        x += `        <BarLine location="${location}">\n`;
+        x += `          <subtype>${BARLINE_MSCX[m.barline]}</subtype>\n`;
+        x += `        </BarLine>\n`;
+      }
 
       x += `      </Measure>\n`;
     });

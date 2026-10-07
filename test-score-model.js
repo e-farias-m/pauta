@@ -958,9 +958,10 @@ assertEq(_markersOf(markM[5]), 'fine', 'the words fallback for Fine is read');
 // A final barline is the end of the piece, not a system break.
 const finalB = parseMusicXML(_mxDoc(
   _mxMeasure(1, '', true) +
-  _mxMeasure(2, '<barline location="right"><bar-style>final</bar-style></barline>')));
+  _mxMeasure(2, '<barline location="right"><bar-style>light-heavy</bar-style></barline>')));
 const finalM = finalB.parts[0].staves[0].measures;
 assert(finalM.every(m => !m.lineBreak), 'a final barline does not become a system break');
+assertEq(finalM[1].barline, 'end', 'a light-heavy barline is read as the end of the piece');
 
 // Flags written in only one part survive, because they are collected across
 // all parts rather than per part — otherwise repairScore would clear them
@@ -981,6 +982,110 @@ assert(repairedParts.parts.every(p => p.staves.every(st => st.measures[1].lineBr
   'the imported break still holds after repair');
 assert(repairedParts.parts.every(p => p.staves.every(st => st.measures[2].segno === true)),
   'the imported marker still holds after repair');
+
+// ── Barlines ─────────────────────────────────────────────────────
+//
+// m.barline drives repeat playback and end-of-piece rendering, but both
+// .mscx directions ignored it: the exporter never wrote it and parseMSCX
+// never read it, so a save/reopen destroyed repeats. MusicXML import read
+// nothing either.
+
+const ALL_BARLINES = ['single', 'double', 'end', 'repeat_begin', 'repeat_end', 'repeat_both'];
+
+function _barlineScore() {
+  const sc = createScore({ title: 'Barlines', instruments: ['Piano'] });
+  const ref = sc.parts[0].staves[0];
+  while (ref.measures.length < ALL_BARLINES.length) ref.measures.push(emptyMeasure());
+  for (const stave of sc.parts[0].staves) {
+    while (stave.measures.length < ALL_BARLINES.length) stave.measures.push(emptyMeasure());
+  }
+  return sc;
+}
+
+// Every barline value survives export then reparse, on every stave.
+const blRt = _barlineScore();
+ALL_BARLINES.forEach((v, i) => {
+  for (const stave of blRt.parts[0].staves) stave.measures[i].barline = v;
+});
+const blXml = exportMSCXFromScore(blRt);
+const blBack = parseMSCX(blXml);
+ALL_BARLINES.forEach((v, i) => {
+  assertEq(blBack.parts[0].staves[0].measures[i].barline, v, `${v} round-trips through .mscx`);
+});
+assert(blBack.parts[0].staves.every(st =>
+  ALL_BARLINES.every((v, i) => st.measures[i].barline === v)),
+  'every stave reads back its own barline');
+assertEq(_count(blXml, '<BarLine'), 6 * blRt.parts[0].staves.length,
+  'barlines are written once per stave, not once for the score');
+
+// A score with no barline stores none, and none is invented on the way back.
+const noBl = _barlineScore();
+const noBlXml = exportMSCXFromScore(noBl);
+assertEq(_count(noBlXml, '<BarLine'), 0, 'a score without barlines writes none');
+assert(parseMSCX(noBlXml).parts[0].staves.every(st =>
+  st.measures.every(m => !('barline' in m))),
+  'an unbarlined score round-trips without inventing barlines');
+
+// The reference stave decides, same as the other score-wide flags.
+const blRef = _legacyScore();
+blRef.parts[0].staves[0].measures[1].barline = 'repeat_end';
+repairScore(blRef);
+assert(blRef.parts.every(p => p.staves.every(st => st.measures[1].barline === 'repeat_end')),
+  'a barline on the reference stave reaches every stave');
+
+const blSingle = _legacyScore();
+blSingle.parts[0].staves[0].measures[1].barline = 'single';
+repairScore(blSingle);
+assertEq(blSingle.parts[1].staves[0].measures[1].barline, 'single',
+  'an explicit single barline propagates rather than being dropped');
+
+const blStray = _legacyScore();
+blStray.parts[1].staves[0].measures[1].barline = 'repeat_end';
+repairScore(blStray);
+assert(blStray.parts.every(p => p.staves.every(st => !('barline' in st.measures[1]))),
+  'a barline found only on part 2 is cleared everywhere');
+
+// MusicXML repeats.
+const fwd = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<barline location="left"><repeat direction="forward"/></barline>', true) +
+  _mxMeasure(2)));
+assert(fwd.parts.every(p => p.staves.every(st => st.measures[0].barline === 'repeat_begin')),
+  'a forward repeat becomes repeat_begin on every stave');
+assert(!('barline' in fwd.parts[0].staves[0].measures[1]),
+  'a measure with no barline element stays unbarlined');
+
+const both = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<barline location="left"><repeat direction="forward"/></barline>' +
+                '<barline location="right"><repeat direction="backward"/></barline>', true) +
+  _mxMeasure(2)));
+assertEq(both.parts[0].staves[0].measures[0].barline, 'repeat_both',
+  'a forward and a backward repeat in one measure become repeat_both');
+
+// A repeat end and a final barline are both drawn light-heavy, so the
+// repeat has to win or every end repeat would read as the end of the piece.
+const repEnd = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<barline location="left"><repeat direction="forward"/></barline>', true) +
+  _mxMeasure(2, '<barline location="right"><bar-style>light-heavy</bar-style>' +
+                 '<repeat direction="backward"/></barline>')));
+assertEq(repEnd.parts[0].staves[0].measures[1].barline, 'repeat_end',
+  'a backward repeat wins over its own light-heavy style');
+
+const dbl = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '', true) +
+  _mxMeasure(2, '<barline location="right"><bar-style>light-light</bar-style></barline>')));
+assertEq(dbl.parts[0].staves[0].measures[1].barline, 'double',
+  'a light-light barline is read as a double barline');
+
+// A repeat written in only one part still reaches every part, and holds
+// once repair has run.
+const repParts = parseMusicXML(_mxTwo(
+  _mxMeasure(1, '', true) + _mxMeasure(2) + _mxMeasure(3),
+  _mxMeasure(1, '', true) + _mxMeasure(2) + _mxMeasure(3,
+    '<barline location="right"><repeat direction="backward"/></barline>')));
+assert(repParts.parts.every(p => p.staves.every(st => st.measures[2].barline === 'repeat_end')),
+  'a repeat found only in part 2 is applied to every part');
+assert(repairScore(repParts).parts.every(p => p.staves.every(st => st.measures[2].barline === 'repeat_end')),
+  'the imported repeat still holds after repair');
 
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
