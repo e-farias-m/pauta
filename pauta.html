@@ -4006,6 +4006,80 @@ const BARLINE_FROM_MSCX = Object.fromEntries(
 );
 
 /**
+ * MuseScore spells clefs as short codes, not as the readable names Pauta
+ * uses. Export maps to the code and import maps back, so a saved file keeps
+ * its clef instead of every staff collapsing to treble.
+ */
+const CLEF_TO_MSCX = { treble:'G', bass:'F', alto:'C3', tenor:'C4', percussion:'percussion' };
+function clefFromMSCX(code) {
+  const c = (code || '').trim().toLowerCase();
+  if (c.includes('percussion')) return 'percussion';
+  if (c === 'f' || c.startsWith('f') || c.includes('bass')) return 'bass';
+  if (c.startsWith('c')) return 'alto';
+  return 'treble';
+}
+
+/**
+ * The instrument a part is written for, as MuseScore needs it: a sound id,
+ * an instrumentId and a General-MIDI program. MuseScore looks these up to
+ * pick the playback sound; an id it does not know still opens the file with
+ * a default sound, so the piano entry is a safe fallback.
+ */
+const MSCX_INSTRUMENT = {
+  'Sopranino Recorder':   ['sopranino-recorder', 'wind.flutes.recorder.sopranino', 74],
+  'Soprano Recorder':     ['soprano-recorder',   'wind.flutes.recorder',           74],
+  'Alto Recorder':        ['alto-recorder',      'wind.flutes.recorder.alto',      74],
+  'Tenor Recorder':       ['tenor-recorder',     'wind.flutes.recorder.tenor',     74],
+  'Bass Recorder':        ['bass-recorder',      'wind.flutes.recorder.bass',      74],
+  'Great Bass Recorder':  ['greatbass-recorder', 'wind.flutes.recorder.greatbass', 74],
+  'Trumpet':              ['trumpet',     'brass.trumpet',  56],
+  'French Horn':          ['french-horn', 'brass.horn',     60],
+  'Trombone':             ['trombone',    'brass.trombone', 57],
+  'Euphonium':            ['euphonium',   'brass.euphonium',57],
+  'Tuba':                 ['tuba',        'brass.tuba',     58],
+  'Flute':                ['flute',       'wind.flutes.flute', 73],
+  'Oboe':                 ['oboe',        'wind.reed.oboe',    68],
+  'Clarinet':             ['clarinet',    'wind.reed.clarinet',71],
+  'Alto Sax':             ['alto-sax',    'wind.reed.saxophone.alto', 65],
+  'Tenor Sax':            ['tenor-sax',   'wind.reed.saxophone.tenor',66],
+  'Bassoon':              ['bassoon',     'wind.reed.bassoon', 70],
+  'Soprano':              ['soprano',        'vocal.solo.soprano', 52],
+  'Mezzo-Soprano':        ['mezzo-soprano',  'vocal.solo.mezzo',   52],
+  'Alto':                 ['alto',           'vocal.solo.alto',    52],
+  'Tenor':                ['tenor',          'vocal.solo.tenor',   52],
+  'Baritone':             ['baritone',       'vocal.solo.baritone',52],
+  'Bass':                 ['bass-voice',     'vocal.solo.bass',    52],
+  'Piano':                ['piano',       'keyboard.piano',      0],
+  'Organ':                ['organ',       'keyboard.organ',      19],
+  'Harpsichord':          ['harpsichord', 'keyboard.harpsichord',6],
+  'Celesta':              ['celesta',     'keyboard.celesta',    8],
+  'Violin':               ['violin',      'strings.violin',      40],
+  'Viola':                ['viola',       'strings.viola',       41],
+  'Cello':                ['cello',       'strings.cello',       42],
+  'Double Bass':          ['contrabass',  'strings.contrabass',  43],
+  'Guitar':               ['guitar',      'plucked.guitar',      24],
+  'Harp':                 ['harp',        'plucked.harp',        46],
+  'Orff Soprano Glockenspiel':['glockenspiel','pitched-percussion.glockenspiel',9],
+  'Orff Alto Glockenspiel':   ['glockenspiel','pitched-percussion.glockenspiel',9],
+  'Orff Soprano Metallophone':['metallophone','pitched-percussion.metallophone',9],
+  'Orff Alto Metallophone':   ['metallophone','pitched-percussion.metallophone',9],
+  'Orff Bass Metallophone':   ['metallophone','pitched-percussion.metallophone',9],
+  'Orff Soprano Xylophone':   ['xylophone','pitched-percussion.xylophone',13],
+  'Orff Alto Xylophone':      ['xylophone','pitched-percussion.xylophone',13],
+  'Orff Bass Xylophone':      ['xylophone','pitched-percussion.xylophone',13],
+  'Orff Timpani':             ['timpani','pitched-percussion.timpani',47],
+  'Drum Kit':             ['drumset','drum.group.set',0],
+  'Snare Drum':           ['snare-drum','drum.group.snare',0],
+  'Bass Drum':            ['bass-drum','pitched-percussion.bass-drum',0],
+  'Hi-Hat':               ['hi-hat','drum.hihat.closed',0],
+  'Boomwhacker':          ['piano','keyboard.piano',0],
+};
+const DEFAULT_MSCX_INSTRUMENT = ['piano', 'keyboard.piano', 0];
+function mscxInstrumentFor(part) {
+  return MSCX_INSTRUMENT[part?.instrument] || MSCX_INSTRUMENT[part?.name] || DEFAULT_MSCX_INSTRUMENT;
+}
+
+/**
  * Measure flags that belong to the score rather than to one stave. The
  * first stave — part 1, stave 1 — is authoritative, because that is the
  * one both renderers read and the one every known writer has always
@@ -4248,6 +4322,59 @@ function _repairAssignments(score) {
   return score;
 }
 
+// Student answers are the one piece of user data that is both deeply nested
+// and open-ended, so they travel as JSON. Keep only the fields the grader
+// reads, keyed by integer measure and note indices, so a hand-edited file
+// cannot smuggle junk into APP.score.
+function _repairStudentAnswers(score) {
+  const src = (score && typeof score.studentAnswers === 'object' && score.studentAnswers) || {};
+  const out = {};
+  const isIndexKey = k => /^\d+$/.test(k);
+  const oneAnswer = a => {
+    if (!a || typeof a !== 'object') return null;
+    const clean = {};
+    if (Number.isFinite(a.pitch)) clean.pitch = a.pitch;
+    if (typeof a.duration === 'string' && a.duration) {
+      clean.duration = a.duration;
+      if (Number.isInteger(a.dots) && a.dots > 0) clean.dots = a.dots;
+      if (a.tuplet && Number.isInteger(a.tuplet.num) && a.tuplet.num > 0
+          && Number.isInteger(a.tuplet.den) && a.tuplet.den > 0) {
+        clean.tuplet = { num: a.tuplet.num, den: a.tuplet.den };
+      }
+    }
+    if (typeof a.lyric === 'string') clean.lyric = a.lyric;
+    if (typeof a.chordSymbol === 'string') clean.chordSymbol = a.chordSymbol;
+    return Object.keys(clean).length ? clean : null;
+  };
+  for (const id of Object.keys(src)) {
+    if (!id) continue;
+    const entry = src[id];
+    if (!entry || typeof entry !== 'object') continue;
+    const kept = {};
+    if (entry.submitted) kept.submitted = true;
+    if (Number.isFinite(entry.timestamp)) kept.timestamp = entry.timestamp;
+    if (entry.results && typeof entry.results === 'object') kept.results = entry.results;
+    if (entry.notes && typeof entry.notes === 'object') {
+      const notes = {};
+      for (const mi of Object.keys(entry.notes)) {
+        const row = entry.notes[mi];
+        if (!isIndexKey(mi) || !row || typeof row !== 'object') continue;
+        const cleanRow = {};
+        for (const ni of Object.keys(row)) {
+          if (!isIndexKey(ni)) continue;
+          const a = oneAnswer(row[ni]);
+          if (a) cleanRow[ni] = a;
+        }
+        if (Object.keys(cleanRow).length) notes[mi] = cleanRow;
+      }
+      if (Object.keys(notes).length) kept.notes = notes;
+    }
+    if (Object.keys(kept).length) out[id] = kept;
+  }
+  score.studentAnswers = out;
+  return score;
+}
+
 /** Normalize imported, autosaved, or legacy score data to the current contract. @param {*} raw @returns {Score} */
 function repairScore(raw) {
   if (!raw || typeof raw !== 'object') return createScore();
@@ -4260,6 +4387,7 @@ function repairScore(raw) {
   _syncMeasureCounts(score);
   _syncScoreWideFlags(score);
   _repairAssignments(score);
+  _repairStudentAnswers(score);
   return score;
 }
 
@@ -4683,6 +4811,11 @@ function parseMSCX(xmlStr) {
   }
   const asgnKey = txt(doc, 'PautaAnswerKey');
   if (asgnKey) score.answerKey = asgnKey;
+  const stuAns = txt(doc, 'PautaStudentAnswers');
+  if (stuAns) {
+    try { score.studentAnswers = JSON.parse(stuAns); }
+    catch (e) { debugLog('[PautaEngraving import] discarded unreadable PautaStudentAnswers:', e.message); }
+  }
   score.parts    = [];
 
   const staffEls = nqa(doc, 'Staff');
@@ -4710,8 +4843,7 @@ function parseMSCX(xmlStr) {
       // Clef
       const clefEl = (() => { const cp = nq(mEl, 'Clef'); return cp ? (nq(cp, 'concertClefType') || nq(cp, 'clefType')) : null; })();
       if (clefEl) {
-        const ct = clefEl.textContent.trim().toLowerCase();
-        clefType = ct.includes('bass') ? 'bass' : 'treble';
+        clefType = clefFromMSCX(clefEl.textContent);
       }
 
       // Key signature
@@ -5452,9 +5584,17 @@ function exportMSCXFromScore(s) {
   const am  = {'#':'accidentalSharp','b':'accidentalFlat','n':'accidentalNatural'};
   const dynMap = {pppp:'pppp',ppp:'ppp',pp:'pp',p:'p',mp:'mp',mf:'mf',f:'f',ff:'ff',fff:'fff',ffff:'ffff',sfz:'sfz',fp:'fp',sfp:'sfp',rfz:'rfz'};
 
-  let x = `<?xml version="1.0" encoding="UTF-8"?>\n<museScore version="4.0">\n  <Score>\n`;
-  x += `    <Title>${esc(s.title)}</Title>\n`;
-  if (s.composer) x += `    <Composer>${esc(s.composer)}</Composer>\n`;
+  // The header mirrors MuseScore 4's own: the score metadata is metaTags
+  // (not the MuseScore 3 <Title>), a Division declares the tick resolution
+  // every durationType is measured in, and each Part names its instrument so
+  // MuseScore can pick a sound. Pauta-only elements sit alongside these and
+  // are skipped on import by a program that does not know them.
+  let x = `<?xml version="1.0" encoding="UTF-8"?>\n<museScore version="4.70">\n`;
+  x += `  <programVersion>4.7.5</programVersion>\n`;
+  x += `  <Score>\n`;
+  x += `    <Division>480</Division>\n`;
+  x += `    <metaTag name="workTitle">${esc(s.title)}</metaTag>\n`;
+  x += `    <metaTag name="composer">${esc(s.composer || '')}</metaTag>\n`;
   x += `    <PautaEngravingSettings showMeasureNumbers="${APP.showMeasureNumbers?'1':'0'}" showMultiMeasureRests="${APP.showMultiMeasureRests?'1':'0'}"/>\n`;
   // Assignments and the answer key belong to the score itself: the dialog
   // tells the teacher to share the saved file, so anything left out here is
@@ -5477,11 +5617,29 @@ function exportMSCXFromScore(s) {
   if (typeof s.answerKey === 'string' && s.answerKey) {
     x += `    <PautaAnswerKey>${esc(s.answerKey)}</PautaAnswerKey>\n`;
   }
+  // Student answers are nested per assignment → measure → note, which is
+  // too deep to mirror as elements without inventing a schema. They are
+  // Pauta-only data MuseScore ignores, so the whole map goes in as JSON and
+  // repairScore re-validates it on the way back in.
+  if (s.studentAnswers && typeof s.studentAnswers === 'object'
+      && Object.keys(s.studentAnswers).length) {
+    x += `    <PautaStudentAnswers>${esc(JSON.stringify(s.studentAnswers))}</PautaStudentAnswers>\n`;
+  }
 
-  // Part metadata
+  // Part metadata. MuseScore groups the top-level content staves into parts
+  // by order, so each <Part> declares one bare <Staff> per stave it owns (no
+  // id of its own) plus the instrument it plays.
   s.parts.forEach((part, pi) => {
-    x += `    <Part>\n      <Staff id="${pi+1}"/>\n`;
+    const [instrId, instrumentId, program] = mscxInstrumentFor(part);
+    x += `    <Part id="${pi + 1}">\n`;
+    (part.staves || []).forEach(() => { x += `      <Staff/>\n`; });
     x += `      <trackName>${esc(part.name)}</trackName>\n`;
+    x += `      <Instrument id="${esc(instrId)}">\n`;
+    x += `        <longName>${esc(part.name)}</longName>\n`;
+    x += `        <trackName></trackName>\n`;
+    x += `        <instrumentId>${esc(instrumentId)}</instrumentId>\n`;
+    x += `        <Channel><program value="${program}"/></Channel>\n`;
+    x += `      </Instrument>\n`;
     x += `    </Part>\n`;
   });
 
@@ -5518,10 +5676,13 @@ function exportMSCXFromScore(s) {
 
       x += `      <Measure number="${mi+1}" len="${measureLen}">\n`;
 
-      // Clef — only at start or when it changes
+// The stave's own clef opens the staff; a measure-level clef records a
+      // mid-score change. Reading m.clef alone shipped every staff as treble,
+      // so bass and alto clefs never left the file correctly.
       if (mi === 0 || m.clef) {
-        const clefVal = m.clef || 'treble';
-        x += `        <Clef>\n          <concertClefType>${clefVal}</concertClefType>\n        </Clef>\n`;
+        const clefCode = CLEF_TO_MSCX[m.clef || stave.clef] || 'G';
+        x += `        <Clef>\n          <concertClefType>${clefCode}</concertClefType>\n`;
+        x += `          <transposingClefType>${clefCode}</transposingClefType>\n        </Clef>\n`;
       }
 
       // Rehearsal mark
@@ -5628,7 +5789,9 @@ function exportMSCXFromScore(s) {
       };
 
       Object.keys(voices).sort((a,b) => a-b).forEach(v => {
-        x += `        <voice num="${v}">\n`;
+        // MuseScore leaves the attribute off <voice> and reads the voices
+        // back by their order in the measure; the exporter matches that.
+        x += `        <voice>\n`;
         // One <Tuplet> per run of notes that share a group id, opened before
         // its first note and closed with <endTuplet/> — the shape MuseScore
         // writes, and the only way to keep two adjacent groups apart.
@@ -14293,6 +14456,7 @@ function submitAssignment() {
   SCORE.commitChange(score => {
     if (!score.studentAnswers) score.studentAnswers = {};
     score.studentAnswers[asgn.id] = {
+      ...(score.studentAnswers[asgn.id] || {}),
       submitted: true,
       timestamp: Date.now(),
       results

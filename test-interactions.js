@@ -67,6 +67,7 @@ const {
   renderVoltaBrackets,
   yToPitchAccurate,
   _evaluateAssignment, pickArchiveScorePath, _archiveRootfilePath,
+  submitAssignment,
 } = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
@@ -1459,6 +1460,18 @@ APP.score = null;
 _r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
 assertEq(_r.total, 0, 'no score means no questions');
 assertEq(_r.correct, 0, 'no score means no correct answers');
+
+// 20g. submitting records the mark without wiping the answers the student
+// typed. It used to overwrite the whole entry, so a submit erased every note.
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60), _gn(62))]), 'a1',
+  { 0: { 0:{pitch:60}, 1:{pitch:62} } });
+APP.currentAssignment = { id:'a1', title:'T', range:{startMi:0,endMi:0}, hidden:['pitch'] };
+submitAssignment();
+const _sub = APP.score.studentAnswers.a1;
+assertEq(_sub.submitted, true, 'submitting marks the answer submitted');
+assert(_sub.results && _sub.results.total === 2, 'and stores the result summary');
+assert(_sub.notes && _sub.notes[0] && _sub.notes[0][0].pitch === 60,
+  'and keeps the notes the student entered');
 
 // ── Picking the score out of a .mscz / .mxl archive ──────────────
 //

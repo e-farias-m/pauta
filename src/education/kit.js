@@ -136,6 +136,7 @@ function submitAssignment() {
   SCORE.commitChange(score => {
     if (!score.studentAnswers) score.studentAnswers = {};
     score.studentAnswers[asgn.id] = {
+      ...(score.studentAnswers[asgn.id] || {}),
       submitted: true,
       timestamp: Date.now(),
       results

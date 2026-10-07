@@ -424,11 +424,11 @@ const rt1 = createScore({title:'Test Roundtrip', composer:'Pauta'});
 APP.showMeasureNumbers = true;
 const xml1 = exportMSCXFromScore(rt1);
 APP.showMeasureNumbers = false;
-assert(xml1.includes('<Title>Test Roundtrip</Title>'), 'exportMSCX title');
-assert(xml1.includes('<Composer>Pauta</Composer>'), 'exportMSCX composer');
+assert(xml1.includes('<metaTag name="workTitle">Test Roundtrip</metaTag>'), 'exportMSCX title');
+assert(xml1.includes('<metaTag name="composer">Pauta</metaTag>'), 'exportMSCX composer');
 assert(xml1.includes('showMeasureNumbers="1"'), 'exportMSCX engraving settings from APP state');
-assert(xml1.includes('<concertClefType>treble</concertClefType>'), 'exportMSCX treble clef');
-assert(xml1.includes('<concertClefType>treble</concertClefType>'), 'exportMSCX treble clef');
+assert(xml1.includes('<concertClefType>G</concertClefType>'), 'exportMSCX treble clef uses the MuseScore code');
+assert(xml1.includes('<concertClefType>F</concertClefType>'), 'exportMSCX bass clef uses the MuseScore code');
 assert(xml1.includes('<durationType>whole</durationType>'), 'exportMSCX whole rest');
 
 // Export with note content
@@ -471,6 +471,43 @@ const xml6 = exportMSCXFromScore(rt6);
 assert(xml6.includes('<sigN>3</sigN>'), 'exportMSCX time sig num');
 assert(xml6.includes('<sigD>4</sigD>'), 'exportMSCX time sig den');
 assert(xml6.includes('<accidental>2</accidental>'), 'exportMSCX key sig');
+
+// ── MuseScore 4 native shape ───────────────────────────────────
+//
+// The structure below is what MuseScore 4.7.5 itself writes. Pauta used to
+// emit <Title>, "<Part><Staff id=..>", readable clef names and numbered
+// <voice> elements; MuseScore could not read that back, so export now
+// mirrors the native shape element for element.
+
+const msx1 = exportMSCXFromScore(createScore({ title: 'Shape', composer: 'Me' }));
+assert(msx1.startsWith('<?xml version="1.0" encoding="UTF-8"?>'), 'the export is still XML');
+assert(msx1.includes('<museScore version="4.70">'), 'the museScore version is a current 4.x release');
+assert(msx1.includes('<Division>480</Division>'), 'the score declares MuseScore’s tick division');
+assert(msx1.includes('<metaTag name="workTitle">Shape</metaTag>'), 'the title travels as a metaTag');
+assert(msx1.includes('<metaTag name="composer">Me</metaTag>'), 'and so does the composer');
+assert(msx1.includes('<Part id="1">'), 'the part is numbered, as MuseScore expects');
+assert(!/<Part>\s*<Staff id=/.test(msx1), 'the part does not number its own staves');
+assert(msx1.includes('<Instrument id="piano">'), 'and names the instrument it plays');
+assert(msx1.includes('<instrumentId>keyboard.piano</instrumentId>'), 'with its instrumentId');
+assert(msx1.includes('<Channel><program value="0"/></Channel>'), 'and a playback channel');
+
+// Every content stave stays a top-level <Staff id>, and the Part declares a
+// bare <Staff> for each so MuseScore's part↔staff grouping lines up.
+const msx2 = exportMSCXFromScore(createScore({ instruments: ['Piano', 'Violin'] }));
+assertEq((msx2.match(/<Part id="\d+">/g) || []).length, 2, 'one Part per instrument');
+assertEq((msx2.match(/^      <Staff\/>$/gm) || []).length, 3, 'a bare Staff per stave (Piano has two)');
+assertEq((msx2.match(/^    <Staff id="\d+">$/gm) || []).length, 3, 'and one content Staff per stave');
+assert(msx2.includes('<Instrument id="violin">'), 'the second instrument is named too');
+assert(!/<voice\s+num=/.test(msx2), 'no voice is numbered in the export');
+
+// Clefs travel in MuseScore's short codes, and come back as Pauta names.
+const violaScore = createScore({ instruments: ['Viola'] });
+assertEq(violaScore.parts[0].staves[0].clef, 'alto', 'the Viola is written in alto clef');
+const cxml = exportMSCXFromScore(violaScore);
+assert(cxml.includes('<concertClefType>C3</concertClefType>'), 'alto clef exports as the C3 code');
+assertEq(repairScore(parseMSCX(cxml)).parts[0].staves[0].clef, 'alto', 'and imports back as alto');
+assertEq(repairScore(parseMSCX(exportMSCXFromScore(createScore()))).parts[0].staves[1].clef, 'bass',
+  'a bass staff round-trips through the F code');
 
 // Export with slurs and hairpins
 const rt7 = createScore({title:'Slurs'});
@@ -1298,6 +1335,7 @@ assertEq(rtA.answerKey, '60,62,64 & friends', 'the answer key round-trips too');
 const plainX = exportMSCXFromScore(createScore());
 assert(plainX.indexOf('PautaAssignments') === -1, 'a score with no assignments emits no assignment element');
 assert(plainX.indexOf('PautaAnswerKey') === -1, 'and no answer key element');
+assert(plainX.indexOf('PautaStudentAnswers') === -1, 'and no student-answer element');
 
 // repairScore decides what is usable, so a half-written element from a
 // hand-edited or foreign file is refused rather than imported broken.
@@ -1354,6 +1392,93 @@ repairScore(_idem);
 const _idemFirst = JSON.stringify(_idem.assignments);
 repairScore(_idem);
 assertEq(JSON.stringify(_idem.assignments), _idemFirst, 'repairing an assignment twice changes nothing');
+
+// ── Student answers in the score file ───────────────────────────────
+//
+// Answers are stored per assignment → measure → note and carry whatever
+// fields the student filled in, so they are the one part of the score that
+// cannot be flattened into attributes. They go out as JSON and come back
+// through repairScore, which keeps only the fields the grader reads.
+
+function _saScore() {
+  const sc = _asgnScore();
+  sc.studentAnswers = {
+    a4242: {
+      notes: {
+        1: {
+          0: { pitch: 60, duration: 'q', dots: 0 },
+          1: { pitch: 62, lyric: 'la', chordSymbol: 'C' },
+        },
+        2: { 0: { pitch: 64, duration: '8', dots: 1, tuplet: { num: 3, den: 2 } } },
+      },
+      submitted: true,
+      timestamp: 1712345678901,
+      results: { correct: 2, total: 3, incorrect: 1, partial: 0, details: [{ mi: 1, ni: 0, ok: true, msg: 'Pitch correct' }] },
+    },
+  };
+  return sc;
+}
+
+const rtSA = repairScore(parseMSCX(exportMSCXFromScore(_saScore())));
+const _sa = rtSA.studentAnswers.a4242 || { notes: {} };
+assertEq(Object.keys(_sa.notes).sort().join(','), '1,2', 'answers survive for every answered measure');
+assertEq(_sa.notes[1][0].pitch, 60, 'with the entered pitch');
+assertEq(_sa.notes[1][0].duration, 'q', 'and the entered duration');
+assertEq(_sa.notes[1][1].lyric, 'la', 'and lyrics');
+assertEq(_sa.notes[1][1].chordSymbol, 'C', 'and chord symbols');
+assertEq(_sa.notes[2][0].dots, 1, 'and dots');
+assertEq(_sa.notes[2][0].tuplet.num, 3, 'and a tuplet ratio');
+assertEq(_sa.submitted, true, 'the submitted flag survives');
+assertEq(_sa.timestamp, 1712345678901, 'and the submission time');
+assertEq(_sa.results.correct, 2, 'and the stored result summary');
+assertEq(_sa.results.details[0].mi, 1, 'including the per-note detail list');
+
+// A file with no answers adds no element.
+assert(exportMSCXFromScore(_asgnScore()).indexOf('PautaStudentAnswers') === -1,
+  'a score with no student answers emits no element');
+
+// repairScore is the gate: only integral measure/note keys and the fields
+// the grader actually reads are kept.
+const _saRepair = (mutate) => {
+  const sc = _saScore();
+  mutate(sc.studentAnswers.a4242);
+  return repairScore(sc).studentAnswers.a4242 || {};
+};
+const _withBadMeasureKey = _saRepair(e => { e.notes.x = { 0: { pitch: 60 } }; });
+assert(!('x' in _withBadMeasureKey.notes), 'a non-numeric measure key is dropped');
+const _withBadNoteKey = _saRepair(e => { e.notes[1].z = { pitch: 60 }; });
+assert(!('z' in _withBadNoteKey.notes[1]), 'a non-numeric note key is dropped');
+const _withJunk = _saRepair(e => { e.notes[1][0].bogus = 'x'; });
+assertEq(_withJunk.notes[1][0].bogus, undefined, 'an unknown answer field is dropped');
+const _withBadPitch = _saRepair(e => { e.notes[1][0] = { pitch: '60' }; });
+assertEq(_withBadPitch.notes[1][0], undefined, 'a note left with no usable field is removed');
+const _notSubmitted = _saRepair(e => { e.submitted = false; });
+assertEq(_notSubmitted.submitted, undefined, 'a falsy submitted flag is not stored');
+const _emptyEntry = _saRepair(e => { e.notes = {}; delete e.submitted; delete e.timestamp; delete e.results; });
+assertEq(Object.keys(_emptyEntry).length, 0, 'an answer object with nothing in it is dropped');
+
+// A structurally wrong blob is replaced, not trusted.
+const _badShape = (mutate) => {
+  const sc = _asgnScore();
+  sc.studentAnswers = mutate();
+  return repairScore(sc).studentAnswers;
+};
+assertEq(Object.keys(_badShape(() => [])).length, 0, 'an array of answers is discarded');
+assertEq(Object.keys(_badShape(() => ({ a1: 'nope' }))).length, 0, 'a non-object answer entry is discarded');
+assertEq(Object.keys(_badShape(() => null)).length, 0, 'a null answer map is discarded');
+
+// Unreadable JSON from a hand-edited file is dropped, not thrown.
+const badJson = repairScore(parseMSCX(
+  exportMSCXFromScore(_saScore())
+    .replace(/(<PautaStudentAnswers>).*?(<\/PautaStudentAnswers>)/s, '$1{not json$2')));
+assertEq(Object.keys(badJson.studentAnswers).length, 0, 'unreadable answer JSON is discarded');
+
+// repairScore runs after every edit, so the answers must be idempotent too.
+const _idemSA = _saScore();
+repairScore(_idemSA);
+const _idemSAFirst = JSON.stringify(_idemSA.studentAnswers);
+repairScore(_idemSA);
+assertEq(JSON.stringify(_idemSA.studentAnswers), _idemSAFirst, 'repairing answers twice changes nothing');
 
 // ── Tuplets and voices in the score file ────────────────────────────
 //
@@ -1451,8 +1576,9 @@ const _rtNotes = (s) => _rt(s).parts[0].staves[0].measures[0].notes;
     _tup(55, '8', 3, 2), _tup(57, '8', 3, 2), _tup(59, '8', 3, 2),
   ];
   const xml = exportMSCXFromScore(repairScore(s));
-  assert(xml.includes('<voice num="1">'), 'export opens voice 1');
-  assert(xml.includes('<voice num="2">'), 'export opens voice 2');
+  const firstStaff = xml.slice(xml.indexOf('<Staff id="1">'), xml.indexOf('<Staff id="2">'));
+  assertEq((firstStaff.match(/<voice>/g) || []).length, 2, 'export opens one <voice> per voice');
+  assert(!xml.includes('<voice num='), 'export does not number its voices, matching MuseScore');
   const rn = _rtNotes(s);
   const v2 = rn.filter(n => n.voice === 2);
   assertEq(rn.filter(n => n.voice === 1).length, 1, 'one note comes back in voice 1');
