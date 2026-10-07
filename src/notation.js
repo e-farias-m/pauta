@@ -940,6 +940,9 @@ function parseMSCX(xmlStr) {
   const stavesByPart = [];
   let curTimeSigNum=4, curTimeSigDen=4, curKeySig=0;
   let clefType = 'treble';
+  // Every tuplet group in the file gets its own id, so two groups side by
+  // side stay separate when the renderer brackets them.
+  let tupletGroupSeq = 0;
 
   const docMeasures = nqa(doc, 'Measure');
   let anyStaffHadMeasures = false;
@@ -998,11 +1001,22 @@ function parseMSCX(xmlStr) {
 
       const els = Array.from(mEl.children);
       let curVoiceNum = 1;
+      let voicePos = 0;
+      // MuseScore writes one <Tuplet> element before the notes it covers and
+      // closes it with <endTuplet/>, so the ratio has to be carried across
+      // sibling elements rather than read off each note.
+      let curTuplet = null;
 
       els.forEach(el => {
         const tag = el.localName;
         if (tag === 'voice') {
-          curVoiceNum = parseInt(el.getAttribute('num') || '1');
+          const num = el.getAttribute('num');
+          voicePos++;
+          // Pauta numbers its voices; MuseScore leaves the attribute off and
+          // relies on their order in the measure.
+          curVoiceNum = (num === null || num === '') ? voicePos : (parseInt(num, 10) || 1);
+          // A new voice cannot inherit a group the previous one left open.
+          curTuplet = null;
           Array.from(el.children).forEach(child => parseNoteEl(child, curVoiceNum));
           return;
         }
@@ -1011,10 +1025,22 @@ function parseMSCX(xmlStr) {
 
       function parseNoteEl(el, voiceNum) {
         const tag = el.localName;
+        if (tag === 'Tuplet') {
+          // MuseScore counts actualNotes notes played in the time of
+          // normalNotes, which is num/den the other way round.
+          const actual = parseInt(txt(el, 'actualNotes'), 10);
+          const normal = parseInt(txt(el, 'normalNotes'), 10);
+          curTuplet = (actual > 0 && normal > 0)
+            ? { num: actual, den: normal, groupId: ++tupletGroupSeq }
+            : null;
+          return;
+        }
+        if (tag === 'endTuplet') { curTuplet = null; return; }
         if (tag === 'Rest') {
           const dur  = MSCX_TO_VEX[txt(el,'durationType')||'quarter'] || 'q';
           const dots = parseInt(txt(el,'dots')||'0') || 0;
           const rest = mkRest(dur, dots, voiceNum);
+          if (curTuplet) rest.tuplet = { num: curTuplet.num, den: curTuplet.den, groupId: curTuplet.groupId };
           measure.notes.push(rest);
 
         } else if (tag === 'Chord') {
@@ -1028,6 +1054,7 @@ function parseMSCX(xmlStr) {
           const pitch = parseInt(txt(firstNoteEl,'pitch')||'60') || 60;
           const acc   = parseAccidental(firstNoteEl);
           const note  = mkNote(pitch, dur, dots, acc, voiceNum);
+          if (curTuplet) note.tuplet = { num: curTuplet.num, den: curTuplet.den, groupId: curTuplet.groupId };
 
           noteEls.slice(1).forEach(ne => {
             const ep = parseInt(txt(ne,'pitch')||'60') || 60;
@@ -1851,7 +1878,26 @@ function exportMSCXFromScore(s) {
 
       Object.keys(voices).sort((a,b) => a-b).forEach(v => {
         x += `        <voice num="${v}">\n`;
-        voices[v].forEach(n => writeNoteEl(n, true));
+        // One <Tuplet> per run of notes that share a group id, opened before
+        // its first note and closed with <endTuplet/> — the shape MuseScore
+        // writes, and the only way to keep two adjacent groups apart.
+        let openGroup = null;
+        voices[v].forEach(n => {
+          const gid = n.tuplet ? n.tuplet.groupId : null;
+          if (gid !== openGroup) {
+            if (openGroup !== null) x += `          <endTuplet/>\n`;
+            if (gid !== null) {
+              x += `          <Tuplet>\n`;
+              x += `            <normalNotes>${n.tuplet.den}</normalNotes>\n`;
+              x += `            <actualNotes>${n.tuplet.num}</actualNotes>\n`;
+              x += `            <baseNote>${VEX_TO_MSCX[n.duration] || 'quarter'}</baseNote>\n`;
+              x += `          </Tuplet>\n`;
+            }
+            openGroup = gid;
+          }
+          writeNoteEl(n, true);
+        });
+        if (openGroup !== null) x += `          <endTuplet/>\n`;
         x += `        </voice>\n`;
       });
 

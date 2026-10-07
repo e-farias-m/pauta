@@ -1214,7 +1214,7 @@ const _goodTuplet = { num: 3, den: 2, groupId: 7 };
 const _keptTuplet = _tupRepair(_goodTuplet);
 assertEq(_keptTuplet.tuplet.num, 3, 'a valid tuplet ratio survives repair');
 assertEq(_keptTuplet.tuplet.den, 2, 'and keeps its denominator');
-assertEq(_keptTuplet.tuplet.groupId, 7, 'and keeps its group id');
+assertEq(_keptTuplet.tuplet?.groupId, 7, 'and keeps its group id');
 assert(!('junk' in _tupRepair({ ..._goodTuplet, junk: 'x' }).tuplet),
   'unrecognised tuplet keys are stripped');
 
@@ -1354,6 +1354,206 @@ repairScore(_idem);
 const _idemFirst = JSON.stringify(_idem.assignments);
 repairScore(_idem);
 assertEq(JSON.stringify(_idem.assignments), _idemFirst, 'repairing an assignment twice changes nothing');
+
+// ── Tuplets and voices in the score file ────────────────────────────
+//
+// MuseScore writes one <Tuplet> element ahead of the notes it covers and
+// closes it with <endTuplet/>, and it writes one <voice> per voice with no
+// number on them at all — the order is the number. Export and import both
+// speak that dialect, or a saved score comes back with plain notes and
+// every voice collapsed into the first one.
+
+const _tvScore = () => {
+  const s = createScore(1);
+  const st = s.parts[0].staves[0];
+  st.measures = st.measures.slice(0, 1);
+  const m = st.measures[0];
+  m.timeSigNum = 4; m.timeSigDen = 4;
+  return { s, m };
+};
+const _tup = (pitch, dur, gid, voice = 1, dots = 0) => {
+  const n = mkNote(pitch, dur, dots, null, voice);
+  n.tuplet = { num: 3, den: 2, groupId: gid };
+  return n;
+};
+const _rt = (s) => repairScore(parseMSCX(exportMSCXFromScore(repairScore(s))));
+const _rtNotes = (s) => _rt(s).parts[0].staves[0].measures[0].notes;
+
+// A triplet of eighths followed by a plain quarter.
+{
+  const { s, m } = _tvScore();
+  m.notes = [_tup(60, '8', 7), _tup(64, '8', 7), _tup(67, '8', 7), mkNote(69, 'q', 0, null, 1)];
+  const xml = exportMSCXFromScore(repairScore(s));
+  assert(xml.includes('<Tuplet>'), 'export writes a <Tuplet> element for a tuplet run');
+  assert(xml.includes('<normalNotes>2</normalNotes>'), 'export writes normalNotes before actualNotes');
+  assert(xml.includes('<actualNotes>3</actualNotes>'), 'export writes actualNotes as the notes written');
+  assert(xml.includes('<baseNote>eighth</baseNote>'), 'export writes the written duration as baseNote');
+  assertEq((xml.match(/<Tuplet>/g) || []).length, 1, 'one <Tuplet> per run, not one per note');
+  assertEq((xml.match(/<endTuplet\/>/g) || []).length, 1, 'and exactly one <endTuplet/> closing it');
+
+  const rn = _rtNotes(s);
+  assertEq(rn.length, 4, 'the measure comes back with all four notes');
+  for (let i = 0; i < 3; i++) {
+    assertEq(rn[i].tuplet?.num, 3, `note ${i} keeps its numerator`);
+    assertEq(rn[i].tuplet?.den, 2, `note ${i} keeps its denominator`);
+  }
+  assertEq(rn[0].tuplet?.groupId, rn[1].tuplet?.groupId, 'the run shares one group id');
+  assertEq(rn[1].tuplet?.groupId, rn[2].tuplet?.groupId, 'across all of its notes');
+  assertEq(rn[3].tuplet, undefined, 'and the note after the run is outside it');
+}
+
+// Two runs back to back must not merge into one bracket.
+{
+  const { s, m } = _tvScore();
+  m.notes = [
+    _tup(60, '8', 7), _tup(64, '8', 7), _tup(67, '8', 7),
+    _tup(69, '8', 8), _tup(71, '8', 8), _tup(72, '8', 8),
+  ];
+  assertEq((exportMSCXFromScore(repairScore(s)).match(/<Tuplet>/g) || []).length, 2,
+    'two adjacent runs export as two elements');
+  const rn = _rtNotes(s);
+  assertEq(rn[0].tuplet?.groupId, rn[2].tuplet?.groupId, 'the first run stays together');
+  assertEq(rn[3].tuplet?.groupId, rn[5].tuplet?.groupId, 'the second run stays together');
+  assert(rn[2].tuplet?.groupId !== rn[3].tuplet?.groupId, 'and the two runs stay apart');
+}
+
+// A dotted note and a rest both belong to the run they sit in.
+{
+  const { s, m } = _tvScore();
+  const r = mkRest('8', 0, 1);
+  r.tuplet = { num: 3, den: 2, groupId: 5 };
+  m.notes = [_tup(60, '8', 5, 1, 1), r, _tup(67, '8', 5)];
+  const rn = _rtNotes(s);
+  assertEq(rn[0].dots, 1, 'a dotted note inside a tuplet keeps its dot');
+  assertEq(rn[0].tuplet?.num, 3, 'and keeps its tuplet');
+  assertEq(rn[1].type, 'rest', 'the rest is still a rest');
+  assertEq(rn[1].tuplet?.den, 2, 'a rest inside a tuplet keeps its tuplet');
+  assertEq(rn[1].tuplet?.groupId, rn[2].tuplet?.groupId, 'staying in the same run');
+}
+
+// A run that ends the measure still has to be closed in the file, or the
+// reader after it — MuseScore's or ours — has no idea where it stopped.
+{
+  const { s, m } = _tvScore();
+  m.notes = [_tup(60, '8', 9), _tup(64, '8', 9), _tup(67, '8', 9)];
+  const xml = exportMSCXFromScore(repairScore(s));
+  assertEq((xml.match(/<endTuplet\/>/g) || []).length, 1, 'a run at the end of the measure is closed');
+  const rn = _rtNotes(s);
+  assertEq(rn.length, 3, 'and the measure still comes back with three notes');
+  assertEq(rn[2].tuplet?.num, 3, 'the last note keeps its tuplet');
+}
+
+// Voices, and a tuplet that lives in the second one.
+{
+  const { s, m } = _tvScore();
+  m.notes = [
+    mkNote(72, 'h', 0, null, 1),
+    _tup(55, '8', 3, 2), _tup(57, '8', 3, 2), _tup(59, '8', 3, 2),
+  ];
+  const xml = exportMSCXFromScore(repairScore(s));
+  assert(xml.includes('<voice num="1">'), 'export opens voice 1');
+  assert(xml.includes('<voice num="2">'), 'export opens voice 2');
+  const rn = _rtNotes(s);
+  const v2 = rn.filter(n => n.voice === 2);
+  assertEq(rn.filter(n => n.voice === 1).length, 1, 'one note comes back in voice 1');
+  assertEq(v2.length, 3, 'and the three tuplet notes come back in voice 2');
+  assertEq(v2[0].tuplet?.num, 3, 'keeping the ratio');
+  assertEq(v2[0].tuplet?.den, 2, 'in both directions');
+  assertEq(v2[0].tuplet?.groupId, v2[2].tuplet?.groupId, 'as a single run');
+}
+
+// What MuseScore 4.7.5 writes: <Tuplet> before the notes it covers,
+// <endTuplet/> after them, <eid> everywhere, and <voice> elements with no
+// num attribute — their position in the measure is their number.
+const _msScore = (body) => `<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70">
+  <programVersion>4.7.5</programVersion>
+  <Score>
+    <eid>score1</eid>
+    <Division>480</Division>
+    <metaTag name="workTitle">From MuseScore</metaTag>
+    <Part id="1">
+      <Staff><eid>partstaff1</eid><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff>
+      <trackName>Piano</trackName>
+      <Instrument id="piano"><instrumentId>keyboard.piano</instrumentId></Instrument>
+    </Part>
+    <Staff id="1">
+      <Measure number="1" len="4/4">
+        <eid>measure1</eid>
+${body}
+      </Measure>
+    </Staff>
+  </Score>
+</museScore>`;
+
+const _msChord = (eid, dur, pitch, tpc) =>
+  `<Chord><eid>${eid}</eid><durationType>${dur}</durationType>` +
+  `<Note><eid>${eid}n</eid><pitch>${pitch}</pitch><tpc>${tpc}</tpc></Note></Chord>`;
+
+{
+  const imported = repairScore(parseMSCX(_msScore(`        <voice>
+          <Clef><concertClefType>G</concertClefType><transposingClefType>G</transposingClefType><isHeader>1</isHeader><eid>clef1</eid></Clef>
+          <TimeSig><eid>ts1</eid><sigN>4</sigN><sigD>4</sigD></TimeSig>
+          <Tuplet><eid>tp1</eid><normalNotes>2</normalNotes><actualNotes>3</actualNotes><baseNote>eighth</baseNote><Number><style>tuplet</style><text>3</text></Number></Tuplet>
+          ${_msChord('n1', 'eighth', 60, 14)}
+          ${_msChord('n2', 'eighth', 64, 18)}
+          ${_msChord('n3', 'eighth', 67, 15)}
+          <endTuplet/>
+          ${_msChord('n4', 'quarter', 69, 17)}
+        </voice>`)));
+  const rn = imported.parts[0].staves[0].measures[0].notes;
+  assertEq(rn.length, 4, 'a MuseScore measure keeps all four notes');
+  assertEq(rn[0].tuplet?.num, 3, 'its tuplet maps to the notes written');
+  assertEq(rn[0].tuplet?.den, 2, 'and to the notes it replaces');
+  assertEq(rn[0].tuplet?.groupId, rn[2].tuplet?.groupId, 'covering the whole run');
+  assertEq(rn[3].tuplet, undefined, 'and stopping where <endTuplet/> says');
+  assertEq(rn[0].duration, '8', 'durationType still maps to the model');
+}
+
+{
+  const imported = repairScore(parseMSCX(_msScore(`        <voice>
+          <Clef><concertClefType>G</concertClefType><eid>clef1</eid></Clef>
+          <TimeSig><eid>ts1</eid><sigN>4</sigN><sigD>4</sigD></TimeSig>
+          ${_msChord('n1', 'half', 60, 14)}
+          ${_msChord('n2', 'half', 64, 18)}
+        </voice>
+        <voice>
+          ${_msChord('n3', 'whole', 55, 14)}
+        </voice>`)));
+  const rn = imported.parts[0].staves[0].measures[0].notes;
+  assertEq(rn.filter(n => n.voice === 1).length, 2,
+    'voices written without a num attribute are counted by position');
+  assertEq(rn.filter(n => n.voice === 2).length, 1, 'the second <voice> becomes voice 2');
+  assertEq(rn.find(n => n.voice === 2)?.pitch, 55, 'with its own note');
+}
+
+// A group left open at the end of one voice must not swallow the next one.
+{
+  const imported = repairScore(parseMSCX(_msScore(`        <voice>
+          <Tuplet><normalNotes>2</normalNotes><actualNotes>3</actualNotes><baseNote>eighth</baseNote></Tuplet>
+          ${_msChord('n1', 'eighth', 60, 14)}
+          ${_msChord('n2', 'eighth', 64, 18)}
+        </voice>
+        <voice>
+          ${_msChord('n3', 'quarter', 67, 15)}
+        </voice>`)));
+  const rn = imported.parts[0].staves[0].measures[0].notes;
+  assertEq(rn.filter(n => n.voice === 2).length, 1, 'the second voice still has its note');
+  assertEq(rn.find(n => n.voice === 2)?.tuplet, undefined, 'and does not inherit the open group');
+}
+
+// A <Tuplet> that says nothing usable must not become a bogus ratio.
+{
+  const imported = repairScore(parseMSCX(_msScore(`        <voice>
+          <Tuplet><baseNote>eighth</baseNote></Tuplet>
+          ${_msChord('n1', 'eighth', 60, 14)}
+          <endTuplet/>
+          ${_msChord('n2', 'quarter', 64, 18)}
+        </voice>`)));
+  const rn = imported.parts[0].staves[0].measures[0].notes;
+  assertEq(rn[0].tuplet, undefined, 'a <Tuplet> with no ratio attaches nothing');
+  assertEq(rn[1].tuplet, undefined, 'and nothing leaks past <endTuplet/>');
+}
 
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
