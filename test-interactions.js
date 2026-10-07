@@ -66,6 +66,7 @@ const {
   buildPlaybackOrder,
   renderVoltaBrackets,
   yToPitchAccurate,
+  _evaluateAssignment, pickArchiveScorePath, _archiveRootfilePath,
 } = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
@@ -1326,6 +1327,183 @@ assertEq(yToPitchAccurate(140, _perc), 36, 'the bottom line is the bass drum');
 // than running away with the arithmetic.
 assertEq(yToPitchAccurate(-1000, _treble), 120, 'far above the score clamps to MIDI 120');
 assertEq(yToPitchAccurate(10000, _treble), 12, 'far below it clamps to MIDI 12');
+
+// ── Grading an assignment (_evaluateAssignment) ──────────────────
+//
+// The grader is the only thing between a student's answers and a mark, and
+// it had no test at all. Answers live at studentAnswers[id].notes[mi][ni],
+// keyed by the note's index inside its measure, exactly as
+// _storeAssignmentAnswer writes them. hidden lists the content the student
+// must supply; the answer is compared field by field.
+
+const _gn = (pitch, extra) => Object.assign(
+  { type:'note', pitch, duration:'q', dots:0, accidental:null, voice:1, extraPitches:[] }, extra);
+const _gr = () => ({ type:'rest', duration:'q', dots:0, voice:1 });
+const _gmeas = (...notes) => ({ timeSigNum:4, timeSigDen:4, keySig:0, lineBreak:false, notes });
+const _gscore = measures => {
+  const s = SCORE.createScore({ instruments:['Piano'] });
+  s.parts[0].staves[0].measures = measures;
+  return s;
+};
+const _withAnswers = (score, id, notes) => { score.studentAnswers = { [id]: { notes } }; return score; };
+
+// 20a. every pitch supplied and right
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60), _gn(62), _gn(64))]), 'a1',
+  { 0: { 0:{pitch:60}, 1:{pitch:62}, 2:{pitch:64} } });
+let _r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.total, 3, 'three notes are three questions');
+assertEq(_r.correct, 3, 'matching pitches are all correct');
+assertEq(_r.incorrect, 0, 'nothing incorrect when all pitches match');
+assertEq(_r.partial, 0, 'nothing partial when all pitches match');
+assertEq(_r.details.length, 3, 'one detail line per graded note');
+
+// 20b. a wrong pitch lands in incorrect, reported against pitch
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60), _gn(62), _gn(64))]), 'a1',
+  { 0: { 0:{pitch:60}, 1:{pitch:63}, 2:{pitch:64} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.correct, 2, 'the two matching pitches stay correct');
+assertEq(_r.incorrect, 1, 'the wrong pitch is incorrect');
+assertEq(_r.details[1].ok, false, 'the wrong pitch detail is marked not-ok');
+assert(/pitch/i.test(_r.details[1].msg), 'the message names the wrong field');
+
+// 20c. the right note in the wrong octave is partial, not wrong:
+// the model stores only MIDI, so "same pitch class, different octave" is
+// the only mismatch the partial branch can see (a true enharmonic spelling
+// shares the same MIDI number and so compares equal above).
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60))]), 'a1', { 0: { 0:{pitch:72} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.partial, 1, 'the same pitch class an octave up is partial');
+assertEq(_r.correct, 0, 'partial is not also counted correct');
+assertEq(_r.incorrect, 0, 'partial is not also counted incorrect');
+assertEq(_r.details[0].ok, false, 'a partial note is not marked ok');
+
+// 20d. nothing entered is incorrect, not silently correct
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60))]), 'a1', {});
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.incorrect, 1, 'a missing answer is incorrect');
+assert(/no pitch/i.test(_r.details[0].msg), 'a missing pitch says so');
+
+// 20e. no answers box at all still grades every note as unanswered
+APP.score = _gscore([_gmeas(_gn(60), _gn(62))]);
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.total, 2, 'every note is still a question');
+assertEq(_r.correct, 0, 'nothing is correct without an answers box');
+assertEq(_r.incorrect, 2, 'both notes count as unanswered');
+
+// 20f. rests are not questions: students do not notate rests by hand
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60), _gr(), _gn(62))]), 'a1',
+  { 0: { 0:{pitch:60}, 2:{pitch:62} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.total, 2, 'the rest is not counted as a question');
+assertEq(_r.correct, 2, 'both notes are graded');
+
+// 20f. only measures inside the range are graded
+APP.score = _withAnswers(_gscore([
+  _gmeas(_gn(60)),
+  _gmeas(_gn(64)),
+]), 'a1', { 0:{0:{pitch:60}}, 1:{0:{pitch:99}} });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.total, 1, 'the out-of-range measure is not graded');
+assertEq(_r.correct, 1, 'the in-range measure is graded');
+assertEq(_r.details[0].mi, 0, 'the detail carries the measure index');
+assertEq(_r.details[0].ni, 0, 'the detail carries the note index');
+
+// 20f. a rhythm assignment compares durations, not pitches
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60, {duration:'q'}), _gn(62, {duration:'h'}))]), 'a1',
+  { 0: { 0:{duration:'q'}, 1:{duration:'h'} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['duration'] });
+assertEq(_r.correct, 2, 'matching durations are correct');
+assertEq(_r.incorrect, 0, 'matching durations are not incorrect');
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60, {duration:'q'}))]), 'a1', { 0:{0:{duration:'h'}} });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['duration'] });
+assertEq(_r.incorrect, 1, 'a wrong duration is incorrect');
+assert(/duration/i.test(_r.details[0].msg), 'the message names duration');
+
+// 20f. hiding both asks for both, but a wrong note counts once
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60, {duration:'q'}))]), 'a1',
+  { 0: { 0:{pitch:60, duration:'h'} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch','duration'] });
+assertEq(_r.incorrect, 1, 'right pitch and wrong duration is one incorrect note');
+assert(/pitch correct/i.test(_r.details[0].msg) && /duration wrong/i.test(_r.details[0].msg),
+  'the message reports both fields');
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60, {duration:'q'}))]), 'a1',
+  { 0: { 0:{pitch:62, duration:'h'} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch','duration'] });
+assertEq(_r.incorrect, 1, 'wrong pitch and wrong duration is still one incorrect note');
+assert(!/duration/i.test(_r.details[0].msg),
+  'duration is not blamed once the pitch already failed the note');
+
+// 20f. a note with no lyric is not a question in a lyric assignment.
+// This used to count as correct, so a blank lyric assignment scored 100%.
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60, {lyric:{text:'la'}}), _gn(62))]), 'a1',
+  { 0: { 0:{lyric:'LA'}, 1:{lyric:'ignored'} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['lyric'] });
+assertEq(_r.total, 1, 'only the note that has a lyric is graded');
+assertEq(_r.correct, 1, 'the matching lyric is correct');
+assertEq(_r.details.length, 1, 'the lyric-less note has no detail line');
+assertEq(_r.details[0].ni, 0, 'the detail points at the lyric note');
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60, {lyric:{text:'la'}}))]), 'a1', {});
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['lyric'] });
+assertEq(_r.incorrect, 1, 'an unanswered lyric is incorrect');
+assert(/no lyric/i.test(_r.details[0].msg), 'a missing lyric says so');
+
+// 20f. the same rule holds for chord symbols
+APP.score = _withAnswers(_gscore([_gmeas(_gn(60, {chordSymbol:'C'}), _gn(62))]), 'a1',
+  { 0: { 0:{chordSymbol:'c'}, 1:{chordSymbol:'nope'} } });
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['chordSymbol'] });
+assertEq(_r.total, 1, 'only the note that has a chord symbol is graded');
+assertEq(_r.correct, 1, 'a chord symbol compares case-insensitively');
+
+// 20f. an assignment with no score is empty, not a crash
+APP.score = null;
+_r = _evaluateAssignment({ id:'a1', range:{startMi:0,endMi:0}, hidden:['pitch'] });
+assertEq(_r.total, 0, 'no score means no questions');
+assertEq(_r.correct, 0, 'no score means no correct answers');
+
+// ── Picking the score out of a .mscz / .mxl archive ──────────────
+//
+// The layouts below are the real entry lists from MuseScore 4.7.5: a .mscz
+// stores its score as score.mscx and its manifest as META-INF/container.xml
+// *last*, and a MusicXML .mxl names its rootfile in that manifest. The old
+// "last entry ending in .mscx/.xml" rule picked the manifest and parsed it
+// as a score, so no MuseScore .mscz could be opened.
+
+const _msczEntries = [
+  'score_style.mss', 'score.mscx', 'Thumbnails/thumbnail.png',
+  'automation.json', 'audiosettings.json', 'viewsettings.json', 'META-INF/container.xml',
+];
+assertEq(pickArchiveScorePath(_msczEntries), 'score.mscx', 'a .mscz resolves to its score.mscx');
+assert(pickArchiveScorePath(_msczEntries) !== 'META-INF/container.xml',
+  'the manifest is never mistaken for the score');
+
+const _realContainer = '<?xml version="1.0" encoding="UTF-8"?>\n<container>\n  <rootfiles>\n'
+  + '    <rootfile full-path="score.xml">\n      </rootfile>\n  </rootfiles>\n</container>';
+assertEq(pickArchiveScorePath(['META-INF/container.xml', 'score.xml']), 'score.xml',
+  'a .mxl resolves to its only score entry');
+
+// The manifest is authoritative when it can be read.
+assertEq(_archiveRootfilePath(_realContainer), 'score.xml', 'container.xml names the rootfile');
+assertEq(_archiveRootfilePath('<container><rootfiles><rootfile full-path="/part0.xml"/></rootfiles></container>'),
+  'part0.xml', 'a leading slash in full-path is stripped');
+assertEq(_archiveRootfilePath('<container/>'), null, 'a manifest with no rootfile resolves to null');
+assertEq(_archiveRootfilePath(''), null, 'empty manifest text resolves to null');
+assertEq(_archiveRootfilePath(null), null, 'no manifest text resolves to null');
+
+// Extension preference and meta-file filtering for the fallback path.
+assertEq(pickArchiveScorePath(['META-INF/container.xml', 'part0.xml', 'score.musicxml']),
+  'score.musicxml', 'a fallback prefers .musicxml over a generic .xml');
+assertEq(pickArchiveScorePath(['score.xml', 'piece.mscx']), 'piece.mscx',
+  'a fallback prefers .mscx over a generic .xml');
+assertEq(pickArchiveScorePath(['score.musicxml', 'piece.mscx']), 'piece.mscx',
+  'a fallback prefers .mscx over .musicxml');
+assertEq(pickArchiveScorePath(['container.xml', 'score.xml']), 'score.xml',
+  'a container.xml outside META-INF is ignored too');
+assertEq(pickArchiveScorePath(['scores/SCORE.MSCX']), 'scores/SCORE.MSCX',
+  'extensions match case-insensitively in nested folders');
+assertEq(pickArchiveScorePath(['META-INF/container.xml']), null,
+  'a manifest-only archive has no score');
+assertEq(pickArchiveScorePath([]), null, 'an empty archive has no score');
+assertEq(pickArchiveScorePath(null), null, 'a missing path list has no score');
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);

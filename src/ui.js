@@ -1617,6 +1617,30 @@ function showFileMenu(btn) {
   ]);
 }
 
+// A MuseScore (.mscz) or compressed MusicXML (.mxl) file is a zip whose
+// real score is named by META-INF/container.xml. The old code took the
+// *last* entry ending in .mscx/.xml, which is the container itself for any
+// archive that stores it last — MuseScore's own .mscz does — and then tried
+// to parse a manifest as a score. Resolve the rootfile first and only fall
+// back to guessing by extension.
+function _archiveRootfilePath(containerXml) {
+  const m = /<rootfile\b[^>]*\bfull-path\s*=\s*["']([^"']+)["']/i.exec(containerXml || '');
+  return m ? m[1].replace(/^\/+/, '') : null;
+}
+
+function _isMetaEntry(path) {
+  return /(^|\/)META-INF\//i.test(path) || /(^|\/)container\.xml$/i.test(path);
+}
+
+function pickArchiveScorePath(paths) {
+  const list = paths || [];
+  for (const ext of ['.mscx', '.musicxml']) {
+    const hit = list.find(p => p.toLowerCase().endsWith(ext) && !_isMetaEntry(p));
+    if (hit) return hit;
+  }
+  return list.find(p => p.toLowerCase().endsWith('.xml') && !_isMetaEntry(p)) || null;
+}
+
 function openFile() {
   const inp = document.createElement('input');
   inp.type = 'file';
@@ -1630,10 +1654,19 @@ function openFile() {
       const fname = file.name.toLowerCase();
       if (fname.endsWith('.mscz') || fname.endsWith('.mxl')) {
         const zip = await JSZip.loadAsync(file);
-        let entry = null;
-        zip.forEach((p, f) => { if (p.endsWith('.mscx') || p.endsWith('.xml')) entry = f; });
-        if (!entry) { showToast('No score file found inside archive'); return; }
-        xmlStr = await entry.async('string');
+        const paths = [];
+        zip.forEach(p => paths.push(p));
+        let target = null;
+        const container = paths.find(p => /(^|\/)META-INF\/container\.xml$/i.test(p));
+        if (container) {
+          try {
+            const root = _archiveRootfilePath(await zip.file(container).async('string'));
+            if (root) target = paths.find(p => p.toLowerCase() === root.toLowerCase()) || null;
+          } catch (e) { /* fall back to the extension guess below */ }
+        }
+        if (!target) target = pickArchiveScorePath(paths);
+        if (!target) { showToast('No score file found inside archive'); return; }
+        xmlStr = await zip.file(target).async('string');
       } else {
         xmlStr = await file.text();
       }

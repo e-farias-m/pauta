@@ -136,6 +136,7 @@ const APP_EXPORT_NAMES = [
   '_renderRhythmCounting', 'getNoteByLayout',
   'applyMarker', 'clearMarker', 'toggleLineBreak',
   'buildPlaybackOrder', 'renderVoltaBrackets', 'yToPitchAccurate',
+  '_evaluateAssignment', 'pickArchiveScorePath', '_archiveRootfilePath',
 ];
 
 /**

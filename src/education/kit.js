@@ -172,29 +172,42 @@ function _evaluateAssignment(asgn) {
   let correct = 0, incorrect = 0, partial = 0, total = 0;
 
   for (let mi = asgn.range.startMi; mi <= asgn.range.endMi; mi++) {
-    const measures = APP.score.parts.map(p => p.staves[0].measures[mi]).filter(Boolean);
+    const measures = (APP.score?.parts || []).map(p => p.staves[0].measures[mi]).filter(Boolean);
     measures.forEach(m => {
       m.notes.forEach((note, ni) => {
         if (note.type !== 'note') return;
+        const asksPitch    = hiddenSet.has('pitch');
+        const asksDuration = hiddenSet.has('duration');
+        const asksLyric    = hiddenSet.has('lyric') && !!(note.lyric && note.lyric.text);
+        const asksChord    = hiddenSet.has('chordSymbol') && !!note.chordSymbol;
+        // Only notes that hide something the score actually contains are
+        // questions. A lyric-only assignment over a passage with no lyrics
+        // used to mark every note "correct", handing out a perfect score
+        // for work the student was never asked to do.
+        if (!asksPitch && !asksDuration && !asksLyric && !asksChord) return;
         total++;
         const answer = answers?.notes?.[mi]?.[ni];
         let ok = true, msg = '';
 
-        if (hiddenSet.has('pitch') || hiddenSet.has('duration')) {
+        if (asksPitch || asksDuration) {
           // Check pitch
-          if (hiddenSet.has('pitch')) {
+          if (asksPitch) {
             if (!answer || answer.pitch == null) {
               ok = false; msg = 'No pitch entered';
             } else if (answer.pitch === note.pitch) {
               msg = 'Pitch correct';
             } else if ((answer.pitch % 12) === (note.pitch % 12)) {
-              ok = false; partial++; msg = `Pitch enharmonic (${answer.pitch} vs ${note.pitch})`; return;
+              partial++;
+              // Record the line before returning: a partial note still has to
+              // appear in the review, or the count and the list disagree.
+              details.push({ mi, ni, ok:false, msg:`Pitch enharmonic (${answer.pitch} vs ${note.pitch})` });
+              return;
             } else {
               ok = false; msg = `Pitch wrong (${answer.pitch} vs ${note.pitch})`;
             }
           }
           // Check duration
-          if (ok && hiddenSet.has('duration')) {
+          if (ok && asksDuration) {
             const targetDur = durBeats(note.duration, note.dots, note.tuplet);
             const ansDur = answer ? durBeats(answer.duration, answer.dots, answer.tuplet) : 0;
             if (!answer || Math.abs(ansDur - targetDur) > 0.001) {
@@ -205,7 +218,7 @@ function _evaluateAssignment(asgn) {
           }
         }
 
-        if (hiddenSet.has('lyric') && note.lyric?.text) {
+        if (asksLyric) {
           if (!answer || !answer.lyric) {
             ok = false; msg = 'No lyric entered';
           } else if (answer.lyric.trim().toLowerCase() !== note.lyric.text.trim().toLowerCase()) {
@@ -215,7 +228,7 @@ function _evaluateAssignment(asgn) {
           }
         }
 
-        if (hiddenSet.has('chordSymbol') && note.chordSymbol) {
+        if (asksChord) {
           if (!answer || !answer.chordSymbol) {
             ok = false; msg = 'No chord symbol entered';
           } else if (answer.chordSymbol.trim().toLowerCase() !== note.chordSymbol.trim().toLowerCase()) {
