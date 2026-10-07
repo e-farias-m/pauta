@@ -210,9 +210,12 @@ export function loadApp() {
 // every import test silently see a score of rests, which is why this
 // suite used to carry its own parser.
 //
-// This shim provides exactly the surface parseMSCX touches:
-// querySelector / querySelectorAll / localName / tagName / children /
-// childNodes / parentNode / getAttribute / textContent / firstChild.
+// This shim provides exactly the surface parseMSCX and parseMusicXML
+// touch: querySelector / querySelectorAll / localName / tagName /
+// children / childNodes / parentNode / getAttribute / textContent /
+// firstChild / documentElement. parseMSCX reaches the root with
+// querySelector, parseMusicXML reads documentElement, so a document
+// without the latter made every MusicXML import throw.
 // Tag matching is case-sensitive, as in a browser XML document.
 class XNode {
   constructor(tag, attrs, children, text) {
@@ -315,6 +318,7 @@ export function makeXMLDOMParser() {
         children: [root],
         childNodes: [root],
         firstChild: root,
+        documentElement: root,
         _text: '',
         get textContent() { return root ? root.textContent : ''; },
         _descendants: () => root._descendants(),

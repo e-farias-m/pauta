@@ -4821,6 +4821,31 @@ function parseMusicXML(xmlStr) {
     return alter > 0 ? '#' : 'b';
   }
 
+  // MusicXML carries navigation markers as direction-type children (segno,
+  // coda) or as sound attributes (fine, dacapo, dalsegno). The words text
+  // is only a fallback — it is localized, so it is the weakest signal here.
+  function mxmlMarkers(mEl) {
+    const found = new Set();
+    for (const dEl of nqa(mEl, 'direction')) {
+      const dt = nq(dEl, 'direction-type');
+      if (dt) {
+        if (nq(dt, 'segno')) found.add('segno');
+        if (nq(dt, 'coda'))  found.add('coda');
+        const words = (txt(dt, 'words') || '').trim().toLowerCase();
+        if (words === 'fine') found.add('fine');
+        else if (words === 'd.c.' || words === 'dc' || words === 'da capo') found.add('dc');
+        else if (words === 'd.s.' || words === 'ds' || words === 'dal segno') found.add('ds');
+      }
+      const sound = nq(dEl, 'sound');
+      if (sound) {
+        if (sound.getAttribute('fine') === 'yes')     found.add('fine');
+        if (sound.getAttribute('dacapo') === 'yes')   found.add('dc');
+        if (sound.getAttribute('dalsegno'))           found.add('ds');
+      }
+    }
+    return found;
+  }
+
   const _typeToDur = {
     'maxima':'w','long':'w','breve':'w','whole':'w',
     'half':'h','quarter':'q','eighth':'8',
@@ -4862,6 +4887,30 @@ function parseMusicXML(xmlStr) {
   const partEls     = nqa(root, 'part');
 
   score.parts = [];
+
+  // Score-wide flags are collected across every part first, then stamped
+  // onto each part's staves once its measures exist. MusicXML normally
+  // repeats <print new-system> and the marker directions in each part, but
+  // a file that writes them in only one part would be cleared again by
+  // repairScore, which treats part 1 stave 1 as the authority.
+  const mxmlLineBreakAt = new Set();
+  const mxmlMarkersAt = new Map();
+  partEls.forEach(pEl => {
+    nqa(pEl, 'measure').forEach((pmEl, mi) => {
+      const printEl = nq(pmEl, 'print');
+      // new-system marks where the new line starts, so the break belongs to
+      // the end of the measure before it. There is no measure before 1.
+      if (printEl && printEl.getAttribute('new-system') === 'yes' && mi > 0) {
+        mxmlLineBreakAt.add(mi - 1);
+      }
+      const found = mxmlMarkers(pmEl);
+      if (found.size) {
+        const cur = mxmlMarkersAt.get(mi) || new Set();
+        found.forEach(k => cur.add(k));
+        mxmlMarkersAt.set(mi, cur);
+      }
+    });
+  });
 
   partEls.forEach((partEl, pi) => {
     const part = {
@@ -4936,13 +4985,6 @@ function parseMusicXML(xmlStr) {
         if (measure.keySig === null) measure.keySig = 0;
         if (measure.timeSigNum === null) { measure.timeSigNum = curTimeSigNum; measure.timeSigDen = curTimeSigDen; }
         firstMeasure = false;
-      }
-
-      // Barline
-      const barlineEl = nq(mEl, 'barline');
-      if (barlineEl) {
-        const loc = txt(barlineEl, 'bar-style') || '';
-        if (loc === 'final') measure.lineBreak = true;
       }
 
       // Harmony (chord symbols) — may appear before/after notes
@@ -5120,6 +5162,21 @@ function parseMusicXML(xmlStr) {
         }
       });
     });
+
+    // Stamp the score-wide flags collected above onto every stave of this
+    // part, now that all of them have their measures. The `measure` object
+    // built inside the loop is only ever a carrier for key and time sig, so
+    // flags written onto it were discarded before they reached a stave.
+    const stampFlag = (mi, apply) => {
+      for (const stave of part.staves) {
+        const m = stave.measures[mi];
+        if (m) apply(m);
+      }
+    };
+    mxmlLineBreakAt.forEach(mi => stampFlag(mi, m => { m.lineBreak = true; }));
+    for (const [mi, keys] of mxmlMarkersAt) {
+      stampFlag(mi, m => { for (const k of keys) m[k] = true; });
+    }
 
     score.parts.push(part);
   });

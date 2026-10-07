@@ -23,7 +23,7 @@ const {
   createScore, repairScore, validateScore,
   setTimeSig, setKeySig, resolvedTimeSig,
   mkNote, mkRest, emptyMeasure,
-  exportMSCXFromScore, parseMSCX,
+  exportMSCXFromScore, parseMSCX, parseMusicXML,
   getMeasureActiveAccidentals, getResolvedKeySig, getStaveBySI,
   _syncScoreWideFlags,
 } = { ...M, ...M.SCORE };
@@ -888,6 +888,99 @@ assertEq(cStave.measures[1].dc, true, 'a capitalized Jump subtype is read');
 assertEq(cStave.measures[2].lineBreak, true, 'a capitalized LayoutBreak subtype is read');
 assertEq(cStave.measures[3].lineBreak, true, 'a lowercase layoutBreak element is read');
 assertEq(_markersOf(cStave.measures[1]), 'dc', 'a Jump subtype reads as dc, not ds');
+
+// ── MusicXML import: score-wide flags ─────────────────────────────
+//
+// parseMusicXML read line breaks and markers into a per-measure object
+// that never reached a stave, so both were dropped on the way in. The
+// branch also tested bar-style for 'final', which is not a MusicXML
+// bar-style value and would in any case mean end of piece, not system break.
+
+const _mxMeasure = (n, extra = '', withAttrs = false) => `
+    <measure number="${n}">
+      ${withAttrs ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time></attributes>' : ''}
+      ${extra}
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>`;
+
+const _mxDoc = measures => `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Flute</part-name></score-part></part-list>
+  <part id="P1">${measures}</part>
+</score-partwise>`;
+
+const _mxTwo = (p1, p2) => `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+    <score-part id="P2"><part-name>Cello</part-name></score-part>
+  </part-list>
+  <part id="P1">${p1}</part>
+  <part id="P2">${p2}</part>
+</score-partwise>`;
+
+// new-system marks the start of the new line, so the break belongs to the
+// end of the measure before it.
+const brk = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '', true) +
+  _mxMeasure(2) +
+  _mxMeasure(3, '<print new-system="yes"/>') +
+  _mxMeasure(4)));
+const brkM = brk.parts[0].staves[0].measures;
+assertEq(brkM.length, 4, 'the system-break fixture parses four measures');
+assertEq(brkM[1].lineBreak, true, 'the break lands on the measure before new-system');
+assertEq(brkM[2].lineBreak, false, 'the measure carrying new-system has no break of its own');
+assertEq(brkM[0].lineBreak, false, 'the first measure has no break');
+assertEq(brkM[3].lineBreak, false, 'later measures have no break');
+
+// A break claimed before measure 1 has nowhere to sit.
+const early = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<print new-system="yes"/>', true) + _mxMeasure(2)));
+assert(early.parts.every(p => p.staves.every(st => st.measures.every(m => !m.lineBreak))),
+  'a new-system on the first measure is ignored');
+
+// Every marker form MusicXML uses is read.
+const marks = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<direction><direction-type><segno/></direction-type></direction>', true) +
+  _mxMeasure(2, '<direction><direction-type><coda/></direction-type></direction>') +
+  _mxMeasure(3, '<direction><sound fine="yes"/></direction>') +
+  _mxMeasure(4, '<direction><sound dacapo="yes"/></direction>') +
+  _mxMeasure(5, '<direction><sound dalsegno="0"/></direction>') +
+  _mxMeasure(6, '<direction><direction-type><words>Fine</words></direction-type></direction>')));
+const markM = marks.parts[0].staves[0].measures;
+assertEq(_markersOf(markM[0]), 'segno', 'a direction-type segno is read');
+assertEq(_markersOf(markM[1]), 'coda', 'a direction-type coda is read');
+assertEq(_markersOf(markM[2]), 'fine', 'sound fine="yes" is read');
+assertEq(_markersOf(markM[3]), 'dc', 'sound dacapo="yes" is read');
+assertEq(_markersOf(markM[4]), 'ds', 'sound dalsegno is read');
+assertEq(_markersOf(markM[5]), 'fine', 'the words fallback for Fine is read');
+
+// A final barline is the end of the piece, not a system break.
+const finalB = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '', true) +
+  _mxMeasure(2, '<barline location="right"><bar-style>final</bar-style></barline>')));
+const finalM = finalB.parts[0].staves[0].measures;
+assert(finalM.every(m => !m.lineBreak), 'a final barline does not become a system break');
+
+// Flags written in only one part survive, because they are collected across
+// all parts rather than per part — otherwise repairScore would clear them
+// from every part whose own measure element never mentioned them.
+// Part 1 never mentions either flag; part 2 puts the break on measure 2
+// (so it lands on measure 1) and the segno on measure 3.
+const parts = parseMusicXML(_mxTwo(
+  _mxMeasure(1, '', true) + _mxMeasure(2) + _mxMeasure(3),
+  _mxMeasure(1, '', true) + _mxMeasure(2) + _mxMeasure(3,
+    '<print new-system="yes"/><direction><direction-type><segno/></direction-type></direction>')));
+assertEq(parts.parts.length, 2, 'the two-part fixture parses two parts');
+assert(parts.parts.every(p => p.staves.every(st => st.measures[1].lineBreak === true)),
+  'a break found only in part 2 is applied to every part');
+assert(parts.parts.every(p => p.staves.every(st => st.measures[2].segno === true)),
+  'a marker found only in part 2 is applied to every part');
+const repairedParts = repairScore(parts);
+assert(repairedParts.parts.every(p => p.staves.every(st => st.measures[1].lineBreak === true)),
+  'the imported break still holds after repair');
+assert(repairedParts.parts.every(p => p.staves.every(st => st.measures[2].segno === true)),
+  'the imported marker still holds after repair');
 
 console.log(`\n${_pass} passed, ${_fail} failed`);
 process.exit(_fail > 0 ? 1 : 0);
