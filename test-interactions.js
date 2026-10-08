@@ -50,7 +50,7 @@ for (let _i = 0; _i < _buildMods.length; _i++) {
 
 const A = loadApp();
 const {
-  APP, SCORE, AUDIO, MODE_RULES, VALID_DURATIONS, NOTE_NAMES, CHROMATIC,
+  APP, SCORE, AUDIO, UI, MODE_RULES, VALID_DURATIONS, NOTE_NAMES, CHROMATIC,
   PC_TO_DIA, DUR_BEATS, SCORE_MEASURE_REF_RULES, KIT_CONFIGS,
   EXERCISE_TYPES, INTERVAL_NAMES, INTERVAL_ALIASES,
   KEY_SIG_NAMES, KEY_SIG_MINOR_NAMES, NATURAL_PITCHES,
@@ -69,6 +69,7 @@ const {
   yToPitchAccurate,
   _evaluateAssignment, pickArchiveScorePath, _archiveRootfilePath,
   submitAssignment, endExerciseSession,
+  restartExerciseSession, reviewExerciseSession, _beginExerciseSession, _ACTION_MAP,
   extractScoreXML, buildMSCZBlob, NO_ARCHIVE_SCORE,
   noteNaturalWidth, measureContentWidth, findMultiRestGroups, _layoutScales,
   stemDir, calcStemDirections, _percussionLinePos, _getScaleDegree,
@@ -1571,6 +1572,66 @@ endExerciseSession();
 assertEq(APP.score.title, 'My Song', 'endExerciseSession hands the score back');
 assertEq(APP.exerciseMode, false, 'and leaves exercise mode');
 assertEq(APP._preExerciseScore, null, 'with the backup cleared');
+
+// ── Review / Try Again survive the end-of-session teardown ───────
+//
+// endExerciseSession nulls APP.exerciseSession, but its summary modal's
+// "Review Answers" and "Try Again" buttons fire afterwards. The finished
+// session now has to be kept separately, review navigation used to call a
+// nonexistent window._registerAction, and the review index was never
+// advanced — so both buttons were dead.
+
+const _finishedNotes = [
+  { type: EXERCISE_TYPES.NOTE_ID, answer:'C', ok:true, correctAnswer:'C', target:{ pitch:60 } },
+  { type: EXERCISE_TYPES.NOTE_ID, answer:'D', ok:false, correctAnswer:'E', target:{ pitch:62 } },
+];
+APP.score = _exerciseScore();
+APP._preExerciseScore = null;
+APP.exerciseMode = true;
+APP._lastExerciseSession = null;
+APP.exerciseSession = {
+  type: EXERCISE_TYPES.NOTE_ID, difficulty: 'beginner',
+  current: null, completed: _finishedNotes, correctCount: 1, totalCount: 2,
+  streak: 0, maxStreak: 1, startedAt: Date.now(), warmupCount: 0, lastLevelUp: 0,
+};
+endExerciseSession();
+assertEq(APP.exerciseSession, null, 'ending a session clears the live session');
+assertEq(APP._lastExerciseSession?.completed, _finishedNotes,
+  'but keeps the finished session for the summary buttons');
+
+UI.closeModal();
+reviewExerciseSession();
+let _reviewModal = A.document.querySelector('[data-action="reviewNext"]')?.closest('.pauta-modal');
+assert(_reviewModal, 'reviewExerciseSession opens a review modal after the session ended');
+assert(/Review:/.test(_reviewModal.textContent), 'the modal is titled Review');
+assert(/1\/2/.test(_reviewModal.textContent), 'it starts on the first question');
+
+_ACTION_MAP.reviewNext();
+let _secondModal = A.document.querySelector('[data-action="reviewPrev"]')?.closest('.pauta-modal');
+assert(_secondModal && /2\/2/.test(_secondModal.textContent), 'Next advances to the second question');
+
+_ACTION_MAP.reviewPrev();
+const _firstAgain = A.document.querySelector('[data-action="reviewNext"]')?.closest('.pauta-modal');
+assert(_firstAgain && /1\/2/.test(_firstAgain.textContent), 'Previous steps back to the first question');
+
+// Try Again reopens the intro for the finished session's type.
+UI.closeModal();
+APP.exerciseSession = null;
+restartExerciseSession();
+const _introModal = A.document.querySelector('.pauta-modal');
+assert(_introModal && /Note Identification/.test(_introModal.textContent),
+  'restartExerciseSession reopens the finished session type');
+
+// Starting a fresh session drops the reviewable one.
+UI.closeModal();
+APP._lastExerciseSession = { completed: [] };
+_beginExerciseSession(EXERCISE_TYPES.NOTE_ID, 'beginner');
+assertEq(APP._lastExerciseSession, null, 'a new session clears the finished-session stash');
+assert(APP.exerciseSession && APP.exerciseMode, 'and starts a live session');
+APP.exerciseMode = false;
+APP.exerciseSession = null;
+APP._lastExerciseSession = null;
+UI.closeModal();
 
 // ── Picking the score out of a .mscz / .mxl archive ──────────────
 //

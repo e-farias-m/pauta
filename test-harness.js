@@ -139,6 +139,8 @@ const APP_EXPORT_NAMES = [
   'buildPlaybackOrder', 'renderVoltaBrackets', 'yToPitchAccurate',
   '_evaluateAssignment', 'pickArchiveScorePath', '_archiveRootfilePath',
   'submitAssignment', 'endExerciseSession',
+  'restartExerciseSession', 'reviewExerciseSession', '_beginExerciseSession',
+  '_ACTION_MAP',
   // Real archive reading/writing (exercised against the npm JSZip below).
   'extractScoreXML', 'buildMSCZBlob', 'NO_ARCHIVE_SCORE',
   // Rendering logic that is pure given a VexFlow stub (see the sandbox below).

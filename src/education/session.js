@@ -132,6 +132,8 @@ function _showSessionIntro(type, difficulty) {
 
 function _beginExerciseSession(type, difficulty) {
   const ex = generateExercise(type, difficulty);
+  // A fresh session invalidates whatever the summary modal was reviewing.
+  APP._lastExerciseSession = null;
   APP.exerciseSession = {
     type, difficulty,
     current: ex,
@@ -257,6 +259,7 @@ function endExerciseSession() {
   }
   _hideSuccessBanner();
   APP.exerciseMode = false;
+  APP._lastExerciseSession = s;
   APP.exerciseSession = null;
   // Hand the student's own score back; the session replaced it with the
   // generated task scores and the summary modal would otherwise sit over
@@ -275,16 +278,17 @@ function closeModalExercise() {
 
 function restartExerciseSession() {
   UI.closeModal();
-  const s = APP.exerciseSession;
+  // endExerciseSession clears exerciseSession, so fall back to the session it
+  // kept for exactly this button.
+  const s = APP.exerciseSession || APP._lastExerciseSession;
   const savedType = s?.type;
   const savedDiff = s?.difficulty;
-  // s is nulled by endExerciseSession if the modal triggered it, so save first
   if (savedType) startExerciseSession(savedType, savedDiff);
 }
 
 function reviewExerciseSession() {
   UI.closeModal();
-  const s = APP.exerciseSession;
+  const s = APP.exerciseSession || APP._lastExerciseSession;
   if (!s || !s.completed.length) { UI.showToast('No exercises to review'); return; }
 
   let reviewIndex = 0;
@@ -293,6 +297,7 @@ function reviewExerciseSession() {
   function showReview(idx) {
     const c = completed[idx];
     if (!c) return;
+    reviewIndex = idx;
 
     const typeLabel = TYPE_LABELS[c.type] || c.type;
     let questionHtml = '';
@@ -365,10 +370,10 @@ function reviewExerciseSession() {
     `);
   }
 
-  // Register one-time handlers for review navigation
-  const origRegister = window._registerAction;
-  window._registerAction('reviewPrev', () => { UI.closeModal(); showReview(reviewIndex - 1); });
-  window._registerAction('reviewNext', () => { UI.closeModal(); showReview(reviewIndex + 1); });
+  // Register handlers for review navigation. Actions are dispatched through
+  // _ACTION_MAP, so this must call the local registrar, not window.
+  _registerAction('reviewPrev', () => { UI.closeModal(); showReview(reviewIndex - 1); });
+  _registerAction('reviewNext', () => { UI.closeModal(); showReview(reviewIndex + 1); });
 
   showReview(0);
 }

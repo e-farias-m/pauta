@@ -125,6 +125,9 @@ const APP = {
   currentAssignment: null,
   exerciseMode: false,
   exerciseSession: null,
+  // The finished session, kept after exerciseSession is cleared so the
+  // summary modal's Review / Try Again buttons still have something to act on.
+  _lastExerciseSession: null,
   _preExerciseScore: null,
   exerciseDifficulty: 'beginner',
   uiProfile: 'advanced',
