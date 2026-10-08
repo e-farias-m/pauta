@@ -258,9 +258,14 @@ function endExerciseSession() {
   _hideSuccessBanner();
   APP.exerciseMode = false;
   APP.exerciseSession = null;
+  // Hand the student's own score back; the session replaced it with the
+  // generated task scores and the summary modal would otherwise sit over
+  // the last one until a manual reload.
+  SCORE.restorePreExerciseScore();
   _setExerciseUI(false);
   updateModeBanner();
   _validateModeState();
+  RENDER.renderScore();
 }
 
 function closeModalExercise() {

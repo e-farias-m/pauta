@@ -125,6 +125,7 @@ const APP = {
   currentAssignment: null,
   exerciseMode: false,
   exerciseSession: null,
+  _preExerciseScore: null,
   exerciseDifficulty: 'beginner',
   uiProfile: 'advanced',
   teachingKit: null,        // null | 'recorder'
@@ -187,28 +188,45 @@ function _validateModeState() {
  * Entry-point guard. Throws if any forbidden mode is active or any required mode is missing.
  * Use at the top of UI handlers that depend on specific mode state.
  *   _require({ require: ['selectedNote'], forbid: ['inputMode', 'markingMode'] });
+ *
+ * A name that matches no condition is a programming mistake and throws, so a
+ * typo cannot silently disable a guard. Both the short mode names used at the
+ * call sites ('exercise', 'marking') and the full ones ('exerciseMode',
+ * 'markingMode') are accepted, because the old "no" + Capitalized derivation
+ * quietly did nothing for the latter.
  * @param {{require?:string[], forbid?:string[]}} opts
  */
 function _require(opts = {}) {
   const require = opts.require || [];
   const forbid  = opts.forbid  || [];
-  const checks = {
-    selectedNote: () => APP.selectedNoteIdx >= 0 || die('Select a note first'),
-    inputMode:    () => APP.inputMode    || die('Enter note input mode first'),
-    noInputMode:  () => !APP.inputMode   || die('Exit input mode first'),
-    noMarking:    () => !APP.markingMode || die('Complete or cancel current marking first'),
-    noExercise:   () => !APP.exerciseMode || die('Exit exercise mode first'),
-    noAssignment: () => !APP.assignmentMode || die('Exit assignment mode first'),
-    score:        () => APP.score        || die('No score open'),
-    selection:    () => APP.selectedMeasure >= 0 || die('Select a measure first'),
-  };
   function die(msg) { throw new Error(msg); }
+  const conditions = {
+    selectedNote:      () => APP.selectedNoteIdx >= 0 || die('Select a note first'),
+    selection:         () => APP.selectedMeasure >= 0 || die('Select a measure first'),
+    score:             () => APP.score || die('No score open'),
+    inputMode:         () => APP.inputMode || die('Enter note input mode first'),
+    // A mode that must be off. Kept under an explicit "*Off" name so a
+    // forbidden check can never be confused with a required one.
+    inputModeOff:      () => !APP.inputMode      || die('Exit input mode first'),
+    markingModeOff:    () => !APP.markingMode    || die('Complete or cancel current marking first'),
+    exerciseModeOff:   () => !APP.exerciseMode   || die('Exit exercise mode first'),
+    assignmentModeOff: () => !APP.assignmentMode || die('Exit assignment mode first'),
+  };
+  const forbidName = {
+    input: 'inputModeOff', inputmode: 'inputModeOff', inputmodeoff: 'inputModeOff',
+    marking: 'markingModeOff', markingmode: 'markingModeOff', markingmodeoff: 'markingModeOff',
+    exercise: 'exerciseModeOff', exercisemode: 'exerciseModeOff', exercisemodeoff: 'exerciseModeOff',
+    assignment: 'assignmentModeOff', assignmentmode: 'assignmentModeOff', assignmentmodeoff: 'assignmentModeOff',
+  };
   for (const key of require) {
-    if (checks[key]) checks[key]();
+    const cond = conditions[key];
+    if (!cond) throw new Error(`_require: unknown requirement "${key}"`);
+    cond();
   }
   for (const key of forbid) {
-    const negKey = 'no' + key.charAt(0).toUpperCase() + key.slice(1);
-    if (checks[negKey]) checks[negKey]();
+    const cond = conditions[forbidName[String(key).toLowerCase()]];
+    if (!cond) throw new Error(`_require: unknown forbiddance "${key}"`);
+    cond();
   }
 }
 

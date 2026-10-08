@@ -137,7 +137,7 @@ const APP_EXPORT_NAMES = [
   'applyMarker', 'clearMarker', 'toggleLineBreak',
   'buildPlaybackOrder', 'renderVoltaBrackets', 'yToPitchAccurate',
   '_evaluateAssignment', 'pickArchiveScorePath', '_archiveRootfilePath',
-  'submitAssignment',
+  'submitAssignment', 'endExerciseSession',
 ];
 
 /**

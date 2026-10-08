@@ -683,6 +683,13 @@ function validateScore(score) {
 
 /** Install a score into APP after repair + validation (load, restore, import). @param {*} raw @param {{clearHistory?:boolean, skipAssignmentPrompt?:boolean}} [opts] @returns {Score} */
 function adoptScore(raw, opts = {}) {
+  // An exercise or diagnostic takes over the workspace by adopting a
+  // generated score. Remember the score it displaced the first time, so
+  // ending the session can put the student's own work back — without this
+  // the exercise screen was never replaced once the session ended.
+  if (!opts.skipExerciseBackup && (APP.exerciseMode || APP.diagnostic) && APP.score && !APP._preExerciseScore) {
+    APP._preExerciseScore = _cloneScore(APP.score);
+  }
   const score = repairScore(typeof structuredClone === 'function' ? structuredClone(raw) : JSON.parse(JSON.stringify(raw)));
   const result = validateScore(score);
   if (!result.ok) throw new Error(result.fatal || 'Invalid score data');
@@ -710,6 +717,15 @@ function adoptScore(raw, opts = {}) {
     }, 300);
   }
   return score;
+}
+
+/** Put back the score an exercise or diagnostic displaced, if any. Idempotent. @returns {boolean} whether a score was restored */
+function restorePreExerciseScore() {
+  const saved = APP._preExerciseScore;
+  APP._preExerciseScore = null;
+  if (!saved) return false;
+  adoptScore(saved, { clearHistory: true, skipAssignmentPrompt: true, skipExerciseBackup: true });
+  return true;
 }
 
 /** Shift measure-indexed annotations when inserting or deleting a measure. @param {Score} score @param {number} mi @param {'insert'|'delete'} mode */
@@ -2140,7 +2156,7 @@ function exportMSCXFromScore(s) {
 
 // ── Assign notation functions to SCORE namespace ─────────
 [createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
- validateScore, adoptScore, commitChange, setTimeSig, setKeySig, toggleMarker, clearMarkers,
+ validateScore, adoptScore, restorePreExerciseScore, commitChange, setTimeSig, setKeySig, toggleMarker, clearMarkers,
  setLineBreak, parseMSCX, parseMusicXML,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });

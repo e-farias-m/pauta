@@ -67,7 +67,7 @@ const {
   renderVoltaBrackets,
   yToPitchAccurate,
   _evaluateAssignment, pickArchiveScorePath, _archiveRootfilePath,
-  submitAssignment,
+  submitAssignment, endExerciseSession,
 } = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
@@ -546,9 +546,30 @@ try { _require({}); assert(true, '_require({}) does not throw in any mode'); }
 catch(e) { assert(false, '_require({}) should not throw: ' + e.message); }
 resetApp();
 
-// 6b. _require with unknown key silently ignored (no matching check)
-try { _require({require: ['nonexistent']}); assert(true, '_require with unknown key silently ignored'); }
-catch(e) { assert(false, '_require should not throw for unknown key'); }
+// 6b. An unknown requirement or forbiddance is a bug in the guard, not a
+// no-op: it must throw so a typo cannot silently disable a check.
+try { _require({require: ['nonexistent']}); assert(false, '_require should throw on an unknown requirement'); }
+catch(e) { assert(/unknown requirement/i.test(e.message), '_require names the unknown requirement'); }
+try { _require({forbid: ['nonsense']}); assert(false, '_require should throw on an unknown forbiddance'); }
+catch(e) { assert(/unknown forbiddance/i.test(e.message), '_require names the unknown forbiddance'); }
+
+// 6c. A mode can be forbidden by its full name as well as its short alias.
+APP.exerciseMode = true;
+try { _require({ forbid: ['exerciseMode'] }); assert(false, 'exerciseMode must be enforced'); }
+catch(e) { assertEq(e.message, 'Exit exercise mode first', 'exerciseMode forbids under its full name'); }
+APP.exerciseMode = false;
+APP.markingMode = 'slur';
+try { _require({ forbid: ['markingMode'] }); assert(false, 'markingMode must be enforced'); }
+catch(e) { assertEq(e.message, 'Complete or cancel current marking first', 'markingMode forbids under its full name'); }
+APP.markingMode = null;
+APP.assignmentMode = true;
+try { _require({ forbid: ['assignmentMode'] }); assert(false, 'assignmentMode must be enforced'); }
+catch(e) { assertEq(e.message, 'Exit assignment mode first', 'assignmentMode forbids under its full name'); }
+APP.assignmentMode = false;
+APP.inputMode = true;
+try { _require({ forbid: ['inputMode'] }); assert(false, 'inputMode must be enforced'); }
+catch(e) { assertEq(e.message, 'Exit input mode first', 'inputMode forbids under its full name'); }
+APP.inputMode = false;
 
 // 6c. undoStack capped at 60 (not directly tested, just structural)
 assert(Array.isArray(APP.undoStack), 'undoStack is array');
@@ -1472,6 +1493,77 @@ assertEq(_sub.submitted, true, 'submitting marks the answer submitted');
 assert(_sub.results && _sub.results.total === 2, 'and stores the result summary');
 assert(_sub.notes && _sub.notes[0] && _sub.notes[0][0].pitch === 60,
   'and keeps the notes the student entered');
+
+// ── Exercises give the score back when they end ─────────────────
+//
+// An exercise or diagnostic replaces APP.score with a generated task
+// score. Returning from one used to leave that task score on screen,
+// silently discarding the work the student had open. adoptScore now
+// remembers the displaced score and the end handlers put it back.
+
+const _mkUserScore = () => {
+  const s = SCORE.createScore({ title: 'My Song', instruments: ['Piano'] });
+  s.parts[0].staves[0].measures[0].notes = [_gn(67)];
+  return s;
+};
+const _exerciseScore = () => SCORE.createScore({ title: 'Exercise', instruments: ['Piano'] });
+
+// Outside exercise mode adoptScore stashes nothing.
+APP.exerciseMode = false; APP.diagnostic = null; APP._preExerciseScore = null;
+APP.score = _mkUserScore();
+SCORE.adoptScore(_exerciseScore(), { clearHistory: true });
+assertEq(APP._preExerciseScore, null, 'a plain open does not stash a backup');
+assertEq(APP.score.title, 'Exercise', 'and the adopted score takes over as usual');
+
+// Entering an exercise stashes the score; ending it restores it.
+APP.score = _mkUserScore();
+APP.exerciseMode = true;
+APP.exerciseSession = { type:'note', completed:[], correctCount:0, totalCount:0,
+  maxStreak:0, startedAt:Date.now(), difficulty:'beginner' };
+SCORE.adoptScore(_exerciseScore(), { clearHistory: true, skipAssignmentPrompt: true });
+assert(APP._preExerciseScore && APP._preExerciseScore.title === 'My Song',
+  'entering an exercise stashes the student’s score');
+assertEq(APP.score.title, 'Exercise', 'and the task score is shown');
+SCORE.restorePreExerciseScore();
+assertEq(APP.score.title, 'My Song', 'ending the exercise brings the student’s score back');
+assertEq(APP.score.parts[0].staves[0].measures[0].notes[0].pitch, 67, 'with its notes intact');
+assertEq(APP._preExerciseScore, null, 'and the backup is consumed');
+assertEq(SCORE.restorePreExerciseScore(), false, 'restoring again is a no-op');
+
+// A later question adopting another score must not overwrite the backup.
+APP.score = _mkUserScore();
+APP.exerciseMode = true;
+SCORE.adoptScore(_exerciseScore(), { skipAssignmentPrompt: true });
+SCORE.adoptScore(SCORE.createScore({ title: 'Exercise 2', instruments: ['Piano'] }),
+  { skipAssignmentPrompt: true });
+assertEq(APP._preExerciseScore.title, 'My Song', 'later questions keep the original backup');
+SCORE.restorePreExerciseScore();
+assertEq(APP.score.title, 'My Song', 'and it still restores at the end');
+
+// The diagnostic path stashes too, though it has no exerciseSession.
+APP.score = _mkUserScore();
+APP.exerciseMode = true; APP.exerciseSession = null; APP.diagnostic = { questions: [] };
+SCORE.adoptScore(_exerciseScore(), { skipAssignmentPrompt: true });
+assertEq(APP._preExerciseScore.title, 'My Song', 'a diagnostic also stashes the score');
+SCORE.restorePreExerciseScore();
+assertEq(APP.score.title, 'My Song', 'and restores it when the assessment ends');
+
+APP.exerciseMode = false; APP.diagnostic = null; APP._preExerciseScore = null;
+
+// The session handler itself is wired to the restore, so a real exercise
+// ending — not just the helper — leaves the student's score in place.
+APP.score = _exerciseScore();
+APP._preExerciseScore = _mkUserScore();
+APP.exerciseMode = true;
+APP.exerciseSession = {
+  type: EXERCISE_TYPES.NOTE_ID, difficulty: 'beginner',
+  current: null, completed: [], correctCount: 2, totalCount: 3,
+  streak: 0, maxStreak: 0, startedAt: Date.now(), warmupCount: 0, lastLevelUp: 0,
+};
+endExerciseSession();
+assertEq(APP.score.title, 'My Song', 'endExerciseSession hands the score back');
+assertEq(APP.exerciseMode, false, 'and leaves exercise mode');
+assertEq(APP._preExerciseScore, null, 'with the backup cleared');
 
 // ── Picking the score out of a .mscz / .mxl archive ──────────────
 //

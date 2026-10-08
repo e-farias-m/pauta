@@ -1329,8 +1329,10 @@ function _finishDiagnostic() {
 
   APP.exerciseMode = false;
   APP.diagnostic = null;
+  SCORE.restorePreExerciseScore();
   _setExerciseUI(false);
   _validateModeState();
+  RENDER.renderScore();
 
   UI.makeModal(`
     <h2>Assessment Complete</h2>
