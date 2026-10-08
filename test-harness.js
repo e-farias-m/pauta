@@ -138,6 +138,13 @@ const APP_EXPORT_NAMES = [
   'buildPlaybackOrder', 'renderVoltaBrackets', 'yToPitchAccurate',
   '_evaluateAssignment', 'pickArchiveScorePath', '_archiveRootfilePath',
   'submitAssignment', 'endExerciseSession',
+  // Rendering logic that is pure given a VexFlow stub (see the sandbox below).
+  'noteNaturalWidth', 'measureContentWidth', 'findMultiRestGroups', '_layoutScales',
+  'stemDir', 'calcStemDirections', '_percussionLinePos', '_getScaleDegree',
+  '_getIntervalLabel', 'noteLetter',
+  // Playback logic that is pure given a plain sample buffer.
+  '_freqToMidi', '_autocorrelatePitch', '_getSubdivisionInfo',
+  '_findNoteAtPlaybackTime', 'audioBufferToWav',
 ];
 
 /**
@@ -163,7 +170,10 @@ export function loadApp() {
     throw new Error('test-harness: expected ui.js to close the IIFE with "})();"');
   }
   source = source.replace(closeRe, '');
-  source += `\nwindow.__PAUTA_APP__ = { ${APP_EXPORT_NAMES.join(', ')} };\n})();`;
+  // _setVF lets tests inject the VexFlow stub that bootApp() would otherwise
+  // install after loading VexFlow dynamically. VF is a module-scoped `let`
+  // (globals.js:50), so a sandbox global of the same name is shadowed.
+  source += `\nwindow.__PAUTA_APP__ = { ${APP_EXPORT_NAMES.join(', ')}, _setVF: v => { VF = v; } };\n})();`;
 
   const sandbox = {
     console,

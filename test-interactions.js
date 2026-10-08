@@ -68,6 +68,11 @@ const {
   yToPitchAccurate,
   _evaluateAssignment, pickArchiveScorePath, _archiveRootfilePath,
   submitAssignment, endExerciseSession,
+  noteNaturalWidth, measureContentWidth, findMultiRestGroups, _layoutScales,
+  stemDir, calcStemDirections, _percussionLinePos, _getScaleDegree,
+  _getIntervalLabel, noteLetter,
+  _freqToMidi, _autocorrelatePitch, _getSubdivisionInfo,
+  _findNoteAtPlaybackTime, audioBufferToWav,
 } = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
@@ -1609,6 +1614,219 @@ assertEq(pickArchiveScorePath(['META-INF/container.xml']), null,
   'a manifest-only archive has no score');
 assertEq(pickArchiveScorePath([]), null, 'an empty archive has no score');
 assertEq(pickArchiveScorePath(null), null, 'a missing path list has no score');
+
+// ── L4. Rendering geometry (pure math over a VexFlow stub) ──────
+//
+// VexFlow cannot run headless, so renderScore stays unverifiable here. But
+// the widths, stem directions and percussion placements that feed it are
+// plain arithmetic; the harness supplies a VF stub (Stem constants and a
+// no-op StaveNote) so the same source the browser runs is exercised.
+
+// 21a. noteNaturalWidth scales by view mode and floors at 12.
+APP.continuousView = true;
+assertEq(noteNaturalWidth('q', 0), 37, 'a quarter is 37 wide in continuous view');
+assertEq(noteNaturalWidth('w', 0), 87, 'a whole note is 87 wide in continuous view');
+assertEq(noteNaturalWidth('64', 0), 18, 'a 64th is 18 wide in continuous view');
+assertEq(noteNaturalWidth('bogus', 0), 37, 'an unknown duration falls back to quarter width');
+APP.continuousView = false;
+assertEq(noteNaturalWidth('q', 0), 26, 'page view scales a quarter to 0.7 (round(25.9))');
+assertEq(noteNaturalWidth('32', 0), 13, 'a 32nd scales to 13 in page view');
+assertEq(noteNaturalWidth('64', 0), 13, 'a 64th (12.6) is rounded up to 13 in page view');
+
+// 21b. measureContentWidth sums note widths plus padding; whole rests are fixed.
+APP.continuousView = true;
+assertEq(measureContentWidth([_gn(60, {duration:'q'}), _gn(62, {duration:'q'})]), 108,
+  'two quarters plus 34 of padding is 108');
+assertEq(measureContentWidth([{ type:'rest', duration:'w' }]), 92,
+  'a whole-rest placeholder is a fixed 92 in continuous view');
+APP.continuousView = false;
+assertEq(measureContentWidth([{ type:'rest', duration:'w' }]), 64,
+  'the whole-rest placeholder scales to 64 in page view');
+
+// 21c. _layoutScales honours the view mode.
+APP.continuousView = true;
+let _ls = _layoutScales();
+assertEq(_ls.lineSpacing, 40, 'continuous view uses 40px line spacing (33 * 1.2)');
+assertEq(_ls.staveH, 160, 'a stave is four line spaces tall');
+assertEq(_ls.staveStep, 170, 'stave step is stave height plus the 10px gap');
+APP.continuousView = false;
+_ls = _layoutScales();
+assertEq(_ls.lineSpacing, 23, 'page view uses 23px line spacing (round(23.1))');
+assertEq(_ls.staveStep, 102, 'page view stave step is 92 + 10');
+
+// 21d. findMultiRestGroups collects runs of two or more empty measures.
+const _multiRest = SCORE.createScore({ instruments:['Piano'] });
+_multiRest.parts[0].staves[0].measures = [
+  _gmeas(_gn(60)),                          // 0: content
+  _gmeas({ type:'rest', duration:'w' }),    // 1: empty
+  _gmeas(),                                 // 2: empty (no notes)
+  _gmeas({ type:'rest', duration:'w' }),    // 3: empty
+  _gmeas(_gn(62)),                          // 4: content
+  _gmeas({ type:'rest', duration:'w' }),    // 5: lone empty — not a group
+  _gmeas(_gn(64)),                          // 6: content
+  _gmeas(),                                 // 7: empty
+  _gmeas(),                                 // 8: empty
+];
+APP.score = _multiRest;
+let _mrgs = findMultiRestGroups();
+assertEq(_mrgs.length, 2, 'two multi-rest runs are found');
+assertEq(_mrgs[0].startMi, 1, 'the first run starts at measure 1');
+assertEq(_mrgs[0].endMi, 3, 'the first run ends at measure 3');
+assertEq(_mrgs[0].gsi, 0, 'the run reports its staff index');
+assertEq(_mrgs[1].startMi, 7, 'the second run starts at measure 7');
+assertEq(_mrgs[1].endMi, 8, 'the second run reaches the end of the staff');
+assert(!_mrgs.some(g => g.startMi === 5), 'a lone empty measure is not a multi-rest');
+
+// A run reaching the final measure is still reported.
+_multiRest.parts[0].staves[0].measures = [
+  _gmeas(_gn(60)), _gmeas(), _gmeas({ type:'rest', duration:'w' }),
+];
+APP.score = _multiRest;
+_mrgs = findMultiRestGroups();
+assertEq(_mrgs.length, 1, 'a run at the end of the score is reported');
+assertEq(_mrgs[0].endMi, 2, 'the trailing run ends at the last measure');
+
+// 21e. stemDir: above the middle line, stems point down.
+A._setVF({ Stem: { UP: 1, DOWN: -1 } });
+assertEq(stemDir(72, 'treble'), -1, 'C5 on a treble staff gets a down stem');
+assertEq(stemDir(60, 'treble'), 1, 'C4 on a treble staff gets an up stem');
+assertEq(stemDir(60, 'bass'), -1, 'C4 sits above the bass middle line (D3)');
+assertEq(stemDir(48, 'bass'), 1, 'C3 sits below the bass middle line');
+assertEq(stemDir(50, 'bass'), -1, 'D3 sits on the bass middle line and points down');
+assertEq(stemDir(72, 'unknown-clef'), -1, 'an unknown clef defaults to the treble middle line');
+
+// 21f. calcStemDirections: a beam group votes on one direction for the group.
+const _stemScore = SCORE.createScore({ instruments:['Piano'] });
+APP.score = _stemScore;
+APP.selectedStaff = 0;
+const _twoBelow = [_gn(60, {duration:'8'}), _gn(62, {duration:'8'})];
+assertEq(calcStemDirections(_twoBelow, 'treble', { num:4, den:4 }, 0).join(','), '1,1',
+  'two below-middle eighths both point up');
+const _mixedGroup = [_gn(60, {duration:'8'}), _gn(84, {duration:'8'})];
+assertEq(calcStemDirections(_mixedGroup, 'treble', { num:4, den:4 }, 0).join(','), '-1,-1',
+  'a tie in the group resolves to a down stem via the majority rule');
+const _mixedThird = [_gn(60, {duration:'8'}), _gn(62, {duration:'8'}), _gn(84, {duration:'8'})];
+assertEq(calcStemDirections(_mixedThird, 'treble', { num:6, den:8 }, 0).join(','), '1,1,1',
+  'in a 6/8 group of three, two up-votes outvote one down-vote');
+assertEq(calcStemDirections([_gn(72, {duration:'8'})], 'treble', { num:4, den:4 }, 0).join(','), '-1',
+  'a single unbeamed note keeps its natural direction');
+// A tuplet boundary splits a beam group early; without the flush the two
+// tuplets would merge and the group majority would flip the down stem up.
+const _tupletSplit = [
+  _gn(72, { duration:'8', tuplet:{ groupId:1 } }),
+  _gn(60, { duration:'8', tuplet:{ groupId:1 } }),
+  _gn(60, { duration:'8', tuplet:{ groupId:2 } }),
+];
+assertEq(calcStemDirections(_tupletSplit, 'treble', { num:6, den:8 }, 0).join(','), '-1,-1,1',
+  'a tuplet boundary flushes the beam group before it can absorb the next tuplet');
+
+// 21g. _percussionLinePos maps the General MIDI kit to staff positions.
+assertEq(_percussionLinePos(36).key, 'f/4', 'the bass drum sits low on the staff');
+assertEq(_percussionLinePos(38).key, 'c/5', 'the snare sits on the middle line');
+assertEq(_percussionLinePos(38).notehead, 'normal', 'the snare uses a normal notehead');
+assertEq(_percussionLinePos(39).notehead, 'normal',
+  'MIDI 39 falls inside the snare range and keeps a normal notehead');
+assertEq(_percussionLinePos(42).key, 'g/5', 'the closed hi-hat sits above the staff');
+assertEq(_percussionLinePos(42).notehead, 'x', 'hi-hats use X noteheads');
+assertEq(_percussionLinePos(47).key, 'b/4', 'a mid tom sits on the b/4 line');
+assertEq(_percussionLinePos(49).key, 'a/5', 'a crash cymbal sits above the staff');
+assertEq(_percussionLinePos(56).notehead, 'triangle', 'a cowbell uses a triangle notehead');
+
+// 21h. noteLetter spells a pitch for its key signature.
+assertEq(noteLetter({ pitch:61, accidental:'#' }, 0), 'C', 'C-sharp spells its sharp letter');
+assertEq(noteLetter({ pitch:61, accidental:'b' }, 0), 'D', 'D-flat spells its flat letter');
+assertEq(noteLetter({ pitch:61, accidental:'n' }, 0), 'C', 'a natural sign restores the white key');
+assertEq(noteLetter({ pitch:61, accidental:null }, -1), 'D',
+  'a flat key signatures spells a chromatic pitch flat');
+assertEq(noteLetter({ pitch:61, accidental:null }, 1), 'C',
+  'a sharp key signature spells a chromatic pitch sharp');
+assertEq(noteLetter({ pitch:60, accidental:null }, 0), 'C', 'a diatonic pitch ignores the key signature');
+
+// 21i. scale degrees and interval labels.
+assertEq(_getScaleDegree(72, 0), _getScaleDegree(60, 0), 'scale degrees repeat at the octave');
+assert(_getScaleDegree(60, 0).startsWith('1'), 'C is the first degree of C major');
+assert(_getScaleDegree(62, 0).startsWith('2'), 'D is the second degree of C major');
+assert(!_getScaleDegree(62, 0).startsWith('1'), 'the second degree is not labelled as the first');
+assert(_getScaleDegree(59, 0).startsWith('7'), 'B is the seventh degree of C major');
+assertEq(_getIntervalLabel(60, 64), INTERVAL_NAMES[4], 'C up to E is a major third');
+assertEq(_getIntervalLabel(64, 60), INTERVAL_NAMES[4], 'the interval label is direction-agnostic');
+assertEq(_getIntervalLabel(60, 67), INTERVAL_NAMES[7], 'C up to G is a perfect fifth');
+
+// ── L5. Playback math (pure helpers over the real module) ───────
+
+// 22a. _freqToMidi converts frequency to the nearest MIDI number.
+assertEq(_freqToMidi(440), 69, 'concert A is MIDI 69');
+assertEq(_freqToMidi(880), 81, 'A5 is one octave above A4');
+assertEq(_freqToMidi(220), 57, 'A3 is one octave below A4');
+assertEq(_freqToMidi(261.63), 60, 'middle C rounds to MIDI 60');
+
+// 22b. _getSubdivisionInfo derives click counts and durations from the tempo.
+APP.tempo = 120;
+APP.metronomeSubdivision = 'quarter';
+let _subdiv = _getSubdivisionInfo();
+assertEq(_subdiv.count, 1, 'a quarter subdivision is one click per beat');
+assertEq(_subdiv.dur, 0.5, 'one beat at 120bpm is 0.5s');
+assertEq(_subdiv.accent.join(','), 'true', 'the single quarter click is accented');
+APP.metronomeSubdivision = 'eighth';
+_subdiv = _getSubdivisionInfo();
+assertEq(_subdiv.count, 2, 'an eighth subdivision is two clicks per beat');
+assertEq(_subdiv.dur, 0.25, 'each eighth click is 0.25s at 120bpm');
+assertEq(_subdiv.accent.join(','), 'true,false', 'only the first eighth click is accented');
+APP.metronomeSubdivision = 'triplet';
+_subdiv = _getSubdivisionInfo();
+assertEq(_subdiv.count, 3, 'a triplet subdivision is three clicks per beat');
+assertEq(_subdiv.accent.join(','), 'true,false,false', 'only the first triplet click is accented');
+APP.metronomeSubdivision = 'sixteenth';
+_subdiv = _getSubdivisionInfo();
+assertEq(_subdiv.count, 4, 'a sixteenth subdivision is four clicks per beat');
+assertEq(_subdiv.dur, 0.125, 'each sixteenth click is 0.125s at 120bpm');
+APP.metronomeSubdivision = undefined;
+assertEq(_getSubdivisionInfo().count, 1, 'an unset subdivision falls back to quarter');
+
+// 22c. _autocorrelatePitch recovers a tone's frequency from its samples.
+// A low sample rate keeps the lag search range below one full period
+// multiple, so the true period is the unique peak instead of a later
+// near-integer multiple (which would alias the detected pitch downward).
+APP.practiceSensitivity = 0.3;
+const _sr = 2000;
+const _sine = new Float32Array(200);
+for (let i = 0; i < _sine.length; i++) _sine[i] = Math.sin(2 * Math.PI * 100 * i / _sr);
+const _detected = _autocorrelatePitch(_sine, _sr);
+assert(Math.abs(_detected - 100) < 3, `a 100Hz sine is detected near 100 (got ${_detected})`);
+const _silence = new Float32Array(2048);
+assertEq(_autocorrelatePitch(_silence, _sr), null, 'silence never passes the confidence threshold');
+
+// 22d. _findNoteAtPlaybackTime walks the play order in note-duration time.
+APP.tempo = 60;
+const _pbStaff = { measures: [
+  { notes: [_gn(60), _gn(62)] },
+  { notes: [{ type:'note', pitch:64, duration:'h', dots:0 }] },
+] };
+assertEq(_findNoteAtPlaybackTime(0, _pbStaff, [0, 1]).ni, 0, 'the first beat is note 0 of measure 0');
+assertEq(_findNoteAtPlaybackTime(1000, _pbStaff, [0, 1]).ni, 1, 'the second beat is note 1 of measure 0');
+assertEq(_findNoteAtPlaybackTime(2000, _pbStaff, [0, 1]).mi, 1, 'the third beat reaches measure 1');
+assertEq(_findNoteAtPlaybackTime(3500, _pbStaff, [0, 1]).mi, 1, 'the half note covers the third and fourth beats');
+assertEq(_findNoteAtPlaybackTime(1500, { measures: [{ notes: [_gn(60)] }] }, []), null,
+  'an empty play order yields no note');
+
+// 22e. audioBufferToWav writes a correctly sized RIFF/WAVE header.
+const _fakeStereo = {
+  sampleRate: 44100, length: 100, numberOfChannels: 2,
+  getChannelData: () => new Float32Array(100),
+};
+const _wav = audioBufferToWav(_fakeStereo);
+assert(_wav instanceof Blob, 'audioBufferToWav returns a Blob');
+if (typeof _wav.size === 'number') {
+  assertEq(_wav.size, 44 + 100 * 2 * 2, 'a stereo 100-sample buffer is 44 + 400 bytes');
+}
+const _fakeMono = {
+  sampleRate: 22050, length: 50, numberOfChannels: 1,
+  getChannelData: () => new Float32Array(50),
+};
+const _wavMono = audioBufferToWav(_fakeMono);
+if (typeof _wavMono.size === 'number') {
+  assertEq(_wavMono.size, 44 + 50 * 1 * 2, 'a mono 50-sample buffer is 44 + 100 bytes');
+}
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);
