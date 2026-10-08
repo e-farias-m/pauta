@@ -61,7 +61,7 @@ const {
   _intervalMatches, _kitExerciseRange, _kitExerciseKeys,
   generateExercise, _genNoteId, _genIntervalId, _genRhythmRead,
   _genRhythmWorksheet, _genMelodyDict, _genKeySigId,
-  _renderRhythmBeatGrid, checkRhythmWorksheet,
+  _renderRhythmBeatGrid, checkRhythmWorksheet, _scoreRhythmGrid, _submitDiagRhythm,
   _renderRhythmCounting, getNoteByLayout,
   applyMarker, clearMarker, toggleLineBreak,
   buildPlaybackOrder,
@@ -544,6 +544,56 @@ const before = b1.textContent;
 b1.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
 assertEq(b1.textContent, before, 'a locked beat ignores clicks');
 wsGrid.remove();
+
+// ── 5g-5i. Diagnostic rhythm (runs without an exercise session) ──
+// The placement test never sets APP.exerciseSession, yet it presents the
+// rhythm grid and grades it. Scoring must therefore work off the DOM alone.
+
+resetApp();
+const NOTE = '\u2669', REST = '\ud834\udd3d';
+APP.diagnostic = { idx: 2, questions: [{},{},{},{},{}], results: [],
+                   correct: { note:0, interval:0, keysig:0, rhythm:0 } };
+APP.exerciseSession = null;
+const diagGrid = document.createElement('div');
+diagGrid.id = 'rhythm-beat-grid';
+diagGrid.innerHTML = `<div class="rg-controls"><button id="rg-check-btn">Check</button></div>`;
+// Three right, one wrong — independent of the worksheet's random pattern.
+[[NOTE,NOTE],[REST,REST],[NOTE,NOTE],[NOTE,REST]].forEach(([user, expected], i) => {
+  const b = document.createElement('button');
+  b.className = 'rg-beat';
+  b.dataset.beat = String(i);
+  b.dataset.answer = expected;
+  b.dataset.userAnswer = user;
+  diagGrid.insertBefore(b, diagGrid.firstChild);
+});
+document.body.appendChild(diagGrid);
+
+const scored = _scoreRhythmGrid();
+assertEq(scored.total, 4, 'grid scorer counts every beat');
+assertEq(scored.correct, 3, 'grid scorer counts the correct beats');
+assertEq(scored.pct, 75, 'grid scorer computes the percentage');
+assert(diagGrid.querySelector('.rg-beat[data-beat="3"]').classList.contains('rg-incorrect'),
+  'the wrong beat is flagged incorrect');
+assertEq(diagGrid.querySelector('#rg-check-btn').disabled, true, 'check button locks after scoring');
+assert(diagGrid.querySelector('.rg-score').textContent.includes('75%'), 'summary shows the score');
+
+_submitDiagRhythm();
+assertEq(APP.diagnostic.idx, 3, 'diagnostic advances past the rhythm question with no session');
+assertEq(APP.diagnostic.results.length, 1, 'diagnostic records the rhythm result');
+assertEq(APP.diagnostic.results[0].type, 'rhythm', 'result is typed rhythm');
+assertEq(APP.diagnostic.results[0].correct, false, 'imperfect grid is recorded as incorrect');
+assertEq(APP.diagnostic.correct.rhythm, 0, 'imperfect grid does not credit the category');
+
+APP.diagnostic = { idx: 0, questions: [{}], results: [],
+                   correct: { note:0, interval:0, keysig:0, rhythm:0 } };
+diagGrid.querySelectorAll('.rg-beat').forEach(b => { b.dataset.userAnswer = b.dataset.answer; });
+_scoreRhythmGrid();
+_submitDiagRhythm();
+assertEq(APP.diagnostic.results[0].correct, true, 'a perfect grid is recorded as correct');
+assertEq(APP.diagnostic.correct.rhythm, 1, 'a perfect grid credits the rhythm category');
+assertEq(APP.diagnostic.idx, 1, 'diagnostic advances after a perfect grid');
+diagGrid.remove();
+resetApp();
 
 // ── 6. Edge Case Tests ──────────────────────────────────────────
 

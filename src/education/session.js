@@ -1812,10 +1812,10 @@ function _playRhythmDictation(ex) {
   }
 }
 
-function checkRhythmWorksheet() {
-  const s = APP.exerciseSession;
-  if (!s || !s.current || s.current.type !== EXERCISE_TYPES.RHYTHM_WS) return;
-
+// Scores the rendered beat grid from the DOM alone (no session), so the
+// diagnostic assessment can reuse it — its rhythm question runs without an
+// APP.exerciseSession for checkRhythmWorksheet() to record into.
+function _scoreRhythmGrid() {
   const beatBtns = document.querySelectorAll('#rhythm-beat-grid .rg-beat');
   let correct = 0;
   const total = beatBtns.length;
@@ -1833,12 +1833,6 @@ function checkRhythmWorksheet() {
 
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
 
-  s.totalCount++;
-  if (pct === 100) { s.correctCount++; s.streak++; if (s.streak > s.maxStreak) s.maxStreak = s.streak; }
-  else { s.streak = 0; }
-  s.completed.push({ type: 'rhythm_worksheet', answer: correct + '/' + total, ok: pct === 100, hint: 'Compare each beat carefully.' });
-  _updateScoreDisplay();
-
   const checkBtn = document.getElementById('rg-check-btn');
   if (checkBtn) {
     checkBtn.textContent = `${pct}% — ${correct}/${total}`;
@@ -1847,12 +1841,6 @@ function checkRhythmWorksheet() {
     checkBtn.style.borderColor = 'transparent';
     checkBtn.disabled = true;
   }
-
-  const resultHtml = results.map(r =>
-    `<span style="color:${r.isCorrect ? 'var(--pauta-success)' : 'var(--pauta-primary-light)'};font-size:12px">
-      ${r.isCorrect ? '✓' : '✗'} Beat ${r.idx + 1}: ${r.userAns} ${r.isCorrect ? '' : '(expected ' + r.correctAns + ')'}
-    </span>`
-  ).join('<br>');
 
   const gridEl = document.getElementById('rhythm-beat-grid');
   let scoreEl = gridEl?.querySelector('.rg-score');
@@ -1864,6 +1852,21 @@ function checkRhythmWorksheet() {
   if (scoreEl) {
     scoreEl.textContent = pct === 100 ? '✓ Perfect!' : `${pct}% correct`;
   }
+
+  return { pct, correct, total, results };
+}
+
+function checkRhythmWorksheet() {
+  const s = APP.exerciseSession;
+  if (!s || !s.current || s.current.type !== EXERCISE_TYPES.RHYTHM_WS) return;
+
+  const { pct, correct, total } = _scoreRhythmGrid();
+
+  s.totalCount++;
+  if (pct === 100) { s.correctCount++; s.streak++; if (s.streak > s.maxStreak) s.maxStreak = s.streak; }
+  else { s.streak = 0; }
+  s.completed.push({ type: 'rhythm_worksheet', answer: correct + '/' + total, ok: pct === 100, hint: 'Compare each beat carefully.' });
+  _updateScoreDisplay();
 }
 
 function showRhythmWorksheetDialog() {

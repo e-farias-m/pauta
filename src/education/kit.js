@@ -1230,25 +1230,25 @@ function _presentDiagQuestion() {
   if (q.type === 'rhythm') {
     const checkBtn = document.getElementById('rg-check-btn');
     if (checkBtn) {
-      const origClick = checkBtn.onclick;
       checkBtn.onclick = null;
       checkBtn.addEventListener('click', () => {
-        const s = APP.exerciseSession;
-        if (s && s.current.type === EXERCISE_TYPES.RHYTHM_WS) {
-          const beforeTotal = s.totalCount;
-          checkRhythmWorksheet();
-          // After check, record the result for diagnostic
-          if (s.totalCount > beforeTotal) {
-            const last = s.completed[s.completed.length - 1];
-            d.results.push({ type: 'rhythm', correct: last.ok, pct: s.correctCount / s.totalCount * 100 });
-            if (last.ok) d.correct.rhythm++;
-            d.idx++;
-            setTimeout(() => _presentDiagQuestion(), 1000);
-          }
-        }
+        _submitDiagRhythm();
+        setTimeout(() => _presentDiagQuestion(), 1000);
       });
     }
   }
+}
+
+// The diagnostic runs without an APP.exerciseSession, so checkRhythmWorksheet
+// (which records into one) can't be used here — score the grid directly.
+function _submitDiagRhythm() {
+  const d = APP.diagnostic;
+  if (!d) return;
+  const { pct, correct, total } = _scoreRhythmGrid();
+  d.results.push({ type: 'rhythm', correct: pct === 100, answer: correct + '/' + total, pct });
+  if (pct === 100) d.correct.rhythm++;
+  d.idx++;
+  _updateDiagBar();
 }
 
 function _answerDiag(userAnswer) {

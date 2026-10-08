@@ -133,7 +133,7 @@ const APP_EXPORT_NAMES = [
   '_intervalMatches', '_kitExerciseRange', '_kitExerciseKeys',
   'generateExercise', '_genNoteId', '_genIntervalId', '_genRhythmRead',
   '_genRhythmWorksheet', '_genMelodyDict', '_genKeySigId',
-  '_renderRhythmBeatGrid', 'checkRhythmWorksheet',
+  '_renderRhythmBeatGrid', 'checkRhythmWorksheet', '_scoreRhythmGrid', '_submitDiagRhythm',
   '_renderRhythmCounting', 'getNoteByLayout',
   'applyMarker', 'clearMarker', 'toggleLineBreak',
   'buildPlaybackOrder', 'renderVoltaBrackets', 'yToPitchAccurate',
