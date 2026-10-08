@@ -328,6 +328,18 @@ function mscxInstrumentFor(part) {
   return MSCX_INSTRUMENT[part?.instrument] || MSCX_INSTRUMENT[part?.name] || DEFAULT_MSCX_INSTRUMENT;
 }
 
+// The reverse lookup, so an imported file recovers the roster instrument
+// behind each instrumentId and a re-export keeps the same sound. Several
+// roster names share an instrumentId (the Orff glockenspiels, say), so the
+// first one wins.
+const MSCX_INSTRUMENT_BY_ID = (() => {
+  const byId = {};
+  for (const [name, [, instrumentId]] of Object.entries(MSCX_INSTRUMENT)) {
+    if (!(instrumentId in byId)) byId[instrumentId] = name;
+  }
+  return byId;
+})();
+
 /**
  * Measure flags that belong to the score rather than to one stave. The
  * first stave — part 1, stave 1 — is authoritative, because that is the
@@ -1316,19 +1328,42 @@ function parseMSCX(xmlStr) {
     });
   }
 
-  // Detect part name from Part element
-  let partName = 'Piano';
-  const partEl = nq(doc, 'Part');
-  if (partEl) {
-    debugLog('[PautaEngraving import] Part child tags:', Array.from(partEl.children).map(c => c.localName));
-    partName = txt(partEl, 'trackName') || txt(partEl, 'partName') || txt(partEl, 'longName') || 'Piano';
-    debugLog('[PautaEngraving import] Part name found:', partName);
+  // Rebuild one Pauta part per MuseScore <Part>. Each <Part> declares its
+  // staves in order and names its instrument, and the content <Staff>
+  // elements follow in the same order, so the per-Part stave counts carve
+  // the flat staff list back into the parts it came from. Collapsing
+  // everything into one part, as this used to, turned a score for three
+  // instruments into a single part named after the first one.
+  const partEls = nqa(doc, 'Part');
+  const groupParts = [];
+  let cursor = 0;
+  for (const pe of partEls) {
+    const count = nqa(pe, 'Staff').length || 1;
+    const name = txt(pe, 'trackName') || txt(pe, 'partName') || txt(pe, 'longName');
+    const instrEl = nq(pe, 'Instrument');
+    const instrumentId = instrEl ? txt(instrEl, 'instrumentId') : null;
+    const instrument = instrumentId ? MSCX_INSTRUMENT_BY_ID[instrumentId] || null : null;
+    const staves = stavesByPart.slice(cursor, cursor + count);
+    if (!name || staves.length !== count) { cursor = -1; break; }
+    cursor += count;
+    groupParts.push({ name, instrument, staves });
   }
 
-  score.parts = [{
-    name: partName,
-    staves: stavesByPart.length ? stavesByPart : createScore().parts[0].staves
-  }];
+  // Only trust the grouping when every content stave was claimed exactly
+  // once; otherwise fall back to the old single-part behavior rather than
+  // dropping staves.
+  if (stavesByPart.length && (cursor !== stavesByPart.length || !groupParts.length)) {
+    const partEl = nq(doc, 'Part');
+    const fallbackName = partEl
+      ? (txt(partEl, 'trackName') || txt(partEl, 'partName') || txt(partEl, 'longName') || 'Piano')
+      : 'Piano';
+    groupParts.length = 0;
+    groupParts.push({ name: fallbackName, instrument: null, staves: stavesByPart });
+  }
+
+  score.parts = groupParts.length ? groupParts
+    : [{ name: 'Piano', staves: stavesByPart.length ? stavesByPart : createScore().parts[0].staves }];
+
   if (!score.slurs)          score.slurs          = [];
   if (!score.hairpins)       score.hairpins       = [];
   if (!score.rehearsalMarks) score.rehearsalMarks = [];

@@ -509,6 +509,82 @@ assertEq(repairScore(parseMSCX(cxml)).parts[0].staves[0].clef, 'alto', 'and impo
 assertEq(repairScore(parseMSCX(exportMSCXFromScore(createScore()))).parts[0].staves[1].clef, 'bass',
   'a bass staff round-trips through the F code');
 
+// ── Parts survive the round-trip ────────────────────────────────
+//
+// The importer used to fold every staff into one part named after the first
+// <Part>, so a two-instrument score came back as a single part. Each <Part>
+// lists its staves in order, which is what carves them back apart.
+
+const rtParts = repairScore(parseMSCX(exportMSCXFromScore(
+  createScore({ title: 'Duo', instruments: ['Piano', 'Flute'] }))));
+assertEq(rtParts.parts.length, 2, 'a two-instrument score imports as two parts');
+assertEq(rtParts.parts[0].name, 'Piano', 'the first part keeps its name');
+assertEq(rtParts.parts[1].name, 'Flute', 'and the second its own');
+assertEq(rtParts.parts[0].staves.length, 2, 'Piano keeps both its staves');
+assertEq(rtParts.parts[1].staves.length, 1, 'Flute keeps its one');
+assertEq(rtParts.parts[1].instrument, 'Flute', 'the roster instrument is recovered from the instrumentId');
+
+// A doubled instrument is named "Violin (2)" but its {@link instrument} is
+// still "Violin"; the import must not mistake the display name for the
+// roster name, or a re-export would lose the sound to the piano fallback.
+const rtDup = repairScore(parseMSCX(exportMSCXFromScore(
+  createScore({ instruments: ['Violin', 'Violin'] }))));
+assertEq(rtDup.parts[1].name, 'Violin (2)', 'a doubled instrument keeps its disambiguated name');
+assertEq(rtDup.parts[1].instrument, 'Violin', 'while its instrument stays the roster name');
+
+// The shape a real MuseScore file uses: bare <Staff> in the Part, content
+// staves at the top level, and the instrument named by instrumentId.
+const _nativeParts = `<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70">
+  <Score>
+    <Division>480</Division>
+    <Part id="1">
+      <Staff/>
+      <trackName>Violin</trackName>
+      <Instrument id="violin"><longName>Violin</longName><trackName></trackName><instrumentId>strings.violin</instrumentId><Channel><program value="40"/></Channel></Instrument>
+    </Part>
+    <Part id="2">
+      <Staff/>
+      <trackName>Flute</trackName>
+      <Instrument id="flute"><longName>Flute</longName><trackName></trackName><instrumentId>wind.flutes.flute</instrumentId><Channel><program value="73"/></Channel></Instrument>
+    </Part>
+    <Staff id="1">
+      <Measure number="1" len="4/4">
+        <Clef><concertClefType>G</concertClefType></Clef>
+        <TimeSig><sigN>4</sigN><sigD>4</sigD></TimeSig>
+        <voice><Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord></voice>
+      </Measure>
+    </Staff>
+    <Staff id="2">
+      <Measure number="1" len="4/4">
+        <Clef><concertClefType>G</concertClefType></Clef>
+        <TimeSig><sigN>4</sigN><sigD>4</sigD></TimeSig>
+        <voice><Chord><durationType>quarter</durationType><Note><pitch>72</pitch></Note></Chord></voice>
+      </Measure>
+    </Staff>
+  </Score>
+</museScore>`;
+const _np = repairScore(parseMSCX(_nativeParts));
+assertEq(_np.parts.length, 2, 'a native two-part file imports as two parts');
+assertEq(_np.parts[0].name, 'Violin', 'reading the first Part’s trackName');
+assertEq(_np.parts[1].name, 'Flute', 'and the second’s');
+assertEq(_np.parts[0].instrument, 'Violin', 'mapping strings.violin back to the roster');
+assertEq(_np.parts[1].instrument, 'Flute', 'and wind.flutes.flute');
+assertEq(_np.parts[0].staves[0].measures[0].notes[0].pitch, 60, 'the first stave keeps its note');
+assertEq(_np.parts[1].staves[0].measures[0].notes[0].pitch, 72, 'and the second keeps its own');
+
+// When the Part blocks do not account for every stave, fall back to one
+// part rather than dropping staves on the floor.
+const _mismatched = `<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70"><Score>
+  <Part id="1"><Staff/><trackName>Piano</trackName></Part>
+  <Staff id="1"><Measure number="1" len="4/4"><voice><Rest><durationType>whole</durationType></Rest></voice></Measure></Staff>
+  <Staff id="2"><Measure number="1" len="4/4"><voice><Rest><durationType>whole</durationType></Rest></voice></Measure></Staff>
+</Score></museScore>`;
+const _mm = repairScore(parseMSCX(_mismatched));
+assertEq(_mm.parts.length, 1, 'a Part that under-counts its staves falls back to one part');
+assertEq(_mm.parts[0].staves.length, 2, 'and keeps every stave it read');
+
 // Export with slurs and hairpins
 const rt7 = createScore({title:'Slurs'});
 rt7.slurs = [{si: 0, startMi: 0, startNi: 0, endMi: 1, endNi: 2}];
