@@ -21,6 +21,7 @@ import { Window } from 'happy-dom';
 import { readFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import JSZip from 'jszip';
 import { loadApp, APP_MODULES } from './test-harness.js';
 import { readFileSync as _rf } from 'fs';
 
@@ -68,6 +69,7 @@ const {
   yToPitchAccurate,
   _evaluateAssignment, pickArchiveScorePath, _archiveRootfilePath,
   submitAssignment, endExerciseSession,
+  extractScoreXML, buildMSCZBlob, NO_ARCHIVE_SCORE,
   noteNaturalWidth, measureContentWidth, findMultiRestGroups, _layoutScales,
   stemDir, calcStemDirections, _percussionLinePos, _getScaleDegree,
   _getIntervalLabel, noteLetter,
@@ -1827,6 +1829,95 @@ const _wavMono = audioBufferToWav(_fakeMono);
 if (typeof _wavMono.size === 'number') {
   assertEq(_wavMono.size, 44 + 50 * 1 * 2, 'a mono 50-sample buffer is 44 + 100 bytes');
 }
+
+// ── L6. Real archive read/write (JSZip) ─────────────────────────
+//
+// openFile()/saveMSCZ() only ran in a browser because JSZip loaded from a
+// CDN. The npm JSZip is now a devDependency and injected into the harness,
+// so extractScoreXML() and buildMSCZBlob() are exercised against real zips.
+// Archive inputs are Uint8Arrays carrying a .name, which is all the code
+// reads from a browser File.
+
+const _safeName = t => (t || 'score').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 40);
+const _zipBytes = async files => {
+  const z = new JSZip();
+  for (const [n, c] of Object.entries(files)) z.file(n, c);
+  const bytes = await z.generateAsync({ type:'uint8array' });
+  return bytes;
+};
+const _namedZip = async (name, files) => {
+  const bytes = await _zipBytes(files);
+  bytes.name = name;
+  return bytes;
+};
+
+APP.score = SCORE.createScore({ instruments:['Piano'] });
+APP.score.title = 'My Tune';
+const _exportedXML = SCORE.exportMSCX();
+
+// 23a. a plain .mscx is read as text.
+const _plainFile = { name:'piece.mscx', text: async () => _exportedXML };
+assertEq(await extractScoreXML(_plainFile), _exportedXML, 'a plain .mscx is read straight through');
+
+// 23b. a .mscz resolves its score through META-INF/container.xml even when a
+// decoy .mscx sits earlier in the archive.
+const _container = '<container><rootfiles><rootfile full-path="real.mscx"/></rootfiles></container>';
+const _mscz = await _namedZip('song.mscz', {
+  'decoy.mscx': '<museScore version="4.70"><Score/></museScore>',
+  'real.mscx': _exportedXML,
+  'META-INF/container.xml': _container,
+});
+assertEq(await extractScoreXML(_mscz), _exportedXML,
+  'container.xml names the real score, not the first .mscx');
+
+// 23c. without a readable manifest the extension guess takes over.
+const _containerless = await _namedZip('song.mscz', {
+  'notes.txt': 'x',
+  'score.mscx': _exportedXML,
+  'Thumbnails/thumbnail.png': 'x',
+});
+assertEq(await extractScoreXML(_containerless), _exportedXML,
+  'a container-less archive falls back to the .mscx entry');
+
+// A malformed manifest must not abort the fallback.
+const _badContainer = await _namedZip('song.mscz', {
+  'score.mscx': _exportedXML,
+  'META-INF/container.xml': '<container><rootfiles/></container>',
+});
+assertEq(await extractScoreXML(_badContainer), _exportedXML,
+  'a manifest with no rootfile falls back instead of failing');
+
+// 23d. an archive with no score reports the sentinel.
+let _threw = null;
+try {
+  await extractScoreXML(await _namedZip('song.mscz', { 'notes.txt': 'x' }));
+} catch (e) { _threw = e.message; }
+assertEq(_threw, NO_ARCHIVE_SCORE, 'an archive without a score throws the sentinel message');
+
+// 23e. the .mxl extension is unzipped the same way.
+const _mxl = await _namedZip('song.mxl', { 'score.xml': _exportedXML });
+assertEq(await extractScoreXML(_mxl), _exportedXML, 'a .mxl archive is unzipped too');
+
+// 23f. buildMSCZBlob writes a one-entry archive named after the title.
+APP.score = SCORE.createScore({ instruments:['Piano'] });
+APP.score.title = 'My Tune';
+const _outBlob = await buildMSCZBlob();
+const _outZip = await JSZip.loadAsync(await _outBlob.arrayBuffer());
+const _outNames = Object.keys(_outZip.files);
+assertEq(_outNames.length, 1, 'the saved .mscz holds exactly one entry');
+assertEq(_outNames[0], 'My_Tune.mscx', 'the entry is the sanitised title plus .mscx');
+const _outXML = await _outZip.file(_outNames[0]).async('string');
+assertEq(_outXML, SCORE.exportMSCX(), 'the entry holds the exported .mscx');
+
+// The whole save -> unzip -> parse loop preserves the score.
+const _reparsed = SCORE.parseMSCX(_outXML);
+assertEq(_reparsed.title, 'My Tune', 'the saved archive parses back to the same title');
+
+APP.score.title = 'Etudes/Book 1';
+const _slashBlob = await buildMSCZBlob();
+const _slashZip = await JSZip.loadAsync(await _slashBlob.arrayBuffer());
+assertEq(Object.keys(_slashZip.files)[0], 'Etudes_Book_1.mscx',
+  'slashes and spaces in the title are sanitised in the entry name');
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);

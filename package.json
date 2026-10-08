@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Offline-first classroom music-learning environment",
   "devDependencies": {
-    "happy-dom": "^15.0.0"
+    "happy-dom": "^15.0.0",
+    "jszip": "^3.10.1"
   },
   "scripts": {
     "test": "node test-score-model.js",

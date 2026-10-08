@@ -1641,6 +1641,33 @@ function pickArchiveScorePath(paths) {
   return list.find(p => p.toLowerCase().endsWith('.xml') && !_isMetaEntry(p)) || null;
 }
 
+// Pull the score XML out of a dropped/selected file: a plain .mscx/.xml is
+// read as text, while a .mscz/.mxl archive is unzipped and the real score
+// resolved through META-INF/container.xml (falling back to an extension
+// guess). Kept separate from openFile() so it can be exercised without a
+// file dialog.
+const NO_ARCHIVE_SCORE = 'No score file found inside archive';
+async function extractScoreXML(file) {
+  const fname = (file.name || '').toLowerCase();
+  if (fname.endsWith('.mscz') || fname.endsWith('.mxl')) {
+    const zip = await JSZip.loadAsync(file);
+    const paths = [];
+    zip.forEach(p => paths.push(p));
+    let target = null;
+    const container = paths.find(p => /(^|\/)META-INF\/container\.xml$/i.test(p));
+    if (container) {
+      try {
+        const root = _archiveRootfilePath(await zip.file(container).async('string'));
+        if (root) target = paths.find(p => p.toLowerCase() === root.toLowerCase()) || null;
+      } catch (e) { /* fall back to the extension guess below */ }
+    }
+    if (!target) target = pickArchiveScorePath(paths);
+    if (!target) throw new Error(NO_ARCHIVE_SCORE);
+    return await zip.file(target).async('string');
+  }
+  return await file.text();
+}
+
 function openFile() {
   const inp = document.createElement('input');
   inp.type = 'file';
@@ -1650,30 +1677,11 @@ function openFile() {
     if (!file) return;
     showToast('Opening…');
     try {
-      let xmlStr;
-      const fname = file.name.toLowerCase();
-      if (fname.endsWith('.mscz') || fname.endsWith('.mxl')) {
-        const zip = await JSZip.loadAsync(file);
-        const paths = [];
-        zip.forEach(p => paths.push(p));
-        let target = null;
-        const container = paths.find(p => /(^|\/)META-INF\/container\.xml$/i.test(p));
-        if (container) {
-          try {
-            const root = _archiveRootfilePath(await zip.file(container).async('string'));
-            if (root) target = paths.find(p => p.toLowerCase() === root.toLowerCase()) || null;
-          } catch (e) { /* fall back to the extension guess below */ }
-        }
-        if (!target) target = pickArchiveScorePath(paths);
-        if (!target) { showToast('No score file found inside archive'); return; }
-        xmlStr = await zip.file(target).async('string');
-      } else {
-        xmlStr = await file.text();
-      }
+      const xmlStr = await extractScoreXML(file);
       loadScoreFromXML(xmlStr, file.name);
     } catch(err) {
       console.error(err);
-      showToast('Error: ' + err.message);
+      showToast(err.message === NO_ARCHIVE_SCORE ? err.message : 'Error: ' + err.message);
     }
   };
   inp.click();
@@ -1699,12 +1707,18 @@ function loadScoreFromXML(xmlStr, filename) {
   }
 }
 
-async function saveMSCZ() {
+// Build the .mscz archive (a zip holding exactly one .mscx). Split from
+// saveMSCZ() so a test can inspect the archive without triggering a download.
+async function buildMSCZBlob() {
   const xml  = SCORE.exportMSCX();
   const safe = safeName(APP.score.title);
   const zip  = new JSZip();
   zip.file(`${safe}.mscx`, xml);
-  const blob = await zip.generateAsync({type:'blob'});
+  return await zip.generateAsync({type:'blob'});
+}
+async function saveMSCZ() {
+  const safe = safeName(APP.score.title);
+  const blob = await buildMSCZBlob();
   dlBlob(blob, `${safe}.mscz`);
   showToast('Saved .mscz');
 }

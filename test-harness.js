@@ -14,6 +14,7 @@
 // logic worth unit testing.
 
 import { Window } from 'happy-dom';
+import JSZip from 'jszip';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -138,6 +139,8 @@ const APP_EXPORT_NAMES = [
   'buildPlaybackOrder', 'renderVoltaBrackets', 'yToPitchAccurate',
   '_evaluateAssignment', 'pickArchiveScorePath', '_archiveRootfilePath',
   'submitAssignment', 'endExerciseSession',
+  // Real archive reading/writing (exercised against the npm JSZip below).
+  'extractScoreXML', 'buildMSCZBlob', 'NO_ARCHIVE_SCORE',
   // Rendering logic that is pure given a VexFlow stub (see the sandbox below).
   'noteNaturalWidth', 'measureContentWidth', 'findMultiRestGroups', '_layoutScales',
   'stemDir', 'calcStemDirections', '_percussionLinePos', '_getScaleDegree',
@@ -192,6 +195,9 @@ export function loadApp() {
     structuredClone,
     requestAnimationFrame: cb => setTimeout(cb, 0),
     cancelAnimationFrame: id => clearTimeout(id),
+    // The real JSZip the browser loads from a CDN; bootApp() skips its
+    // dynamic load when this global is already present.
+    JSZip,
   };
   sandbox.globalThis = sandbox;
   sandbox.self = dom.window;
