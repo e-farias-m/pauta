@@ -879,14 +879,18 @@ function setPickupMeasure() {
   if (num >= ts.num) { showToast('Pickup must be shorter than the time signature'); return; }
   const puBeat = num * (4 / den);
   const bestRest = beatsToBestRestDuration(puBeat);
-  const restDur = bestRest ? bestRest.dur : 'q';
+  // bestRest.dur may be a dotted code ('qd'/'hd'/'8d') that is not a valid
+  // duration; pass the base code plus the dot flag so the rest keeps its
+  // full length instead of being repaired down to a plain quarter.
+  const restDur = bestRest ? (bestRest.base || bestRest.dur) : 'q';
+  const restDots = bestRest && bestRest.dot ? 1 : 0;
   SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => {
       const m = s.measures[0];
       m.pickup = {num, den};
       m.timeSigNum = ts.num;
       m.timeSigDen = ts.den;
-      m.notes = [SCORE.mkRest(restDur)];
+      m.notes = [SCORE.mkRest(restDur, restDots)];
     }));
     while (score.parts[0].staves[0].measures.length < 2) {
       score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
@@ -2102,13 +2106,15 @@ function createNewScore() {
     if (pickup && puNum > 0 && puNum < tsNum) {
       const puBeat = puNum * (4 / puDen);
       const bestRest = beatsToBestRestDuration(puBeat);
-      const restDur = bestRest ? bestRest.dur : 'q';
+      // See setPickupMeasure: keep dotted rest lengths intact.
+      const restDur = bestRest ? (bestRest.base || bestRest.dur) : 'q';
+      const restDots = bestRest && bestRest.dot ? 1 : 0;
       raw.parts.forEach(p => p.staves.forEach(s => {
         const m = s.measures[0];
         m.pickup = {num: puNum, den: puDen};
         m.timeSigNum = tsNum;
         m.timeSigDen = tsDen;
-        m.notes = [SCORE.mkRest(restDur)];
+        m.notes = [SCORE.mkRest(restDur, restDots)];
       }));
     }
 

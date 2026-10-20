@@ -594,9 +594,25 @@ rt7.parts[0].staves[0].measures.push(emptyMeasure());
 rt7.parts[0].staves[1].measures.push(emptyMeasure());
 rt7.parts[0].staves[1].measures.push(emptyMeasure());
 const xml7 = exportMSCXFromScore(rt7);
-assert(xml7.includes('type="Slur"'), 'exportMSCX slur spanner');
-assert(xml7.includes('type="HairPin"'), 'exportMSCX hairpin spanner');
-assert(xml7.includes('<subtype>0</subtype>'), 'exportMSCX crescendo type');
+assert(xml7.includes('<PautaSlurs>'), 'exportMSCX slur spanner');
+assert(xml7.includes('<PautaHairpins>'), 'exportMSCX hairpin spanner');
+assert(xml7.includes('type="cresc"'), 'exportMSCX crescendo type');
+
+// Slurs and hairpins survive an export → import round trip with real notes
+// (repairScore drops spanners whose anchors are not notes).
+const rt7b = createScore({title: 'Slur round trip'});
+const rt7bM0 = rt7b.parts[0].staves[0].measures[0];
+rt7bM0.notes = [mkNote(60, 'q', 0), mkNote(62, 'q', 0)];
+rt7b.parts[0].staves[0].measures.push(emptyMeasure());
+rt7b.parts[0].staves[0].measures[1].notes = [mkNote(64, 'q', 0), mkNote(65, 'q', 0)];
+rt7b.slurs    = [{si: 0, startMi: 0, startNi: 0, endMi: 1, endNi: 1}];
+rt7b.hairpins = [{si: 0, startMi: 0, startNi: 0, endMi: 1, endNi: 1, type: 'dim'}];
+const rt7bBack = repairScore(parseMSCX(exportMSCXFromScore(rt7b)));
+assertEq(rt7bBack.slurs.length, 1, 'slur survives the MSCX round trip');
+assertEq(rt7bBack.slurs[0].endMi, 1, 'round-tripped slur keeps its end measure');
+assertEq(rt7bBack.slurs[0].endNi, 1, 'round-tripped slur keeps its end note');
+assertEq(rt7bBack.hairpins.length, 1, 'hairpin survives the MSCX round trip');
+assertEq(rt7bBack.hairpins[0].type, 'dim', 'round-tripped hairpin keeps its direction');
 
 // ── MSCX Import Tests ──────────────────────────────────────────
 

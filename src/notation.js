@@ -264,6 +264,10 @@ function clefFromMSCX(code) {
   const c = (code || '').trim().toLowerCase();
   if (c.includes('percussion')) return 'percussion';
   if (c === 'f' || c.startsWith('f') || c.includes('bass')) return 'bass';
+  // C-clefs carry their line: C3 is alto and C4 is tenor, the same codes
+  // CLEF_TO_MSCX writes back out. Collapsing every C-clef to alto turned
+  // imported tenor staves into alto.
+  if (c.startsWith('c4')) return 'tenor';
   if (c.startsWith('c')) return 'alto';
   return 'treble';
 }
@@ -362,15 +366,23 @@ const SCORE_WIDE_MEASURE_FLAGS = [...MARKER_KEYS, 'lineBreak', 'barline', 'endin
  * @returns {boolean} true if the marker is now set, false if it was cleared
  */
 function toggleMarker(score, mi, type) {
-  let added = false;
+  if (!score || !Array.isArray(score.parts)) return false;
+  // Decide once from the reference stave (part 1, stave 1 — the copy every
+  // renderer reads) and apply that decision to every stave. Deciding per
+  // stave left scores that already disagreed internally toggling each stave
+  // the opposite way, with the returned flag describing only some of them.
+  const refStave = _staveBySI(score, 0);
+  const refMeasure = refStave?.measures?.[mi];
+  if (!refMeasure) return false;
+  const set = !refMeasure[type];
   for (const part of score?.parts || []) {
     for (const stave of part.staves || []) {
       const m = stave.measures?.[mi];
       if (!m) continue;
-      if (m[type]) { delete m[type]; } else { m[type] = true; added = true; }
+      if (set) m[type] = true; else delete m[type];
     }
   }
-  return added;
+  return set;
 }
 
 /** Clear every navigation marker at measure `mi` on every stave. */
@@ -1093,6 +1105,29 @@ function parseMSCX(xmlStr) {
     try { score.studentAnswers = JSON.parse(stuAns); }
     catch (e) { debugLog('[PautaEngraving import] discarded unreadable PautaStudentAnswers:', e.message); }
   }
+  // Decode only. repairScore re-validates every anchor against the staves
+  // and measures this file actually describes.
+  const slurParent = nq(doc, 'PautaSlurs');
+  if (slurParent) {
+    score.slurs = nqa(slurParent, 'Slur').map(el => ({
+      si:      parseInt(el.getAttribute('si'), 10) || 0,
+      startMi: parseInt(el.getAttribute('startMi'), 10) || 0,
+      startNi: parseInt(el.getAttribute('startNi'), 10) || 0,
+      endMi:   parseInt(el.getAttribute('endMi'), 10) || 0,
+      endNi:   parseInt(el.getAttribute('endNi'), 10) || 0,
+    }));
+  }
+  const hpElsParent = nq(doc, 'PautaHairpins');
+  if (hpElsParent) {
+    score.hairpins = nqa(hpElsParent, 'HairPin').map(el => ({
+      si:      parseInt(el.getAttribute('si'), 10) || 0,
+      type:    el.getAttribute('type') === 'dim' ? 'dim' : 'cresc',
+      startMi: parseInt(el.getAttribute('startMi'), 10) || 0,
+      startNi: parseInt(el.getAttribute('startNi'), 10) || 0,
+      endMi:   parseInt(el.getAttribute('endMi'), 10) || 0,
+      endNi:   parseInt(el.getAttribute('endNi'), 10) || 0,
+    }));
+  }
   score.parts    = [];
 
   const staffEls = nqa(doc, 'Staff');
@@ -1111,6 +1146,10 @@ function parseMSCX(xmlStr) {
   function parseMeasureEls(mEls, si, $stavesByPart, $score) {
     const out = [];
     let firstMeasure = true;
+    // MuseScore splits a spanner across two elements: the start sits before
+    // the first chord it covers, the end (carrying <next> deltas) before the
+    // last. Open spans wait here until their end element shows up.
+    const openSpanners = [];
 
     mEls.forEach(mEl => {
       const measure = {
@@ -1185,6 +1224,35 @@ function parseMSCX(xmlStr) {
 
       function parseNoteEl(el, voiceNum) {
         const tag = el.localName;
+        if (tag === 'Spanner') {
+          const type = el.getAttribute('type');
+          const startChild = nq(el, 'Slur') || nq(el, 'HairPin');
+          if (startChild) {
+            openSpanners.push({
+              type,
+              si,
+              startMi: out.length,
+              startNi: measure.notes.length,
+              hairpinType: (type === 'HairPin' && txt(startChild, 'subtype') === '1') ? 'dim' : 'cresc',
+            });
+          } else {
+            const openIdx = openSpanners.map(o => o.type).lastIndexOf(type);
+            if (openIdx !== -1 && nq(el, 'next')) {
+              const open = openSpanners.splice(openIdx, 1)[0];
+              const loc = nq(nq(el, 'next'), 'location');
+              const dM = loc ? (parseInt(txt(loc, 'measures'), 10) || 0) : 0;
+              const dN = loc ? (parseInt(txt(loc, 'notes'), 10) || 0) : 0;
+              const endMi = open.startMi + dM;
+              const endNi = open.startNi + dN;
+              if (type === 'Slur') {
+                $score.slurs.push({ si: open.si, startMi: open.startMi, startNi: open.startNi, endMi, endNi });
+              } else if (type === 'HairPin') {
+                $score.hairpins.push({ si: open.si, type: open.hairpinType, startMi: open.startMi, startNi: open.startNi, endMi, endNi });
+              }
+            }
+          }
+          return;
+        }
         if (tag === 'Tuplet') {
           // MuseScore counts actualNotes notes played in the time of
           // normalNotes, which is num/den the other way round.
@@ -1745,9 +1813,11 @@ function parseMusicXML(xmlStr) {
         // Simplified: we just look for dynamics in <direction> elements preceding this note
 
         if (isChord && lastNote) {
-          // Extra pitch on chord
+          // Extra pitch on chord — same shape as every other note's chord
+          // tones ({pitch, accidental}), so _repairNote keeps it instead of
+          // filtering out a bare number.
           if (!lastNote.extraPitches) lastNote.extraPitches = [];
-          lastNote.extraPitches.push(pitch);
+          lastNote.extraPitches.push({ pitch, accidental: mxmlAccidental(alter) });
           return;
         }
 
@@ -1924,6 +1994,28 @@ function exportMSCXFromScore(s) {
   if (s.studentAnswers && typeof s.studentAnswers === 'object'
       && Object.keys(s.studentAnswers).length) {
     x += `    <PautaStudentAnswers>${esc(JSON.stringify(s.studentAnswers))}</PautaStudentAnswers>\n`;
+  }
+  // Slurs and hairpins carry absolute (stave, measure, note) coordinates, so
+  // they round-trip exactly as Pauta-only tags the way MuseScore ignores
+  // PautaEngravingSettings above. The per-staff <Spanner> form MuseScore uses
+  // anchors spanners inside the measure where they start; a collapsed copy
+  // with only end deltas cannot be read back, so it is not written.
+  if (Array.isArray(s.slurs) && s.slurs.length) {
+    x += `    <PautaSlurs>\n`;
+    for (const sl of s.slurs) {
+      x += `      <Slur si="${sl.si|0}" startMi="${sl.startMi|0}" startNi="${sl.startNi|0}"` +
+           ` endMi="${sl.endMi|0}" endNi="${sl.endNi|0}"/>\n`;
+    }
+    x += `    </PautaSlurs>\n`;
+  }
+  if (Array.isArray(s.hairpins) && s.hairpins.length) {
+    x += `    <PautaHairpins>\n`;
+    for (const h of s.hairpins) {
+      const type = h.type === 'cresc' ? 'cresc' : 'dim';
+      x += `      <HairPin si="${h.si|0}" type="${type}" startMi="${h.startMi|0}" startNi="${h.startNi|0}"` +
+           ` endMi="${h.endMi|0}" endNi="${h.endNi|0}"/>\n`;
+    }
+    x += `    </PautaHairpins>\n`;
   }
 
   // Part metadata. MuseScore groups the top-level content staves into parts
@@ -2126,25 +2218,6 @@ function exportMSCXFromScore(s) {
       }
 
       x += `      </Measure>\n`;
-    });
-
-    // Slurs for this staff
-    (s.slurs||[]).filter(sl => sl.si === si).forEach(sl => {
-      x += `      <Spanner type="Slur">\n`;
-      x += `        <Slur/>\n`;
-      x += `        <next><location><measures>${sl.endMi - sl.startMi}</measures>`;
-      x += `<notes>${sl.endNi - sl.startNi}</notes></location></next>\n`;
-      x += `      </Spanner>\n`;
-    });
-
-    // Hairpins for this staff
-    (s.hairpins||[]).filter(h => h.si === si).forEach(h => {
-      const type = h.type === 'cresc' ? '0' : '1';
-      x += `      <Spanner type="HairPin">\n`;
-      x += `        <HairPin><subtype>${type}</subtype></HairPin>\n`;
-      x += `        <next><location><measures>${h.endMi - h.startMi}</measures>`;
-      x += `<notes>${h.endNi - h.startNi}</notes></location></next>\n`;
-      x += `      </Spanner>\n`;
     });
 
     x += `    </Staff>\n`;
