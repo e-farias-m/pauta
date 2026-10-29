@@ -2361,6 +2361,8 @@ function _autosaveNow() {
 function _startAutosave() {
   setInterval(_autosaveNow, AUTOSAVE_INTERVAL);
   window.addEventListener('beforeunload', _autosaveNow);
+  window.addEventListener('pagehide', _autosaveNow);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') _autosaveNow(); });
 }
 
 function restoreAutosave() {
