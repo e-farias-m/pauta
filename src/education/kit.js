@@ -93,7 +93,7 @@ function startAssignment(id) {
   _validateModeState();
   // Try to restore unsaved answers from localStorage
   try {
-    const saved = localStorage.getItem(`pauta_answers_${id}`);
+    const saved = LS.getItem(`pauta_answers_${id}`);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (!APP.score.studentAnswers) APP.score.studentAnswers = {};
@@ -272,11 +272,11 @@ function _saveExerciseResult(session) {
     maxStreak: session.maxStreak,
     time: Math.floor((Date.now() - session.startedAt) / 1000),
   });
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  LS.setItem(RESULTS_KEY, JSON.stringify(results));
 }
 
 function _loadResults() {
-  try { return JSON.parse(localStorage.getItem(RESULTS_KEY)) || []; }
+  try { return JSON.parse(LS.getItem(RESULTS_KEY)) || []; }
   catch(e) { return []; }
 }
 
@@ -550,7 +550,7 @@ function importProgress() {
         const name = prompt('Student name for this report:', 'Student');
         if (!name) { UI.showToast('Import cancelled'); return; }
         imported[name] = (imported[name] || []).concat(data.results);
-        localStorage.setItem(IMPORTED_KEY, JSON.stringify(imported));
+        LS.setItem(IMPORTED_KEY, JSON.stringify(imported));
         UI.showToast(`Imported ${data.results.length} results for ${name}`);
         showTeacherDashboard();
       } catch(e) { UI.showToast('Could not read file: ' + e.message); }
@@ -561,13 +561,13 @@ function importProgress() {
 }
 
 function _loadImported() {
-  try { return JSON.parse(localStorage.getItem(IMPORTED_KEY)) || {}; }
+  try { return JSON.parse(LS.getItem(IMPORTED_KEY)) || {}; }
   catch(e) { return {}; }
 }
 
 function clearProgress() {
   if (!confirm('Delete all your exercise results?')) return;
-  localStorage.removeItem(RESULTS_KEY);
+  LS.removeItem(RESULTS_KEY);
   UI.closeModal();
   UI.showToast('Results cleared');
 }
@@ -633,7 +633,7 @@ function showTeacherDashboard() {
 
 function clearAllImported() {
   if (!confirm('Delete all imported student reports?')) return;
-  localStorage.removeItem(IMPORTED_KEY);
+  LS.removeItem(IMPORTED_KEY);
   UI.closeModal();
   UI.showToast('Imported data cleared');
 }
@@ -682,12 +682,12 @@ function showStarterAssignmentsDialog() {
 const CUSTOM_EXERCISES_KEY = 'pauta_custom_exercises';
 
 function _loadCustomExercises() {
-  try { return JSON.parse(localStorage.getItem(CUSTOM_EXERCISES_KEY)) || []; }
+  try { return JSON.parse(LS.getItem(CUSTOM_EXERCISES_KEY)) || []; }
   catch(e) { return []; }
 }
 
 function _saveCustomExercises(exercises) {
-  localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(exercises));
+  LS.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(exercises));
 }
 
 function showExerciseBuilderDialog() {
@@ -1369,7 +1369,7 @@ function _finishDiagnostic() {
     date: Date.now(), correct: totalCorrect, total: totalQs, pct,
     streak: 0, maxStreak: 0, time,
   });
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  LS.setItem(RESULTS_KEY, JSON.stringify(results));
 }
 
 function _showDiagBar() {

@@ -614,6 +614,66 @@ assertEq(rt7bBack.slurs[0].endNi, 1, 'round-tripped slur keeps its end note');
 assertEq(rt7bBack.hairpins.length, 1, 'hairpin survives the MSCX round trip');
 assertEq(rt7bBack.hairpins[0].type, 'dim', 'round-tripped hairpin keeps its direction');
 
+// Engraving settings live on the score and survive the round trip.
+const rt8 = createScore({title: 'Engraving'});
+rt8.showMeasureNumbers = true;
+const rt8Back = repairScore(parseMSCX(exportMSCXFromScore(rt8)));
+assertEq(rt8Back.showMeasureNumbers, true, 'showMeasureNumbers survives the MSCX round trip');
+assertEq(rt8Back.showMultiMeasureRests, false, 'showMultiMeasureRests defaults survive the MSCX round trip');
+
+// Note annotations travel with the note through the MSCX round trip.
+const rt9 = createScore({title: 'Annotations'});
+const rt9Note = mkNote(62, 'q', 0, null, 1);
+rt9Note.notehead = 'slash';
+rt9Note.fingering = '1';
+rt9Note.stringNum = 3;
+rt9Note.woodwindFingering = 'G open';
+rt9Note.articulation = 'staccato+tenuto';
+rt9.parts[0].staves[0].measures[0].notes = [rt9Note];
+const rt9Back = repairScore(parseMSCX(exportMSCXFromScore(rt9)));
+const rt9N = rt9Back.parts[0].staves[0].measures[0].notes[0];
+assertEq(rt9N.notehead, 'slash', 'notehead survives the MSCX round trip');
+assertEq(rt9N.fingering, '1', 'fingering survives the MSCX round trip');
+assertEq(rt9N.stringNum, 3, 'stringNum survives the MSCX round trip');
+assertEq(rt9N.woodwindFingering, 'G open', 'woodwindFingering survives the MSCX round trip');
+assertEq(rt9N.articulation, 'staccato+tenuto', 'articulation combo survives the MSCX round trip');
+
+// A combo is written as one <Articulation> per subtype — "staccato+tenuto"
+// is not a subtype MuseScore understands — and read back as a combo.
+const rt10 = createScore({title: 'Articulations'});
+const rt10Note = mkNote(60, 'q', 0, null, 1);
+rt10Note.articulation = 'staccato+tenuto';
+rt10.parts[0].staves[0].measures[0].notes = [rt10Note];
+const rt10Xml = exportMSCXFromScore(rt10);
+assertEq((rt10Xml.match(/<Articulation>/g) || []).length, 2,
+  'a combo exports one <Articulation> per subtype');
+assert(!rt10Xml.includes('<subtype>staccato+tenuto</subtype>'),
+  'a combo never exports as a single subtype');
+const rt10Back = repairScore(parseMSCX(rt10Xml));
+assertEq(rt10Back.parts[0].staves[0].measures[0].notes[0].articulation, 'staccato+tenuto',
+  'two <Articulation> elements read back as one combo');
+
+// MuseScore 3 keeps a fingering in <subtype>; Pauta writes <text>.
+const msFingering = parseMSCX(`<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="3.01">
+  <Score>
+    <Part><Staff id="1"/><trackName>Violin</trackName></Part>
+    <Staff id="1">
+      <Measure number="1" len="4/4">
+        <voice num="1">
+          <Chord>
+            <durationType>quarter</durationType>
+            <Fingering><subtype>2</subtype></Fingering>
+            <Note><pitch>60</pitch></Note>
+          </Chord>
+        </voice>
+      </Measure>
+    </Staff>
+  </Score>
+</museScore>`);
+assertEq(msFingering.parts[0].staves[0].measures[0].notes[0].fingering, '2',
+  'MuseScore-style <Fingering><subtype> is read');
+
 // ── MSCX Import Tests ──────────────────────────────────────────
 
 const minimalXML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -1255,6 +1315,35 @@ const heavyLight = parseMusicXML(_mxDoc(
   _mxMeasure(2, '<barline location="left"><bar-style>heavy-light</bar-style></barline>')));
 assert(!('barline' in heavyLight.parts[0].staves[0].measures[1]),
   'a heavy-light section divider is not read as a double barline');
+
+// Articulations, tempo, notehead and fingering used to be dropped on the
+// way in: MusicXML marks articulations as empty children of
+// <articulations> and tempo as a <sound tempo> attribute, and neither
+// matched a Pauta field.
+const annots = parseMusicXML(_mxDoc(
+  _mxMeasure(1, '<direction><sound tempo="76"/></direction>', true) +
+  _mxMeasure(2,
+    '<note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type>' +
+    '<notehead>slash</notehead>' +
+    '<notations><articulations><staccato/><tenuto/></articulations><fingering>2</fingering></notations>' +
+    '</note>')));
+const annotsM1 = annots.parts[0].staves[0].measures[0];
+const annotsN  = annots.parts[0].staves[0].measures[1].notes[0];
+assertEq(annotsM1.tempo.bpm, 76, 'MusicXML <sound tempo> becomes the measure tempo');
+assertEq(annotsM1.tempo.name, '76 BPM', 'imported tempo gets a plain BPM name');
+assertEq(annotsN.articulation, 'staccato+tenuto', 'MusicXML articulations map to a combo string');
+assertEq(annotsN.notehead, 'slash', 'MusicXML notehead is read');
+assertEq(annotsN.fingering, '2', 'MusicXML fingering is read');
+
+// A trill is an ornament and a fermata a notation mark in MusicXML — neither
+// sits inside <articulations>, so both used to be dropped on the way in.
+const orn = parseMusicXML(_mxDoc(
+  _mxMeasure(1,
+    '<note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type>' +
+    '<notations><ornaments><trill-mark/></ornaments><fermata/></notations></note>')));
+const ornN = orn.parts[0].staves[0].measures[0].notes[0];
+assertEq(ornN.articulation, 'trill+fermata',
+  'MusicXML trill and fermata reach the articulation slot');
 
 // A repeat written in only one part still reaches every part, and holds
 // once repair has run.

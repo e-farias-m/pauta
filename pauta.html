@@ -2711,6 +2711,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 <script>
 
 // ─── Module: globals.js ────────────────────────────────────
+const LS = { getItem: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, removeItem: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const DEBUG = false;
 function debugLog(...args) { if (DEBUG) console.log(...args); }
 (function(){
@@ -3120,14 +3121,14 @@ function applyKit(kitName, level) {
   // Optionally sync the UI profile to the kit's suggestion
   const suggested = kit.suggestedProfile[level];
   if (suggested && UI_PROFILES[suggested]) applyUIProfile(suggested);
-  try { localStorage.setItem('pauta_kit', kitName); localStorage.setItem('pauta_kit_level', level); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.setItem('pauta_kit', kitName); LS.setItem('pauta_kit_level', level); } catch(e) { console.warn('[Pauta]', e.message); }
   UI.showToast(`${kit.name} — ${level}`);
 }
 
 function clearKit() {
   APP.teachingKit = null;
   APP.teachingKitLevel = 'advanced';
-  try { localStorage.removeItem('pauta_kit'); localStorage.removeItem('pauta_kit_level'); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.removeItem('pauta_kit'); LS.removeItem('pauta_kit_level'); } catch(e) { console.warn('[Pauta]', e.message); }
   UI.showToast('General Music mode');
 }
 
@@ -3211,7 +3212,7 @@ function applyUIProfile(profileName) {
   UI.showToast(msg, changes.length ? 2500 : 1200);
 
   // Store preference
-  try { localStorage.setItem('pauta_ui_profile', profileName); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.setItem('pauta_ui_profile', profileName); } catch(e) { console.warn('[Pauta]', e.message); }
 }
 
 function togglePalette() {
@@ -3220,7 +3221,7 @@ function togglePalette() {
   const collapsed = pal.classList.toggle('collapsed');
   const lbl = document.getElementById('palette-toggle-label');
   if (lbl) lbl.textContent = collapsed ? 'Show Palette' : 'Hide Palette';
-  try { localStorage.setItem('pauta_palette_collapsed', collapsed ? '1' : ''); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.setItem('pauta_palette_collapsed', collapsed ? '1' : ''); } catch(e) { console.warn('[Pauta]', e.message); }
 }
 
 
@@ -3856,8 +3857,9 @@ function _nextPartName(score, instrName) {
 function addInstrumentToScore(score, instrName, opts = {}) {
   const instr = instrByName(instrName);
   if (!instr || !Array.isArray(score?.parts) || !score.parts.length) return null;
-  const nM   = score.parts[0].staves[0].measures.length;
-  const refS = score.parts[0].staves[0];
+  const refS = firstStave(score);
+  if (!refS) return null;
+  const nM   = refS.measures.length;
   // Mirror the reference stave's signature layout measure for measure, so a
   // new part stays aligned with mid-score time/key changes and a pickup.
   // `null` means "unchanged here" and is preserved rather than defaulted.
@@ -4428,6 +4430,11 @@ function repairScore(raw) {
   if (!score.title) score.title = 'Untitled Score';
   if (score.composer == null) score.composer = '';
   if (!Array.isArray(score.parts) || !score.parts.length) score.parts = createScore().parts;
+  // Engraving preferences travel with the score. Repair normalises them to
+  // booleans here so adoptScore can sync APP unconditionally, and the
+  // exporter can read them off the score it is writing.
+  if (typeof score.showMeasureNumbers !== 'boolean') score.showMeasureNumbers = false;
+  if (typeof score.showMultiMeasureRests !== 'boolean') score.showMultiMeasureRests = false;
   _ensureScoreAnnotationArrays(score);
   _syncMeasureCounts(score);
   _syncScoreWideFlags(score);
@@ -4479,6 +4486,9 @@ function adoptScore(raw, opts = {}) {
   if (!result.ok) throw new Error(result.fatal || 'Invalid score data');
   APP.score = score;
   APP._lastUndoFP = _scoreFingerprint(score);
+  // Engraving preferences live on the score; APP mirrors them for rendering.
+  APP.showMeasureNumbers    = score.showMeasureNumbers;
+  APP.showMultiMeasureRests = score.showMultiMeasureRests;
   _checkInvariants(score);
   if (opts.clearHistory !== false) {
     APP.undoStack = [];
@@ -4643,6 +4653,15 @@ function _checkInvariants(score) {
 }
 
 /** Get a stave by global staff index from a score object (not APP). @param {Score} score @param {number} si @returns {Stave|null} */
+/**
+ * The reference stave — part 1, stave 1, the copy every renderer reads — or
+ * null when the score has no staves at all. Prefer this over the bare
+ * `parts[0].staves[0]` chain, which throws on an empty first part.
+ */
+function firstStave(score) {
+  return score?.parts?.[0]?.staves?.[0] || null;
+}
+
 function _staveBySI(score, si) {
   let idx = 0;
   for (const part of (score.parts || [])) {
@@ -5065,14 +5084,39 @@ function parseMSCX(xmlStr) {
 
           if (nq(firstNoteEl, 'Tie')) note.tieToNext = true;
 
+          // Note-level annotations. <head> is MuseScore's own notehead tag;
+          // <notehead> is accepted too since older Pauta files wrote that.
+          const headEl = nq(firstNoteEl, 'head') || nq(firstNoteEl, 'notehead');
+          const headText = headEl ? (headEl.textContent || '').trim() : '';
+          if (headText) note.notehead = headText;
+          const strNumEl = nq(firstNoteEl, 'stringNum');
+          const strNum = strNumEl ? parseInt(strNumEl.textContent, 10) : NaN;
+          if (Number.isFinite(strNum) && strNum > 0) note.stringNum = strNum;
+          const wwfEl = nq(firstNoteEl, 'woodwindFingering');
+          const wwfText = wwfEl ? (wwfEl.textContent || '').trim() : '';
+          if (wwfText) note.woodwindFingering = wwfText;
+
           const dynEl = nq(el, 'Dynamic');
           if (dynEl) {
             const sub = txt(dynEl,'subtype') || '';
             if (['pppp','ppp','pp','p','mp','mf','f','ff','fff','ffff','sfz','fp','sfp','rfz'].includes(sub)) note.dynamic = sub;
           }
 
-          const artEl = nq(el, 'Articulation');
-          if (artEl) note.articulation = txt(artEl,'subtype') || null;
+          // A chord can carry several articulations. MuseScore writes one
+          // <Articulation> per articulation while Pauta keeps them in a
+          // single '+'-joined string, so read every one of them back.
+          const artParts = nqa(el, 'Articulation')
+            .map(a => txt(a, 'subtype'))
+            .filter(s => s);
+          if (artParts.length) note.articulation = artParts.join('+');
+
+          // Fingering — MuseScore 3 keeps the value in <subtype>, Pauta
+          // writes <text>, and other tools write it as plain text.
+          const fingEl = nq(el, 'Fingering');
+          const fingText = fingEl
+            ? (txt(fingEl, 'subtype') || txt(fingEl, 'text') || fingEl.textContent || '').trim()
+            : '';
+          if (fingText) note.fingering = fingText;
 
           const lyrEl = nq(el, 'Lyrics');
           if (lyrEl) {
@@ -5260,6 +5304,32 @@ function parseMusicXML(xmlStr) {
     return alter > 0 ? '#' : 'b';
   }
 
+  // MusicXML marks articulations as empty children of <articulations>; Pauta
+  // stores them as a single '+'-joined string (combos like 'staccato+tenuto'
+  // are first-class values in the model).
+  const MXML_ARTIC_MAP = {
+    staccato: 'staccato', accent: 'accent', tenuto: 'tenuto',
+    'strong-accent': 'marcato', marcato: 'marcato',
+    staccatissimo: 'staccatissimo', fermata: 'fermata',
+    'trill-mark': 'trill', trill: 'trill',
+  };
+  function mxmlArticulation(noteEl) {
+    const parts = [];
+    const artEl = nq(noteEl, 'articulations');
+    if (artEl) {
+      for (const child of artEl.children) {
+        const mapped = MXML_ARTIC_MAP[child.localName];
+        if (mapped && !parts.includes(mapped)) parts.push(mapped);
+      }
+    }
+    // A trill is an ornament and a fermata a notation mark in MusicXML —
+    // neither sits inside <articulations>, but Pauta keeps both in the
+    // articulation slot.
+    if (nq(noteEl, 'trill-mark') && !parts.includes('trill')) parts.push('trill');
+    if (nq(noteEl, 'fermata') && !parts.includes('fermata')) parts.push('fermata');
+    return parts.length ? parts.join('+') : null;
+  }
+
   // MusicXML carries navigation markers as direction-type children (segno,
   // coda) or as sound attributes (fine, dacapo, dalsegno). The words text
   // is only a fallback — it is localized, so it is the weakest signal here.
@@ -5382,6 +5452,7 @@ function parseMusicXML(xmlStr) {
   const mxmlMarkersAt = new Map();
   const mxmlBarlineAt = new Map();
   const mxmlEndingsAt = new Map();
+  const mxmlTempoAt = new Map();
   partEls.forEach(pEl => {
     nqa(pEl, 'measure').forEach((pmEl, mi) => {
       const printEl = nq(pmEl, 'print');
@@ -5501,6 +5572,20 @@ function parseMusicXML(xmlStr) {
         if (measure.keySig === null) measure.keySig = 0;
         if (measure.timeSigNum === null) { measure.timeSigNum = curTimeSigNum; measure.timeSigDen = curTimeSigDen; }
         firstMeasure = false;
+      }
+
+      // Tempo from <sound tempo="…"> (usually inside <direction>). Only the
+      // first tempo in a measure counts — a mid-measure change is rare and
+      // Pauta's model stores one tempo per measure anyway. Like the other
+      // measure-level flags it is collected here and stamped onto the staves
+      // after the loop, since the local `measure` object is only a carrier.
+      const tempoSound = nqa(mEl, 'sound').find(el => el.getAttribute('tempo'));
+      if (tempoSound) {
+        const bpm = parseFloat(tempoSound.getAttribute('tempo'));
+        const measIdxT = measureEls.indexOf(mEl);
+        if (bpm > 0 && !mxmlTempoAt.has(measIdxT)) {
+          mxmlTempoAt.set(measIdxT, { bpm, name: `${Math.round(bpm)} BPM` });
+        }
       }
 
       // Harmony (chord symbols) — may appear before/after notes
@@ -5625,11 +5710,16 @@ function parseMusicXML(xmlStr) {
         }
 
         // Regular note
+        const artic = mxmlArticulation(noteEl);
+        const fingElMx = nq(noteEl, 'fingering');
+        const fingText = fingElMx ? (fingElMx.textContent || '').trim() : '';
         const note = {
           type: 'note', duration: durCode, dots: dotCount,
           accidental: mxmlAccidental(alter),
           voice, pitch, tieToNext: tieStart || undefined,
           notehead: notehead || undefined,
+          articulation: artic || undefined,
+          fingering: fingText || undefined,
         };
 
         // Chord symbol
@@ -5698,6 +5788,9 @@ function parseMusicXML(xmlStr) {
     for (const [mi, value] of mxmlBarlineAt) {
       stampFlag(mi, m => { m.barline = value; });
     }
+    for (const [mi, tempo] of mxmlTempoAt) {
+      stampFlag(mi, m => { if (!m.tempo) m.tempo = tempo; });
+    }
     for (const [mi, nums] of mxmlEndingsAt) {
       stampFlag(mi, m => { m.ending = [...nums].sort((a, b) => a - b); });
     }
@@ -5737,7 +5830,9 @@ function exportMSCXFromScore(s) {
   x += `    <Division>480</Division>\n`;
   x += `    <metaTag name="workTitle">${esc(s.title)}</metaTag>\n`;
   x += `    <metaTag name="composer">${esc(s.composer || '')}</metaTag>\n`;
-  x += `    <PautaEngravingSettings showMeasureNumbers="${APP.showMeasureNumbers?'1':'0'}" showMultiMeasureRests="${APP.showMultiMeasureRests?'1':'0'}"/>\n`;
+  const exportShowMN   = s.showMeasureNumbers ?? APP.showMeasureNumbers;
+  const exportShowMMR  = s.showMultiMeasureRests ?? APP.showMultiMeasureRests;
+  x += `    <PautaEngravingSettings showMeasureNumbers="${exportShowMN?'1':'0'}" showMultiMeasureRests="${exportShowMMR?'1':'0'}"/>\n`;
   // Assignments and the answer key belong to the score itself: the dialog
   // tells the teacher to share the saved file, so anything left out here is
   // lost the moment that file is sent. Both are Pauta-only tags, which
@@ -5911,9 +6006,17 @@ function exportMSCXFromScore(s) {
             x += `            <Dynamic>\n              <subtype>${dynMap[n.dynamic]||n.dynamic}</subtype>\n            </Dynamic>\n`;
           }
 
-          // Articulation
+          // Articulation — MuseScore expects one <Articulation> per subtype,
+          // so a Pauta combo ("staccato+tenuto") becomes two of them.
           if (n.articulation) {
-            x += `            <Articulation>\n              <subtype>${esc(n.articulation)}</subtype>\n            </Articulation>\n`;
+            n.articulation.split('+').filter(s => s).forEach(sub => {
+              x += `            <Articulation>\n              <subtype>${esc(sub)}</subtype>\n            </Articulation>\n`;
+            });
+          }
+
+          // Fingering — same annotation shape MuseScore uses inside a Chord
+          if (n.fingering) {
+            x += `            <Fingering>\n              <text>${esc(n.fingering)}</text>\n            </Fingering>\n`;
           }
 
           // Staff text
@@ -5927,15 +6030,21 @@ function exportMSCXFromScore(s) {
           }
 
           // Primary note
-          const writeNote = (pitch, acc) => {
+          const writeNote = (pitch, acc, primary) => {
             x += `            <Note>\n              <pitch>${pitch}</pitch>\n`;
             if (acc) x += `              <Accidental><subtype>${am[acc]||'accidentalNatural'}</subtype></Accidental>\n`;
+            // These describe the chord as a whole, so only the primary note
+            // carries them — the same way MuseScore hangs per-chord extras
+            // on the first note of the group.
+            if (primary && n.notehead)         x += `              <head>${esc(n.notehead)}</head>\n`;
+            if (primary && n.stringNum)        x += `              <stringNum>${n.stringNum}</stringNum>\n`;
+            if (primary && n.woodwindFingering) x += `              <woodwindFingering>${esc(n.woodwindFingering)}</woodwindFingering>\n`;
             x += `            </Note>\n`;
           };
-          writeNote(n.pitch, n.accidental);
+          writeNote(n.pitch, n.accidental, true);
 
           // Extra chord pitches
-          (n.extraPitches||[]).forEach(ep => writeNote(ep.pitch, ep.accidental));
+          (n.extraPitches||[]).forEach(ep => writeNote(ep.pitch, ep.accidental, false));
 
           // Lyric
           if (n.lyric) {
@@ -6002,7 +6111,7 @@ function exportMSCXFromScore(s) {
 // ── Assign notation functions to SCORE namespace ─────────
 [createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
  validateScore, adoptScore, restorePreExerciseScore, commitChange, setTimeSig, setKeySig, toggleMarker, clearMarkers,
- setLineBreak, parseMSCX, parseMusicXML,
+ setLineBreak, parseMSCX, parseMusicXML, firstStave,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });
 
@@ -7181,7 +7290,8 @@ function renderMarkings(ctx) {
       const si = gsi + localSI;
       stave.measures.forEach((measure, mi) => {
         measure.notes.forEach((note, ni) => {
-          if (note.articulation !== 'trill') return;
+          // A combo like "staccato+trill" still needs the trill overlay.
+          if (!note.articulation || !note.articulation.split('+').includes('trill')) return;
           const nl = findNoteVF(mi, si, ni);
           if (!nl) return;
           const svgEl2 = document.getElementById('score-svg').querySelector('svg');
@@ -7202,8 +7312,9 @@ function renderMarkings(ctx) {
   });
 
   // ── Tempo markings ────────────────────────────────────────────────
-  if (APP.showTempoOnScore && score.parts[0]) {
-    score.parts[0].staves[0].measures.forEach((measure, mi) => {
+  const tempoRefStave = firstStave(score);
+  if (APP.showTempoOnScore && tempoRefStave) {
+    tempoRefStave.measures.forEach((measure, mi) => {
       if (!measure.tempo) return;
       const sl = findStaveLayout(mi, 0);
       if (!sl) return;
@@ -7779,7 +7890,7 @@ function buildTuplets(vfNotes, notes) {
 function renderNavigationMarkers() {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score) return;
-  const measures = APP.score.parts[0].staves[0].measures;
+  const measures = firstStave(APP.score)?.measures || [];
   measures.forEach((m, mi) => {
     const sl = APP.staveLayout.find(l => l.mi === mi && l.si === 0);
     if (!sl) return;
@@ -7837,7 +7948,7 @@ function renderNavigationMarkers() {
 function renderVoltaBrackets() {
   const svgEl = document.getElementById('score-svg')?.querySelector('svg');
   if (!svgEl || !APP.score) return;
-  const measures = APP.score.parts[0].staves[0].measures;
+  const measures = firstStave(APP.score)?.measures || [];
   const runOf = (m) => (Array.isArray(m?.ending) && m.ending.length) ? m.ending : null;
   const sameRun = (a, b) => a.length === b.length && a.every((n, i) => n === b[i]);
   const label = (nums) => nums.length === 1
@@ -7881,7 +7992,7 @@ function renderVoltaBrackets() {
 // Builds a flat array of measure indices in play order, handling
 // repeat barlines, volta endings, D.C., D.S., segno, coda, and Fine.
 function buildPlaybackOrder(score) {
-  const refM = score.parts[0].staves[0].measures;
+  const refM = firstStave(score)?.measures || [];
   const nM = refM.length;
   // Collect marker positions
   let segnoIdx = -1, codaIdx = -1, fineIdx = -1;
@@ -9804,7 +9915,7 @@ function insertNote(mi, si, pitch) {
 
   if (newBeats > remaining + 0.001) {
     const nextMi = mi + 1;
-    if (nextMi >= APP.score.parts[0].staves[0].measures.length) {
+    if (nextMi >= (firstStave(APP.score)?.measures.length || 0)) {
       SCORE.commitChange(score => {
         score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
       }, { toast: 'New measure added automatically' });
@@ -10166,7 +10277,7 @@ function _storeAssignmentAnswer(mi, ni, answer) {
   // Persist to localStorage so answers survive reloads
   try {
     const key = `pauta_answers_${id}`;
-    localStorage.setItem(key, JSON.stringify(APP.score.studentAnswers[id]));
+    LS.setItem(key, JSON.stringify(APP.score.studentAnswers[id]));
   } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Immediate visual feedback
@@ -10501,7 +10612,8 @@ function applyTempo(name, bpm) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   SCORE.commitChange(score => {
-    score.parts[0].staves[0].measures[mi].tempo = {name, bpm};
+    const stave = firstStave(score);
+    if (stave) stave.measures[mi].tempo = {name, bpm};
   });
   APP.tempo = bpm;
   document.getElementById('tempo-slider').value = Math.min(240, Math.max(40, bpm));
@@ -10830,7 +10942,7 @@ function selectAllNotes() {
 // ── Delete Measure ────────────────────────────────────────────────
 function deleteMeasure() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
-  const nM = APP.score.parts[0].staves[0].measures.length;
+  const nM = firstStave(APP.score)?.measures.length || 0;
   if (nM <= 1) { UI.showToast('Cannot delete the only measure'); return; }
   const mi = APP.selectedMeasure;
   SCORE.commitChange(score => {
@@ -10865,12 +10977,14 @@ function toggleContinuousView() {
 
 function toggleMeasureNumbers() {
   APP.showMeasureNumbers = !APP.showMeasureNumbers;
+  if (APP.score) APP.score.showMeasureNumbers = APP.showMeasureNumbers;
   RENDER.renderScore();
   UI.showToast(APP.showMeasureNumbers ? 'Measure numbers shown on every bar' : 'Measure numbers at system start only');
 }
 
 function toggleMultiMeasureRests() {
   APP.showMultiMeasureRests = !APP.showMultiMeasureRests;
+  if (APP.score) APP.score.showMultiMeasureRests = APP.showMultiMeasureRests;
   RENDER.renderScore();
   UI.showToast(APP.showMultiMeasureRests ? 'Multi-measure rests enabled' : 'Multi-measure rests disabled');
 }
@@ -11142,12 +11256,12 @@ const CURRICULUM = [
 const CURRICULUM_KEY = 'pauta_curriculum_progress';
 
 function _loadCurriculumProgress() {
-  try { return JSON.parse(localStorage.getItem(CURRICULUM_KEY)) || {}; }
+  try { return JSON.parse(LS.getItem(CURRICULUM_KEY)) || {}; }
   catch(e) { return {}; }
 }
 
 function _saveCurriculumProgress(progress) {
-  localStorage.setItem(CURRICULUM_KEY, JSON.stringify(progress));
+  LS.setItem(CURRICULUM_KEY, JSON.stringify(progress));
 }
 
 function _getCurriculumProgress(gradeId) {
@@ -11633,11 +11747,11 @@ const SCALE_CURRICULUM = [
 // Scale mastery tracking
 const SCALE_MASTERY_KEY = 'pauta_scale_mastery';
 function _loadScaleMastery() {
-  try { return JSON.parse(localStorage.getItem(SCALE_MASTERY_KEY)) || {}; }
+  try { return JSON.parse(LS.getItem(SCALE_MASTERY_KEY)) || {}; }
   catch(e) { return {}; }
 }
 function _saveScaleMastery(mastery) {
-  localStorage.setItem(SCALE_MASTERY_KEY, JSON.stringify(mastery));
+  LS.setItem(SCALE_MASTERY_KEY, JSON.stringify(mastery));
 }
 function _getScaleMastery(scaleType, tonic) {
   const mastery = _loadScaleMastery();
@@ -11903,12 +12017,12 @@ const SESSION_MANAGER = {
   _MAX_HISTORY: 50,
 
   _loadHistory() {
-    try { return JSON.parse(localStorage.getItem(this._SESSION_KEY)) || []; }
+    try { return JSON.parse(LS.getItem(this._SESSION_KEY)) || []; }
     catch(e) { return []; }
   },
 
   _saveHistory(history) {
-    localStorage.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
+    LS.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
   },
 
   recordSession(type, difficulty, score, total, time) {
@@ -11984,12 +12098,12 @@ const SESSION_MANAGER = {
   _PROGRESS_KEY: 'pauta_level_progress',
 
   _loadProgress() {
-    try { return JSON.parse(localStorage.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
+    try { return JSON.parse(LS.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
     catch(e) { return { level: 1, completionHistory: {}, bestScores: {} }; }
   },
 
   _saveProgress(progress) {
-    localStorage.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
+    LS.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
   },
 
   getLevel() {
@@ -12061,12 +12175,12 @@ const SESSION_MANAGER = {
   _calibrationActive: false,
 
   getLatencyOffset() {
-    try { return parseInt(localStorage.getItem(this._LATENCY_KEY)) || 0; }
+    try { return parseInt(LS.getItem(this._LATENCY_KEY)) || 0; }
     catch(e) { return 0; }
   },
 
   _saveLatencyOffset(offset) {
-    localStorage.setItem(this._LATENCY_KEY, String(Math.round(offset)));
+    LS.setItem(this._LATENCY_KEY, String(Math.round(offset)));
   },
 
   startCalibration() {
@@ -14234,12 +14348,12 @@ const RHYTHM_WORKOUT_DEFAULTS = {
 };
 
 function _rwGetSettings() {
-  try { return JSON.parse(localStorage.getItem('pauta_rhythm_workout')) || structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
+  try { return JSON.parse(LS.getItem('pauta_rhythm_workout')) || structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
   catch(e) { return structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
 }
 
 function _rwSaveSettings(s) {
-  try { localStorage.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) { console.warn('Failed to save rhythm workout settings:', e); }
+  try { LS.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) { console.warn('Failed to save rhythm workout settings:', e); }
 }
 
 function _rwBeatsPerMeasure(ts) {
@@ -14571,7 +14685,7 @@ function startAssignment(id) {
   _validateModeState();
   // Try to restore unsaved answers from localStorage
   try {
-    const saved = localStorage.getItem(`pauta_answers_${id}`);
+    const saved = LS.getItem(`pauta_answers_${id}`);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (!APP.score.studentAnswers) APP.score.studentAnswers = {};
@@ -14750,11 +14864,11 @@ function _saveExerciseResult(session) {
     maxStreak: session.maxStreak,
     time: Math.floor((Date.now() - session.startedAt) / 1000),
   });
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  LS.setItem(RESULTS_KEY, JSON.stringify(results));
 }
 
 function _loadResults() {
-  try { return JSON.parse(localStorage.getItem(RESULTS_KEY)) || []; }
+  try { return JSON.parse(LS.getItem(RESULTS_KEY)) || []; }
   catch(e) { return []; }
 }
 
@@ -15028,7 +15142,7 @@ function importProgress() {
         const name = prompt('Student name for this report:', 'Student');
         if (!name) { UI.showToast('Import cancelled'); return; }
         imported[name] = (imported[name] || []).concat(data.results);
-        localStorage.setItem(IMPORTED_KEY, JSON.stringify(imported));
+        LS.setItem(IMPORTED_KEY, JSON.stringify(imported));
         UI.showToast(`Imported ${data.results.length} results for ${name}`);
         showTeacherDashboard();
       } catch(e) { UI.showToast('Could not read file: ' + e.message); }
@@ -15039,13 +15153,13 @@ function importProgress() {
 }
 
 function _loadImported() {
-  try { return JSON.parse(localStorage.getItem(IMPORTED_KEY)) || {}; }
+  try { return JSON.parse(LS.getItem(IMPORTED_KEY)) || {}; }
   catch(e) { return {}; }
 }
 
 function clearProgress() {
   if (!confirm('Delete all your exercise results?')) return;
-  localStorage.removeItem(RESULTS_KEY);
+  LS.removeItem(RESULTS_KEY);
   UI.closeModal();
   UI.showToast('Results cleared');
 }
@@ -15111,7 +15225,7 @@ function showTeacherDashboard() {
 
 function clearAllImported() {
   if (!confirm('Delete all imported student reports?')) return;
-  localStorage.removeItem(IMPORTED_KEY);
+  LS.removeItem(IMPORTED_KEY);
   UI.closeModal();
   UI.showToast('Imported data cleared');
 }
@@ -15160,12 +15274,12 @@ function showStarterAssignmentsDialog() {
 const CUSTOM_EXERCISES_KEY = 'pauta_custom_exercises';
 
 function _loadCustomExercises() {
-  try { return JSON.parse(localStorage.getItem(CUSTOM_EXERCISES_KEY)) || []; }
+  try { return JSON.parse(LS.getItem(CUSTOM_EXERCISES_KEY)) || []; }
   catch(e) { return []; }
 }
 
 function _saveCustomExercises(exercises) {
-  localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(exercises));
+  LS.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(exercises));
 }
 
 function showExerciseBuilderDialog() {
@@ -15847,7 +15961,7 @@ function _finishDiagnostic() {
     date: Date.now(), correct: totalCorrect, total: totalQs, pct,
     streak: 0, maxStreak: 0, time,
   });
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  LS.setItem(RESULTS_KEY, JSON.stringify(results));
 }
 
 function _showDiagBar() {
@@ -16406,7 +16520,7 @@ function navigateNote(direction, extend) {
     } else {
       // Move to next measure
       const nextMi = mi + 1;
-      const nM = APP.score.parts[0].staves[0].measures.length;
+      const nM = firstStave(APP.score)?.measures.length || 0;
       if (nextMi < nM) {
         APP.selectedMeasure = nextMi;
         const nextM = getMeasureBySI(si, nextMi);
@@ -16442,7 +16556,7 @@ function navigateNote(direction, extend) {
 function insertMeasure() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
-  const prevM = mi > 0 ? APP.score.parts[0].staves[0].measures[mi - 1] : null;
+  const prevM = mi > 0 ? firstStave(APP.score)?.measures[mi - 1] : null;
   const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [SCORE.mkRest('w')] };
   SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 0, JSON.parse(JSON.stringify(m)))));
@@ -16899,7 +17013,7 @@ async function _exportPDF(pageSize) {
 
 // ── Help & Onboarding ─────────────────────────────────────────────
 function showWelcomeModal() {
-  const seen = localStorage.getItem('pauta_welcome_seen');
+  const seen = LS.getItem('pauta_welcome_seen');
   if (seen) return;
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
@@ -16925,27 +17039,27 @@ function showWelcomeModal() {
 
 function startLearnerOnboarding() {
   applyKit('recorder', 'beginner');
-  localStorage.setItem('pauta_welcome_seen', '1');
-  localStorage.setItem('pauta_role', 'student');
+  LS.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_role', 'student');
   if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
   setTimeout(() => showExerciseDialog(), 300);
 }
 
 function startComposerOnboarding() {
-  localStorage.setItem('pauta_welcome_seen', '1');
-  localStorage.setItem('pauta_role', 'teacher');
+  LS.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_role', 'teacher');
   if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
 }
 
 function closeWelcome() {
-  localStorage.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_welcome_seen', '1');
   UI.closeModal();
 }
 
 function _updateDocTitle() {
-  const role = localStorage.getItem('pauta_role') || 'teacher';
+  const role = LS.getItem('pauta_role') || 'teacher';
   document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
   const badge = document.getElementById('role-badge');
   if (!badge) return;
@@ -16965,7 +17079,7 @@ function _updateDocTitle() {
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);
 
 function switchRole(role) {
-  localStorage.setItem('pauta_role', role);
+  LS.setItem('pauta_role', role);
   if (window.BUS) BUS.emit('role:changed');
   UI.showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
 }
@@ -17325,7 +17439,7 @@ function startPlayback() {
   if (APP.countIn) {
     const ts = resolvedTimeSig(0, 0);
     const beatsPerMeasure = ts.num * (4 / ts.den);
-    const firstM = APP.score.parts[0].staves[0].measures[0];
+    const firstM = firstStave(APP.score)?.measures[0];
     if (firstM?.pickup) {
       const used = beatsUsed(firstM.notes);
       const extraBeats = beatsPerMeasure - Math.max(used, 0);
@@ -17339,7 +17453,7 @@ function startPlayback() {
 
   // Build note timeline for playback cursor
   APP.playNoteTimeline = [];
-  const refNotes = APP.score.parts[0].staves[0].measures;
+  const refNotes = firstStave(APP.score)?.measures || [];
   let noteMs = 0;
   playOrder.forEach(mi => {
     const m = refNotes[mi];
@@ -18884,7 +18998,7 @@ function setPartVolume(partIdx, val) {
 
 // ── Pickup Measure ────────────────────────────────────────────────
 function showPickupDialog() {
-  const firstM = APP.score.parts[0].staves[0].measures[0];
+  const firstM = firstStave(APP.score)?.measures[0];
   const isPickup = !!firstM?.pickup;
   const ts = resolvedTimeSig(0, 0);
   const maxPickup = Math.max(1, ts.num - 1);
@@ -18935,7 +19049,8 @@ function setPickupMeasure() {
       m.timeSigDen = ts.den;
       m.notes = [SCORE.mkRest(restDur, restDots)];
     }));
-    while (score.parts[0].staves[0].measures.length < 2) {
+    const refPickupStave = firstStave(score);
+    while (refPickupStave && refPickupStave.measures.length < 2) {
       score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
     }
   }, { toast: `Pickup ${num}/${den} set` });
@@ -19354,7 +19469,7 @@ function showPracticeSettingsMenu(btn) {
 }
 
 function showTeachMenu(btn) {
-  const role = localStorage.getItem('pauta_role') || 'teacher';
+  const role = LS.getItem('pauta_role') || 'teacher';
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
     {header:'Mode'},
@@ -19743,8 +19858,6 @@ function loadScoreFromXML(xmlStr, filename) {
     APP.selectedMeasure = 0;
     APP.selectedStaff   = 0;
     APP.selectedNoteIdx = -1;
-    if (APP.score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = APP.score.showMeasureNumbers;
-    if (APP.score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = APP.score.showMultiMeasureRests;
     document.getElementById('score-title').textContent = APP.score.title || 'Untitled Score';
     RENDER.renderScore();
     showToast('Loaded: ' + APP.score.title);
@@ -20399,7 +20512,7 @@ const AUTOSAVE_INTERVAL = 30_000; // ms
 
 function _autosaveNow() {
   if (!APP.score) return;
-  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(APP.score)); } catch(e) { if (DEBUG) console.warn('[Pauta] autosave:', e.message); }
+  try { LS.setItem(AUTOSAVE_KEY, JSON.stringify(APP.score)); } catch(e) { if (DEBUG) console.warn('[Pauta] autosave:', e.message); }
 }
 
 function _startAutosave() {
@@ -20408,7 +20521,7 @@ function _startAutosave() {
 }
 
 function restoreAutosave() {
-  const raw = localStorage.getItem(AUTOSAVE_KEY);
+  const raw = LS.getItem(AUTOSAVE_KEY);
   if (!raw) return;
   try {
     SCORE.adoptScore(JSON.parse(raw), { clearHistory: true });
@@ -20425,7 +20538,7 @@ function restoreAutosave() {
 }
 
 function _checkAndOfferRestore(onDecline) {
-  const raw = localStorage.getItem(AUTOSAVE_KEY);
+  const raw = LS.getItem(AUTOSAVE_KEY);
   if (!raw) { onDecline(); return; }
   let saved;
   try { saved = JSON.parse(raw); } catch(e) { onDecline(); return; }
@@ -20541,7 +20654,7 @@ function bootApp() {
 
   // Restore UI difficulty profile from previous session
   try {
-    const savedProfile = localStorage.getItem('pauta_ui_profile');
+    const savedProfile = LS.getItem('pauta_ui_profile');
     if (savedProfile && UI_PROFILES[savedProfile]) {
       APP.uiProfile = savedProfile;
       applyUIProfile(savedProfile);
@@ -20550,7 +20663,7 @@ function bootApp() {
 
   // Restore palette collapsed state
   try {
-    if (localStorage.getItem('pauta_palette_collapsed')) {
+    if (LS.getItem('pauta_palette_collapsed')) {
       document.getElementById('palette')?.classList.add('collapsed');
       const lbl = document.getElementById('palette-toggle-label');
       if (lbl) lbl.textContent = 'Show Palette';
@@ -20559,8 +20672,8 @@ function bootApp() {
 
   // Restore teaching kit from previous session
   try {
-    const savedKit = localStorage.getItem('pauta_kit');
-    const savedKitLevel = localStorage.getItem('pauta_kit_level');
+    const savedKit = LS.getItem('pauta_kit');
+    const savedKitLevel = LS.getItem('pauta_kit_level');
     if (savedKit && KIT_CONFIGS[savedKit] && savedKitLevel) {
       APP.teachingKit = savedKit;
       APP.teachingKitLevel = savedKitLevel;

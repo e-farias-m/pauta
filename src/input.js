@@ -479,7 +479,7 @@ function insertNote(mi, si, pitch) {
 
   if (newBeats > remaining + 0.001) {
     const nextMi = mi + 1;
-    if (nextMi >= APP.score.parts[0].staves[0].measures.length) {
+    if (nextMi >= (firstStave(APP.score)?.measures.length || 0)) {
       SCORE.commitChange(score => {
         score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
       }, { toast: 'New measure added automatically' });
@@ -841,7 +841,7 @@ function _storeAssignmentAnswer(mi, ni, answer) {
   // Persist to localStorage so answers survive reloads
   try {
     const key = `pauta_answers_${id}`;
-    localStorage.setItem(key, JSON.stringify(APP.score.studentAnswers[id]));
+    LS.setItem(key, JSON.stringify(APP.score.studentAnswers[id]));
   } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Immediate visual feedback
@@ -1176,7 +1176,8 @@ function applyTempo(name, bpm) {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
   SCORE.commitChange(score => {
-    score.parts[0].staves[0].measures[mi].tempo = {name, bpm};
+    const stave = firstStave(score);
+    if (stave) stave.measures[mi].tempo = {name, bpm};
   });
   APP.tempo = bpm;
   document.getElementById('tempo-slider').value = Math.min(240, Math.max(40, bpm));
@@ -1505,7 +1506,7 @@ function selectAllNotes() {
 // ── Delete Measure ────────────────────────────────────────────────
 function deleteMeasure() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
-  const nM = APP.score.parts[0].staves[0].measures.length;
+  const nM = firstStave(APP.score)?.measures.length || 0;
   if (nM <= 1) { UI.showToast('Cannot delete the only measure'); return; }
   const mi = APP.selectedMeasure;
   SCORE.commitChange(score => {
@@ -1540,12 +1541,14 @@ function toggleContinuousView() {
 
 function toggleMeasureNumbers() {
   APP.showMeasureNumbers = !APP.showMeasureNumbers;
+  if (APP.score) APP.score.showMeasureNumbers = APP.showMeasureNumbers;
   RENDER.renderScore();
   UI.showToast(APP.showMeasureNumbers ? 'Measure numbers shown on every bar' : 'Measure numbers at system start only');
 }
 
 function toggleMultiMeasureRests() {
   APP.showMultiMeasureRests = !APP.showMultiMeasureRests;
+  if (APP.score) APP.score.showMultiMeasureRests = APP.showMultiMeasureRests;
   RENDER.renderScore();
   UI.showToast(APP.showMultiMeasureRests ? 'Multi-measure rests enabled' : 'Multi-measure rests disabled');
 }

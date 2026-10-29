@@ -841,7 +841,7 @@ function setPartVolume(partIdx, val) {
 
 // ── Pickup Measure ────────────────────────────────────────────────
 function showPickupDialog() {
-  const firstM = APP.score.parts[0].staves[0].measures[0];
+  const firstM = firstStave(APP.score)?.measures[0];
   const isPickup = !!firstM?.pickup;
   const ts = resolvedTimeSig(0, 0);
   const maxPickup = Math.max(1, ts.num - 1);
@@ -892,7 +892,8 @@ function setPickupMeasure() {
       m.timeSigDen = ts.den;
       m.notes = [SCORE.mkRest(restDur, restDots)];
     }));
-    while (score.parts[0].staves[0].measures.length < 2) {
+    const refPickupStave = firstStave(score);
+    while (refPickupStave && refPickupStave.measures.length < 2) {
       score.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
     }
   }, { toast: `Pickup ${num}/${den} set` });
@@ -1311,7 +1312,7 @@ function showPracticeSettingsMenu(btn) {
 }
 
 function showTeachMenu(btn) {
-  const role = localStorage.getItem('pauta_role') || 'teacher';
+  const role = LS.getItem('pauta_role') || 'teacher';
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
     {header:'Mode'},
@@ -1700,8 +1701,6 @@ function loadScoreFromXML(xmlStr, filename) {
     APP.selectedMeasure = 0;
     APP.selectedStaff   = 0;
     APP.selectedNoteIdx = -1;
-    if (APP.score.showMeasureNumbers !== undefined) APP.showMeasureNumbers = APP.score.showMeasureNumbers;
-    if (APP.score.showMultiMeasureRests !== undefined) APP.showMultiMeasureRests = APP.score.showMultiMeasureRests;
     document.getElementById('score-title').textContent = APP.score.title || 'Untitled Score';
     RENDER.renderScore();
     showToast('Loaded: ' + APP.score.title);
@@ -2356,7 +2355,7 @@ const AUTOSAVE_INTERVAL = 30_000; // ms
 
 function _autosaveNow() {
   if (!APP.score) return;
-  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(APP.score)); } catch(e) { if (DEBUG) console.warn('[Pauta] autosave:', e.message); }
+  try { LS.setItem(AUTOSAVE_KEY, JSON.stringify(APP.score)); } catch(e) { if (DEBUG) console.warn('[Pauta] autosave:', e.message); }
 }
 
 function _startAutosave() {
@@ -2365,7 +2364,7 @@ function _startAutosave() {
 }
 
 function restoreAutosave() {
-  const raw = localStorage.getItem(AUTOSAVE_KEY);
+  const raw = LS.getItem(AUTOSAVE_KEY);
   if (!raw) return;
   try {
     SCORE.adoptScore(JSON.parse(raw), { clearHistory: true });
@@ -2382,7 +2381,7 @@ function restoreAutosave() {
 }
 
 function _checkAndOfferRestore(onDecline) {
-  const raw = localStorage.getItem(AUTOSAVE_KEY);
+  const raw = LS.getItem(AUTOSAVE_KEY);
   if (!raw) { onDecline(); return; }
   let saved;
   try { saved = JSON.parse(raw); } catch(e) { onDecline(); return; }
@@ -2498,7 +2497,7 @@ function bootApp() {
 
   // Restore UI difficulty profile from previous session
   try {
-    const savedProfile = localStorage.getItem('pauta_ui_profile');
+    const savedProfile = LS.getItem('pauta_ui_profile');
     if (savedProfile && UI_PROFILES[savedProfile]) {
       APP.uiProfile = savedProfile;
       applyUIProfile(savedProfile);
@@ -2507,7 +2506,7 @@ function bootApp() {
 
   // Restore palette collapsed state
   try {
-    if (localStorage.getItem('pauta_palette_collapsed')) {
+    if (LS.getItem('pauta_palette_collapsed')) {
       document.getElementById('palette')?.classList.add('collapsed');
       const lbl = document.getElementById('palette-toggle-label');
       if (lbl) lbl.textContent = 'Show Palette';
@@ -2516,8 +2515,8 @@ function bootApp() {
 
   // Restore teaching kit from previous session
   try {
-    const savedKit = localStorage.getItem('pauta_kit');
-    const savedKitLevel = localStorage.getItem('pauta_kit_level');
+    const savedKit = LS.getItem('pauta_kit');
+    const savedKitLevel = LS.getItem('pauta_kit_level');
     if (savedKit && KIT_CONFIGS[savedKit] && savedKitLevel) {
       APP.teachingKit = savedKit;
       APP.teachingKitLevel = savedKitLevel;

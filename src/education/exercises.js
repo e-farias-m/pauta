@@ -208,12 +208,12 @@ const CURRICULUM = [
 const CURRICULUM_KEY = 'pauta_curriculum_progress';
 
 function _loadCurriculumProgress() {
-  try { return JSON.parse(localStorage.getItem(CURRICULUM_KEY)) || {}; }
+  try { return JSON.parse(LS.getItem(CURRICULUM_KEY)) || {}; }
   catch(e) { return {}; }
 }
 
 function _saveCurriculumProgress(progress) {
-  localStorage.setItem(CURRICULUM_KEY, JSON.stringify(progress));
+  LS.setItem(CURRICULUM_KEY, JSON.stringify(progress));
 }
 
 function _getCurriculumProgress(gradeId) {
@@ -699,11 +699,11 @@ const SCALE_CURRICULUM = [
 // Scale mastery tracking
 const SCALE_MASTERY_KEY = 'pauta_scale_mastery';
 function _loadScaleMastery() {
-  try { return JSON.parse(localStorage.getItem(SCALE_MASTERY_KEY)) || {}; }
+  try { return JSON.parse(LS.getItem(SCALE_MASTERY_KEY)) || {}; }
   catch(e) { return {}; }
 }
 function _saveScaleMastery(mastery) {
-  localStorage.setItem(SCALE_MASTERY_KEY, JSON.stringify(mastery));
+  LS.setItem(SCALE_MASTERY_KEY, JSON.stringify(mastery));
 }
 function _getScaleMastery(scaleType, tonic) {
   const mastery = _loadScaleMastery();
@@ -969,12 +969,12 @@ const SESSION_MANAGER = {
   _MAX_HISTORY: 50,
 
   _loadHistory() {
-    try { return JSON.parse(localStorage.getItem(this._SESSION_KEY)) || []; }
+    try { return JSON.parse(LS.getItem(this._SESSION_KEY)) || []; }
     catch(e) { return []; }
   },
 
   _saveHistory(history) {
-    localStorage.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
+    LS.setItem(this._SESSION_KEY, JSON.stringify(history.slice(-this._MAX_HISTORY)));
   },
 
   recordSession(type, difficulty, score, total, time) {
@@ -1050,12 +1050,12 @@ const SESSION_MANAGER = {
   _PROGRESS_KEY: 'pauta_level_progress',
 
   _loadProgress() {
-    try { return JSON.parse(localStorage.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
+    try { return JSON.parse(LS.getItem(this._PROGRESS_KEY)) || { level: 1, completionHistory: {}, bestScores: {} }; }
     catch(e) { return { level: 1, completionHistory: {}, bestScores: {} }; }
   },
 
   _saveProgress(progress) {
-    localStorage.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
+    LS.setItem(this._PROGRESS_KEY, JSON.stringify(progress));
   },
 
   getLevel() {
@@ -1127,12 +1127,12 @@ const SESSION_MANAGER = {
   _calibrationActive: false,
 
   getLatencyOffset() {
-    try { return parseInt(localStorage.getItem(this._LATENCY_KEY)) || 0; }
+    try { return parseInt(LS.getItem(this._LATENCY_KEY)) || 0; }
     catch(e) { return 0; }
   },
 
   _saveLatencyOffset(offset) {
-    localStorage.setItem(this._LATENCY_KEY, String(Math.round(offset)));
+    LS.setItem(this._LATENCY_KEY, String(Math.round(offset)));
   },
 
   startCalibration() {

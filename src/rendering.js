@@ -1171,7 +1171,8 @@ function renderMarkings(ctx) {
       const si = gsi + localSI;
       stave.measures.forEach((measure, mi) => {
         measure.notes.forEach((note, ni) => {
-          if (note.articulation !== 'trill') return;
+          // A combo like "staccato+trill" still needs the trill overlay.
+          if (!note.articulation || !note.articulation.split('+').includes('trill')) return;
           const nl = findNoteVF(mi, si, ni);
           if (!nl) return;
           const svgEl2 = document.getElementById('score-svg').querySelector('svg');
@@ -1192,8 +1193,9 @@ function renderMarkings(ctx) {
   });
 
   // ── Tempo markings ────────────────────────────────────────────────
-  if (APP.showTempoOnScore && score.parts[0]) {
-    score.parts[0].staves[0].measures.forEach((measure, mi) => {
+  const tempoRefStave = firstStave(score);
+  if (APP.showTempoOnScore && tempoRefStave) {
+    tempoRefStave.measures.forEach((measure, mi) => {
       if (!measure.tempo) return;
       const sl = findStaveLayout(mi, 0);
       if (!sl) return;
@@ -1769,7 +1771,7 @@ function buildTuplets(vfNotes, notes) {
 function renderNavigationMarkers() {
   const svgEl = document.getElementById('score-svg').querySelector('svg');
   if (!svgEl || !APP.score) return;
-  const measures = APP.score.parts[0].staves[0].measures;
+  const measures = firstStave(APP.score)?.measures || [];
   measures.forEach((m, mi) => {
     const sl = APP.staveLayout.find(l => l.mi === mi && l.si === 0);
     if (!sl) return;
@@ -1827,7 +1829,7 @@ function renderNavigationMarkers() {
 function renderVoltaBrackets() {
   const svgEl = document.getElementById('score-svg')?.querySelector('svg');
   if (!svgEl || !APP.score) return;
-  const measures = APP.score.parts[0].staves[0].measures;
+  const measures = firstStave(APP.score)?.measures || [];
   const runOf = (m) => (Array.isArray(m?.ending) && m.ending.length) ? m.ending : null;
   const sameRun = (a, b) => a.length === b.length && a.every((n, i) => n === b[i]);
   const label = (nums) => nums.length === 1
@@ -1871,7 +1873,7 @@ function renderVoltaBrackets() {
 // Builds a flat array of measure indices in play order, handling
 // repeat barlines, volta endings, D.C., D.S., segno, coda, and Fine.
 function buildPlaybackOrder(score) {
-  const refM = score.parts[0].staves[0].measures;
+  const refM = firstStave(score)?.measures || [];
   const nM = refM.length;
   // Collect marker positions
   let segnoIdx = -1, codaIdx = -1, fineIdx = -1;

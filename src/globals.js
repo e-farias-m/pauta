@@ -1,3 +1,4 @@
+const LS = { getItem: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, removeItem: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 const DEBUG = false;
 function debugLog(...args) { if (DEBUG) console.log(...args); }
 (function(){
@@ -407,14 +408,14 @@ function applyKit(kitName, level) {
   // Optionally sync the UI profile to the kit's suggestion
   const suggested = kit.suggestedProfile[level];
   if (suggested && UI_PROFILES[suggested]) applyUIProfile(suggested);
-  try { localStorage.setItem('pauta_kit', kitName); localStorage.setItem('pauta_kit_level', level); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.setItem('pauta_kit', kitName); LS.setItem('pauta_kit_level', level); } catch(e) { console.warn('[Pauta]', e.message); }
   UI.showToast(`${kit.name} — ${level}`);
 }
 
 function clearKit() {
   APP.teachingKit = null;
   APP.teachingKitLevel = 'advanced';
-  try { localStorage.removeItem('pauta_kit'); localStorage.removeItem('pauta_kit_level'); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.removeItem('pauta_kit'); LS.removeItem('pauta_kit_level'); } catch(e) { console.warn('[Pauta]', e.message); }
   UI.showToast('General Music mode');
 }
 
@@ -498,7 +499,7 @@ function applyUIProfile(profileName) {
   UI.showToast(msg, changes.length ? 2500 : 1200);
 
   // Store preference
-  try { localStorage.setItem('pauta_ui_profile', profileName); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.setItem('pauta_ui_profile', profileName); } catch(e) { console.warn('[Pauta]', e.message); }
 }
 
 function togglePalette() {
@@ -507,5 +508,5 @@ function togglePalette() {
   const collapsed = pal.classList.toggle('collapsed');
   const lbl = document.getElementById('palette-toggle-label');
   if (lbl) lbl.textContent = collapsed ? 'Show Palette' : 'Hide Palette';
-  try { localStorage.setItem('pauta_palette_collapsed', collapsed ? '1' : ''); } catch(e) { console.warn('[Pauta]', e.message); }
+  try { LS.setItem('pauta_palette_collapsed', collapsed ? '1' : ''); } catch(e) { console.warn('[Pauta]', e.message); }
 }

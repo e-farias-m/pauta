@@ -46,7 +46,7 @@ function navigateNote(direction, extend) {
     } else {
       // Move to next measure
       const nextMi = mi + 1;
-      const nM = APP.score.parts[0].staves[0].measures.length;
+      const nM = firstStave(APP.score)?.measures.length || 0;
       if (nextMi < nM) {
         APP.selectedMeasure = nextMi;
         const nextM = getMeasureBySI(si, nextMi);
@@ -82,7 +82,7 @@ function navigateNote(direction, extend) {
 function insertMeasure() {
   try { _require({ forbid: ['exercise', 'assignment', 'marking'] }); } catch(e) { UI.showToast(e.message); return; }
   const mi = APP.selectedMeasure;
-  const prevM = mi > 0 ? APP.score.parts[0].staves[0].measures[mi - 1] : null;
+  const prevM = mi > 0 ? firstStave(APP.score)?.measures[mi - 1] : null;
   const m = { timeSigNum: prevM?.timeSigNum ?? null, timeSigDen: prevM?.timeSigDen ?? null, keySig: prevM?.keySig ?? null, lineBreak: false, notes: [SCORE.mkRest('w')] };
   SCORE.commitChange(score => {
     score.parts.forEach(p => p.staves.forEach(s => s.measures.splice(mi, 0, JSON.parse(JSON.stringify(m)))));
@@ -539,7 +539,7 @@ async function _exportPDF(pageSize) {
 
 // ── Help & Onboarding ─────────────────────────────────────────────
 function showWelcomeModal() {
-  const seen = localStorage.getItem('pauta_welcome_seen');
+  const seen = LS.getItem('pauta_welcome_seen');
   if (seen) return;
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
@@ -565,27 +565,27 @@ function showWelcomeModal() {
 
 function startLearnerOnboarding() {
   applyKit('recorder', 'beginner');
-  localStorage.setItem('pauta_welcome_seen', '1');
-  localStorage.setItem('pauta_role', 'student');
+  LS.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_role', 'student');
   if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
   setTimeout(() => showExerciseDialog(), 300);
 }
 
 function startComposerOnboarding() {
-  localStorage.setItem('pauta_welcome_seen', '1');
-  localStorage.setItem('pauta_role', 'teacher');
+  LS.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_role', 'teacher');
   if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
 }
 
 function closeWelcome() {
-  localStorage.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_welcome_seen', '1');
   UI.closeModal();
 }
 
 function _updateDocTitle() {
-  const role = localStorage.getItem('pauta_role') || 'teacher';
+  const role = LS.getItem('pauta_role') || 'teacher';
   document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
   const badge = document.getElementById('role-badge');
   if (!badge) return;
@@ -605,7 +605,7 @@ function _updateDocTitle() {
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);
 
 function switchRole(role) {
-  localStorage.setItem('pauta_role', role);
+  LS.setItem('pauta_role', role);
   if (window.BUS) BUS.emit('role:changed');
   UI.showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
 }
@@ -965,7 +965,7 @@ function startPlayback() {
   if (APP.countIn) {
     const ts = resolvedTimeSig(0, 0);
     const beatsPerMeasure = ts.num * (4 / ts.den);
-    const firstM = APP.score.parts[0].staves[0].measures[0];
+    const firstM = firstStave(APP.score)?.measures[0];
     if (firstM?.pickup) {
       const used = beatsUsed(firstM.notes);
       const extraBeats = beatsPerMeasure - Math.max(used, 0);
@@ -979,7 +979,7 @@ function startPlayback() {
 
   // Build note timeline for playback cursor
   APP.playNoteTimeline = [];
-  const refNotes = APP.score.parts[0].staves[0].measures;
+  const refNotes = firstStave(APP.score)?.measures || [];
   let noteMs = 0;
   playOrder.forEach(mi => {
     const m = refNotes[mi];

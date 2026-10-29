@@ -84,8 +84,9 @@ function _nextPartName(score, instrName) {
 function addInstrumentToScore(score, instrName, opts = {}) {
   const instr = instrByName(instrName);
   if (!instr || !Array.isArray(score?.parts) || !score.parts.length) return null;
-  const nM   = score.parts[0].staves[0].measures.length;
-  const refS = score.parts[0].staves[0];
+  const refS = firstStave(score);
+  if (!refS) return null;
+  const nM   = refS.measures.length;
   // Mirror the reference stave's signature layout measure for measure, so a
   // new part stays aligned with mid-score time/key changes and a pickup.
   // `null` means "unchanged here" and is preserved rather than defaulted.
@@ -656,6 +657,11 @@ function repairScore(raw) {
   if (!score.title) score.title = 'Untitled Score';
   if (score.composer == null) score.composer = '';
   if (!Array.isArray(score.parts) || !score.parts.length) score.parts = createScore().parts;
+  // Engraving preferences travel with the score. Repair normalises them to
+  // booleans here so adoptScore can sync APP unconditionally, and the
+  // exporter can read them off the score it is writing.
+  if (typeof score.showMeasureNumbers !== 'boolean') score.showMeasureNumbers = false;
+  if (typeof score.showMultiMeasureRests !== 'boolean') score.showMultiMeasureRests = false;
   _ensureScoreAnnotationArrays(score);
   _syncMeasureCounts(score);
   _syncScoreWideFlags(score);
@@ -707,6 +713,9 @@ function adoptScore(raw, opts = {}) {
   if (!result.ok) throw new Error(result.fatal || 'Invalid score data');
   APP.score = score;
   APP._lastUndoFP = _scoreFingerprint(score);
+  // Engraving preferences live on the score; APP mirrors them for rendering.
+  APP.showMeasureNumbers    = score.showMeasureNumbers;
+  APP.showMultiMeasureRests = score.showMultiMeasureRests;
   _checkInvariants(score);
   if (opts.clearHistory !== false) {
     APP.undoStack = [];
@@ -871,6 +880,15 @@ function _checkInvariants(score) {
 }
 
 /** Get a stave by global staff index from a score object (not APP). @param {Score} score @param {number} si @returns {Stave|null} */
+/**
+ * The reference stave — part 1, stave 1, the copy every renderer reads — or
+ * null when the score has no staves at all. Prefer this over the bare
+ * `parts[0].staves[0]` chain, which throws on an empty first part.
+ */
+function firstStave(score) {
+  return score?.parts?.[0]?.staves?.[0] || null;
+}
+
 function _staveBySI(score, si) {
   let idx = 0;
   for (const part of (score.parts || [])) {
@@ -1293,14 +1311,39 @@ function parseMSCX(xmlStr) {
 
           if (nq(firstNoteEl, 'Tie')) note.tieToNext = true;
 
+          // Note-level annotations. <head> is MuseScore's own notehead tag;
+          // <notehead> is accepted too since older Pauta files wrote that.
+          const headEl = nq(firstNoteEl, 'head') || nq(firstNoteEl, 'notehead');
+          const headText = headEl ? (headEl.textContent || '').trim() : '';
+          if (headText) note.notehead = headText;
+          const strNumEl = nq(firstNoteEl, 'stringNum');
+          const strNum = strNumEl ? parseInt(strNumEl.textContent, 10) : NaN;
+          if (Number.isFinite(strNum) && strNum > 0) note.stringNum = strNum;
+          const wwfEl = nq(firstNoteEl, 'woodwindFingering');
+          const wwfText = wwfEl ? (wwfEl.textContent || '').trim() : '';
+          if (wwfText) note.woodwindFingering = wwfText;
+
           const dynEl = nq(el, 'Dynamic');
           if (dynEl) {
             const sub = txt(dynEl,'subtype') || '';
             if (['pppp','ppp','pp','p','mp','mf','f','ff','fff','ffff','sfz','fp','sfp','rfz'].includes(sub)) note.dynamic = sub;
           }
 
-          const artEl = nq(el, 'Articulation');
-          if (artEl) note.articulation = txt(artEl,'subtype') || null;
+          // A chord can carry several articulations. MuseScore writes one
+          // <Articulation> per articulation while Pauta keeps them in a
+          // single '+'-joined string, so read every one of them back.
+          const artParts = nqa(el, 'Articulation')
+            .map(a => txt(a, 'subtype'))
+            .filter(s => s);
+          if (artParts.length) note.articulation = artParts.join('+');
+
+          // Fingering — MuseScore 3 keeps the value in <subtype>, Pauta
+          // writes <text>, and other tools write it as plain text.
+          const fingEl = nq(el, 'Fingering');
+          const fingText = fingEl
+            ? (txt(fingEl, 'subtype') || txt(fingEl, 'text') || fingEl.textContent || '').trim()
+            : '';
+          if (fingText) note.fingering = fingText;
 
           const lyrEl = nq(el, 'Lyrics');
           if (lyrEl) {
@@ -1488,6 +1531,32 @@ function parseMusicXML(xmlStr) {
     return alter > 0 ? '#' : 'b';
   }
 
+  // MusicXML marks articulations as empty children of <articulations>; Pauta
+  // stores them as a single '+'-joined string (combos like 'staccato+tenuto'
+  // are first-class values in the model).
+  const MXML_ARTIC_MAP = {
+    staccato: 'staccato', accent: 'accent', tenuto: 'tenuto',
+    'strong-accent': 'marcato', marcato: 'marcato',
+    staccatissimo: 'staccatissimo', fermata: 'fermata',
+    'trill-mark': 'trill', trill: 'trill',
+  };
+  function mxmlArticulation(noteEl) {
+    const parts = [];
+    const artEl = nq(noteEl, 'articulations');
+    if (artEl) {
+      for (const child of artEl.children) {
+        const mapped = MXML_ARTIC_MAP[child.localName];
+        if (mapped && !parts.includes(mapped)) parts.push(mapped);
+      }
+    }
+    // A trill is an ornament and a fermata a notation mark in MusicXML —
+    // neither sits inside <articulations>, but Pauta keeps both in the
+    // articulation slot.
+    if (nq(noteEl, 'trill-mark') && !parts.includes('trill')) parts.push('trill');
+    if (nq(noteEl, 'fermata') && !parts.includes('fermata')) parts.push('fermata');
+    return parts.length ? parts.join('+') : null;
+  }
+
   // MusicXML carries navigation markers as direction-type children (segno,
   // coda) or as sound attributes (fine, dacapo, dalsegno). The words text
   // is only a fallback — it is localized, so it is the weakest signal here.
@@ -1610,6 +1679,7 @@ function parseMusicXML(xmlStr) {
   const mxmlMarkersAt = new Map();
   const mxmlBarlineAt = new Map();
   const mxmlEndingsAt = new Map();
+  const mxmlTempoAt = new Map();
   partEls.forEach(pEl => {
     nqa(pEl, 'measure').forEach((pmEl, mi) => {
       const printEl = nq(pmEl, 'print');
@@ -1729,6 +1799,20 @@ function parseMusicXML(xmlStr) {
         if (measure.keySig === null) measure.keySig = 0;
         if (measure.timeSigNum === null) { measure.timeSigNum = curTimeSigNum; measure.timeSigDen = curTimeSigDen; }
         firstMeasure = false;
+      }
+
+      // Tempo from <sound tempo="…"> (usually inside <direction>). Only the
+      // first tempo in a measure counts — a mid-measure change is rare and
+      // Pauta's model stores one tempo per measure anyway. Like the other
+      // measure-level flags it is collected here and stamped onto the staves
+      // after the loop, since the local `measure` object is only a carrier.
+      const tempoSound = nqa(mEl, 'sound').find(el => el.getAttribute('tempo'));
+      if (tempoSound) {
+        const bpm = parseFloat(tempoSound.getAttribute('tempo'));
+        const measIdxT = measureEls.indexOf(mEl);
+        if (bpm > 0 && !mxmlTempoAt.has(measIdxT)) {
+          mxmlTempoAt.set(measIdxT, { bpm, name: `${Math.round(bpm)} BPM` });
+        }
       }
 
       // Harmony (chord symbols) — may appear before/after notes
@@ -1853,11 +1937,16 @@ function parseMusicXML(xmlStr) {
         }
 
         // Regular note
+        const artic = mxmlArticulation(noteEl);
+        const fingElMx = nq(noteEl, 'fingering');
+        const fingText = fingElMx ? (fingElMx.textContent || '').trim() : '';
         const note = {
           type: 'note', duration: durCode, dots: dotCount,
           accidental: mxmlAccidental(alter),
           voice, pitch, tieToNext: tieStart || undefined,
           notehead: notehead || undefined,
+          articulation: artic || undefined,
+          fingering: fingText || undefined,
         };
 
         // Chord symbol
@@ -1926,6 +2015,9 @@ function parseMusicXML(xmlStr) {
     for (const [mi, value] of mxmlBarlineAt) {
       stampFlag(mi, m => { m.barline = value; });
     }
+    for (const [mi, tempo] of mxmlTempoAt) {
+      stampFlag(mi, m => { if (!m.tempo) m.tempo = tempo; });
+    }
     for (const [mi, nums] of mxmlEndingsAt) {
       stampFlag(mi, m => { m.ending = [...nums].sort((a, b) => a - b); });
     }
@@ -1965,7 +2057,9 @@ function exportMSCXFromScore(s) {
   x += `    <Division>480</Division>\n`;
   x += `    <metaTag name="workTitle">${esc(s.title)}</metaTag>\n`;
   x += `    <metaTag name="composer">${esc(s.composer || '')}</metaTag>\n`;
-  x += `    <PautaEngravingSettings showMeasureNumbers="${APP.showMeasureNumbers?'1':'0'}" showMultiMeasureRests="${APP.showMultiMeasureRests?'1':'0'}"/>\n`;
+  const exportShowMN   = s.showMeasureNumbers ?? APP.showMeasureNumbers;
+  const exportShowMMR  = s.showMultiMeasureRests ?? APP.showMultiMeasureRests;
+  x += `    <PautaEngravingSettings showMeasureNumbers="${exportShowMN?'1':'0'}" showMultiMeasureRests="${exportShowMMR?'1':'0'}"/>\n`;
   // Assignments and the answer key belong to the score itself: the dialog
   // tells the teacher to share the saved file, so anything left out here is
   // lost the moment that file is sent. Both are Pauta-only tags, which
@@ -2139,9 +2233,17 @@ function exportMSCXFromScore(s) {
             x += `            <Dynamic>\n              <subtype>${dynMap[n.dynamic]||n.dynamic}</subtype>\n            </Dynamic>\n`;
           }
 
-          // Articulation
+          // Articulation — MuseScore expects one <Articulation> per subtype,
+          // so a Pauta combo ("staccato+tenuto") becomes two of them.
           if (n.articulation) {
-            x += `            <Articulation>\n              <subtype>${esc(n.articulation)}</subtype>\n            </Articulation>\n`;
+            n.articulation.split('+').filter(s => s).forEach(sub => {
+              x += `            <Articulation>\n              <subtype>${esc(sub)}</subtype>\n            </Articulation>\n`;
+            });
+          }
+
+          // Fingering — same annotation shape MuseScore uses inside a Chord
+          if (n.fingering) {
+            x += `            <Fingering>\n              <text>${esc(n.fingering)}</text>\n            </Fingering>\n`;
           }
 
           // Staff text
@@ -2155,15 +2257,21 @@ function exportMSCXFromScore(s) {
           }
 
           // Primary note
-          const writeNote = (pitch, acc) => {
+          const writeNote = (pitch, acc, primary) => {
             x += `            <Note>\n              <pitch>${pitch}</pitch>\n`;
             if (acc) x += `              <Accidental><subtype>${am[acc]||'accidentalNatural'}</subtype></Accidental>\n`;
+            // These describe the chord as a whole, so only the primary note
+            // carries them — the same way MuseScore hangs per-chord extras
+            // on the first note of the group.
+            if (primary && n.notehead)         x += `              <head>${esc(n.notehead)}</head>\n`;
+            if (primary && n.stringNum)        x += `              <stringNum>${n.stringNum}</stringNum>\n`;
+            if (primary && n.woodwindFingering) x += `              <woodwindFingering>${esc(n.woodwindFingering)}</woodwindFingering>\n`;
             x += `            </Note>\n`;
           };
-          writeNote(n.pitch, n.accidental);
+          writeNote(n.pitch, n.accidental, true);
 
           // Extra chord pitches
-          (n.extraPitches||[]).forEach(ep => writeNote(ep.pitch, ep.accidental));
+          (n.extraPitches||[]).forEach(ep => writeNote(ep.pitch, ep.accidental, false));
 
           // Lyric
           if (n.lyric) {
@@ -2230,6 +2338,6 @@ function exportMSCXFromScore(s) {
 // ── Assign notation functions to SCORE namespace ─────────
 [createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
  validateScore, adoptScore, restorePreExerciseScore, commitChange, setTimeSig, setKeySig, toggleMarker, clearMarkers,
- setLineBreak, parseMSCX, parseMusicXML,
+ setLineBreak, parseMSCX, parseMusicXML, firstStave,
  exportMSCX, exportMSCXFromScore
 ].forEach(fn => { SCORE[fn.name] = fn; });

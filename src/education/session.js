@@ -2063,12 +2063,12 @@ const RHYTHM_WORKOUT_DEFAULTS = {
 };
 
 function _rwGetSettings() {
-  try { return JSON.parse(localStorage.getItem('pauta_rhythm_workout')) || structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
+  try { return JSON.parse(LS.getItem('pauta_rhythm_workout')) || structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
   catch(e) { return structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
 }
 
 function _rwSaveSettings(s) {
-  try { localStorage.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) { console.warn('Failed to save rhythm workout settings:', e); }
+  try { LS.setItem('pauta_rhythm_workout', JSON.stringify(s)); } catch(e) { console.warn('Failed to save rhythm workout settings:', e); }
 }
 
 function _rwBeatsPerMeasure(ts) {
