@@ -2493,6 +2493,11 @@ function bootApp() {
   // but don't render it — show the New Score dialog immediately instead.
   APP.score = SCORE.createScore();
 
+  // Request persistent storage (best-effort, no-op if unsupported)
+  if (navigator.storage && typeof navigator.storage.persist === 'function') {
+    navigator.storage.persist().catch(() => {});
+  }
+
   // iPad → continuous view by default; desktop → page view
   const isIPad = /iPad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   APP.continuousView = isIPad;
