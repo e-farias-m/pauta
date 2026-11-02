@@ -45,6 +45,7 @@ window.__PAUTA_MODEL__ = {
   SCORE, APP, THEORY, INSTRUMENTS,
   SCORE_MEASURE_REF_RULES, SCORE_STAFF_REF_KEYS, VALID_DURATIONS, KIT_CONFIGS,
   SCORE_FORMAT_VERSION, MSCX_TO_VEX, VEX_TO_MSCX,
+  exportPreludioPart,
   // Internals exported for unit testing. Tests should reach for these
   // instead of re-implementing them — that is how the suite drifted.
   instrByName, getStaveBySI, getMeasureBySI, resolvedTimeSig, keySigName,

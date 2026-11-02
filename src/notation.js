@@ -2335,9 +2335,67 @@ function exportMSCXFromScore(s) {
   return x;
 }
 
+// ── Preludio export ────────────────────────────────────────────────────
+// Exports a single part as one-part MusicXML that the Preludio apps can drop
+// back in: a plain <score-partwise> with <TimeSig>, <Rest>, <duration> and the
+// measure-level pickup that the learner-facing importers read back. Pauta's own
+// MSCX export is a multi-part <museScore> with Pauta-only tags; this writes the
+// partwise shape the Preludio apps consume.
+function exportPreludioPart(s, partIdx = 0) {
+  const part = (s && Array.isArray(s.parts)) ? s.parts[partIdx] : null;
+  const stave = part && Array.isArray(part.staves) && part.staves.length ? part.staves[0] : null;
+  const measures = (stave && Array.isArray(stave.measures)) ? stave.measures : [];
+  const esc = t => (t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  const beatsOf = n => THEORY.durBeats(n.duration, n.dots, n.tuplet) || 1;
+  const typeName = b => b >= 4 ? 'whole' : b >= 2 ? 'half' : b >= 1 ? 'quarter' : b >= 0.5 ? 'eighth' : b >= 0.25 ? '16th' : '32nd';
+
+  const lines = [];
+  lines.push('<?xml version="1.0" encoding="UTF-8"?>');
+  lines.push('<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">');
+  lines.push('<score-partwise version="4.0">');
+  lines.push('  <part-list><score-part id="P1"><part-name>' + esc(s.title || (part && part.name) || 'Piano') + '</part-name></score-part></part-list>');
+  lines.push('  <part id="P1">');
+  measures.forEach((m, mi) => {
+    const tsNum = m.timeSigNum || 4, tsDen = m.timeSigDen || 4;
+    const tsBeats = tsNum * 4 / tsDen;               // in quarter-note beats
+    const pickupBeats = m.pickup ? (m.pickup.num * 4) / m.pickup.den : 0;
+    const lenBeats = (mi === 0 && pickupBeats > 0) ? pickupBeats : tsBeats;
+    lines.push('      <measure number="' + (mi + 1) + '"' + (mi === 0 && pickupBeats > 0 && Math.abs(lenBeats - tsBeats) > 1e-9 ? ' len="' + (lenBeats * tsDen / 4) + '/' + tsDen + '"' : '') + '>');
+    lines.push('        <attributes>');
+    lines.push('          <divisions>480</divisions>');
+    if (m.keySig !== null && m.keySig !== undefined) lines.push('          <key><fifths>' + m.keySig + '</fifths></key>');
+    lines.push('          <time><beats>' + tsNum + '</beats><beat-type>' + tsDen + '</beat-type></time>');
+    lines.push('          <clef><sign>' + (stave.clef === 'bass' ? 'F' : 'G') + '</sign><line>' + (stave.clef === 'bass' ? 4 : 2) + '</line></clef>');
+    lines.push('        </attributes>');
+    (m.notes || []).forEach(n => {
+      const dur = beatsOf(n);
+      lines.push('        <note>');
+      if (n.type === 'rest') {
+        lines.push('          <rest/>');
+      } else {
+        const midi = n.pitch || 60;
+        const pc = ((midi % 12) + 12) % 12;
+        const acc = THEORY.midiAutoAcc(midi, m.keySig);
+        const alter = acc === '#' ? 1 : (acc === 'b' ? -1 : 0);
+        lines.push('          <pitch><step>' + ['C', 'D', 'E', 'F', 'G', 'A', 'B'][PC_TO_DIA[pc]] + '</step>');
+        if (alter) lines.push('          <alter>' + alter + '</alter>');
+        lines.push('          <octave>' + (Math.floor(midi / 12) - 1) + '</octave></pitch>');
+      }
+      lines.push('          <duration>' + Math.max(1, Math.round(dur * 480)) + '</duration>');
+      lines.push('          <type>' + typeName(dur) + '</type>');
+      if (n.dots) lines.push('          <dot/>');
+      lines.push('        </note>');
+    });
+    lines.push('      </measure>');
+  });
+  lines.push('  </part>');
+  lines.push('</score-partwise>');
+  return lines.join('\n');
+}
+
 // ── Assign notation functions to SCORE namespace ─────────
 [createScore, addInstrumentToScore, removeInstrumentFromScore, mkNote, mkRest, emptyMeasure, repairScore,
  validateScore, adoptScore, restorePreExerciseScore, commitChange, setTimeSig, setKeySig, toggleMarker, clearMarkers,
  setLineBreak, parseMSCX, parseMusicXML, firstStave,
- exportMSCX, exportMSCXFromScore
+ exportMSCX, exportMSCXFromScore, exportPreludioPart
 ].forEach(fn => { SCORE[fn.name] = fn; });

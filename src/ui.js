@@ -1613,6 +1613,7 @@ function showFileMenu(btn) {
     {label:'Save as .mscz', fn:saveMSCZ},
     {label:'Save as .mscx (XML)', fn:saveMSCX},
     {sep:true},
+    {label:'Export for Preludio (.musicxml)', fn:savePreludioPart},
     {label:'Print / Save as PDF', fn:printScore},
     {label:'Export Engraved PDF', fn:showExportPDFDialog},
     {label:'Export Audio', fn:showExportDialog},
@@ -1730,6 +1731,17 @@ function saveMSCX() {
   const safe = safeName(APP.score.title);
   dlBlob(new Blob([xml], {type:'text/xml'}), `${safe}.mscx`);
   showToast('Saved .mscx');
+}
+// Export the currently selected part as a single-part MusicXML file that the
+// Preludio apps can import — the "send a song to a learner" path.
+function savePreludioPart() {
+  const partIdx = (typeof SCORE._partIndexForSI === 'function')
+    ? SCORE._partIndexForSI(APP.score, APP.selectedStaff ?? 0)
+    : 0;
+  const xml = SCORE.exportPreludioPart(APP.score, partIdx);
+  const safe = safeName(APP.score.title);
+  dlBlob(new Blob([xml], {type:'text/xml'}), `${safe}.musicxml`);
+  showToast('Saved for Preludio');
 }
 function safeName(t) { return (t||'score').replace(/[^a-zA-Z0-9_-]/g,'_').substring(0,40); }
 function dlBlob(blob, name) {

@@ -24,6 +24,7 @@ const {
   setTimeSig, setKeySig, resolvedTimeSig,
   mkNote, mkRest, emptyMeasure,
   exportMSCXFromScore, parseMSCX, parseMusicXML,
+  exportPreludioPart,
   getMeasureActiveAccidentals, getResolvedKeySig, getStaveBySI,
   _syncScoreWideFlags,
 } = { ...M, ...M.SCORE };
@@ -471,6 +472,32 @@ const xml6 = exportMSCXFromScore(rt6);
 assert(xml6.includes('<sigN>3</sigN>'), 'exportMSCX time sig num');
 assert(xml6.includes('<sigD>4</sigD>'), 'exportMSCX time sig den');
 assert(xml6.includes('<accidental>2</accidental>'), 'exportMSCX key sig');
+
+// ── Preludio part export ────────────────────────────────────────
+// What the teacher hands to a learner: one instrument's part as plain
+// MusicXML, with the meter, rests and pickup the learner-facing importer reads.
+
+const pl1 = exportPreludioPart(createScore({ title: 'Preludio Demo', ts: { num: 4, den: 4 } }));
+assert(pl1.startsWith('<?xml version="1.0" encoding="UTF-8"?>'), 'the Preludio export is XML');
+assert(pl1.includes('<score-partwise version="4.0">'), 'the Preludio export is a single-part partwise score');
+assert(pl1.includes('<part id="P1">'), 'the Preludio export has one part');
+assert(pl1.includes('<time>'), 'the Preludio export writes a time signature');
+assert(pl1.includes('<beats>4</beats>'), 'the Preludio export writes the time numerator');
+assert(pl1.includes('<beat-type>4</beat-type>'), 'the Preludio export writes the time denominator');
+assert(pl1.includes('<divisions>480</divisions>'), 'the Preludio export declares divisions');
+assert(pl1.includes('<measure number="1">'), 'the Preludio export writes measure one');
+
+const plRest = createScore({ title: 'Preludio Rest' });
+plRest.parts[0].staves[0].measures[0].notes = [ mkRest('q', 0, 1), mkNote(64, 'h', 0, null, 1) ];
+const plXml = exportPreludioPart(plRest);
+assert(plXml.includes('<rest/>'), 'the Preludio export writes rests');
+assert(plXml.includes('<type>quarter</type>'), 'the Preludio export writes the note type');
+assert(plXml.includes('<duration>'), 'the Preludio export writes durations in divisions');
+
+const plPickup = createScore({ title: 'Preludio Pickup', ts: { num: 4, den: 4 } });
+plPickup.parts[0].staves[0].measures[0].pickup = { num: 1, den: 4 };
+const plPickupXml = exportPreludioPart(plPickup);
+assert(plPickupXml.includes('len="1/4"'), 'a pickup measure exports with its shorter len');
 
 // ── MuseScore 4 native shape ───────────────────────────────────
 //
