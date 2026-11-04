@@ -499,6 +499,18 @@ plPickup.parts[0].staves[0].measures[0].pickup = { num: 1, den: 4 };
 const plPickupXml = exportPreludioPart(plPickup);
 assert(plPickupXml.includes('len="1/4"'), 'a pickup measure exports with its shorter len');
 
+// Chromatic pitches must export with an explicit, correct spelling so that
+// Preludio's importer (which does not read <key>) recovers the right note.
+const plChrom = createScore({ title: 'Preludio Chromatic', ts: { num: 4, den: 4 }, ks: -1 });
+plChrom.parts[0].staves[0].measures[0].notes = [ mkNote(70, 'q', 0, null, 1), mkNote(66, 'q', 0, null, 1) ]; // Bb4, F#4
+const plChromXml = exportPreludioPart(plChrom);
+assert(plChromXml.includes('<step>B</step>'), 'Bb exports with step B');
+assert(plChromXml.includes('<alter>-1</alter>'), 'Bb exports with alter -1');
+assert(plChromXml.includes('<step>F</step>'), 'F# exports with step F');
+assert(plChromXml.includes('<alter>1</alter>'), 'F# exports with alter 1');
+// Reconstruct MIDI via the importer's formula to be sure.
+assert(plChromXml.includes('<octave>4</octave>'), 'chromatic notes export in the right octave');
+
 // ── MuseScore 4 native shape ───────────────────────────────────
 //
 // The structure below is what MuseScore 4.7.5 itself writes. Pauta used to

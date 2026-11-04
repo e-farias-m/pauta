@@ -2375,11 +2375,21 @@ function exportPreludioPart(s, partIdx = 0) {
       } else {
         const midi = n.pitch || 60;
         const pc = ((midi % 12) + 12) % 12;
-        const acc = THEORY.midiAutoAcc(midi, m.keySig);
-        const alter = acc === '#' ? 1 : (acc === 'b' ? -1 : 0);
-        lines.push('          <pitch><step>' + ['C', 'D', 'E', 'F', 'G', 'A', 'B'][PC_TO_DIA[pc]] + '</step>');
+        // Write a fully explicit spelling (step + alter + octave) so the
+        // exported part is self-contained: Preludio's importer does not read
+        // the <key> signature, so every accidental must be on the note itself.
+        // F# and Bb use the spellings Preludio's lessons know; other black
+        // keys use conventional sharp spelling.
+        let step, alter, octave;
+        if (pc === 6) { step = 'F'; alter = 1; octave = Math.floor(midi / 12) - 1; }            // F#
+        else if (pc === 10) { step = 'B'; alter = -1; octave = Math.floor((midi + 1) / 12) - 1; } // Bb
+        else if (pc === 1) { step = 'C'; alter = 1; octave = Math.floor(midi / 12) - 1; }        // C#
+        else if (pc === 3) { step = 'D'; alter = 1; octave = Math.floor(midi / 12) - 1; }        // D#
+        else if (pc === 8) { step = 'G'; alter = 1; octave = Math.floor(midi / 12) - 1; }        // G#
+        else { step = ['C', 'D', 'E', 'F', 'G', 'A', 'B'][PC_TO_DIA[pc]]; alter = 0; octave = Math.floor(midi / 12) - 1; } // natural
+        lines.push('          <pitch><step>' + step + '</step>');
         if (alter) lines.push('          <alter>' + alter + '</alter>');
-        lines.push('          <octave>' + (Math.floor(midi / 12) - 1) + '</octave></pitch>');
+        lines.push('          <octave>' + octave + '</octave></pitch>');
       }
       lines.push('          <duration>' + Math.max(1, Math.round(dur * 480)) + '</duration>');
       lines.push('          <type>' + typeName(dur) + '</type>');
