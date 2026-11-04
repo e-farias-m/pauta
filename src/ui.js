@@ -1877,7 +1877,7 @@ function _renderNewScoreDialog(restoreScroll) {
   makeModal(`
     <div class="pauta-row between pauta-mb-sm" style="align-items:baseline">
       <h2 class="pauta-mb0">New Score</h2>
-      <div style="opacity:0.3"><span style="color:var(--pauta-primary);font-weight:700;font-size:16px">p</span><span style="color:var(--pauta-text);font-weight:300;font-size:16px">auta</span></div>
+      <img src="pauta_logo_hires.png" alt="Pauta" class="pauta-dialog-logo" />
     </div>
 
     \x3C!-- Quick Start --\x3E

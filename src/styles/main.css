@@ -1103,6 +1103,14 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   margin-bottom: 12px;
 }
 
+/* ── PAUTA LOGO (new score dialog) ───────────────────────────────────── */
+.pauta-dialog-logo {
+  height: 20px;
+  width: auto;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
 /* ── PAUTA LOGO (top bar, right side) ────────────────────────────────── */
 .pauta-topbar-logo {
   height: 24px;
