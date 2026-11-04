@@ -1103,6 +1103,15 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   margin-bottom: 12px;
 }
 
+/* ── PAUTA LOGO (top bar, right side) ────────────────────────────────── */
+.pauta-topbar-logo {
+  height: 24px;
+  width: auto;
+  opacity: 0.6;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
 /* ── Debug Overlay ───────────────────────────────────────────── */
 #debug-overlay {
   display: none;
