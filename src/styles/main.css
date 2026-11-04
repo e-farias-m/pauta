@@ -1094,6 +1094,15 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   z-index: 40;
 }
 
+/* ── PAUTA LOGO (loading screen) ─────────────────────────────────────── */
+.pauta-logo {
+  height: 48px;
+  width: auto;
+  max-width: 60vw;
+  display: block;
+  margin-bottom: 12px;
+}
+
 /* ── Debug Overlay ───────────────────────────────────────────── */
 #debug-overlay {
   display: none;
