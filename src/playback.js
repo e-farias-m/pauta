@@ -444,7 +444,7 @@ function showExportPDFDialog() {
     <h2>Export Engraved PDF</h2>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Page size</div>
-      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(227,96,26,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
         <option value="a4">A4</option>
         <option value="letter">US Letter</option>
       </select>
@@ -1201,7 +1201,7 @@ function updatePlayCursor(elapsedMs) {
       dot.setAttribute('cx', nl.x);
       dot.setAttribute('cy', nl.y);
       dot.setAttribute('r', '6');
-      dot.setAttribute('fill', 'rgba(192,86,33,0.45)');
+      dot.setAttribute('fill', 'rgba(227,96,26,0.45)');
       dot.setAttribute('stroke', 'var(--pauta-primary)');
       dot.setAttribute('stroke-width', '1.2');
       dot.setAttribute('class', 'play-cursor');
@@ -1664,7 +1664,7 @@ function _showPracticeResults() {
       <div style="font-size:48px;font-weight:700;color:${color}">${accuracy}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted);margin-top:4px">Accuracy</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(192,86,33,0.1)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(227,96,26,0.1)">
       <div style="text-align:center"><b style="color:var(--pauta-success)">${stats.correct}</b><br><span style="color:var(--pauta-text-muted)">Correct</span></div>
       <div style="text-align:center"><b style="color:var(--pauta-error)">${stats.incorrect}</b><br><span style="color:var(--pauta-text-muted)">Incorrect</span></div>
       <div style="text-align:center"><b>${stats.maxStreak}</b><br><span style="color:var(--pauta-text-muted)">Best Streak</span></div>

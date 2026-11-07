@@ -417,7 +417,7 @@ function _showMCGrid(options, correctAnswer, handler, promptText) {
   if (existing) existing.remove();
   const container = document.createElement('div');
   container.id = 'exercise-mc-container';
-  container.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:360px';
+  container.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(247,243,237,0.98);border:1px solid rgba(227,96,26,0.2);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:360px';
   if (promptText) {
     const prompt = document.createElement('div');
     prompt.style.cssText = 'font-weight:600;font-size:14px;color:var(--pauta-text);margin-bottom:4px';
@@ -431,18 +431,18 @@ function _showMCGrid(options, correctAnswer, handler, promptText) {
     btn.className = 'mc-choice-btn';
     btn.dataset.answer = opt;
     btn.textContent = opt;
-    btn.style.cssText = 'padding:12px 20px;font-size:15px;font-weight:600;background:#f7f3ed;border:2px solid rgba(192,86,33,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
+    btn.style.cssText = 'padding:12px 20px;font-size:15px;font-weight:600;background:#f7f3ed;border:2px solid rgba(227,96,26,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
     btn.addEventListener('click', () => handler(opt, correctAnswer, container));
     btn.addEventListener('mouseover', () => {
       if (!btn.dataset.answered) {
-        btn.style.background = 'rgba(192,86,33,0.1)';
-        btn.style.borderColor = 'rgba(192,86,33,0.4)';
+        btn.style.background = 'rgba(227,96,26,0.1)';
+        btn.style.borderColor = 'rgba(227,96,26,0.4)';
       }
     });
     btn.addEventListener('mouseout', () => {
       if (!btn.dataset.answered) {
         btn.style.background = '#f7f3ed';
-        btn.style.borderColor = 'rgba(192,86,33,0.2)';
+        btn.style.borderColor = 'rgba(227,96,26,0.2)';
       }
     });
     choicesDiv.appendChild(btn);
@@ -498,18 +498,18 @@ function _presentNoteId(ex) {
     btn.className = 'note-choice-btn';
     btn.dataset.answer = opt;
     btn.textContent = opt;
-    btn.style.cssText = 'padding:16px 24px;font-size:18px;font-weight:600;background:#f7f3ed;border:2px solid rgba(192,86,33,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
+    btn.style.cssText = 'padding:16px 24px;font-size:18px;font-weight:600;background:#f7f3ed;border:2px solid rgba(227,96,26,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
     btn.addEventListener('click', () => _handleNoteChoice(opt, ex.target.pitch, container));
     btn.addEventListener('mouseover', () => {
       if (!btn.dataset.answered) {
-        btn.style.background = 'rgba(192,86,33,0.1)';
-        btn.style.borderColor = 'rgba(192,86,33,0.4)';
+        btn.style.background = 'rgba(227,96,26,0.1)';
+        btn.style.borderColor = 'rgba(227,96,26,0.4)';
       }
     });
     btn.addEventListener('mouseout', () => {
       if (!btn.dataset.answered) {
         btn.style.background = '#f7f3ed';
-        btn.style.borderColor = 'rgba(192,86,33,0.2)';
+        btn.style.borderColor = 'rgba(227,96,26,0.2)';
       }
     });
     choicesDiv.appendChild(btn);
@@ -998,7 +998,7 @@ function _createFeedbackBar(id, extraCss) {
   if (existing) existing.remove();
   const bar = document.createElement('div');
   bar.id = id;
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:var(--pauta-text-muted);' + (extraCss || '');
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;background:rgba(247,243,237,0.98);border:1px solid rgba(227,96,26,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:var(--pauta-text-muted);' + (extraCss || '');
   document.body.appendChild(bar);
   return bar;
 }
@@ -1058,7 +1058,7 @@ function _playDictationMelodyWithCountdown() {
   
   const countdown = document.createElement('div');
   countdown.id = 'dictation-countdown';
-  countdown.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;font-size:72px;font-weight:700;color:var(--pauta-primary);text-shadow:0 4px 20px rgba(192,86,33,0.3);opacity:0;transition:all 0.3s ease;pointer-events:none';
+  countdown.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;font-size:72px;font-weight:700;color:var(--pauta-primary);text-shadow:0 4px 20px rgba(227,96,26,0.3);opacity:0;transition:all 0.3s ease;pointer-events:none';
   document.body.appendChild(countdown);
   
   let count = 3;
@@ -1532,7 +1532,7 @@ function _showLevelUpMoment(correctCount, pct) {
 
   const el = document.createElement('div');
   el.id = 'level-up-moment';
-  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:var(--pauta-radius-lg);box-shadow:0 12px 40px rgba(192,86,33,0.4);text-align:center;min-width:280px';
+  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:var(--pauta-radius-lg);box-shadow:0 12px 40px rgba(227,96,26,0.4);text-align:center;min-width:280px';
   el.innerHTML = `
     <div style="font-size:24px;font-weight:700;margin-bottom:8px">${msg.title}</div>
     <div style="font-size:14px;opacity:0.9;margin-bottom:12px">${msg.desc}</div>
@@ -1587,7 +1587,7 @@ function _showExerciseFeedback(ex, userAnswer) {
         </details>` : ''}
     </div>
     <div class="pauta-dlg-input-group" style="flex-shrink:0;align-self:center">
-      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(192,86,33,0.2);color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm)">Skip</button>
+      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(227,96,26,0.2);color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm)">Skip</button>
       <button class="modal-btn primary" data-action="retryExercise" style="padding:4px 12px;font-size:12px">Try Again</button>
       <button class="modal-btn secondary" data-action="endExerciseSession" style="padding:4px 10px;font-size:12px">End Session</button>
     </div>

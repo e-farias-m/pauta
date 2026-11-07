@@ -135,7 +135,7 @@
   <span id="play-pos" title="Playback position">0:00</span>
   <button id="btn-metronome" class="btn-util" data-action="toggleMetronome" aria-label="Toggle metronome" title="Toggle metronome">Metronome</button>
   <button id="btn-countin" class="btn-util" data-action="toggleCountIn" aria-label="Toggle count-in" title="Count-in (1 measure before playback)">Count-in</button>
-  <select id="met-subdivision" data-action="setMetronomeSubdivision" title="Metronome subdivision" style="background:transparent;border:1px solid rgba(192,86,33,0.2);border-radius:5px;color:#4a5568;font-size:11px;padding:6px 4px;min-height:44px;cursor:pointer;margin-left:-2px">
+  <select id="met-subdivision" data-action="setMetronomeSubdivision" title="Metronome subdivision" style="background:transparent;border:1px solid rgba(227,96,26,0.2);border-radius:5px;color:#4a5568;font-size:11px;padding:6px 4px;min-height:44px;cursor:pointer;margin-left:-2px">
     <option value="quarter">♩</option>
     <option value="eighth">♪</option>
     <option value="triplet">♩³</option>
@@ -427,7 +427,7 @@
   <div class="panel-page" id="panel-search">
     <div class="panel-title">Search Palette</div>
     <div style="margin:6px 0 8px">
-      <input id="search-input" type="text" placeholder="Search notation elements…" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(192,86,33,0.30);background:rgba(192,86,33,0.06);color:#718096;font-size:13px;outline:none;-webkit-appearance:none">
+      <input id="search-input" type="text" placeholder="Search notation elements…" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(227,96,26,0.30);background:rgba(227,96,26,0.06);color:#718096;font-size:13px;outline:none;-webkit-appearance:none">
     </div>
     <div id="search-results" style="display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
   </div>
@@ -749,26 +749,26 @@
   --bg-modal-glass:    rgba(247,243,237,0.99);
   --bg-score-area:     #f0ebe3;
   --bg-score:          #ffffff;
-  --btn-bg:            rgba(192,86,33,0.08);
-  --border-subtle:     rgba(192,86,33,0.12);
-  --border-mid:        rgba(192,86,33,0.18);
-  --border-input:      rgba(192,86,33,0.26);
+  --btn-bg:            rgba(227,96,26,0.08);
+  --border-subtle:     rgba(227,96,26,0.12);
+  --border-mid:        rgba(227,96,26,0.18);
+  --border-input:      rgba(227,96,26,0.26);
   --text-title:        #2d3748;
   --text-btn:          #4a5568;
   --text-status:       rgba(74,85,104,0.80);
   --text-status-b:     #2d3748;
-  --text-mode:         #c05621;
+  --text-mode:         #E3601A;
   --text-panel:        #4a5568;
   --text-modal:        #2d3748;
-  --accent:            #c05621;
-  --accent-bg:         rgba(192,86,33,0.12);
-  --accent-border:     rgba(192,86,33,0.50);
-  --pal-btn-bg:        rgba(192,86,33,0.06);
-  --pal-btn-border:    rgba(192,86,33,0.16);
+  --accent:            #E3601A;
+  --accent-bg:         rgba(227,96,26,0.12);
+  --accent-border:     rgba(227,96,26,0.50);
+  --pal-btn-bg:        rgba(227,96,26,0.06);
+  --pal-btn-border:    rgba(227,96,26,0.16);
   --pal-label:         rgba(74,85,104,0.50);
   --score-shadow:      0 4px 28px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.06);
-  --danger:            #e06850;
-  --v1-col:            #c05621;
+  --danger:            #F8B43C;
+  --v1-col:            #E3601A;
   --v2-col:            #f07860;
 }
 
@@ -776,7 +776,7 @@
 body            { background:var(--bg-body); }
 #topbar         { background:var(--bg-topbar-glass); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); border-bottom:1px solid var(--border-mid); }
 #score-title    { color:var(--text-title); flex:1; text-align:center; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; border-radius:6px; padding:4px 8px; transition:background 0.15s; }
-#score-title:hover { background:rgba(192,86,33,0.08); }
+#score-title:hover { background:rgba(227,96,26,0.08); }
 .btn-top        { background:var(--btn-bg); border-color:var(--border-input); color:var(--text-btn); }
 .btn-top.active { background:var(--accent-bg); border-color:var(--accent-border); color:var(--accent); }
 #transport-bar  { background:var(--bg-transport-glass); backdrop-filter:saturate(160%) blur(20px); -webkit-backdrop-filter:saturate(160%) blur(20px); border-bottom:1px solid var(--border-subtle); }
@@ -885,20 +885,20 @@ body{
   flex-shrink:0;
 }
 .btn-circle:active{transform:scale(0.90);opacity:0.85}
-#btn-play{background:#c05621;color:#fff;box-shadow:0 2px 8px rgba(192,86,33,0.3)}
+#btn-play{background:#E3601A;color:#fff;box-shadow:0 2px 8px rgba(227,96,26,0.3)}
 #btn-stop{background:#e07060;color:#fff;font-size:12px}
-#btn-rewind{background:rgba(192,86,33,0.08);color:#c05621;font-size:12px}
+#btn-rewind{background:rgba(227,96,26,0.08);color:#E3601A;font-size:12px}
 .tempo-wrap{display:flex;align-items:center;gap:8px;flex:1;max-width:180px}
 #tempo-label{color:var(--text-status);font-size:11px;white-space:nowrap;font-weight:500}
-#tempo-slider{flex:1;-webkit-appearance:none;height:6px;background:rgba(192,86,33,0.15);border-radius:3px;outline:none}
-#tempo-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#c05621;cursor:pointer;box-shadow:0 1px 4px rgba(192,86,33,0.3)}
+#tempo-slider{flex:1;-webkit-appearance:none;height:6px;background:rgba(227,96,26,0.15);border-radius:3px;outline:none}
+#tempo-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#E3601A;cursor:pointer;box-shadow:0 1px 4px rgba(227,96,26,0.3)}
 #tempo-val{color:var(--text-panel);font-size:13px;min-width:36px;text-align:right;font-weight:600}
 #play-pos{color:var(--text-status);font-size:12px;font-variant-numeric:tabular-nums;min-width:42px;text-align:center;margin-left:28px;font-weight:500}
 
 /* ── Note Palette ── */
 #palette{
   background:var(--bg-palette-glass);
-  border-top:1px solid rgba(192,86,33,0.06);
+  border-top:1px solid rgba(227,96,26,0.06);
   flex-shrink:0;
   display:flex;
   flex-direction:column;
@@ -907,7 +907,7 @@ body{
   display:flex;align-items:center;justify-content:center;gap:4px;
   padding:10px 0;cursor:pointer;border:none;background:transparent;
   color:rgba(74,85,104,0.35);font-size:11px;font-weight:500;
-  border-bottom:1px solid rgba(192,86,33,0.05);
+  border-bottom:1px solid rgba(227,96,26,0.05);
   transition:color 0.15s;
   -webkit-tap-highlight-color:transparent;
 }
@@ -940,12 +940,12 @@ body{
   padding:3px;
 }
 .pal-btn:active{opacity:0.6;transform:scale(0.95)}
-.pal-btn.active{background:rgba(192,86,33,0.15);border-color:rgba(192,86,33,0.60);color:#c05621;font-weight:600;box-shadow:0 0 0 1px rgba(192,86,33,0.20)}
+.pal-btn.active{background:rgba(227,96,26,0.15);border-color:rgba(227,96,26,0.60);color:#E3601A;font-weight:600;box-shadow:0 0 0 1px rgba(227,96,26,0.20)}
 #btn-flat.active{background:rgba(90,158,224,0.22)!important;border-color:rgba(90,158,224,0.50)!important;color:#5a9ee0!important}
 #btn-nat.active{background:rgba(100,200,140,0.20)!important;border-color:rgba(100,200,140,0.50)!important;color:#64c88c!important}
-.note-key{background:rgba(192,86,33,0.06)!important;border-color:rgba(255,255,255,0.12)!important;flex:1.2!important}
+.note-key{background:rgba(227,96,26,0.06)!important;border-color:rgba(255,255,255,0.12)!important;flex:1.2!important}
 .note-key .pal-sym{font-size:20px!important;font-weight:700!important;letter-spacing:0.5px}
-.note-key:active{background:rgba(192,86,33,0.20)!important}
+.note-key:active{background:rgba(227,96,26,0.20)!important}
 /* Keyboard shortcut hint badges. Always visible rather than hover-revealed:
    touch surfaces have no hover, and this palette is the primary input on iPad.
    Sized to sit in the button corner without crowding the 48px tap target. */
@@ -970,7 +970,7 @@ body{
 .pal-btn.active .pal-kbd{
   color:rgba(156,66,33,0.9);
   background:rgba(255,255,255,0.6);
-  box-shadow:inset 0 0 0 1px rgba(192,86,33,0.25);
+  box-shadow:inset 0 0 0 1px rgba(227,96,26,0.25);
 }
 .pal-btn.active-accent{background:rgba(224,104,80,0.22);border-color:rgba(224,104,80,0.55);color:var(--danger)}
 .pal-btn.active-v2{background:rgba(240,120,96,0.22);border-color:rgba(240,120,96,0.55);color:#f07860}
@@ -1057,7 +1057,7 @@ body{
   background:var(--bg-panel-glass);
   backdrop-filter:saturate(160%) blur(20px);
   -webkit-backdrop-filter:saturate(160%) blur(20px);
-  border:1px solid rgba(192,86,33,0.18);
+  border:1px solid rgba(227,96,26,0.18);
   border-radius:14px 0 0 14px;
   padding:14px 12px;
   z-index:49;
@@ -1087,8 +1087,8 @@ body{
   margin-bottom:4px;
 }
 .panel-btn{
-  background:rgba(192,86,33,0.06);
-  border:1px solid rgba(192,86,33,0.18);
+  background:rgba(227,96,26,0.06);
+  border:1px solid rgba(227,96,26,0.18);
   border-radius:8px;
   color:#718096;
   padding:8px 4px;
@@ -1104,16 +1104,16 @@ body{
 }
 .panel-btn:active{opacity:0.6}
 .panel-btn.active{
-  background:rgba(192,86,33,0.18);
-  border-color:rgba(192,86,33,0.50);
-  color:#c05621;
+  background:rgba(227,96,26,0.18);
+  border-color:rgba(227,96,26,0.50);
+  color:#E3601A;
 }
 .panel-sym{font-size:16px;line-height:1.2}
 .panel-lbl{font-size:9px;opacity:0.7}
 .panel-btn-wide{
   width:100%;padding:9px;
-  background:rgba(192,86,33,0.06);
-  border:1px solid rgba(192,86,33,0.18);
+  background:rgba(227,96,26,0.06);
+  border:1px solid rgba(227,96,26,0.18);
   border-radius:8px;color:#718096;
   font-size:12px;cursor:pointer;
   text-align:center;margin-bottom:5px;
@@ -1121,7 +1121,7 @@ body{
   -webkit-tap-highlight-color:transparent;
 }
 .panel-btn-wide:active{opacity:0.6}
-.panel-btn-wide.active{background:rgba(192,86,33,0.18);border-color:rgba(192,86,33,0.50);color:#c05621}
+.panel-btn-wide.active{background:rgba(227,96,26,0.18);border-color:rgba(227,96,26,0.50);color:#E3601A}
 .panel-btn-wide.danger-btn{
   color:#e07060;
   border-color:rgba(224,112,96,0.3);
@@ -1129,8 +1129,8 @@ body{
 }
 .panel-select{
   width:100%;padding:7px 8px;
-  background:rgba(192,86,33,0.06);
-  border:1px solid rgba(192,86,33,0.18);
+  background:rgba(227,96,26,0.06);
+  border:1px solid rgba(227,96,26,0.18);
   border-radius:8px;color:#718096;
   font-size:12px;outline:none;
   -webkit-appearance:none;
@@ -1147,8 +1147,8 @@ body{
 .picker-grid.cols-4{ grid-template-columns:repeat(4,1fr); }
 .picker-grid.cols-8{ grid-template-columns:repeat(8,1fr); }
 .picker-btn{
-  background:rgba(192,86,33,0.06);
-  border:1px solid rgba(192,86,33,0.18);
+  background:rgba(227,96,26,0.06);
+  border:1px solid rgba(227,96,26,0.18);
   border-radius:10px;
   color:#8de0c8;
   padding:10px 4px;
@@ -1162,9 +1162,9 @@ body{
 }
 .picker-btn:active{opacity:0.6}
 .picker-btn.selected{
-  background:rgba(192,86,33,0.18);
-  border-color:rgba(192,86,33,0.55);
-  color:#c05621;
+  background:rgba(227,96,26,0.18);
+  border-color:rgba(227,96,26,0.55);
+  color:#E3601A;
   font-weight:700;
 }
 .picker-btn.key-flat{ color:#f0c070; border-color:rgba(240,192,112,0.2); }
@@ -1191,7 +1191,7 @@ body{
 }
 .modal{
   background:var(--bg-panel-glass);
-  border:1px solid rgba(192,86,33,0.20);
+  border:1px solid rgba(227,96,26,0.20);
   border-radius:20px 20px 0 0;
   padding:22px;
   width:min(94vw,500px);
@@ -1205,7 +1205,7 @@ body{
 .dropdown{
   position:fixed;z-index:100;
   background:var(--bg-panel-glass);
-  border:1px solid rgba(192,86,33,0.20);
+  border:1px solid rgba(227,96,26,0.20);
   border-radius:14px;
   padding:8px;
   min-width:180px;
@@ -1223,18 +1223,18 @@ body{
   white-space:nowrap;
   transition:background 0.12s ease;
 }
-.dropdown .dd-btn:active{background:rgba(192,86,33,0.12)}
+.dropdown .dd-btn:active{background:rgba(227,96,26,0.12)}
 .dropdown .dd-btn.danger{color:var(--danger,#e07060)}
-.dropdown .dd-sep{height:1px;background:rgba(192,86,33,0.12);margin:2px 4px}
+.dropdown .dd-sep{height:1px;background:rgba(227,96,26,0.12);margin:2px 4px}
 .dropdown .dd-header{margin:6px 4px 0 4px;padding:4px 8px 2px;font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:rgba(74,85,104,0.45)}
-.modal-sep{height:1px;background:rgba(192,86,33,0.10);margin:2px 0}
+.modal-sep{height:1px;background:rgba(227,96,26,0.10);margin:2px 0}
 .modal input,.modal select{
   width:100%;
   padding:10px 13px;
-  border:1px solid rgba(192,86,33,0.20);
+  border:1px solid rgba(227,96,26,0.20);
   border-radius:10px;
   font-size:14px;
-  background:rgba(192,86,33,0.06);
+  background:rgba(227,96,26,0.06);
   color:#2d3748;
   outline:none;
   -webkit-appearance:none;
@@ -1253,9 +1253,9 @@ body{
   transition:all 0.15s ease;
 }
 .modal-btn:active{opacity:0.75;transform:scale(0.97)}
-.modal-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(192,86,33,0.25)}
+.modal-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(227,96,26,0.25)}
 .modal-btn.danger{background:#e07060;color:#fff;border-color:#e07060}
-.modal-btn.secondary{background:rgba(192,86,33,0.06);color:var(--text-panel);border-color:var(--border-input)}
+.modal-btn.secondary{background:rgba(227,96,26,0.06);color:var(--text-panel);border-color:var(--border-input)}
 
 
 /* ── Extracted from inline styles ── */
@@ -1274,10 +1274,10 @@ body{
 .pal-sym-f22{font-size:22px;font-family:serif;line-height:1}
 .pal-sym-f10{font-size:10px;font-weight:700}
 .btn-util{
-  background:rgba(192,86,33,0.14);
-  border:1px solid rgba(192,86,33,0.30);
+  background:rgba(227,96,26,0.14);
+  border:1px solid rgba(227,96,26,0.30);
   border-radius:8px;
-  color:#c05621;
+  color:#E3601A;
   font-size:10px;
   padding:6px 10px;
   cursor:pointer;
@@ -1288,8 +1288,8 @@ body{
   min-height:32px;
 }
 .btn-util.active{
-  background:rgba(192,86,33,0.30);
-  border-color:rgba(192,86,33,0.60);
+  background:rgba(227,96,26,0.30);
+  border-color:rgba(227,96,26,0.60);
 }
 .btn-danger{
   background:rgba(240,120,96,0.10);
@@ -1307,9 +1307,9 @@ body{
   color:#3778c8;
 }
 .btn-accent-more{
-  background:rgba(192,86,33,0.1);
-  border-color:rgba(192,86,33,0.3);
-  color:#c05621;
+  background:rgba(227,96,26,0.1);
+  border-color:rgba(227,96,26,0.3);
+  color:#E3601A;
 }
 .btn-action-sm{
   border-radius:8px;
@@ -1332,11 +1332,11 @@ body{
   color:#f07860;
 }
 .btn-action-sm.orange{
-  background:rgba(192,86,33,0.14);
-  border:1px solid rgba(192,86,33,0.40);
-  color:#c05621;
+  background:rgba(227,96,26,0.14);
+  border:1px solid rgba(227,96,26,0.40);
+  color:#E3601A;
 }
-.btn-action-sm.orange.active{background:rgba(192,86,33,0.30);border-color:rgba(192,86,33,0.60)}
+.btn-action-sm.orange.active{background:rgba(227,96,26,0.30);border-color:rgba(227,96,26,0.60)}
 .zoom-btn{
   width:36px;height:36px;
   border-radius:6px;
@@ -1347,13 +1347,13 @@ body{
   line-height:1;
 }
 .zoom-btn.primary{
-  border:1px solid rgba(192,86,33,0.3);
-  background:rgba(192,86,33,0.1);
-  color:#c05621;
+  border:1px solid rgba(227,96,26,0.3);
+  background:rgba(227,96,26,0.1);
+  color:#E3601A;
   font-size:14px;
 }
 .zoom-btn.reset{
-  border:1px solid rgba(192,86,33,0.15);
+  border:1px solid rgba(227,96,26,0.15);
   background:transparent;
   color:rgba(74,85,104,0.4);
   font-size:9px;
@@ -1378,17 +1378,17 @@ body{
 }
 .dialog-select{
   width:100%;padding:8px;
-  background:rgba(192,86,33,0.06);
-  border:1px solid rgba(192,86,33,0.18);
+  background:rgba(227,96,26,0.06);
+  border:1px solid rgba(227,96,26,0.18);
   border-radius:8px;
   color:#718096;
   font-size:13px;
   -webkit-appearance:none;
 }
 .dialog-inp{
-  background:rgba(192,86,33,0.06);
+  background:rgba(227,96,26,0.06);
   color:#718096;
-  border:1px solid rgba(192,86,33,0.30);
+  border:1px solid rgba(227,96,26,0.30);
   border-radius:6px;
   padding:6px;
   font-size:14px;
@@ -1396,7 +1396,7 @@ body{
 }
 .flex-row{display:flex;align-items:center;gap:6px}
 .flex-col{display:flex;flex-direction:column;align-items:center}
-.oct-display{color:rgba(192,86,33,0.65);font-size:11px;letter-spacing:0.3px}
+.oct-display{color:rgba(227,96,26,0.65);font-size:11px;letter-spacing:0.3px}
 .note-labels-btn{
   display:inline-block;
   background:rgba(224,112,96,0.15);
@@ -1418,7 +1418,7 @@ body{
 }
 .note-labels-btn.active{background:rgba(100,200,140,0.20);border-color:rgba(100,200,140,0.55);color:#64c88c}
 .note-labels-dot.active{background:#64c88c}
-.nd-sel{background:rgba(192,86,33,0.18)!important;border-color:rgba(192,86,33,0.50)!important;color:#c05621!important;font-weight:600!important}
+.nd-sel{background:rgba(227,96,26,0.18)!important;border-color:rgba(227,96,26,0.50)!important;color:#E3601A!important;font-weight:600!important}
 
 /* ── Toast ── */
 #toast{
@@ -1456,8 +1456,8 @@ body{
 #loading.hidden{opacity:0;pointer-events:none}
 .loading-spinner{
   width:36px;height:36px;
-  border:3px solid rgba(192,86,33,0.18);
-  border-top-color:#c05621;
+  border:3px solid rgba(227,96,26,0.18);
+  border-top-color:#E3601A;
   border-radius:50%;
   animation:spin 0.9s linear infinite;
 }
@@ -1576,7 +1576,7 @@ body.high-contrast .topbar, body.high-contrast .sidebar, body.high-contrast .tra
 /* Assignment mode UI */
 body.assignment-mode #score-title::after {
   content: ' — ASSIGNMENT MODE';
-  color: #c05621;
+  color: #E3601A;
   font-size: 11px;
   margin-left: 6px;
 }
@@ -1587,7 +1587,7 @@ body.assignment-mode .panel-btn[data-action="startMarking"],
 /* Exercise mode UI */
 body.exercise-mode #score-title::after {
   content: ' — EXERCISE';
-  color: #c05621;
+  color: #E3601A;
   font-size: 11px;
   margin-left: 6px;
 }
@@ -1597,7 +1597,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 /* Exercise score pill */
 #exercise-score {
   background: rgba(247,243,237,0.96);
-  border: 1px solid rgba(192,86,33,0.15);
+  border: 1px solid rgba(227,96,26,0.15);
   border-radius: 16px;
   padding: 6px 14px;
   font-size: 12px;
@@ -1627,7 +1627,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 #exercise-score .score-progress-fill {
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg,#c05621,#e8833a);
+  background: linear-gradient(90deg,#E3601A,#F8B43C);
   transition: width 0.4s ease;
 }
 #exercise-score .score-accuracy { font-weight: 700; }
@@ -1668,7 +1668,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   transform: translateX(-50%);
   z-index: 200;
   background: rgba(247,243,237,0.98);
-  border: 1px solid rgba(192,86,33,0.2);
+  border: 1px solid rgba(227,96,26,0.2);
   border-radius: 8px;
   padding: 12px 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
@@ -1697,7 +1697,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 #rhythm-beat-grid .rg-beat {
   width: 36px;
   height: 36px;
-  border: 1.5px solid rgba(192,86,33,0.25);
+  border: 1.5px solid rgba(227,96,26,0.25);
   border-radius: 6px;
   background: rgba(247,243,237,0.6);
   font-size: 16px;
@@ -1711,8 +1711,8 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   font-family: 'Bravura', 'Times New Roman', serif;
 }
 #rhythm-beat-grid .rg-beat:hover {
-  background: rgba(192,86,33,0.08);
-  border-color: rgba(192,86,33,0.4);
+  background: rgba(227,96,26,0.08);
+  border-color: rgba(227,96,26,0.4);
 }
 #rhythm-beat-grid .rg-beat.rg-note {
   background: #e6ffed;
@@ -1720,14 +1720,14 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 }
 #rhythm-beat-grid .rg-beat.rg-rest {
   background: #fff5f0;
-  border-color: #e06850;
+  border-color: #F8B43C;
 }
 #rhythm-beat-grid .rg-beat.rg-correct {
   border-color: #22c55e;
   box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
 }
 #rhythm-beat-grid .rg-beat.rg-incorrect {
-  border-color: #e06850;
+  border-color: #F8B43C;
   box-shadow: 0 0 0 2px rgba(224,104,80,0.25);
 }
 
@@ -1743,8 +1743,8 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 }
 .practice-feedback.practice-wrong .vf-stem,
 .practice-feedback.practice-wrong .vf-notehead {
-  fill: #e06850;
-  stroke: #e06850;
+  fill: #F8B43C;
+  stroke: #F8B43C;
 }
 .practice-feedback.practice-octave .vf-stem,
 .practice-feedback.practice-octave .vf-notehead {
@@ -1776,7 +1776,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 }
 .practice-badge.wrong {
   background: rgba(224,104,80,0.15);
-  color: #e06850;
+  color: #F8B43C;
   border: 1px solid rgba(224,104,80,0.3);
 }
 .practice-badge.octave {
@@ -1803,7 +1803,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 #rhythm-beat-grid .rg-score {
   font-size: 14px;
   font-weight: 700;
-  color: #c05621;
+  color: #E3601A;
   margin-bottom: 4px;
 }
 #rhythm-beat-grid .rg-play-row {
@@ -1865,7 +1865,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   z-index: 999;
   max-height: 50%;
   overflow-y: auto;
-  border-bottom: 2px solid #c05621;
+  border-bottom: 2px solid #E3601A;
   white-space: pre;
   pointer-events: auto;
 }
@@ -1883,8 +1883,8 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 
 :root {
   /* ── Colors ─────────────────────────────────────────────────── */
-  --pauta-primary: #c05621;
-  --pauta-primary-light: #e06850;
+  --pauta-primary: #E3601A;
+  --pauta-primary-light: #F8B43C;
   --pauta-primary-dark: #9c4221;
 
   --pauta-success: #22c55e;
@@ -1898,8 +1898,8 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-text-subtle: rgba(74,85,104,0.5);
 
   /* ── Category Colors ────────────────────────────────────────── */
-  --pauta-cat-rhythm: #e06850;
-  --pauta-cat-pitch: #c05621;
+  --pauta-cat-rhythm: #F8B43C;
+  --pauta-cat-pitch: #E3601A;
   --pauta-cat-ear: #22c55e;
   --pauta-cat-theory: #4a5568;
 
@@ -2323,7 +2323,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 .pauta-textarea:focus {
   outline: none;
   border-color: var(--pauta-primary);
-  box-shadow: 0 0 0 3px rgba(192,86,33,0.15);
+  box-shadow: 0 0 0 3px rgba(227,96,26,0.15);
 }
 .pauta-input::placeholder {
   color: var(--pauta-text-subtle);
@@ -2551,13 +2551,13 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   cursor: pointer;
   background: linear-gradient(135deg, var(--pauta-primary), var(--pauta-primary-light));
   color: #fff;
-  box-shadow: 0 4px 16px rgba(192,86,33,0.3);
+  box-shadow: 0 4px 16px rgba(227,96,26,0.3);
   transition: var(--pauta-transition-bounce);
   font-family: var(--pauta-font-sans);
 }
 .pauta-btn-start:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(192,86,33,0.4);
+  box-shadow: 0 6px 24px rgba(227,96,26,0.4);
 }
 .pauta-btn-start:active {
   transform: scale(0.97);
@@ -2598,7 +2598,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   font-size: var(--pauta-text-lg);
   min-width: 44px;
   min-height: 44px;
-  border: 1.5px solid rgba(192,86,33,0.2);
+  border: 1.5px solid rgba(227,96,26,0.2);
   border-radius: var(--pauta-radius-sm);
   background: var(--pauta-bg-card);
   color: var(--pauta-primary);
@@ -2608,7 +2608,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   -webkit-tap-highlight-color: transparent;
   transition: var(--pauta-transition);
 }
-.pauta-bar-choice-btn:active { background: rgba(192,86,33,0.08); transform: scale(0.97); }
+.pauta-bar-choice-btn:active { background: rgba(227,96,26,0.08); transform: scale(0.97); }
 .pauta-bar-choice-btn.selected { background: var(--pauta-primary); color: #fff; border-color: var(--pauta-primary); }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2650,8 +2650,8 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 /* ═══════════════════════════════════════════════════════════════════
    Visual Utilities
    ═══════════════════════════════════════════════════════════════════ */
-.pauta-subtle-box  { background:rgba(192,86,33,0.04); border:1px solid rgba(192,86,33,0.12); border-radius:8px; padding:4px; text-align:center; }
-.pauta-subtle-card { background:rgba(192,86,33,0.03); border-radius:6px; padding:8px; }
+.pauta-subtle-box  { background:rgba(227,96,26,0.04); border:1px solid rgba(227,96,26,0.12); border-radius:8px; padding:4px; text-align:center; }
+.pauta-subtle-card { background:rgba(227,96,26,0.03); border-radius:6px; padding:8px; }
 .pauta-scroll-y    { flex-shrink:0; overflow-y:auto; }
 .pauta-inline-flex { display:inline-flex; align-items:center; gap:4px; }
 .pauta-block { display:block; }
@@ -2668,7 +2668,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 #mode-banner[data-mode="practice"]          { background: rgba(34,197,94,0.15);  color: #16a34a; }
 #mode-banner[data-mode="exercise"]          { background: rgba(132,204,22,0.12); color: #65a30d; }
 #mode-banner[data-mode="assignment"]        { background: rgba(59,130,246,0.12);  color: #2563eb; }
-#mode-banner[data-mode="input"]             { background: rgba(192,86,33,0.12);   color: #c05621; }
+#mode-banner[data-mode="input"]             { background: rgba(227,96,26,0.12);   color: #E3601A; }
 #mode-banner[data-mode="chord"]             { background: rgba(236,72,153,0.12);  color: #db2777; }
 #mode-banner[data-mode="eraser"]            { background: rgba(239,68,68,0.12);   color: #dc2626; }
 #mode-banner[data-mode="marking"]           { background: rgba(168,85,247,0.12);  color: #9333ea; }
@@ -2678,7 +2678,7 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 /* ═══════════════════════════════════════════════════════════════════
    Dialog / Modal Utility Classes — replaces inline styles
    ═══════════════════════════════════════════════════════════════════ */
-.pauta-dlg-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(192,86,33,0.08) }
+.pauta-dlg-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(227,96,26,0.08) }
 .pauta-dlg-label { font-size:13px; color:var(--pauta-text) }
 .pauta-dlg-value { font-size:14px; font-weight:600; min-width:60px; text-align:center; color:var(--pauta-primary) }
 .pauta-dlg-section { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:rgba(74,85,104,0.45); margin:12px 0 4px }
@@ -2686,16 +2686,16 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
 .pauta-dlg-grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px }
 .pauta-dlg-grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:8px }
 .pauta-dlg-input-group { display:flex; align-items:center; gap:8px }
-.pauta-dlg-input, .pauta-dlg-select { width:100%; padding:10px 13px; border:1px solid rgba(192,86,33,0.20); border-radius:var(--pauta-radius-sm); font-size:var(--pauta-text-lg); font-family:var(--pauta-font-sans); background:var(--pauta-bg-card); color:var(--pauta-text); -webkit-appearance:none; appearance:none }
-.pauta-dlg-select { background-image:url("data:image/svg+xml,%3Csvg width=12 height=8 viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23c05621' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:32px }
-.pauta-dlg-btn-sm { width:32px; height:32px; font-size:18px; padding:0; display:flex; align-items:center; justify-content:center; border:1px solid rgba(192,86,33,0.20); border-radius:var(--pauta-radius-sm); background:var(--pauta-bg-card); color:var(--pauta-primary); cursor:pointer; -webkit-tap-highlight-color:transparent }
-.pauta-dlg-btn-sm:active { background:rgba(192,86,33,0.08) }
-.pauta-dlg-toggle { min-width:60px; height:32px; font-size:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(192,86,33,0.20); border-radius:var(--pauta-radius-sm); background:var(--pauta-bg-card); color:var(--pauta-text); cursor:pointer; font-family:var(--pauta-font-sans); -webkit-tap-highlight-color:transparent }
-.pauta-dlg-toggle:active { background:rgba(192,86,33,0.08) }
+.pauta-dlg-input, .pauta-dlg-select { width:100%; padding:10px 13px; border:1px solid rgba(227,96,26,0.20); border-radius:var(--pauta-radius-sm); font-size:var(--pauta-text-lg); font-family:var(--pauta-font-sans); background:var(--pauta-bg-card); color:var(--pauta-text); -webkit-appearance:none; appearance:none }
+.pauta-dlg-select { background-image:url("data:image/svg+xml,%3Csvg width=12 height=8 viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23E3601A' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:32px }
+.pauta-dlg-btn-sm { width:32px; height:32px; font-size:18px; padding:0; display:flex; align-items:center; justify-content:center; border:1px solid rgba(227,96,26,0.20); border-radius:var(--pauta-radius-sm); background:var(--pauta-bg-card); color:var(--pauta-primary); cursor:pointer; -webkit-tap-highlight-color:transparent }
+.pauta-dlg-btn-sm:active { background:rgba(227,96,26,0.08) }
+.pauta-dlg-toggle { min-width:60px; height:32px; font-size:12px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(227,96,26,0.20); border-radius:var(--pauta-radius-sm); background:var(--pauta-bg-card); color:var(--pauta-text); cursor:pointer; font-family:var(--pauta-font-sans); -webkit-tap-highlight-color:transparent }
+.pauta-dlg-toggle:active { background:rgba(227,96,26,0.08) }
 .pauta-dlg-toggle.on { background:var(--pauta-primary); color:#fff; border-color:var(--pauta-primary) }
-.pauta-dlg-card { border:1px solid rgba(192,86,33,0.15); border-radius:var(--pauta-radius-lg); padding:12px; background:var(--pauta-bg-card); cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color 0.12s, transform 0.12s }
+.pauta-dlg-card { border:1px solid rgba(227,96,26,0.15); border-radius:var(--pauta-radius-lg); padding:12px; background:var(--pauta-bg-card); cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color 0.12s, transform 0.12s }
 .pauta-dlg-card:active { border-color:var(--pauta-primary); transform:scale(0.97) }
-.pauta-dlg-card.selected { border-color:var(--pauta-primary); border-width:2px; background:rgba(192,86,33,0.04) }
+.pauta-dlg-card.selected { border-color:var(--pauta-primary); border-width:2px; background:rgba(227,96,26,0.04) }
 .pauta-dlg-feedback-correct { display:inline-block; background:#dcfce7; color:#16a34a; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
 .pauta-dlg-feedback-wrong { display:inline-block; background:#fef2f2; color:#dc2626; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
 .pauta-dlg-feedback-hint { display:inline-block; background:#fffbeb; color:#b45309; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600 }
@@ -6884,7 +6884,7 @@ function _renderStaveMeasure(rc, sm) {
     const lineTop = vfStave.getYForLine(0);
     const lineBot = vfStave.getYForLine(4);
     svgRect(svgEl2, {x: mx, y: lineTop - 2, w: mWidth, h: lineBot - lineTop + 4, rx: 4,
-      fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'});
+      fill: 'rgba(227,96,26,0.18)', stroke: 'rgba(227,96,26,0.55)', strokeWidth: 2, cls: 'sel-overlay'});
   }
 
   const measure = stave.measures[mi];
@@ -7195,7 +7195,7 @@ function _renderSelectionBody() {
   if (sl && APP.selectedMeasure >= 0) {
     svgRect(svgEl, {
       x: sl.x, y: sl.topLineY - 2, w: sl.w, h: sl.bottomY - sl.topLineY + 4, rx: 4,
-      fill: 'rgba(192,86,33,0.18)', stroke: 'rgba(192,86,33,0.55)', strokeWidth: 2, cls: 'sel-overlay'
+      fill: 'rgba(227,96,26,0.18)', stroke: 'rgba(227,96,26,0.55)', strokeWidth: 2, cls: 'sel-overlay'
     });
   }
 
@@ -7205,7 +7205,7 @@ function _renderSelectionBody() {
     if (nl) {
       svgCircle(svgEl, {
         cx: nl.x, cy: nl.y, r: 6,
-        fill: 'rgba(192,86,33,0.45)', stroke: 'var(--pauta-primary)', strokeWidth: 1.2, cls: 'sel-note'
+        fill: 'rgba(227,96,26,0.45)', stroke: 'var(--pauta-primary)', strokeWidth: 1.2, cls: 'sel-note'
       });
     }
   }
@@ -9714,7 +9714,7 @@ function _showStrokeDot(x, y) {
     dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
     dot.setAttribute('id','stroke-dot');
     dot.setAttribute('r','5');
-    dot.setAttribute('fill','rgba(192,86,33,0.50)');
+    dot.setAttribute('fill','rgba(227,96,26,0.50)');
     dot.setAttribute('pointer-events','none');
     svgEl.appendChild(dot);
   }
@@ -11417,7 +11417,7 @@ function showCurriculumDialog() {
     const completedExercises = p.completed || 0;
     const pct = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
-    return `<div class="pauta-subtle-card pauta-mb-sm" style="background:${unlocked ? 'rgba(192,86,33,0.04)' : 'rgba(0,0,0,0.03)'};border:1px solid ${unlocked ? 'rgba(192,86,33,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
+    return `<div class="pauta-subtle-card pauta-mb-sm" style="background:${unlocked ? 'rgba(227,96,26,0.04)' : 'rgba(0,0,0,0.03)'};border:1px solid ${unlocked ? 'rgba(227,96,26,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
       <div class="pauta-row" style="gap:10px;margin-bottom:6px">
         <span style="font-size:24px">${grade.icon}</span>
         <div class="pauta-grow">
@@ -12813,7 +12813,7 @@ function _showMCGrid(options, correctAnswer, handler, promptText) {
   if (existing) existing.remove();
   const container = document.createElement('div');
   container.id = 'exercise-mc-container';
-  container.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:360px';
+  container.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(247,243,237,0.98);border:1px solid rgba(227,96,26,0.2);border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:360px';
   if (promptText) {
     const prompt = document.createElement('div');
     prompt.style.cssText = 'font-weight:600;font-size:14px;color:var(--pauta-text);margin-bottom:4px';
@@ -12827,18 +12827,18 @@ function _showMCGrid(options, correctAnswer, handler, promptText) {
     btn.className = 'mc-choice-btn';
     btn.dataset.answer = opt;
     btn.textContent = opt;
-    btn.style.cssText = 'padding:12px 20px;font-size:15px;font-weight:600;background:#f7f3ed;border:2px solid rgba(192,86,33,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
+    btn.style.cssText = 'padding:12px 20px;font-size:15px;font-weight:600;background:#f7f3ed;border:2px solid rgba(227,96,26,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
     btn.addEventListener('click', () => handler(opt, correctAnswer, container));
     btn.addEventListener('mouseover', () => {
       if (!btn.dataset.answered) {
-        btn.style.background = 'rgba(192,86,33,0.1)';
-        btn.style.borderColor = 'rgba(192,86,33,0.4)';
+        btn.style.background = 'rgba(227,96,26,0.1)';
+        btn.style.borderColor = 'rgba(227,96,26,0.4)';
       }
     });
     btn.addEventListener('mouseout', () => {
       if (!btn.dataset.answered) {
         btn.style.background = '#f7f3ed';
-        btn.style.borderColor = 'rgba(192,86,33,0.2)';
+        btn.style.borderColor = 'rgba(227,96,26,0.2)';
       }
     });
     choicesDiv.appendChild(btn);
@@ -12894,18 +12894,18 @@ function _presentNoteId(ex) {
     btn.className = 'note-choice-btn';
     btn.dataset.answer = opt;
     btn.textContent = opt;
-    btn.style.cssText = 'padding:16px 24px;font-size:18px;font-weight:600;background:#f7f3ed;border:2px solid rgba(192,86,33,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
+    btn.style.cssText = 'padding:16px 24px;font-size:18px;font-weight:600;background:#f7f3ed;border:2px solid rgba(227,96,26,0.2);border-radius:8px;cursor:pointer;transition:all 0.15s;color:var(--pauta-text);font-family:inherit';
     btn.addEventListener('click', () => _handleNoteChoice(opt, ex.target.pitch, container));
     btn.addEventListener('mouseover', () => {
       if (!btn.dataset.answered) {
-        btn.style.background = 'rgba(192,86,33,0.1)';
-        btn.style.borderColor = 'rgba(192,86,33,0.4)';
+        btn.style.background = 'rgba(227,96,26,0.1)';
+        btn.style.borderColor = 'rgba(227,96,26,0.4)';
       }
     });
     btn.addEventListener('mouseout', () => {
       if (!btn.dataset.answered) {
         btn.style.background = '#f7f3ed';
-        btn.style.borderColor = 'rgba(192,86,33,0.2)';
+        btn.style.borderColor = 'rgba(227,96,26,0.2)';
       }
     });
     choicesDiv.appendChild(btn);
@@ -13394,7 +13394,7 @@ function _createFeedbackBar(id, extraCss) {
   if (existing) existing.remove();
   const bar = document.createElement('div');
   bar.id = id;
-  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;background:rgba(247,243,237,0.98);border:1px solid rgba(192,86,33,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:var(--pauta-text-muted);' + (extraCss || '');
+  bar.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:200;display:flex;align-items:center;background:rgba(247,243,237,0.98);border:1px solid rgba(227,96,26,0.2);border-radius:8px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);font-size:13px;color:var(--pauta-text-muted);' + (extraCss || '');
   document.body.appendChild(bar);
   return bar;
 }
@@ -13454,7 +13454,7 @@ function _playDictationMelodyWithCountdown() {
   
   const countdown = document.createElement('div');
   countdown.id = 'dictation-countdown';
-  countdown.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;font-size:72px;font-weight:700;color:var(--pauta-primary);text-shadow:0 4px 20px rgba(192,86,33,0.3);opacity:0;transition:all 0.3s ease;pointer-events:none';
+  countdown.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;font-size:72px;font-weight:700;color:var(--pauta-primary);text-shadow:0 4px 20px rgba(227,96,26,0.3);opacity:0;transition:all 0.3s ease;pointer-events:none';
   document.body.appendChild(countdown);
   
   let count = 3;
@@ -13928,7 +13928,7 @@ function _showLevelUpMoment(correctCount, pct) {
 
   const el = document.createElement('div');
   el.id = 'level-up-moment';
-  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:var(--pauta-radius-lg);box-shadow:0 12px 40px rgba(192,86,33,0.4);text-align:center;min-width:280px';
+  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:2001;background:linear-gradient(135deg,var(--pauta-primary),var(--pauta-primary-light));color:#fff;padding:32px 48px;border-radius:var(--pauta-radius-lg);box-shadow:0 12px 40px rgba(227,96,26,0.4);text-align:center;min-width:280px';
   el.innerHTML = `
     <div style="font-size:24px;font-weight:700;margin-bottom:8px">${msg.title}</div>
     <div style="font-size:14px;opacity:0.9;margin-bottom:12px">${msg.desc}</div>
@@ -13983,7 +13983,7 @@ function _showExerciseFeedback(ex, userAnswer) {
         </details>` : ''}
     </div>
     <div class="pauta-dlg-input-group" style="flex-shrink:0;align-self:center">
-      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(192,86,33,0.2);color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm)">Skip</button>
+      <button class="modal-btn" data-action="skipExercise" style="padding:4px 10px;font-size:12px;background:transparent;border:1px solid rgba(227,96,26,0.2);color:var(--pauta-text-muted);border-radius:var(--pauta-radius-sm)">Skip</button>
       <button class="modal-btn primary" data-action="retryExercise" style="padding:4px 12px;font-size:12px">Try Again</button>
       <button class="modal-btn secondary" data-action="endExerciseSession" style="padding:4px 10px;font-size:12px">End Session</button>
     </div>
@@ -15084,7 +15084,7 @@ function showStudentProgress() {
       const angle = (360 / n) * i;
       return polarToCart(angle, maxR * (v / 100));
     });
-    svg += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="rgba(192,86,33,0.15)" stroke="var(--pauta-primary)" stroke-width="1.5"/>`;
+    svg += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="rgba(227,96,26,0.15)" stroke="var(--pauta-primary)" stroke-width="1.5"/>`;
 
     // Data points
     pts.forEach((p, i) => {
@@ -15129,7 +15129,7 @@ function showStudentProgress() {
     const label = TYPE_LABELS[type] || type;
     const barW = Math.round((n / maxSessions) * 100);
     const avgColor = avg >= 80 ? 'var(--pauta-success)' : avg >= 60 ? 'var(--pauta-warning)' : 'var(--pauta-primary-light)';
-    return `<div style="margin-bottom:10px;padding:8px;background:rgba(192,86,33,0.03);border-radius:6px">
+    return `<div style="margin-bottom:10px;padding:8px;background:rgba(227,96,26,0.03);border-radius:6px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <span style="font-weight:600;font-size:13px;color:var(--pauta-text)">${label}</span>
         <span style="font-size:11px;color:${avgColor};font-weight:700">${avg}% avg</span>
@@ -15204,14 +15204,14 @@ function showStudentProgress() {
     <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;justify-content:center">
       <div style="flex:1;min-width:200px">
         <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px;text-align:center">Practice Streak (12 weeks)</div>
-        <div style="padding:8px;background:rgba(192,86,33,0.03);border-radius:8px;overflow-x:auto">${calSvg}</div>
+        <div style="padding:8px;background:rgba(227,96,26,0.03);border-radius:8px;overflow-x:auto">${calSvg}</div>
       </div>
       ${radarData.length >= 3 ? `<div style="flex:0 0 180px">
         <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px;text-align:center">Skill Profile</div>
-        <div style="padding:8px;background:rgba(192,86,33,0.03);border-radius:8px">${radarChart(radarData, radarLabels, 160)}</div>
+        <div style="padding:8px;background:rgba(227,96,26,0.03);border-radius:8px">${radarChart(radarData, radarLabels, 160)}</div>
       </div>` : ''}
     </div>
-    ${recentPcts.length >= 2 ? `<div style="margin-bottom:12px;padding:8px;background:rgba(192,86,33,0.03);border-radius:8px">
+    ${recentPcts.length >= 2 ? `<div style="margin-bottom:12px;padding:8px;background:rgba(227,96,26,0.03);border-radius:8px">
       <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px">Recent ${recent.length} sessions</div>
       ${sparkline(recentPcts, 200, 40, 'var(--pauta-primary)')}
     </div>` : ''}
@@ -15310,7 +15310,7 @@ function showTeacherDashboard() {
       return `${TYPE_LABELS[t] || t}: ${Math.round(arr.reduce((s,x) => s+x.pct,0)/arr.length)}%`;
     }).join(' · ');
 
-    return `<div style="border:1px solid rgba(192,86,33,0.15);border-radius:6px;padding:8px 10px;margin-bottom:6px">
+    return `<div style="border:1px solid rgba(227,96,26,0.15);border-radius:6px;padding:8px 10px;margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-weight:600;color:var(--pauta-text);font-size:13px">${UI.escHtml(name)}</span>
         <span style="font-size:13px;color:var(--pauta-primary);font-weight:700">${avg}%</span>
@@ -15421,7 +15421,7 @@ function showExerciseBuilderDialog() {
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:6px;font-weight:600">Your Custom Exercise Sets</div>
       <div style="flex-shrink:0;max-height:150px;overflow-y:auto">
         ${existing.map((ex, idx) => `
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(192,86,33,0.03);border-radius:6px;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(227,96,26,0.03);border-radius:6px;margin-bottom:4px">
             <div style="flex:1">
               <div style="font-weight:600;font-size:12px;color:var(--pauta-text)">${UI.escHtml(ex.name)}</div>
               <div style="font-size:10px;color:rgba(74,85,104,0.6)">${ex.exercises.length} exercises · ${ex.difficulty}</div>
@@ -15769,7 +15769,7 @@ function showStarterPreviewDialog(exercises, label) {
     </p>
     <div style="flex-shrink:0;max-height:200px;overflow-y:auto;margin-bottom:16px;font-size:12px;color:var(--pauta-text-muted)">
       ${exercises.map((ex, i) => `
-        <div style="padding:6px 8px;background:rgba(192,86,33,0.03);border-radius:6px;margin-bottom:4px">
+        <div style="padding:6px 8px;background:rgba(227,96,26,0.03);border-radius:6px;margin-bottom:4px">
           <div style="font-weight:600;color:var(--pauta-text)">${UI.escHtml(ex.title)}</div>
           ${ex.answerKey ? `<div style="font-size:10px;color:rgba(74,85,104,0.6)">Answer key included</div>` : ''}
         </div>
@@ -15883,7 +15883,7 @@ function showDiagnosticDialog() {
       A quick 5-minute placement test covering<Br>
       <b>notes</b> · <b>intervals</b> · <b>key signatures</b> · <b>rhythm</b>
     </p>
-    <div style="background:rgba(192,86,33,0.06);border-radius:6px;padding:8px 12px;font-size:11px;color:rgba(74,85,104,0.7);margin-bottom:12px;line-height:1.5">
+    <div style="background:rgba(227,96,26,0.06);border-radius:6px;padding:8px 12px;font-size:11px;color:rgba(74,85,104,0.7);margin-bottom:12px;line-height:1.5">
       You'll get a recommended difficulty profile at the end based on your scores.
     </div>
     <button class="modal-btn primary" id="diag-start-btn">▶ Start Assessment</button>
@@ -16045,7 +16045,7 @@ function _finishDiagnostic() {
       <div style="font-size:38px;font-weight:700;color:var(--pauta-primary)">${pct}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted)">${totalCorrect}/${totalQs} correct · ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
     </div>
-    <div style="background:rgba(192,86,33,0.08);border-radius:8px;padding:8px 12px;text-align:center;margin-bottom:10px">
+    <div style="background:rgba(227,96,26,0.08);border-radius:8px;padding:8px 12px;text-align:center;margin-bottom:10px">
       <div style="font-size:11px;color:rgba(74,85,104,0.6)">Recommended level</div>
       <div style="font-size:20px;font-weight:700;color:var(--pauta-primary);margin-top:2px">${placement.label}</div>
       <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-top:2px">${placement.desc}</div>
@@ -16082,7 +16082,7 @@ function _showDiagBar() {
   bar.innerHTML = `
     <span id="diag-progress" style="font-weight:600;white-space:nowrap;min-width:80px">Question 1/14</span>
     <span id="diag-cat" style="font-size:11px;color:rgba(74,85,104,0.6);min-width:60px">Note ID</span>
-    <input id="diag-answer" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <input id="diag-answer" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(227,96,26,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
     <button class="modal-btn primary" id="diag-submit" style="padding:4px 12px;font-size:12px">Submit</button>
   `;
   document.body.appendChild(bar);
@@ -16224,13 +16224,13 @@ function showRhythmComposer() {
     <h2 style="font-size:15px;margin-bottom:6px">Rhythm Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Time:</span>
-      <select id="rc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <select id="rc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
         ${['2/4','3/4','4/4','6/8'].map(v => `<option value="${v}" ${v==='4/4'?'selected':''}>${v}</option>`).join('')}
       </select>
     </div>
     <div style="margin-bottom:10px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Measures:</span>
-      <input type="number" id="rc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <input type="number" id="rc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
     </div>
     <button class="modal-btn primary" data-action="startRhythmComposer">Start Composing</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -16342,7 +16342,7 @@ function _enterRhythmMode() {
         </span>
         <span class="pal-lbl">Rest</span>
       </button>
-      <button class="pal-btn" style="background:rgba(192,86,33,0.1)" data-action="exitCompositionMode">
+      <button class="pal-btn" style="background:rgba(227,96,26,0.1)" data-action="exitCompositionMode">
         <span class="pal-sym" style="font-size:12px">✕</span>
         <span class="pal-lbl">Exit</span>
       </button>
@@ -16370,17 +16370,17 @@ function showMelodyComposer() {
     <h2 style="font-size:15px;margin-bottom:6px">Melody Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Key:</span>
-      <select id="mc-ks" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">${ksOpts}</select>
+      <select id="mc-ks" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">${ksOpts}</select>
     </div>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Time:</span>
-      <select id="mc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <select id="mc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
         ${['2/4','3/4','4/4','6/8'].map(v => `<option value="${v}" ${v==='4/4'?'selected':''}>${v}</option>`).join('')}
       </select>
     </div>
     <div style="margin-bottom:10px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Measures:</span>
-      <input type="number" id="mc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(192,86,33,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <input type="number" id="mc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
     </div>
     <button class="modal-btn primary" data-action="startMelodyComposer">Start Composing</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -16447,7 +16447,7 @@ function _enterMelodyMode(ks) {
       <button class="pal-btn" data-action="changeOctave" data-delta="-1"><span class="pal-sym" style="font-size:10px">−8</span><span class="pal-lbl">Oct ↓</span></button>
       <button class="pal-btn" data-action="changeOctave" data-delta="1"><span class="pal-sym" style="font-size:10px">+8</span><span class="pal-lbl">Oct ↑</span></button>
       <button class="pal-btn" data-action="insertRest"><span class="pal-sym" style="font-size:14px;font-family:var(--pauta-font-sans)">𝄽</span><span class="pal-lbl">Rest</span></button>
-      <button class="pal-btn" style="background:rgba(192,86,33,0.1)" data-action="exitCompositionMode"><span class="pal-sym" style="font-size:12px">✕</span><span class="pal-lbl">Exit</span></button>
+      <button class="pal-btn" style="background:rgba(227,96,26,0.1)" data-action="exitCompositionMode"><span class="pal-sym" style="font-size:12px">✕</span><span class="pal-lbl">Exit</span></button>
     </div>
     \x3C!-- Scale-degree note names --\x3E
     <div class="palette-row">${noteBtns}</div>
@@ -17031,7 +17031,7 @@ function showExportPDFDialog() {
     <h2>Export Engraved PDF</h2>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Page size</div>
-      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(227,96,26,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
         <option value="a4">A4</option>
         <option value="letter">US Letter</option>
       </select>
@@ -17788,7 +17788,7 @@ function updatePlayCursor(elapsedMs) {
       dot.setAttribute('cx', nl.x);
       dot.setAttribute('cy', nl.y);
       dot.setAttribute('r', '6');
-      dot.setAttribute('fill', 'rgba(192,86,33,0.45)');
+      dot.setAttribute('fill', 'rgba(227,96,26,0.45)');
       dot.setAttribute('stroke', 'var(--pauta-primary)');
       dot.setAttribute('stroke-width', '1.2');
       dot.setAttribute('class', 'play-cursor');
@@ -18251,7 +18251,7 @@ function _showPracticeResults() {
       <div style="font-size:48px;font-weight:700;color:${color}">${accuracy}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted);margin-top:4px">Accuracy</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(192,86,33,0.1)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(227,96,26,0.1)">
       <div style="text-align:center"><b style="color:var(--pauta-success)">${stats.correct}</b><br><span style="color:var(--pauta-text-muted)">Correct</span></div>
       <div style="text-align:center"><b style="color:var(--pauta-error)">${stats.incorrect}</b><br><span style="color:var(--pauta-text-muted)">Incorrect</span></div>
       <div style="text-align:center"><b>${stats.maxStreak}</b><br><span style="color:var(--pauta-text-muted)">Best Streak</span></div>
@@ -18465,7 +18465,7 @@ function openInlineLyricEditor(mi, si, ni) {
   Object.assign(toolbar.style, {
     position:'fixed', left:(Math.max(8,pageX-80))+'px', top:(pageY+22)+'px',
     display:'flex', gap:'4px', alignItems:'center',
-    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(192,86,33,0.30)',
+    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(227,96,26,0.30)',
     borderRadius:'8px', padding:'4px 7px', zIndex:'501', boxShadow:'0 3px 12px rgba(0,0,0,0.4)',
   });
   const mkSel = (opts, cur, onChange) => {
@@ -18484,7 +18484,7 @@ function openInlineLyricEditor(mi, si, ni) {
     const b=document.createElement('button');
     b.textContent=lbl;
     let act=act0;
-    const upd=()=>{ b.style.background=act?'rgba(192,86,33,0.20)':'transparent'; b.style.color=act?'var(--pauta-primary)':'var(--pauta-text-subtle)'; b.style.border=act?'1px solid rgba(192,86,33,0.50)':'1px solid transparent'; };
+    const upd=()=>{ b.style.background=act?'rgba(227,96,26,0.20)':'transparent'; b.style.color=act?'var(--pauta-primary)':'var(--pauta-text-subtle)'; b.style.border=act?'1px solid rgba(227,96,26,0.50)':'1px solid transparent'; };
     Object.assign(b.style,{borderRadius:'4px',fontSize:'11px',fontWeight:lbl==='B'?'700':'400',fontStyle:lbl==='I'?'italic':'normal',padding:'0 5px',cursor:'pointer',lineHeight:'18px'});
     upd();
     b.onmousedown=ev=>{ ev.preventDefault(); act=!act; onToggle(act); upd(); };
@@ -18645,7 +18645,7 @@ function openInlineChordEditor(mi, si, ni) {
   Object.assign(toolbar.style, {
     position:'fixed', left:(Math.max(8,pageX-100))+'px', top:(pageY+30)+'px',
     display:'flex', gap:'3px', alignItems:'center', flexWrap:'wrap', maxWidth:'320px',
-    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(192,86,33,0.30)',
+    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(227,96,26,0.30)',
     borderRadius:'8px', padding:'3px 6px', zIndex:'501', boxShadow:'0 3px 12px rgba(0,0,0,0.4)',
   });
 
@@ -18846,9 +18846,9 @@ function showHelpPanel() {
         <span class="shortcut-desc">${s.desc}</span>
       </div>`).join('')}
     </div>
-    <input id="help-search" type="text" placeholder="Search tips…" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111;margin-bottom:10px">
+    <input id="help-search" type="text" placeholder="Search tips…" style="width:100%;padding:6px 8px;border:1px solid rgba(227,96,26,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111;margin-bottom:10px">
     <div id="help-list" style="flex-shrink:0;max-height:280px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);line-height:1.5">
-      ${HELP_TIPS.map((t,i) => `<div class="help-tip" data-idx="${i}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(192,86,33,0.08)">
+      ${HELP_TIPS.map((t,i) => `<div class="help-tip" data-idx="${i}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(227,96,26,0.08)">
         <div style="font-weight:600;color:var(--pauta-text);margin-bottom:2px">${t.q}</div>
         <div>${t.a}</div>
       </div>`).join('')}
@@ -18894,16 +18894,16 @@ function addStaffText() {
     <label style="color:rgba(74,85,104,0.55);font-size:10px;text-transform:uppercase;
                   letter-spacing:0.3px;margin-top:2px;display:block">Style</label>
     <div style="display:flex;gap:6px">
-      <select id="st-style" style="flex:1;padding:7px;background:rgba(192,86,33,0.06);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
+      <select id="st-style" style="flex:1;padding:7px;background:rgba(227,96,26,0.06);
+        border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
         -webkit-appearance:none">
         <option value="normal">Normal</option>
         <option value="italic">Italic</option>
         <option value="bold">Bold</option>
         <option value="bold-italic">Bold Italic</option>
       </select>
-      <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(192,86,33,0.06);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
+      <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(227,96,26,0.06);
+        border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
         -webkit-appearance:none">
         <option value="12" selected>12</option>
         <option value="13">13</option>
@@ -20232,8 +20232,8 @@ function _renderNewScoreDialog(restoreScroll) {
     <div class="pauta-row sm" style="margin-bottom:4px">
       ${['beginner','intermediate','advanced'].map(lvl => `
         <button data-action="ndSelectLevel" data-level="${lvl}"
-          style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
-                 background:${lvl===_ndLevel?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
+          style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(227,96,26,0.55)':'rgba(227,96,26,0.18)'};
+                 background:${lvl===_ndLevel?'rgba(227,96,26,0.18)':'rgba(255,255,255,0.06)'};
                  color:${lvl===_ndLevel?'var(--pauta-primary)':'var(--pauta-text-subtle)'};font-size:10px;font-weight:${lvl===_ndLevel?'700':'500'};
                  cursor:pointer;font-family:var(--pauta-font-sans)">
           ${lvl}
@@ -20460,12 +20460,12 @@ function showTitleDialog() {
     <input id="td-composer" value="${curComp.replace(/"/g,'&quot;')}" placeholder="Composer">
     <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Font</label>
-    <select id="td-font" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
+    <select id="td-font" style="width:100%;padding:8px;background:rgba(227,96,26,0.06);border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
       ${fontOpts}
     </select>
     <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Size</label>
-    <select id="td-size" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
+    <select id="td-size" style="width:100%;padding:8px;background:rgba(227,96,26,0.06);border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
       ${sizeOpts}
     </select>
     <button class="modal-btn primary" data-action="applyTitleDialog">Apply</button>
@@ -21216,8 +21216,8 @@ _registerAction('selectNDInstr', (e) => {
   }
   const sel = newCount > 0;
   btn.classList.toggle('nd-sel', sel);
-  btn.style.borderColor = sel ? 'rgba(192,86,33,0.55)' : 'rgba(192,86,33,0.28)';
-  btn.style.background = sel ? 'rgba(192,86,33,0.12)' : 'rgba(192,86,33,0.06)';
+  btn.style.borderColor = sel ? 'rgba(227,96,26,0.55)' : 'rgba(227,96,26,0.28)';
+  btn.style.background = sel ? 'rgba(227,96,26,0.12)' : 'rgba(227,96,26,0.06)';
   btn.style.color = sel ? 'var(--pauta-primary)' : 'var(--pauta-text)';
   let countSpan = btn.querySelector('.nd-count');
   if (newCount > 0) {

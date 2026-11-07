@@ -190,7 +190,7 @@ function openInlineLyricEditor(mi, si, ni) {
   Object.assign(toolbar.style, {
     position:'fixed', left:(Math.max(8,pageX-80))+'px', top:(pageY+22)+'px',
     display:'flex', gap:'4px', alignItems:'center',
-    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(192,86,33,0.30)',
+    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(227,96,26,0.30)',
     borderRadius:'8px', padding:'4px 7px', zIndex:'501', boxShadow:'0 3px 12px rgba(0,0,0,0.4)',
   });
   const mkSel = (opts, cur, onChange) => {
@@ -209,7 +209,7 @@ function openInlineLyricEditor(mi, si, ni) {
     const b=document.createElement('button');
     b.textContent=lbl;
     let act=act0;
-    const upd=()=>{ b.style.background=act?'rgba(192,86,33,0.20)':'transparent'; b.style.color=act?'var(--pauta-primary)':'var(--pauta-text-subtle)'; b.style.border=act?'1px solid rgba(192,86,33,0.50)':'1px solid transparent'; };
+    const upd=()=>{ b.style.background=act?'rgba(227,96,26,0.20)':'transparent'; b.style.color=act?'var(--pauta-primary)':'var(--pauta-text-subtle)'; b.style.border=act?'1px solid rgba(227,96,26,0.50)':'1px solid transparent'; };
     Object.assign(b.style,{borderRadius:'4px',fontSize:'11px',fontWeight:lbl==='B'?'700':'400',fontStyle:lbl==='I'?'italic':'normal',padding:'0 5px',cursor:'pointer',lineHeight:'18px'});
     upd();
     b.onmousedown=ev=>{ ev.preventDefault(); act=!act; onToggle(act); upd(); };
@@ -370,7 +370,7 @@ function openInlineChordEditor(mi, si, ni) {
   Object.assign(toolbar.style, {
     position:'fixed', left:(Math.max(8,pageX-100))+'px', top:(pageY+30)+'px',
     display:'flex', gap:'3px', alignItems:'center', flexWrap:'wrap', maxWidth:'320px',
-    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(192,86,33,0.30)',
+    background:'rgba(26,32,44,0.97)', border:'1px solid rgba(227,96,26,0.30)',
     borderRadius:'8px', padding:'3px 6px', zIndex:'501', boxShadow:'0 3px 12px rgba(0,0,0,0.4)',
   });
 
@@ -571,9 +571,9 @@ function showHelpPanel() {
         <span class="shortcut-desc">${s.desc}</span>
       </div>`).join('')}
     </div>
-    <input id="help-search" type="text" placeholder="Search tips…" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111;margin-bottom:10px">
+    <input id="help-search" type="text" placeholder="Search tips…" style="width:100%;padding:6px 8px;border:1px solid rgba(227,96,26,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111;margin-bottom:10px">
     <div id="help-list" style="flex-shrink:0;max-height:280px;overflow-y:auto;font-size:12px;color:var(--pauta-text-muted);line-height:1.5">
-      ${HELP_TIPS.map((t,i) => `<div class="help-tip" data-idx="${i}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(192,86,33,0.08)">
+      ${HELP_TIPS.map((t,i) => `<div class="help-tip" data-idx="${i}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(227,96,26,0.08)">
         <div style="font-weight:600;color:var(--pauta-text);margin-bottom:2px">${t.q}</div>
         <div>${t.a}</div>
       </div>`).join('')}
@@ -619,16 +619,16 @@ function addStaffText() {
     <label style="color:rgba(74,85,104,0.55);font-size:10px;text-transform:uppercase;
                   letter-spacing:0.3px;margin-top:2px;display:block">Style</label>
     <div style="display:flex;gap:6px">
-      <select id="st-style" style="flex:1;padding:7px;background:rgba(192,86,33,0.06);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
+      <select id="st-style" style="flex:1;padding:7px;background:rgba(227,96,26,0.06);
+        border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
         -webkit-appearance:none">
         <option value="normal">Normal</option>
         <option value="italic">Italic</option>
         <option value="bold">Bold</option>
         <option value="bold-italic">Bold Italic</option>
       </select>
-      <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(192,86,33,0.06);
-        border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
+      <select id="st-size" style="flex:0 0 70px;padding:7px;background:rgba(227,96,26,0.06);
+        border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:12px;
         -webkit-appearance:none">
         <option value="12" selected>12</option>
         <option value="13">13</option>
@@ -1957,8 +1957,8 @@ function _renderNewScoreDialog(restoreScroll) {
     <div class="pauta-row sm" style="margin-bottom:4px">
       ${['beginner','intermediate','advanced'].map(lvl => `
         <button data-action="ndSelectLevel" data-level="${lvl}"
-          style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(192,86,33,0.55)':'rgba(192,86,33,0.18)'};
-                 background:${lvl===_ndLevel?'rgba(192,86,33,0.18)':'rgba(255,255,255,0.06)'};
+          style="flex:1;padding:4px 2px;border-radius:6px;border:1px solid ${lvl===_ndLevel?'rgba(227,96,26,0.55)':'rgba(227,96,26,0.18)'};
+                 background:${lvl===_ndLevel?'rgba(227,96,26,0.18)':'rgba(255,255,255,0.06)'};
                  color:${lvl===_ndLevel?'var(--pauta-primary)':'var(--pauta-text-subtle)'};font-size:10px;font-weight:${lvl===_ndLevel?'700':'500'};
                  cursor:pointer;font-family:var(--pauta-font-sans)">
           ${lvl}
@@ -2185,12 +2185,12 @@ function showTitleDialog() {
     <input id="td-composer" value="${curComp.replace(/"/g,'&quot;')}" placeholder="Composer">
     <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Font</label>
-    <select id="td-font" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
+    <select id="td-font" style="width:100%;padding:8px;background:rgba(227,96,26,0.06);border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
       ${fontOpts}
     </select>
     <label style="color:rgba(74,85,104,0.70);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;font-weight:600">
       Title Size</label>
-    <select id="td-size" style="width:100%;padding:8px;background:rgba(192,86,33,0.06);border:1px solid rgba(192,86,33,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
+    <select id="td-size" style="width:100%;padding:8px;background:rgba(227,96,26,0.06);border:1px solid rgba(227,96,26,0.18);border-radius:8px;color:var(--pauta-text-subtle);font-size:13px;-webkit-appearance:none">
       ${sizeOpts}
     </select>
     <button class="modal-btn primary" data-action="applyTitleDialog">Apply</button>
@@ -2941,8 +2941,8 @@ _registerAction('selectNDInstr', (e) => {
   }
   const sel = newCount > 0;
   btn.classList.toggle('nd-sel', sel);
-  btn.style.borderColor = sel ? 'rgba(192,86,33,0.55)' : 'rgba(192,86,33,0.28)';
-  btn.style.background = sel ? 'rgba(192,86,33,0.12)' : 'rgba(192,86,33,0.06)';
+  btn.style.borderColor = sel ? 'rgba(227,96,26,0.55)' : 'rgba(227,96,26,0.28)';
+  btn.style.background = sel ? 'rgba(227,96,26,0.12)' : 'rgba(227,96,26,0.06)';
   btn.style.color = sel ? 'var(--pauta-primary)' : 'var(--pauta-text)';
   let countSpan = btn.querySelector('.nd-count');
   if (newCount > 0) {

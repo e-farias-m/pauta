@@ -167,7 +167,7 @@ function _showStrokeDot(x, y) {
     dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
     dot.setAttribute('id','stroke-dot');
     dot.setAttribute('r','5');
-    dot.setAttribute('fill','rgba(192,86,33,0.50)');
+    dot.setAttribute('fill','rgba(227,96,26,0.50)');
     dot.setAttribute('pointer-events','none');
     svgEl.appendChild(dot);
   }
