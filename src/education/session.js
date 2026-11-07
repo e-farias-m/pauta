@@ -2063,8 +2063,8 @@ const RHYTHM_WORKOUT_DEFAULTS = {
 };
 
 function _rwGetSettings() {
-  try { return JSON.parse(LS.getItem('pauta_rhythm_workout')) || structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
-  catch(e) { return structuredClone(RHYTHM_WORKOUT_DEFAULTS); }
+  try { const _s = LS.getItem('pauta_rhythm_workout'); return _s ? JSON.parse(_s) : JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
+  catch(e) { return JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
 }
 
 function _rwSaveSettings(s) {
@@ -2083,7 +2083,9 @@ function _rwGenRhythm(settings) {
   const allNotes = [];
 
   let beatsRemaining = totalBeats;
-  while (beatsRemaining > 0.001) {
+  let _guard = 0;
+  while (beatsRemaining > 0.001 && _guard < 10000) {
+    _guard++;
     const grp = noteGroups[Math.floor(Math.random() * noteGroups.length)];
     const beatCost = grp.count * (4 / ts.den) * (grp.dur === 'w' ? 4 : grp.dur === 'h' ? 2 : grp.dur === 'q' ? 1 : grp.dur === '8' ? 0.5 : grp.dur === '16' ? 0.25 : 1);
 
