@@ -1084,20 +1084,26 @@ function startPlayback() {
     const elapsed = (Date.now() - startAt) / 1000;
     const m = Math.floor(elapsed / 60);
     const s = Math.floor(elapsed % 60).toString().padStart(2,'0');
-    document.getElementById('play-pos').textContent = `${m}:${s}`;
-    // Update playback cursor
+    const posEl = document.getElementById('play-pos');
+    if (posEl) posEl.textContent = `${m}:${s}`;
+    // Update playback cursor (rAF-driven for smooth highlighting in both normal
+    // and continuous view).
     const cursorElapsed = Date.now() - noteStartAt;
-    if (cursorElapsed >= 0) updatePlayCursor(cursorElapsed);
-    _updatePlaybackDiagrams(cursorElapsed);
-    APP.playTimers.push(setTimeout(tick, 200));
+    if (cursorElapsed >= 0) {
+      updatePlayCursor(cursorElapsed);
+      _updatePlaybackDiagrams(cursorElapsed);
+    }
+    APP._playTickRAF = requestAnimationFrame(tick);
   }
-  tick();
+  APP._playTickRAF = requestAnimationFrame(tick);
 }
 
 function stopPlayback() {
   APP.playing = false;
   clearPlayCursor();
   if (APP._playScrollRAF) cancelAnimationFrame(APP._playScrollRAF);
+  if (APP._playTickRAF) cancelAnimationFrame(APP._playTickRAF);
+  APP._playTickRAF = null;
   // Stop all active audio nodes (oscillators, buffer sources) to prevent orphaned nodes
   if (APP._activeAudioNodes) {
     APP._activeAudioNodes.forEach(node => {
@@ -1174,7 +1180,7 @@ function updatePlayCursor(elapsedMs) {
   if (!APP.playNoteTimeline || !APP.playNoteTimeline.length) return;
 
   const active = APP.playNoteTimeline.filter(n => n.isNote && elapsedMs >= n.startMs && elapsedMs < n.startMs + n.durMs);
-  if (active.length === 0) { clearPlayCursor(); return; }
+  if (active.length === 0) { clearPlayCursor(); APP._lastPlayKey = ''; return; }
   // Build a key to detect changes
   const key = active.map(n => `${n.mi}:${n.ni}`).join(',');
   if (key !== APP._lastPlayKey && active[0]) {
@@ -1205,7 +1211,6 @@ function updatePlayCursor(elapsedMs) {
 }
 function clearPlayCursor() {
   document.querySelectorAll('.play-cursor').forEach(el => el.remove());
-  APP._lastPlayKey = '';
 }
 
 // ── Practice Mode ───────────────────────────────────────────────
