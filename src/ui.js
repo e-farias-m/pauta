@@ -939,11 +939,18 @@ function showScoreMenu(btn) {
   showDropdown(btn, items);
 }
 
+function showPageSizeSubmenu(btn) {
+  const sizes = ['letter', 'a4', 'legal'];
+  const items = sizes.map(s => ({ label: (APP.pageSize === s ? '✓ ' : '○ ') + s.charAt(0).toUpperCase() + s.slice(1), fn: () => setPageSize(s) }));
+  showDropdown(btn || document.body, items);
+}
 function showViewMenu(btn) {
   const items = [
     {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
     {label:`${APP.continuousView?'✓':'○'} Continuous View`, fn:toggleContinuousView},
+    {label:`Page Size: ${APP.pageSize || 'letter'}`, fn: () => showPageSizeSubmenu(btn)},
+    {label:`Orientation: ${APP.pageOrientation || 'portrait'}`, fn:togglePageOrientation},
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
     {label:`${APP.showTheoryOverlay?'✓':'○'} Theory Overlay`, fn:toggleTheoryOverlay},

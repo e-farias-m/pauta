@@ -141,6 +141,9 @@ const APP = {
   showRhythmCounting: false,
   zoom: 1,
   continuousView: false,
+  pageSize: 'letter',        // 'letter' | 'a4' | 'legal'
+  pageOrientation: 'portrait', // 'portrait' | 'landscape'
+  pageIndex: 0,              // current page in page view (0-based)
   // ── Mixer (volume) settings ────────────────────────────────────
   masterVolume: 0.65,
   metronomeVolume: 1.0,

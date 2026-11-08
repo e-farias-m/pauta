@@ -90,6 +90,18 @@ const REND = Object.freeze({
   MARGIN_X: 166,
   MARGIN_TOP: 116,
 });
+
+// Page dimensions (px at 96 dpi) for the engraved (page) view.
+const PAGE_SIZES = {
+  letter: { w: 816,  h: 1056 },
+  a4:     { w: 794,  h: 1123 },
+  legal:  { w: 816,  h: 1344 },
+};
+function getPageDimensions() {
+  const size = PAGE_SIZES[APP.pageSize] || PAGE_SIZES.letter;
+  const portrait = APP.pageOrientation !== 'landscape';
+  return portrait ? { w: size.w, h: size.h } : { w: size.h, h: size.w };
+}
 // Per-render layout — recomputed at the start of _renderScoreBody().
 const LAYOUT = { STAVE_H: 132, STAVE_SPACING: 145, SYS_SPACING: 6, MARGIN_X: 166, MARGIN_TOP: 116 };
 
@@ -210,7 +222,7 @@ function packSystems(staves, allM, nM, ns, viewScale, container) {
   }
   const cW = APP.continuousView
     ? mNatW.reduce((a,b)=>a+b,0) + FIRST_EXTRA_GLOBAL + (nM-1)*FIRST_EXTRA_SYS + 2*LAYOUT.MARGIN_X
-    : Math.max(container.clientWidth || 700, 400);
+    : Math.max(400, getPageDimensions().w);
   const usable = cW - 2 * LAYOUT.MARGIN_X;
   const systems = [];
   let sys = [], sysContentW = 0;
@@ -494,6 +506,16 @@ function _renderScoreBody() {
   const rc = _setupRender();
   if (!rc) return;
   _renderSystems(rc);
+  // In page view, resize the SVG to the actual paginated height.
+  if (!APP.continuousView) {
+    const svgEl = rc.container.querySelector('svg');
+    const finalH = (APP._pageTop || 0) + getPageDimensions().h;
+    if (svgEl) {
+      svgEl.setAttribute('height', finalH);
+      svgEl.style.height = finalH + 'px';
+    }
+    rc.container.style.height = finalH + 'px';
+  }
   _renderScoreAnnotations(rc);
   _renderScoreCompletions(rc);
 }
@@ -539,9 +561,26 @@ function _setupRender() {
 function _renderSystems(rc) {
   const { container, staves, ns, siOffset, allM, viewScale, systems, mNatW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS, ctx, multiRestGroups } = rc;
   let sysY = LAYOUT.MARGIN_TOP;
+  let pageTop = 0; // top of current page (in SVG coords)
+  const pageH = APP.continuousView ? Infinity : getPageDimensions().h;
+  const pageBottom = () => pageTop + pageH - 60; // 60px bottom margin
   const vfStaveRef = {};
 
   systems.forEach((system, sysIdx) => {
+    const sysH = (ns - 1) * LAYOUT.STAVE_SPACING + LAYOUT.STAVE_H + LAYOUT.SYS_SPACING + 8;
+    // Page break in page view: start a new page when this system would
+    // overflow the current page height.
+    if (!APP.continuousView && sysY + sysH > pageBottom() && sysY > pageTop + LAYOUT.MARGIN_TOP) {
+      pageTop += pageH;
+      sysY = pageTop + LAYOUT.MARGIN_TOP;
+      // visual page-break marker
+      const pb = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      pb.setAttribute('x1', 0); pb.setAttribute('y1', sysY - 12);
+      pb.setAttribute('x2', cW); pb.setAttribute('y2', sysY - 12);
+      pb.setAttribute('stroke', 'rgba(0,0,0,0.08)'); pb.setAttribute('stroke-width', '1');
+      pb.setAttribute('stroke-dasharray', '4,4');
+      container.querySelector('svg')?.appendChild(pb);
+    }
     const isFirstSysOfScore = sysIdx === 0;
     const firstExtra = isFirstSysOfScore
       ? (allM[0]?.pickup ? FIRST_EXTRA_SYS : FIRST_EXTRA_GLOBAL) : FIRST_EXTRA_SYS;
@@ -577,6 +616,7 @@ function _renderSystems(rc) {
   });
 
   updateOctaveDisplay();
+  if (!APP.continuousView) APP._pageTop = pageTop;
 }
 
 // Hide all staff lines except the middle one for single-line rhythm staves

@@ -257,8 +257,38 @@ function _handleStroke() {
 document.getElementById('score-svg').addEventListener('click', function(e) {
   if (Date.now() - STROKE.lastHandledAt < 400) return; // already handled by pointer events
   if (STROKE.pointerType && STROKE.pointerType !== 'mouse') return;
+  if (window._scoreDragging) return; // was a drag-pan, not a click
   handleScoreTap(e);
 });
+
+// Click-drag panning on the score canvas (page view + continuous view).
+(function () {
+  const area = document.getElementById('score-area');
+  if (!area) return;
+  let dragging = false, startX = 0, startY = 0, startL = 0, startT = 0, moved = false;
+  area.addEventListener('mousedown', function (e) {
+    // Only pan when starting on background, not on a note/measure
+    if (e.target !== area && e.target.id !== 'score-canvas-container') return;
+    dragging = true; moved = false;
+    startX = e.clientX; startY = e.clientY;
+    startL = area.scrollLeft; startT = area.scrollTop;
+    area.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+    if (moved) { area.scrollLeft = startL - dx; area.scrollTop = startT - dy; window._scoreDragging = true; }
+  });
+  window.addEventListener('mouseup', function () {
+    if (dragging) {
+      dragging = false;
+      area.style.cursor = '';
+      setTimeout(() => { window._scoreDragging = false; }, 0);
+    }
+  });
+})();
 
 // Keep touchend for selection in non-input mode
 let lastTouchEnd = 0;
@@ -1537,6 +1567,16 @@ function toggleContinuousView() {
   RENDER.renderScore();
   UI.showToast(APP.continuousView ? 'Continuous view' : 'Page view');
   updateViewBadges();
+}
+function togglePageOrientation() {
+  APP.pageOrientation = APP.pageOrientation === 'landscape' ? 'portrait' : 'landscape';
+  RENDER.renderScore();
+  UI.showToast('Orientation: ' + APP.pageOrientation);
+}
+function setPageSize(size) {
+  APP.pageSize = size;
+  RENDER.renderScore();
+  UI.showToast('Page size: ' + size);
 }
 
 function toggleMeasureNumbers() {
