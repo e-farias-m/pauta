@@ -14687,7 +14687,7 @@ function _presentRhythmWorkout(ex) {
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   RENDER.renderScore();
-  UI.showToast(`${ts.num}/${ts.den} — ${notes.length} notes — ${tempo} BPM`);
+  UI.showToast(`Rhythm Workout: ${ts.num}/${ts.den} at ${tempo} BPM — listen, then clap it back. Press Play to hear it.`);
 }
 
 function _checkRhythmWorkoutAnswer(userAnswer) {
