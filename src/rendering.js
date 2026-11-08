@@ -262,9 +262,17 @@ function initScoreRenderer(container, cW, totalH, score) {
       svgEl.style.maxWidth = 'none';
     }
   } else {
-    container.style.overflowX = 'hidden';
+    container.style.overflowX = 'auto';
     container.style.overflowY = 'auto';
     container.style.whiteSpace = '';
+    const svgEl = container.querySelector('svg');
+    if (svgEl) {
+      svgEl.style.width = cW + 'px';
+      svgEl.style.height = totalH + 'px';
+      svgEl.style.maxWidth = 'none';
+      svgEl.style.margin = '0 auto';
+      svgEl.style.display = 'block';
+    }
   }
   const multiRestGroups = APP.showMultiMeasureRests ? findMultiRestGroups() : [];
   const svgEl = container.querySelector('svg');

@@ -2118,7 +2118,7 @@ function createNewScore() {
 
     const raw = SCORE.createScore({title, composer, ts, ks, instruments:instrNames});
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 31; i++) {
       raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
     }
     if (pickup && puNum > 0 && puNum < tsNum) {

@@ -6498,9 +6498,17 @@ function initScoreRenderer(container, cW, totalH, score) {
       svgEl.style.maxWidth = 'none';
     }
   } else {
-    container.style.overflowX = 'hidden';
+    container.style.overflowX = 'auto';
     container.style.overflowY = 'auto';
     container.style.whiteSpace = '';
+    const svgEl = container.querySelector('svg');
+    if (svgEl) {
+      svgEl.style.width = cW + 'px';
+      svgEl.style.height = totalH + 'px';
+      svgEl.style.maxWidth = 'none';
+      svgEl.style.margin = '0 auto';
+      svgEl.style.display = 'block';
+    }
   }
   const multiRestGroups = APP.showMultiMeasureRests ? findMultiRestGroups() : [];
   const svgEl = container.querySelector('svg');
@@ -20659,7 +20667,7 @@ function createNewScore() {
 
     const raw = SCORE.createScore({title, composer, ts, ks, instruments:instrNames});
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 31; i++) {
       raw.parts.forEach(p => p.staves.forEach(s => s.measures.push(SCORE.emptyMeasure())));
     }
     if (pickup && puNum > 0 && puNum < tsNum) {
