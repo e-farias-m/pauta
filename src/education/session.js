@@ -938,7 +938,7 @@ function _handleIntervalChoice(answer, correctAnswer, container) {
 }
 
 function _presentRhythmRead(ex) {
-  const score = SCORE.createScore({title: 'Rhythm Reading', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
+  const score = SCORE.createScore({title: 'Rhythm Reading', instruments: ['Snare Drum'], ts: {num:4,den:4}, ks: 0});
   const notes = ex.target.durations.map(d => SCORE.mkNote(60, d));
   score.parts[0].staves[0].measures[0].notes = notes;
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
@@ -948,7 +948,7 @@ function _presentRhythmRead(ex) {
 
 function _presentRhythmWorksheet(ex) {
   const mx = ex.target.measures;
-  const score = SCORE.createScore({title: 'Rhythm Dictation', instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0});
+  const score = SCORE.createScore({title: 'Rhythm Dictation', instruments: ['Snare Drum'], ts: {num:4,den:4}, ks: 0});
   const stave = score.parts[0].staves[0];
   stave.measures = [];
   for (let m = 0; m < mx; m++) {
@@ -2267,7 +2267,7 @@ function _presentRhythmWorkout(ex) {
   const { timeSig: ts, notes, tempo } = ex.target;
   const score = SCORE.createScore({
     title: 'Rhythm Workout',
-    instruments: ['Percussion'],
+    instruments: ['Snare Drum'],
     ts: { num: ts.num, den: ts.den },
     ks: 0,
   });

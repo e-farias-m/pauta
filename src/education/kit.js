@@ -891,7 +891,7 @@ function _genRhythmAssignment(difficulty) {
   const exercises = [];
   for (let i = 0; i < 5; i++) {
     const ws = _genRhythmWorksheet({ beginner:0, intermediate:1, advanced:2 }[difficulty]);
-    const score = SCORE.createScore({ title: `Rhythm Dictation ${i+1}`, instruments: ['Percussion'], ts: {num:4,den:4}, ks: 0 });
+    const score = SCORE.createScore({ title: `Rhythm Dictation ${i+1}`, instruments: ['Snare Drum'], ts: {num:4,den:4}, ks: 0 });
     const stave = score.parts[0].staves[0];
     stave.measures = [];
     for (let m = 0; m < 8; m++) {
