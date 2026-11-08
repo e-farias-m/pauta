@@ -944,13 +944,18 @@ function showPageSizeSubmenu(btn) {
   const items = sizes.map(s => ({ label: (APP.pageSize === s ? '✓ ' : '○ ') + s.charAt(0).toUpperCase() + s.slice(1), fn: () => setPageSize(s) }));
   showDropdown(btn || document.body, items);
 }
+function showPageOrientationSubmenu(btn) {
+  const orients = ['portrait', 'landscape'];
+  const items = orients.map(o => ({ label: (APP.pageOrientation === o ? '✓ ' : '○ ') + o.charAt(0).toUpperCase() + o.slice(1), fn: () => setPageOrientation(o) }));
+  showDropdown(btn || document.body, items);
+}
 function showViewMenu(btn) {
   const items = [
     {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
     {label:`${APP.continuousView?'✓':'○'} Continuous View`, fn:toggleContinuousView},
     {label:`Page Size: ${APP.pageSize || 'letter'}`, fn: () => showPageSizeSubmenu(btn)},
-    {label:`Orientation: ${APP.pageOrientation || 'portrait'}`, fn:togglePageOrientation},
+    {label:`Orientation: ${APP.pageOrientation || 'portrait'}`, fn: () => showPageOrientationSubmenu(btn)},
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
     {label:`${APP.showTheoryOverlay?'✓':'○'} Theory Overlay`, fn:toggleTheoryOverlay},

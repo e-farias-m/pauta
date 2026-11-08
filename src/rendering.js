@@ -542,8 +542,8 @@ function _setupRender() {
   LAYOUT.STAVE_H       = REND.STAVE_H;
   LAYOUT.STAVE_SPACING = REND.STAVE_SPACING;
   LAYOUT.SYS_SPACING   = REND.SYS_SPACING;
-  LAYOUT.MARGIN_X      = REND.MARGIN_X;
-  LAYOUT.MARGIN_TOP    = REND.MARGIN_TOP;
+  LAYOUT.MARGIN_X      = APP.continuousView ? REND.MARGIN_X : 90;
+  LAYOUT.MARGIN_TOP    = APP.continuousView ? REND.MARGIN_TOP : 80;
   APP._lastPlayKey = '';
   APP.staveLayout = [];
   APP.noteLayout  = [];

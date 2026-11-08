@@ -1568,11 +1568,12 @@ function toggleContinuousView() {
   UI.showToast(APP.continuousView ? 'Continuous view' : 'Page view');
   updateViewBadges();
 }
-function togglePageOrientation() {
-  APP.pageOrientation = APP.pageOrientation === 'landscape' ? 'portrait' : 'landscape';
+function setPageOrientation(o) {
+  APP.pageOrientation = o;
   RENDER.renderScore();
-  UI.showToast('Orientation: ' + APP.pageOrientation);
+  UI.showToast('Orientation: ' + o);
 }
+function togglePageOrientation() { setPageOrientation(APP.pageOrientation === 'landscape' ? 'portrait' : 'landscape'); }
 function setPageSize(size) {
   APP.pageSize = size;
   RENDER.renderScore();
