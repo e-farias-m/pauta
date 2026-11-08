@@ -87,7 +87,7 @@ body            { background:var(--bg-body); }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
 body{
-  font-family:-apple-system,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Outfit',-apple-system,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;
   display:flex;flex-direction:column;height:100vh;
   user-select:none;-webkit-user-select:none;
   touch-action:manipulation;overscroll-behavior:none;
@@ -303,7 +303,7 @@ body{
   text-transform:uppercase;
   color:var(--text-panel);
   opacity:0.6;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;
   line-height:1;
   transition:all 0.15s ease;
 }
@@ -341,13 +341,13 @@ body{
 .panel-title{
   font-size:13px;font-weight:600;color:#2d3748;
   margin-bottom:10px;letter-spacing:0.2px;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;
 }
 .panel-section-label{
   font-size:9.5px;color:rgba(74,85,104,0.50);
   text-transform:uppercase;letter-spacing:0.4px;
   margin:8px 0 4px;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;
 }
 .panel-grid{
   display:grid;grid-template-columns:1fr 1fr;gap:5px;
@@ -366,7 +366,7 @@ body{
   gap:2px;
   min-height:44px;
   -webkit-tap-highlight-color:transparent;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;
   transition:background 0.1s;
 }
 .panel-btn:active{opacity:0.6}
@@ -384,7 +384,7 @@ body{
   border-radius:8px;color:#718096;
   font-size:12px;cursor:pointer;
   text-align:center;margin-bottom:5px;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;
   -webkit-tap-highlight-color:transparent;
 }
 .panel-btn-wide:active{opacity:0.6}
@@ -401,7 +401,7 @@ body{
   border-radius:8px;color:#718096;
   font-size:12px;outline:none;
   -webkit-appearance:none;
-  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;
   margin-bottom:4px;
 }
 
@@ -467,7 +467,7 @@ body{
   gap:12px;
   box-shadow:0 24px 60px rgba(0,0,0,0.30);
 }
-.modal h2{font-size:17px;font-weight:700;color:var(--text-title);letter-spacing:-0.2px;font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;}
+.modal h2{font-size:17px;font-weight:700;color:var(--text-title);letter-spacing:-0.2px;font-family:'Outfit',-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;}
 .dropdown-overlay{position:fixed;inset:0;z-index:99}
 .dropdown{
   position:fixed;z-index:100;
@@ -484,7 +484,7 @@ body{
   padding:10px 12px;border-radius:10px;
   border:none;background:transparent;
   color:#4a5568;font-size:13px;font-weight:500;
-  font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+  font-family:'Outfit',-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
   cursor:pointer;text-align:left;
   -webkit-tap-highlight-color:transparent;
   white-space:nowrap;
@@ -548,7 +548,7 @@ body{
   font-size:10px;
   padding:6px 10px;
   cursor:pointer;
-  font-family:'Helvetica Neue',Helvetica,sans-serif;
+  font-family:'Outfit','Helvetica Neue',Helvetica,sans-serif;
   -webkit-tap-highlight-color:transparent;
   letter-spacing:0.2px;
   white-space:nowrap;
