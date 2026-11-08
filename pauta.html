@@ -11763,9 +11763,18 @@ function _genMelodyDict(difficulty) {
   
   const notes = [];
   for (let i = 0; i < len; i++) {
-    const step = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
-    let pitch = Math.max(baseMin, Math.min(baseMax, (notes.length ? notes[i-1].pitch : basePitch) + step));
-    pitch = _snapToKey(pitch, ks);
+    // Avoid repeated consecutive pitches (a run of identical notes is not a
+    // meaningful melody) — force a non-zero step each time, and retry snapping
+    // until the pitch actually changes from the previous note.
+    let pitch;
+    let attempts = 0;
+    do {
+      const step = ([-2, -1, 1, 2])[Math.floor(Math.random() * 4)];
+      const prev = notes.length ? notes[i - 1].pitch : basePitch;
+      pitch = Math.max(baseMin, Math.min(baseMax, prev + step));
+      pitch = _snapToKey(pitch, ks);
+      attempts++;
+    } while (notes.length && pitch === notes[i - 1].pitch && attempts < 8);
     const durs = difficulty === 0 ? ['q','h'] : difficulty === 1 ? ['q','h','8'] : ['q','h','8','16'];
     notes.push({ pitch, duration: durs[Math.floor(Math.random() * durs.length)] });
   }
