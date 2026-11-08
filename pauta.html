@@ -8512,10 +8512,12 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     // Label centered above right-column hole for double pairs (6, 7)
     const isLeftSub = id === '6a' || id === '7a';
     const lx = isLeftSub ? CX_R : hx;
-    const ly = hy + dr + 20;
+    // Place the number inside the hole (at the hole centre). The outer
+    // transform flips Y, so the label lands on the hole, not above it.
+    const ly = hy;
     const lbl = document.createElementNS(ns, 'text');
     lbl.setAttribute('x', lx); lbl.setAttribute('y', ly);
-    lbl.setAttribute('style', lblSt);
+    lbl.setAttribute('style', lblSt.replace('fill:#222', cov ? 'fill:#fff' : 'fill:#222'));
     lbl.setAttribute('transform', `translate(${lx},${ly}) scale(1,-1) translate(${-lx},${-ly})`);
     lbl.textContent = isLeftSub ? id[0] : id;
     inner.appendChild(lbl);
