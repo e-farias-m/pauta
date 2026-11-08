@@ -12565,39 +12565,6 @@ function endExerciseSession() {
   const s = APP.exerciseSession;
   if (!s) return;
 
-  // Rhythm Workout and Rhythm Reading are free practice tools, not graded
-  // exercises: Rhythm Workout has no objective answer key, and Rhythm Reading
-  // has no input mechanism to check against, so reporting a score would be
-  // meaningless.
-  if (s.type === EXERCISE_TYPES.RHYTHM_WORKOUT || s.type === EXERCISE_TYPES.RHYTHM_READ) {
-    const time = Math.floor((Date.now() - s.startedAt) / 1000);
-    UI.makeModal(`
-      <div class="pauta-hero">
-        <h2 class="pauta-hero-title">${s.type === EXERCISE_TYPES.RHYTHM_WORKOUT ? 'Rhythm Workout' : 'Rhythm Reading'} Complete</h2>
-        <div class="pauta-encouragement" style="color:var(--pauta-primary)">Great practice!</div>
-        <div class="pauta-card-meta" style="margin:6px 0 12px">
-          Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}
-        </div>
-      </div>
-      <div class="pauta-row center wrap">
-        <button class="modal-btn primary" data-action="restartExerciseSession">Try Another</button>
-        <button class="modal-btn secondary" data-action="closeModalExercise">Close</button>
-      </div>
-    `);
-    ['rhythm-beat-grid','exercise-feedback-bar'].forEach(id => { const el = document.getElementById(id); if (el) el.remove(); });
-    if (APP._noteConstructClickHandler) { const svgEl = document.getElementById('score-svg'); if (svgEl) svgEl.removeEventListener('click', APP._noteConstructClickHandler); APP._noteConstructClickHandler = null; }
-    _hideSuccessBanner();
-    APP.exerciseMode = false;
-    APP._lastExerciseSession = s;
-    APP.exerciseSession = null;
-    SCORE.restorePreExerciseScore();
-    _setExerciseUI(false);
-    updateModeBanner();
-    _validateModeState();
-    RENDER.renderScore();
-    return;
-  }
-
   const total = s.totalCount;
   const correct = s.correctCount;
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
@@ -13379,13 +13346,137 @@ function _handleIntervalChoice(answer, correctAnswer, container) {
   _handleMCAnswer(answer, correctAnswer, container, () => checkExerciseAnswer(answer));
 }
 
+function _durBeats(dur, dots) {
+  const base = dur === 'w' ? 4 : dur === 'h' ? 2 : dur === 'q' ? 1 : dur === '8' ? 0.5 : dur === '16' ? 0.25 : 1;
+  return dots ? base * 1.5 : base;
+}
+
+// Shared tap-pad grader for rhythm exercises: records tap timestamps and
+// compares them to the expected beat times.
+function _showRhythmTapPad(expectedTimes, beatDurMs, onGrade) {
+  const existing = document.getElementById('rhythm-tap-pad');
+  if (existing) existing.remove();
+
+  const pad = document.createElement('div');
+  pad.id = 'rhythm-tap-pad';
+  pad.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(247,243,237,0.98);border:1px solid rgba(227,96,26,0.2);border-radius:12px;padding:12px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;';
+
+  const tapBtn = document.createElement('button');
+  tapBtn.id = 'rtp-tap';
+  tapBtn.textContent = 'Tap';
+  tapBtn.style.cssText = 'padding:16px 32px;font-size:20px;font-weight:700;background:var(--pauta-primary);color:#fff;border:none;border-radius:10px;cursor:pointer;min-width:120px;';
+
+  const counter = document.createElement('span');
+  counter.id = 'rtp-counter';
+  counter.style.cssText = 'font-size:14px;font-weight:600;color:var(--pauta-text);min-width:80px;text-align:center;';
+  counter.textContent = `0 / ${expectedTimes.length} taps`;
+
+  const checkBtn = document.createElement('button');
+  checkBtn.id = 'rtp-check';
+  checkBtn.textContent = 'Check';
+  checkBtn.style.cssText = 'padding:10px 18px;font-size:14px;font-weight:600;background:#f7f3ed;border:2px solid rgba(227,96,26,0.2);border-radius:8px;cursor:pointer;';
+
+  const resetBtn = document.createElement('button');
+  resetBtn.id = 'rtp-reset';
+  resetBtn.textContent = 'Reset';
+  resetBtn.style.cssText = 'padding:10px 18px;font-size:14px;font-weight:600;background:#f7f3ed;border:2px solid rgba(227,96,26,0.2);border-radius:8px;cursor:pointer;';
+
+  pad.appendChild(tapBtn);
+  pad.appendChild(counter);
+  pad.appendChild(checkBtn);
+  pad.appendChild(resetBtn);
+  document.body.appendChild(pad);
+
+  const taps = [];
+  let started = false;
+  let startMs = 0;
+
+  function updateCounter() {
+    counter.textContent = `${taps.length} / ${expectedTimes.length} taps`;
+  }
+
+  tapBtn.addEventListener('click', () => {
+    const now = performance.now();
+    if (!started) { started = true; startMs = now; }
+    taps.push(now - startMs);
+    updateCounter();
+    if (taps.length >= expectedTimes.length) {
+      // auto-grade shortly after the last tap
+      setTimeout(() => grade(), 400);
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    taps.length = 0;
+    started = false;
+    startMs = 0;
+    updateCounter();
+  });
+
+  function grade() {
+    const tolerance = Math.max(150, beatDurMs * 0.3);
+    let matches = 0;
+    const used = new Array(taps.length).fill(false);
+    for (const exp of expectedTimes) {
+      let best = -1, bestDist = Infinity;
+      for (let i = 0; i < taps.length; i++) {
+        if (used[i]) continue;
+        const d = Math.abs(taps[i] - exp);
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      if (best >= 0 && bestDist <= tolerance) { matches++; used[best] = true; }
+    }
+    const pct = expectedTimes.length > 0 ? Math.round(100 * matches / expectedTimes.length) : 0;
+    // penalise extra taps
+    const extraPenalty = Math.max(0, taps.length - expectedTimes.length);
+    const finalPct = Math.max(0, pct - extraPenalty * 5);
+    onGrade(finalPct, matches, expectedTimes.length, taps.length);
+    // remove pad after grading
+    setTimeout(() => { const p = document.getElementById('rhythm-tap-pad'); if (p) p.remove(); }, 1500);
+  }
+
+  checkBtn.addEventListener('click', grade);
+}
+
 function _presentRhythmRead(ex) {
   const score = SCORE.createScore({title: 'Rhythm Reading', instruments: ['Snare Drum'], ts: {num:4,den:4}, ks: 0});
   const notes = ex.target.durations.map(d => SCORE.mkNote(60, d));
   score.parts[0].staves[0].measures[0].notes = notes;
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   RENDER.renderScore();
-   UI.showToast('Tap play to hear it, then clap or tap it back!');
+  UI.showToast('Read the rhythm, then tap along with the beat.');
+
+  // Build expected tap times (one per note) at 100 BPM
+  const beatDurMs = 60000 / (APP.tempo || 100);
+  const expected = [];
+  let t = 0;
+  ex.target.durations.forEach(d => {
+    expected.push(t);
+    t += _durBeats(d, 0) * beatDurMs;
+  });
+
+  const s = APP.exerciseSession;
+  _showRhythmTapPad(expected, beatDurMs, (pct, matches, expectedCount, tapCount) => {
+    if (!s || !s.current) return;
+    s.totalCount++;
+    if (pct >= 80) { s.correctCount++; s.streak++; if (s.streak > s.maxStreak) s.maxStreak = s.streak; }
+    else { s.streak = 0; }
+    s.completed.push({ type: EXERCISE_TYPES.RHYTHM_READ, answer: `${matches}/${expectedCount}`, ok: pct >= 80, hint: 'Compare your taps to the rhythm.' });
+    _updateScoreDisplay();
+    if (pct >= 80) {
+      _showSuccessBanner(`✓ ${matches}/${expectedCount} taps matched!`, { correctAnswer: ex.target.durations.join(' '), streak: s.streak });
+      const session = s;
+      const exType = ex.type;
+      setTimeout(() => {
+        if (!APP.exerciseSession || APP.exerciseSession !== session) return;
+        _hideSuccessBanner();
+        session.current = generateExercise(exType, session.difficulty);
+        _presentExercise(session.current);
+      }, 1500);
+    } else {
+      _showExerciseFeedback(ex, `${matches}/${expectedCount} taps matched`);
+    }
+  });
 }
 
 function _presentRhythmWorksheet(ex) {
@@ -14724,7 +14815,42 @@ function _presentRhythmWorkout(ex) {
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   APP.selectedMeasure = 0; APP.selectedStaff = 0; APP.selectedNoteIdx = -1;
   RENDER.renderScore();
-  UI.showToast(`Rhythm Workout: ${ts.num}/${ts.den} at ${tempo} BPM — listen, then clap it back. Press Play to hear it.`);
+  UI.showToast(`Rhythm Workout: ${ts.num}/${ts.den} at ${tempo} BPM — read it, then tap along.`);
+
+  // Build expected tap times (one per note, skipping rests)
+  const beatDurMs = 60000 / (tempo || 100);
+  const expected = [];
+  let t = 0;
+  notes.forEach(n => {
+    const beats = _durBeats(n.duration, n.dots);
+    if (n.type !== 'rest') expected.push(t);
+    t += beats * beatDurMs;
+  });
+
+  const s = APP.exerciseSession;
+  _showRhythmTapPad(expected, beatDurMs, (pct, matches, expectedCount, tapCount) => {
+    if (!s || !s.current) return;
+    s.totalCount++;
+    if (pct >= 80) { s.correctCount++; s.streak++; if (s.streak > s.maxStreak) s.maxStreak = s.streak; }
+    else { s.streak = 0; }
+    s.completed.push({ type: EXERCISE_TYPES.RHYTHM_WORKOUT, answer: `${matches}/${expectedCount}`, ok: pct >= 80, hint: 'Compare your taps to the rhythm.' });
+    _updateScoreDisplay();
+    if (pct >= 80) {
+      _showSuccessBanner(`✓ ${matches}/${expectedCount} taps matched!`, { correctAnswer: '', streak: s.streak });
+      const session = s;
+      const exType = ex.type;
+      setTimeout(() => {
+        if (!APP.exerciseSession || APP.exerciseSession !== session) return;
+        _hideSuccessBanner();
+        let fb = document.getElementById('exercise-feedback-bar');
+        if (fb) fb.remove();
+        session.current = generateExercise(exType, session.difficulty);
+        _presentExercise(session.current);
+      }, 1500);
+    } else {
+      _showExerciseFeedback(ex, `${matches}/${expectedCount} taps matched`);
+    }
+  });
 }
 
 function _checkRhythmWorkoutAnswer(userAnswer) {
