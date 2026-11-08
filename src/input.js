@@ -1574,6 +1574,14 @@ function setPageOrientation(o) {
   UI.showToast('Orientation: ' + o);
 }
 function togglePageOrientation() { setPageOrientation(APP.pageOrientation === 'landscape' ? 'portrait' : 'landscape'); }
+function cyclePageSize() {
+  const sizes = ['letter', 'a4', 'legal'];
+  const cur = APP.pageSize || 'letter';
+  const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length];
+  APP.pageSize = next;
+  RENDER.renderScore();
+  UI.showToast('Page size: ' + next);
+}
 function setPageSize(size) {
   APP.pageSize = size;
   RENDER.renderScore();

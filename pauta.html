@@ -11186,6 +11186,14 @@ function setPageOrientation(o) {
   UI.showToast('Orientation: ' + o);
 }
 function togglePageOrientation() { setPageOrientation(APP.pageOrientation === 'landscape' ? 'portrait' : 'landscape'); }
+function cyclePageSize() {
+  const sizes = ['letter', 'a4', 'legal'];
+  const cur = APP.pageSize || 'letter';
+  const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length];
+  APP.pageSize = next;
+  RENDER.renderScore();
+  UI.showToast('Page size: ' + next);
+}
 function setPageSize(size) {
   APP.pageSize = size;
   RENDER.renderScore();
@@ -19504,8 +19512,8 @@ function showViewMenu(btn) {
     {label:`${APP.showMeasureNumbers?'✓':'○'} Measure Numbers`, fn:toggleMeasureNumbers},
     {label:`${APP.showMultiMeasureRests?'✓':'○'} Multi-Rests`, fn:toggleMultiMeasureRests},
     {label:`${APP.continuousView?'✓':'○'} Continuous View`, fn:toggleContinuousView},
-    {label:`Page Size: ${APP.pageSize || 'letter'}`, fn: () => showPageSizeSubmenu(btn)},
-    {label:`Orientation: ${APP.pageOrientation || 'portrait'}`, fn: () => showPageOrientationSubmenu(btn)},
+    {label:`Page Size: ${APP.pageSize || 'letter'}`, fn: () => cyclePageSize()},
+    {label:`Orientation: ${APP.pageOrientation || 'portrait'}`, fn: () => togglePageOrientation()},
     {label:`${document.body.classList.contains('high-contrast')?'✓':'○'} High Contrast`, fn:toggleHighContrast},
     {sep:true},
     {label:`${APP.showTheoryOverlay?'✓':'○'} Theory Overlay`, fn:toggleTheoryOverlay},
