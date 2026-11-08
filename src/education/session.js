@@ -1032,7 +1032,7 @@ function _showRhythmTapPad(expectedTimes, beatDurMs, onGrade) {
 
 function _presentRhythmRead(ex) {
   const score = SCORE.createScore({title: 'Rhythm Reading', instruments: ['Snare Drum'], ts: {num:4,den:4}, ks: 0});
-  const notes = ex.target.durations.map(d => SCORE.mkNote(60, d));
+  const notes = ex.target.durations.map(d => SCORE.mkNote(67, d));
   score.parts[0].staves[0].measures[0].notes = notes;
   SCORE.adoptScore(score, { clearHistory: true, skipAssignmentPrompt: true });
   RENDER.renderScore();
@@ -2400,7 +2400,7 @@ function _presentRhythmWorkout(ex) {
   // Build notes array
   const vfNotes = notes.map(n => {
     if (n.rest) return SCORE.mkRest(n.duration, n.dots);
-    return SCORE.mkNote(60, n.duration, n.dots);
+    return SCORE.mkNote(67, n.duration, n.dots);
   });
 
   score.parts[0].staves[0].measures[0].notes = vfNotes;
