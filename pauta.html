@@ -8451,10 +8451,10 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
 
   // "Fingering" label
   const titleEl = document.createElementNS(ns, 'text');
-  titleEl.setAttribute('x', '11'); titleEl.setAttribute('y', '-175');
+  titleEl.setAttribute('x', '11'); titleEl.setAttribute('y', '-60');
   titleEl.setAttribute('text-anchor', 'middle');
   titleEl.setAttribute('style', 'font-family:var(--pauta-font-sans);font-size:12px;font-weight:600;fill:#888;pointer-events:none');
-  titleEl.setAttribute('transform', 'translate(11,-175) scale(1,-1) translate(-11,175)');
+  titleEl.setAttribute('transform', 'translate(11,-60) scale(1,-1) translate(-11,60)');
   titleEl.textContent = 'Fingering';
   inner.appendChild(titleEl);
 
@@ -8512,7 +8512,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     // Label centered above right-column hole for double pairs (6, 7)
     const isLeftSub = id === '6a' || id === '7a';
     const lx = isLeftSub ? CX_R : hx;
-    const ly = hy - dr - 50;
+    const ly = hy + dr + 20;
     const lbl = document.createElementNS(ns, 'text');
     lbl.setAttribute('x', lx); lbl.setAttribute('y', ly);
     lbl.setAttribute('style', lblSt);
