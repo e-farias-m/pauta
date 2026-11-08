@@ -1728,7 +1728,7 @@ function _setExerciseUI(enabled) {
     exitEl = document.createElement('button');
     exitEl.id = 'exercise-exit-btn';
     exitEl.textContent = '✕ Exit';
-    exitEl.style.cssText = 'position:fixed;top:48px;right:140px;z-index:201;padding:8px 16px;font-size:13px;background:rgba(224,104,80,0.1);border:1.5px solid rgba(224,104,80,0.3);color:var(--pauta-primary-light);border-radius:8px;cursor:pointer;font-weight:600;transition:all 0.15s;font-family:var(--pauta-font-sans);';
+    exitEl.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:201;padding:8px 16px;font-size:13px;background:rgba(224,104,80,0.1);border:1.5px solid rgba(224,104,80,0.3);color:var(--pauta-primary-light);border-radius:8px;cursor:pointer;font-weight:600;transition:all 0.15s;font-family:var(--pauta-font-sans);box-shadow:0 2px 8px rgba(0,0,0,0.08);';
     exitEl.addEventListener('mouseover', () => {
       exitEl.style.background = 'rgba(224,104,80,0.2)';
       exitEl.style.borderColor = 'rgba(224,104,80,0.5)';
