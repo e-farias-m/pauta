@@ -8510,16 +8510,16 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     if (id === 'T' && halfHole.has(0)) diagHalfPad(inner, hx, hy, dr, APP.playing);
 
     // Label centered above right-column hole for double pairs (6, 7)
-    const isLeftSub = id === '6a' || id === '7a';
-    const lx = isLeftSub ? CX_R : hx;
-    // Place the number inside the hole (at the hole centre). The outer
-    // transform flips Y, so the label lands on the hole, not above it.
+    // Each hole gets its own label, centred inside the hole. The right-hand
+    // member of a double-hole pair is named 6/7; the left-hand member 6a/7a.
+    const lx = hx;
     const ly = hy;
+    const label = (id === '6b') ? '6' : (id === '7b') ? '7' : id;
     const lbl = document.createElementNS(ns, 'text');
     lbl.setAttribute('x', lx); lbl.setAttribute('y', ly);
     lbl.setAttribute('style', lblSt.replace('fill:#222', cov ? 'fill:#fff' : 'fill:#222'));
     lbl.setAttribute('transform', `translate(${lx},${ly}) scale(1,-1) translate(${-lx},${-ly})`);
-    lbl.textContent = isLeftSub ? id[0] : id;
+    lbl.textContent = label;
     inner.appendChild(lbl);
   }
 
