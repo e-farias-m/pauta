@@ -2258,7 +2258,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
     return covered.has(parseInt(id));
   }
 
-  const lblSt = 'font-family:var(--pauta-font-sans);font-size:11px;font-weight:700;fill:#222;text-anchor:middle;dominant-baseline:central;pointer-events:none';
+  const lblSt = 'font-family:var(--pauta-font-sans);font-size:13px;font-weight:700;fill:#222;text-anchor:middle;dominant-baseline:central;pointer-events:none';
   for (const [id, hx, hy] of SVG_HOLES) {
     const cov = isCov(id);
     const dr = cov ? R * 1.2 : R;
