@@ -3076,4 +3076,5 @@ function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
  renderChordSymbols, renderLyrics, _autosaveNow
 ].forEach(fn => { UI[fn.name] = fn; });
 window.UI = UI;
+window.__PD = { showViewMenu, APP };
 })();

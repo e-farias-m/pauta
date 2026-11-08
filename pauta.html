@@ -6809,13 +6809,22 @@ function _renderSystems(rc) {
     if (!APP.continuousView && sysY + sysH > pageBottom() && sysY > pageTop + LAYOUT.MARGIN_TOP) {
       pageTop += pageH;
       sysY = pageTop + LAYOUT.MARGIN_TOP;
-      // visual page-break marker
+      // visual page-break marker (clearly visible page boundary)
       const pb = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      pb.setAttribute('x1', 0); pb.setAttribute('y1', sysY - 12);
-      pb.setAttribute('x2', cW); pb.setAttribute('y2', sysY - 12);
-      pb.setAttribute('stroke', 'rgba(0,0,0,0.08)'); pb.setAttribute('stroke-width', '1');
-      pb.setAttribute('stroke-dasharray', '4,4');
+      pb.setAttribute('x1', 0); pb.setAttribute('y1', sysY - 14);
+      pb.setAttribute('x2', cW); pb.setAttribute('y2', sysY - 14);
+      pb.setAttribute('stroke', 'rgba(0,0,0,0.25)'); pb.setAttribute('stroke-width', '2');
       container.querySelector('svg')?.appendChild(pb);
+      // page number label at the bottom of the previous page
+      const pageNum = Math.round(pageTop / pageH);
+      const pl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      pl.setAttribute('x', cW / 2); pl.setAttribute('y', sysY - 28);
+      pl.setAttribute('text-anchor', 'middle');
+      pl.setAttribute('font-size', '11');
+      pl.setAttribute('fill', 'rgba(74,85,104,0.5)');
+      pl.setAttribute('font-family', 'var(--pauta-font-sans)');
+      pl.textContent = `— Page ${pageNum} —`;
+      container.querySelector('svg')?.appendChild(pl);
     }
     const isFirstSysOfScore = sysIdx === 0;
     const firstExtra = isFirstSysOfScore
@@ -21608,6 +21617,7 @@ function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
  renderChordSymbols, renderLyrics, _autosaveNow
 ].forEach(fn => { UI[fn.name] = fn; });
 window.UI = UI;
+window.__PD = { showViewMenu, APP };
 })();
 
 
