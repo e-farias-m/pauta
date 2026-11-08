@@ -209,8 +209,8 @@ function svgPath(parent, {d, fill, stroke, strokeWidth, strokeLinecap, opacity} 
 
 // ── System packing ─────────────────────────────────────────────
 function packSystems(staves, allM, nM, ns, viewScale, container) {
-  const FIRST_EXTRA_GLOBAL = Math.round(156 * viewScale);
-  const FIRST_EXTRA_SYS    = Math.round(108 * viewScale);
+  const FIRST_EXTRA_GLOBAL = Math.round(110 * viewScale);
+  const FIRST_EXTRA_SYS    = Math.round(75 * viewScale);
   const mNatW = Array.from({length: nM}, (_, mi) =>
     measureContentWidth(staves[0].measures[mi]?.notes || [SCORE.mkRest('w')])
   );
@@ -517,12 +517,11 @@ function _renderScoreBody() {
   // In page view, resize the SVG to the actual paginated height.
   if (!APP.continuousView) {
     const svgEl = rc.container.querySelector('svg');
-    const finalH = (APP._pageTop || 0) + getPageDimensions().h;
+    const finalH = Math.max((APP._pageTop || 0) + getPageDimensions().h, 1);
     if (svgEl) {
       svgEl.setAttribute('height', finalH);
       svgEl.style.height = finalH + 'px';
     }
-    rc.container.style.height = finalH + 'px';
   }
   _renderScoreAnnotations(rc);
   _renderScoreCompletions(rc);
@@ -542,8 +541,8 @@ function _setupRender() {
   LAYOUT.STAVE_H       = REND.STAVE_H;
   LAYOUT.STAVE_SPACING = REND.STAVE_SPACING;
   LAYOUT.SYS_SPACING   = REND.SYS_SPACING;
-  LAYOUT.MARGIN_X      = APP.continuousView ? REND.MARGIN_X : 90;
-  LAYOUT.MARGIN_TOP    = APP.continuousView ? REND.MARGIN_TOP : 80;
+  LAYOUT.MARGIN_X      = APP.continuousView ? REND.MARGIN_X : 48;
+  LAYOUT.MARGIN_TOP    = APP.continuousView ? REND.MARGIN_TOP : 56;
   APP._lastPlayKey = '';
   APP.staveLayout = [];
   APP.noteLayout  = [];
@@ -559,7 +558,15 @@ function _setupRender() {
   debugLog('[PautaEngraving import render] nM:', nM, 'ns:', ns, 'ref stave measures:', allM?.length, 'first measure notes:', allM[0]?.notes?.length);
 
   const { systems, mNatW, cW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS } = packSystems(staves, allM, nM, ns, viewScale, container);
-  const totalH = LAYOUT.MARGIN_TOP + systems.length * (LAYOUT.STAVE_H + (ns-1) * LAYOUT.STAVE_SPACING + LAYOUT.SYS_SPACING) + 48;
+  const sysH = LAYOUT.STAVE_H + (ns-1) * LAYOUT.STAVE_SPACING + LAYOUT.SYS_SPACING;
+  const contentH = LAYOUT.MARGIN_TOP + systems.length * sysH + 48;
+  let totalH = contentH;
+  if (!APP.continuousView) {
+    // Renderer must be tall enough for all pages up-front, otherwise
+    // systems pushed onto page 2 are drawn outside the SVG canvas.
+    const pageH = getPageDimensions().h;
+    totalH = Math.max(pageH, Math.ceil(contentH / pageH) * pageH);
+  }
   const { ctx, multiRestGroups } = initScoreRenderer(container, cW, totalH, score);
 
   return { container, area, savedScrollTop, viewScale, score, staves, siOffset, ns, allM,

@@ -1619,9 +1619,18 @@ function toggleRhythmCounting() {
 // ── Zoom ──────────────────────────────────────────────────────────
 function applyZoom() {
   const z = Math.round(APP.zoom * 100);
-  document.getElementById('score-svg').style.transform = `scale(${APP.zoom})`;
-  document.getElementById('score-svg').style.transformOrigin = 'top center';
-  document.getElementById('score-svg').style.width = `${100 / APP.zoom}%`;
+  const el = document.getElementById('score-svg');
+  if (!el) return;
+  el.style.transform = `scale(${APP.zoom})`;
+  if (APP.continuousView) {
+    el.style.transformOrigin = 'top center';
+    el.style.width = `${100 / APP.zoom}%`;
+  } else {
+    // Page view: never stretch the page to the viewport width — keep the
+    // rendered pixel width so portrait stays portrait. Zoom via transform only.
+    el.style.transformOrigin = 'top center';
+    el.style.width = '';
+  }
   document.getElementById('zoom-pct').textContent = z + '%';
 }
 function zoomIn()  { APP.zoom = Math.min(2,   APP.zoom + 0.1); applyZoom(); }

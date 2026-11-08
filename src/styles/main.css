@@ -107,12 +107,12 @@ body{
 .btn-top:hover{opacity:0.85;}
 .btn-top:active{opacity:0.7;transform:scale(0.94)}
 #score-area{
-  flex:1;overflow-y:auto;overflow-x:hidden;
+  flex:1;overflow-y:auto;overflow-x:auto;
   -webkit-overflow-scrolling:touch;position:relative;
 }
 #score-canvas-container{padding:12px;min-height:100%;}
-#score-svg{width:100%;border-radius:6px;touch-action:manipulation;}
-#score-svg svg{width:100%;display:block}
+#score-svg{width:fit-content;max-width:none;border-radius:6px;touch-action:manipulation;margin:0 auto;}
+#score-svg svg{display:block;max-width:none}
 
 /* ── Status Bar ── */
 #status-bar{
