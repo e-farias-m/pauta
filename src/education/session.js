@@ -157,13 +157,15 @@ function endExerciseSession() {
   const s = APP.exerciseSession;
   if (!s) return;
 
-  // Rhythm Workout is a free practice tool, not a graded exercise — it is
-  // always "correct" by design, so reporting a score would be meaningless.
-  if (s.type === EXERCISE_TYPES.RHYTHM_WORKOUT) {
+  // Rhythm Workout and Rhythm Reading are free practice tools, not graded
+  // exercises: Rhythm Workout has no objective answer key, and Rhythm Reading
+  // has no input mechanism to check against, so reporting a score would be
+  // meaningless.
+  if (s.type === EXERCISE_TYPES.RHYTHM_WORKOUT || s.type === EXERCISE_TYPES.RHYTHM_READ) {
     const time = Math.floor((Date.now() - s.startedAt) / 1000);
     UI.makeModal(`
       <div class="pauta-hero">
-        <h2 class="pauta-hero-title">Rhythm Workout Complete</h2>
+        <h2 class="pauta-hero-title">${s.type === EXERCISE_TYPES.RHYTHM_WORKOUT ? 'Rhythm Workout' : 'Rhythm Reading'} Complete</h2>
         <div class="pauta-encouragement" style="color:var(--pauta-primary)">Great practice!</div>
         <div class="pauta-card-meta" style="margin:6px 0 12px">
           Time: ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}
