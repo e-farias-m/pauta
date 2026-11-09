@@ -6545,7 +6545,10 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
       const instr = instrByName(part.instrument || part.name);
       const diagramId = `instr-diagram-${flatIdx}`;
       const diagramCY = (topY + botY) / 2;
-      if (ns === 1 && instr && instr.recorder) {
+      // Large fingering diagrams need a 130–190px gutter. In page view the
+      // gutter is intentionally small, so skip the diagrams there (text
+      // label only) to avoid off-canvas clipping.
+      if (APP.continuousView && ns === 1 && instr && instr.recorder) {
         const recG = renderLargeRecorder([''], 0, '');
         const recScale = nStaves > 1 ? 1.8 : 1.35;
         recG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136},${diagramCY - 95 * recScale}) scale(${recScale}, -${recScale})`);
@@ -6555,7 +6558,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         recG.setAttribute('data-rec-scale', recScale);
         recG.setAttribute('data-rec-cy', diagramCY);
         svgEl2.appendChild(recG);
-      } else if (ns === 1 && instr && instr.family === 'Woodwinds') {
+      } else if (APP.continuousView && ns === 1 && instr && instr.family === 'Woodwinds') {
         const type = instr.name.toLowerCase();
         const shorthand = type.includes('flute')?'flute':type.includes('clarinet')?'clarinet':type.includes('tenor')?'tenor-sax':type.includes('sax')?'sax':type.includes('oboe')?'oboe':'bassoon';
         const wwG = renderWoodwindDiagram('', shorthand);
@@ -6567,7 +6570,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         wwG.setAttribute('data-instr-name', shorthand);
         wwG.setAttribute('data-diagram-cy', diagramCY);
         svgEl2.appendChild(wwG);
-      } else if (ns === 1 && instr && instr.family === 'Brass') {
+      } else if (APP.continuousView && ns === 1 && instr && instr.family === 'Brass') {
         const type = instr.name.toLowerCase();
         const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
         const brG = renderBrassDiagram([''], shorthand);
@@ -6580,19 +6583,22 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         brG.setAttribute('data-diagram-cy', diagramCY);
         svgEl2.appendChild(brG);
       }
+      const labelX = APP.continuousView
+        ? LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7)
+        : LAYOUT.MARGIN_X - 8;
       const labelG = _svgCreate('g', {
-        'data-label-x': LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7),
+        'data-label-x': labelX,
         'data-label-y': midY + 7,
-        transform: `translate(${LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7)},${midY + 6})`,
+        transform: `translate(${labelX},${midY + 6})`,
       });
       const nm = part.name;
-      const el = svgText(labelG, {x: 0, y: 0, text: '', fontSize: 11, fill: '#444', anchor: 'end'});
-      if (nm.length > 12 && nm.includes(' ')) {
+      const el = svgText(labelG, {x: 0, y: 0, text: '', fontSize: 10, fill: '#444', anchor: 'end'});
+      if (nm.length > 8 && nm.includes(' ')) {
         const si = nm.indexOf(' ');
         el.textContent = nm.slice(0, si);
         const ts = _svgCreate('tspan', {x: 0, dy: 13}, el);
         ts.textContent = nm.slice(si + 1);
-        labelG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - (nStaves > 1 ? 31 : 7)},${midY - 6.5})`);
+        labelG.setAttribute('transform', `translate(${labelX},${midY - 6.5})`);
         labelG.setAttribute('data-label-y', midY - 6.5);
       } else { el.textContent = nm; }
       svgEl2.appendChild(labelG);
@@ -6787,7 +6793,7 @@ function _setupRender() {
   LAYOUT.STAVE_H       = REND.STAVE_H;
   LAYOUT.STAVE_SPACING = REND.STAVE_SPACING;
   LAYOUT.SYS_SPACING   = REND.SYS_SPACING;
-  LAYOUT.MARGIN_X      = APP.continuousView ? REND.MARGIN_X : 48;
+  LAYOUT.MARGIN_X      = APP.continuousView ? REND.MARGIN_X : 64;
   LAYOUT.MARGIN_TOP    = APP.continuousView ? REND.MARGIN_TOP : 56;
   APP._lastPlayKey = '';
   APP.staveLayout = [];
