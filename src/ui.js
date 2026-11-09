@@ -961,7 +961,7 @@ function showViewMenu(btn) {
     {label:`${APP.showTheoryOverlay?'✓':'○'} Theory Overlay`, fn:toggleTheoryOverlay},
     {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
     {sep:true},
-    {label:'Difficulty Profile', fn:showProfileSubmenu},
+
   ];
   showDropdown(btn, items);
 }
@@ -1324,12 +1324,8 @@ function showPracticeSettingsMenu(btn) {
 }
 
 function showTeachMenu(btn) {
-  const role = LS.getItem('pauta_role') || 'teacher';
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
-    {header:'Mode'},
-    {label:`${role==='student'?'✓':'○'} Student Mode`, fn:() => AUDIO.switchRole('student')},
-    {label:`${role==='teacher'?'✓':'○'} Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
     {header:'Content'},
     {label:'Starter Assignments', fn:showStarterAssignmentsDialog},
     ...(hasAssignments || APP.assignmentMode
@@ -1341,9 +1337,7 @@ function showTeachMenu(btn) {
     {label:'Rhythm Composer', fn:showRhythmComposer},
     {label:'Melody Composer', fn:showMelodyComposer},
     {header:'Monitor'},
-    ...(role === 'teacher'
-      ? [{label:'Class Progress', fn:showStudentProgress}]
-      : [{label:'My Progress', fn:showStudentProgress}]),
+    {label:'My Progress', fn:showStudentProgress},
     {label:'Dashboard', fn:showTeacherDashboard},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
     {header:'Tools'},
@@ -2526,13 +2520,16 @@ function bootApp() {
   const isIPad = /iPad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   APP.continuousView = isIPad;
 
-  // Restore UI difficulty profile from previous session
+  // All features are unlocked: always start with the advanced profile.
   try {
-    const savedProfile = LS.getItem('pauta_ui_profile');
-    if (savedProfile && UI_PROFILES[savedProfile]) {
-      APP.uiProfile = savedProfile;
-      applyUIProfile(savedProfile);
-    }
+    LS.removeItem('pauta_ui_profile');
+    LS.removeItem('pauta_kit');
+    LS.removeItem('pauta_kit_level');
+    LS.removeItem('pauta_role');
+    APP.teachingKit = null;
+    APP.teachingKitLevel = 'advanced';
+    APP.uiProfile = 'advanced';
+    applyUIProfile('advanced');
   } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Restore palette collapsed state
@@ -2544,18 +2541,11 @@ function bootApp() {
     }
   } catch(e) { console.warn('[Pauta]', e.message); }
 
-  // Restore teaching kit from previous session
-  try {
-    const savedKit = LS.getItem('pauta_kit');
-    const savedKitLevel = LS.getItem('pauta_kit_level');
-    if (savedKit && KIT_CONFIGS[savedKit] && savedKitLevel) {
-      APP.teachingKit = savedKit;
-      APP.teachingKitLevel = savedKitLevel;
-    }
-  } catch(e) { console.warn('[Pauta]', e.message); }
+  // Teaching kits are no longer restored — the app always starts unlocked.
 
   // Restore role and set document title
   AUDIO._updateDocTitle();
+  document.getElementById('role-badge')?.addEventListener('click', () => AUDIO.editNamePrompt());
 
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');

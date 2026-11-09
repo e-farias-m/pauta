@@ -538,44 +538,67 @@ async function _exportPDF(pageSize) {
 }
 
 // ── Help & Onboarding ─────────────────────────────────────────────
+// Pauta no longer distinguishes Teacher/Student. All features are unlocked
+// and the first screen is a welcome + what's-your-name prompt (like
+// the Preludio apps). The name is only used for greeting; it lives in
+// localStorage as pauta_name.
+function getStudentName() { return (LS.getItem('pauta_name') || '').trim(); }
+function setStudentName(name) {
+  const clean = (name || '').trim();
+  if (clean) {
+    LS.setItem('pauta_name', clean);
+    LS.setItem('pauta_welcome_seen', '1');
+  }
+  _updateDocTitle();
+}
+
 function showWelcomeModal() {
-  const seen = LS.getItem('pauta_welcome_seen');
-  if (seen) return;
+  if (getStudentName()) { LS.setItem('pauta_welcome_seen', '1'); return; }
+  _showNameModal(''); }
+function editNamePrompt() { _showNameModal(getStudentName()); }
+function _showNameModal(prename) {
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
       <img src="pauta_logo_hires.png" alt="Pauta" style="height:56px;width:auto;margin-bottom:12px" />
-      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:18px">Welcome! What would you like to do today?</div>
+      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:6px">Welcome!</div>
 
-      <button class="modal-btn primary pauta-mb-sm" data-action="startLearnerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
-        <span style="font-size:22px">&#9835;</span>
-        <span>I want to learn music!</span>
-      </button>
-
-      <button class="modal-btn secondary pauta-mb-sm" data-action="startComposerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
-        <span style="font-size:20px;font-weight:700">&#9998;</span>
-        <span>I want to write music!</span>
-      </button>
-
-      <div class="pauta-text-subtle pauta-mt-sm">
-        You can change your mind anytime in the View menu.
+      <div class="pauta-text-subtle pauta-mt-sm" style="margin-bottom:12px">
+        <?> What's your name?
       </div>
+      <input id="welcome-name" type="text" placeholder="Your name..." maxlength="50" value="${prename.replace(/"/g, '&quot;')}"
+        autocomplete="off" autocapitalize="words"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;font-size:16px;border:1px solid rgba(227,96,26,0.3);border-radius:8px;font-family:var(--pauta-font-sans);text-align:center" />
+
+      <button class="modal-btn primary pauta-mb-sm" id="welcome-start" style="width:100%;padding:12px;font-size:15px;margin-top:12px">Start</button>
+      <button class="modal-btn secondary pauta-mb-sm" id="welcome-skip" style="width:100%">Continue without a name</button>
     </div>
   `);
+
+  const input = document.getElementById('welcome-name');
+  const start = document.getElementById('welcome-start');
+  const skip = document.getElementById('welcome-skip');
+  const submit = () => {
+    const name = input?.value.trim();
+    if (!name) { input?.focus(); return; }
+    setStudentName(name);
+    UI.closeModal();
+    UI.showToast('Hi, ' + name + '!');
+  };
+  start?.addEventListener('click', submit);
+  input?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  skip?.addEventListener('click', () => { LS.setItem('pauta_welcome_seen', '1'); UI.closeModal(); });
+  setTimeout(() => input?.focus(), 100);
 }
 
+// Legacy onboarding entry points (kept for compatibility): the app no
+// longer distinguishes learning vs. composing, so both simply close.
 function startLearnerOnboarding() {
-  applyKit('recorder', 'beginner');
   LS.setItem('pauta_welcome_seen', '1');
-  LS.setItem('pauta_role', 'student');
-  if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
-  setTimeout(() => showExerciseDialog(), 300);
 }
 
 function startComposerOnboarding() {
   LS.setItem('pauta_welcome_seen', '1');
-  LS.setItem('pauta_role', 'teacher');
-  if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
 }
 
@@ -585,29 +608,28 @@ function closeWelcome() {
 }
 
 function _updateDocTitle() {
-  const role = LS.getItem('pauta_role') || 'teacher';
-  document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
+  const name = getStudentName();
+  document.title = name ? `Pauta — ${name}` : 'Pauta — Score Editor';
   const badge = document.getElementById('role-badge');
   if (!badge) return;
-  if (role === 'student') {
-    badge.textContent = 'Student';
-    badge.style.background = 'rgba(34,197,94,0.15)';
-    badge.style.color = '#16a34a';
+  if (name) {
+    badge.textContent = name;
+    badge.title = 'Edit name';
+    badge.style.background = 'rgba(227,96,26,0.12)';
+    badge.style.color = 'var(--pauta-primary)';
     badge.style.display = '';
   } else {
-    badge.textContent = 'Teacher';
-    badge.style.background = 'rgba(59,130,246,0.15)';
-    badge.style.color = '#2563eb';
-    badge.style.display = '';
+    badge.style.display = 'none';
   }
 }
 // Subscribe to role:changed so title updates without direct calls
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);
 
-function switchRole(role) {
-  LS.setItem('pauta_role', role);
-  if (window.BUS) BUS.emit('role:changed');
-  UI.showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
+// Teacher/Student roles are gone: every feature is unlocked for everyone.
+// Kept as a no-op so any old code or saved links don't break.
+function switchRole() {
+  LS.removeItem('pauta_role');
+  UI.showToast('All features are unlocked.');
 }
 
 function getAudioCtx() {
@@ -1677,7 +1699,7 @@ function _showPracticeResults() {
 // ── Assign playback functions to AUDIO namespace ─────────
 [navigateNote, insertMeasure, addMeasure, navigateStaff,
  pushUndo, undo, redo, showExportDialog, confirmExportAudio,
- showExportPDFDialog, confirmExportPDF, showWelcomeModal,
+ showExportPDFDialog, confirmExportPDF, showWelcomeModal, editNamePrompt,
  startLearnerOnboarding, startComposerOnboarding, closeWelcome,
  switchRole, togglePlayback, rewindPlayback, toggleCountIn,
  setMetronomeSubdivision, toggleMetronome, togglePracticeMode,

@@ -1354,10 +1354,9 @@ function _finishDiagnostic() {
     const applyBtn = document.getElementById('diag-apply-profile');
     if (applyBtn) applyBtn.addEventListener('click', () => {
       UI.closeModal();
-      const kitLevel = placement.label.toLowerCase();
-      applyKit(APP.teachingKit || 'recorder', kitLevel);
-      applyUIProfile(placement.profile);
-      UI.showToast('Profile set to: ' + placement.label);
+      // All features are unlocked — the diagnostic result is informational,
+      // it no longer restricts the UI.
+      UI.showToast('Recommended level: ' + placement.label + ' (all features remain unlocked)');
       RENDER.renderScore();
     });
   }, 50);

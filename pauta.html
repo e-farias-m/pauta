@@ -85,13 +85,13 @@
     </svg>
     <span>Practice</span>
   </button>
-  <button class="btn-top" data-action="showTeachMenu" title="Teacher tools and assignments">
+  <button class="btn-top" data-action="showTeachMenu" title="Studio tools, assignments and composers">
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 17 L10 13 L18 17 L18 7 L10 3 L2 7 Z"/>
       <path d="M2 7 L2 13"/>
       <path d="M10 3 L10 13"/>
     </svg>
-    <span>Teach</span>
+    <span>Studio</span>
   </button>
   <button class="btn-top" id="btn-input-mode" data-action="toggleInputMode" aria-label="Toggle input mode" title="Toggle note-input mode">
     <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -16350,10 +16350,9 @@ function _finishDiagnostic() {
     const applyBtn = document.getElementById('diag-apply-profile');
     if (applyBtn) applyBtn.addEventListener('click', () => {
       UI.closeModal();
-      const kitLevel = placement.label.toLowerCase();
-      applyKit(APP.teachingKit || 'recorder', kitLevel);
-      applyUIProfile(placement.profile);
-      UI.showToast('Profile set to: ' + placement.label);
+      // All features are unlocked — the diagnostic result is informational,
+      // it no longer restricts the UI.
+      UI.showToast('Recommended level: ' + placement.label + ' (all features remain unlocked)');
       RENDER.renderScore();
     });
   }, 50);
@@ -17416,44 +17415,67 @@ async function _exportPDF(pageSize) {
 }
 
 // ── Help & Onboarding ─────────────────────────────────────────────
+// Pauta no longer distinguishes Teacher/Student. All features are unlocked
+// and the first screen is a welcome + what's-your-name prompt (like
+// the Preludio apps). The name is only used for greeting; it lives in
+// localStorage as pauta_name.
+function getStudentName() { return (LS.getItem('pauta_name') || '').trim(); }
+function setStudentName(name) {
+  const clean = (name || '').trim();
+  if (clean) {
+    LS.setItem('pauta_name', clean);
+    LS.setItem('pauta_welcome_seen', '1');
+  }
+  _updateDocTitle();
+}
+
 function showWelcomeModal() {
-  const seen = LS.getItem('pauta_welcome_seen');
-  if (seen) return;
+  if (getStudentName()) { LS.setItem('pauta_welcome_seen', '1'); return; }
+  _showNameModal(''); }
+function editNamePrompt() { _showNameModal(getStudentName()); }
+function _showNameModal(prename) {
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
       <img src="pauta_logo_hires.png" alt="Pauta" style="height:56px;width:auto;margin-bottom:12px" />
-      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:18px">Welcome! What would you like to do today?</div>
+      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:6px">Welcome!</div>
 
-      <button class="modal-btn primary pauta-mb-sm" data-action="startLearnerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
-        <span style="font-size:22px">&#9835;</span>
-        <span>I want to learn music!</span>
-      </button>
-
-      <button class="modal-btn secondary pauta-mb-sm" data-action="startComposerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
-        <span style="font-size:20px;font-weight:700">&#9998;</span>
-        <span>I want to write music!</span>
-      </button>
-
-      <div class="pauta-text-subtle pauta-mt-sm">
-        You can change your mind anytime in the View menu.
+      <div class="pauta-text-subtle pauta-mt-sm" style="margin-bottom:12px">
+        <?> What's your name?
       </div>
+      <input id="welcome-name" type="text" placeholder="Your name..." maxlength="50" value="${prename.replace(/"/g, '&quot;')}"
+        autocomplete="off" autocapitalize="words"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;font-size:16px;border:1px solid rgba(227,96,26,0.3);border-radius:8px;font-family:var(--pauta-font-sans);text-align:center" />
+
+      <button class="modal-btn primary pauta-mb-sm" id="welcome-start" style="width:100%;padding:12px;font-size:15px;margin-top:12px">Start</button>
+      <button class="modal-btn secondary pauta-mb-sm" id="welcome-skip" style="width:100%">Continue without a name</button>
     </div>
   `);
+
+  const input = document.getElementById('welcome-name');
+  const start = document.getElementById('welcome-start');
+  const skip = document.getElementById('welcome-skip');
+  const submit = () => {
+    const name = input?.value.trim();
+    if (!name) { input?.focus(); return; }
+    setStudentName(name);
+    UI.closeModal();
+    UI.showToast('Hi, ' + name + '!');
+  };
+  start?.addEventListener('click', submit);
+  input?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  skip?.addEventListener('click', () => { LS.setItem('pauta_welcome_seen', '1'); UI.closeModal(); });
+  setTimeout(() => input?.focus(), 100);
 }
 
+// Legacy onboarding entry points (kept for compatibility): the app no
+// longer distinguishes learning vs. composing, so both simply close.
 function startLearnerOnboarding() {
-  applyKit('recorder', 'beginner');
   LS.setItem('pauta_welcome_seen', '1');
-  LS.setItem('pauta_role', 'student');
-  if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
-  setTimeout(() => showExerciseDialog(), 300);
 }
 
 function startComposerOnboarding() {
   LS.setItem('pauta_welcome_seen', '1');
-  LS.setItem('pauta_role', 'teacher');
-  if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
 }
 
@@ -17463,29 +17485,28 @@ function closeWelcome() {
 }
 
 function _updateDocTitle() {
-  const role = LS.getItem('pauta_role') || 'teacher';
-  document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
+  const name = getStudentName();
+  document.title = name ? `Pauta — ${name}` : 'Pauta — Score Editor';
   const badge = document.getElementById('role-badge');
   if (!badge) return;
-  if (role === 'student') {
-    badge.textContent = 'Student';
-    badge.style.background = 'rgba(34,197,94,0.15)';
-    badge.style.color = '#16a34a';
+  if (name) {
+    badge.textContent = name;
+    badge.title = 'Edit name';
+    badge.style.background = 'rgba(227,96,26,0.12)';
+    badge.style.color = 'var(--pauta-primary)';
     badge.style.display = '';
   } else {
-    badge.textContent = 'Teacher';
-    badge.style.background = 'rgba(59,130,246,0.15)';
-    badge.style.color = '#2563eb';
-    badge.style.display = '';
+    badge.style.display = 'none';
   }
 }
 // Subscribe to role:changed so title updates without direct calls
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);
 
-function switchRole(role) {
-  LS.setItem('pauta_role', role);
-  if (window.BUS) BUS.emit('role:changed');
-  UI.showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
+// Teacher/Student roles are gone: every feature is unlocked for everyone.
+// Kept as a no-op so any old code or saved links don't break.
+function switchRole() {
+  LS.removeItem('pauta_role');
+  UI.showToast('All features are unlocked.');
 }
 
 function getAudioCtx() {
@@ -18555,7 +18576,7 @@ function _showPracticeResults() {
 // ── Assign playback functions to AUDIO namespace ─────────
 [navigateNote, insertMeasure, addMeasure, navigateStaff,
  pushUndo, undo, redo, showExportDialog, confirmExportAudio,
- showExportPDFDialog, confirmExportPDF, showWelcomeModal,
+ showExportPDFDialog, confirmExportPDF, showWelcomeModal, editNamePrompt,
  startLearnerOnboarding, startComposerOnboarding, closeWelcome,
  switchRole, togglePlayback, rewindPlayback, toggleCountIn,
  setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
@@ -19527,7 +19548,7 @@ function showViewMenu(btn) {
     {label:`${APP.showTheoryOverlay?'✓':'○'} Theory Overlay`, fn:toggleTheoryOverlay},
     {label:`${APP.showRhythmCounting?'✓':'○'} 𝅘𝅥𝅮 Rhythm Counting`, fn:toggleRhythmCounting},
     {sep:true},
-    {label:'Difficulty Profile', fn:showProfileSubmenu},
+
   ];
   showDropdown(btn, items);
 }
@@ -19890,12 +19911,8 @@ function showPracticeSettingsMenu(btn) {
 }
 
 function showTeachMenu(btn) {
-  const role = LS.getItem('pauta_role') || 'teacher';
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
-    {header:'Mode'},
-    {label:`${role==='student'?'✓':'○'} Student Mode`, fn:() => AUDIO.switchRole('student')},
-    {label:`${role==='teacher'?'✓':'○'} Teacher Mode`, fn:() => AUDIO.switchRole('teacher')},
     {header:'Content'},
     {label:'Starter Assignments', fn:showStarterAssignmentsDialog},
     ...(hasAssignments || APP.assignmentMode
@@ -19907,9 +19924,7 @@ function showTeachMenu(btn) {
     {label:'Rhythm Composer', fn:showRhythmComposer},
     {label:'Melody Composer', fn:showMelodyComposer},
     {header:'Monitor'},
-    ...(role === 'teacher'
-      ? [{label:'Class Progress', fn:showStudentProgress}]
-      : [{label:'My Progress', fn:showStudentProgress}]),
+    {label:'My Progress', fn:showStudentProgress},
     {label:'Dashboard', fn:showTeacherDashboard},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
     {header:'Tools'},
@@ -21092,13 +21107,16 @@ function bootApp() {
   const isIPad = /iPad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   APP.continuousView = isIPad;
 
-  // Restore UI difficulty profile from previous session
+  // All features are unlocked: always start with the advanced profile.
   try {
-    const savedProfile = LS.getItem('pauta_ui_profile');
-    if (savedProfile && UI_PROFILES[savedProfile]) {
-      APP.uiProfile = savedProfile;
-      applyUIProfile(savedProfile);
-    }
+    LS.removeItem('pauta_ui_profile');
+    LS.removeItem('pauta_kit');
+    LS.removeItem('pauta_kit_level');
+    LS.removeItem('pauta_role');
+    APP.teachingKit = null;
+    APP.teachingKitLevel = 'advanced';
+    APP.uiProfile = 'advanced';
+    applyUIProfile('advanced');
   } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Restore palette collapsed state
@@ -21110,18 +21128,11 @@ function bootApp() {
     }
   } catch(e) { console.warn('[Pauta]', e.message); }
 
-  // Restore teaching kit from previous session
-  try {
-    const savedKit = LS.getItem('pauta_kit');
-    const savedKitLevel = LS.getItem('pauta_kit_level');
-    if (savedKit && KIT_CONFIGS[savedKit] && savedKitLevel) {
-      APP.teachingKit = savedKit;
-      APP.teachingKitLevel = savedKitLevel;
-    }
-  } catch(e) { console.warn('[Pauta]', e.message); }
+  // Teaching kits are no longer restored — the app always starts unlocked.
 
   // Restore role and set document title
   AUDIO._updateDocTitle();
+  document.getElementById('role-badge')?.addEventListener('click', () => AUDIO.editNamePrompt());
 
   const loading = document.getElementById('loading');
   loading.classList.add('hidden');
