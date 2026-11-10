@@ -847,7 +847,7 @@ body{
   -webkit-overflow-scrolling:touch;position:relative;
 }
 #score-canvas-container{padding:12px;min-height:100%;}
-#score-svg{width:fit-content;max-width:none;border-radius:6px;touch-action:manipulation;margin:0 auto;box-shadow:0 2px 16px rgba(0,0,0,0.12);}
+#score-svg{width:100%;border-radius:6px;touch-action:manipulation;box-shadow:0 2px 16px rgba(0,0,0,0.12);}
 #score-svg svg{display:block;max-width:none}
 
 /* ── Status Bar ── */
@@ -6501,6 +6501,7 @@ function initScoreRenderer(container, cW, totalH, score) {
     container.style.overflowX = 'auto';
     container.style.overflowY = 'auto';
     container.style.whiteSpace = '';
+    container.style.width = '100%';
     const svgEl = container.querySelector('svg');
     if (svgEl) {
       svgEl.style.width = cW + 'px';

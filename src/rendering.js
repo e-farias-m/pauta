@@ -265,6 +265,7 @@ function initScoreRenderer(container, cW, totalH, score) {
     container.style.overflowX = 'auto';
     container.style.overflowY = 'auto';
     container.style.whiteSpace = '';
+    container.style.width = '100%';
     const svgEl = container.querySelector('svg');
     if (svgEl) {
       svgEl.style.width = cW + 'px';
