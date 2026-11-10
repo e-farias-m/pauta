@@ -379,7 +379,7 @@ function showStudentProgress() {
       const angle = (360 / n) * i;
       return polarToCart(angle, maxR * (v / 100));
     });
-    svg += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="rgba(227,96,26,0.15)" stroke="var(--pauta-primary)" stroke-width="1.5"/>`;
+    svg += `<polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="rgba(204,24,69,0.15)" stroke="var(--pauta-primary)" stroke-width="1.5"/>`;
 
     // Data points
     pts.forEach((p, i) => {
@@ -424,7 +424,7 @@ function showStudentProgress() {
     const label = TYPE_LABELS[type] || type;
     const barW = Math.round((n / maxSessions) * 100);
     const avgColor = avg >= 80 ? 'var(--pauta-success)' : avg >= 60 ? 'var(--pauta-warning)' : 'var(--pauta-primary-light)';
-    return `<div style="margin-bottom:10px;padding:8px;background:rgba(227,96,26,0.03);border-radius:6px">
+    return `<div style="margin-bottom:10px;padding:8px;background:rgba(204,24,69,0.03);border-radius:6px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <span style="font-weight:600;font-size:13px;color:var(--pauta-text)">${label}</span>
         <span style="font-size:11px;color:${avgColor};font-weight:700">${avg}% avg</span>
@@ -499,14 +499,14 @@ function showStudentProgress() {
     <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;justify-content:center">
       <div style="flex:1;min-width:200px">
         <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px;text-align:center">Practice Streak (12 weeks)</div>
-        <div style="padding:8px;background:rgba(227,96,26,0.03);border-radius:8px;overflow-x:auto">${calSvg}</div>
+        <div style="padding:8px;background:rgba(204,24,69,0.03);border-radius:8px;overflow-x:auto">${calSvg}</div>
       </div>
       ${radarData.length >= 3 ? `<div style="flex:0 0 180px">
         <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px;text-align:center">Skill Profile</div>
-        <div style="padding:8px;background:rgba(227,96,26,0.03);border-radius:8px">${radarChart(radarData, radarLabels, 160)}</div>
+        <div style="padding:8px;background:rgba(204,24,69,0.03);border-radius:8px">${radarChart(radarData, radarLabels, 160)}</div>
       </div>` : ''}
     </div>
-    ${recentPcts.length >= 2 ? `<div style="margin-bottom:12px;padding:8px;background:rgba(227,96,26,0.03);border-radius:8px">
+    ${recentPcts.length >= 2 ? `<div style="margin-bottom:12px;padding:8px;background:rgba(204,24,69,0.03);border-radius:8px">
       <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-bottom:4px">Recent ${recent.length} sessions</div>
       ${sparkline(recentPcts, 200, 40, 'var(--pauta-primary)')}
     </div>` : ''}
@@ -605,7 +605,7 @@ function showTeacherDashboard() {
       return `${TYPE_LABELS[t] || t}: ${Math.round(arr.reduce((s,x) => s+x.pct,0)/arr.length)}%`;
     }).join(' · ');
 
-    return `<div style="border:1px solid rgba(227,96,26,0.15);border-radius:6px;padding:8px 10px;margin-bottom:6px">
+    return `<div style="border:1px solid rgba(204,24,69,0.15);border-radius:6px;padding:8px 10px;margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-weight:600;color:var(--pauta-text);font-size:13px">${UI.escHtml(name)}</span>
         <span style="font-size:13px;color:var(--pauta-primary);font-weight:700">${avg}%</span>
@@ -716,7 +716,7 @@ function showExerciseBuilderDialog() {
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:6px;font-weight:600">Your Custom Exercise Sets</div>
       <div style="flex-shrink:0;max-height:150px;overflow-y:auto">
         ${existing.map((ex, idx) => `
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(227,96,26,0.03);border-radius:6px;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(204,24,69,0.03);border-radius:6px;margin-bottom:4px">
             <div style="flex:1">
               <div style="font-weight:600;font-size:12px;color:var(--pauta-text)">${UI.escHtml(ex.name)}</div>
               <div style="font-size:10px;color:rgba(74,85,104,0.6)">${ex.exercises.length} exercises · ${ex.difficulty}</div>
@@ -1064,7 +1064,7 @@ function showStarterPreviewDialog(exercises, label) {
     </p>
     <div style="flex-shrink:0;max-height:200px;overflow-y:auto;margin-bottom:16px;font-size:12px;color:var(--pauta-text-muted)">
       ${exercises.map((ex, i) => `
-        <div style="padding:6px 8px;background:rgba(227,96,26,0.03);border-radius:6px;margin-bottom:4px">
+        <div style="padding:6px 8px;background:rgba(204,24,69,0.03);border-radius:6px;margin-bottom:4px">
           <div style="font-weight:600;color:var(--pauta-text)">${UI.escHtml(ex.title)}</div>
           ${ex.answerKey ? `<div style="font-size:10px;color:rgba(74,85,104,0.6)">Answer key included</div>` : ''}
         </div>
@@ -1178,7 +1178,7 @@ function showDiagnosticDialog() {
       A quick 5-minute placement test covering<Br>
       <b>notes</b> · <b>intervals</b> · <b>key signatures</b> · <b>rhythm</b>
     </p>
-    <div style="background:rgba(227,96,26,0.06);border-radius:6px;padding:8px 12px;font-size:11px;color:rgba(74,85,104,0.7);margin-bottom:12px;line-height:1.5">
+    <div style="background:rgba(204,24,69,0.06);border-radius:6px;padding:8px 12px;font-size:11px;color:rgba(74,85,104,0.7);margin-bottom:12px;line-height:1.5">
       You'll get a recommended difficulty profile at the end based on your scores.
     </div>
     <button class="modal-btn primary" id="diag-start-btn">▶ Start Assessment</button>
@@ -1340,7 +1340,7 @@ function _finishDiagnostic() {
       <div style="font-size:38px;font-weight:700;color:var(--pauta-primary)">${pct}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted)">${totalCorrect}/${totalQs} correct · ${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}</div>
     </div>
-    <div style="background:rgba(227,96,26,0.08);border-radius:8px;padding:8px 12px;text-align:center;margin-bottom:10px">
+    <div style="background:rgba(204,24,69,0.08);border-radius:8px;padding:8px 12px;text-align:center;margin-bottom:10px">
       <div style="font-size:11px;color:rgba(74,85,104,0.6)">Recommended level</div>
       <div style="font-size:20px;font-weight:700;color:var(--pauta-primary);margin-top:2px">${placement.label}</div>
       <div style="font-size:11px;color:rgba(74,85,104,0.6);margin-top:2px">${placement.desc}</div>
@@ -1376,7 +1376,7 @@ function _showDiagBar() {
   bar.innerHTML = `
     <span id="diag-progress" style="font-weight:600;white-space:nowrap;min-width:80px">Question 1/14</span>
     <span id="diag-cat" style="font-size:11px;color:rgba(74,85,104,0.6);min-width:60px">Note ID</span>
-    <input id="diag-answer" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(227,96,26,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+    <input id="diag-answer" type="text" placeholder="Type answer…" style="width:160px;padding:4px 8px;border:1px solid rgba(204,24,69,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
     <button class="modal-btn primary" id="diag-submit" style="padding:4px 12px;font-size:12px">Submit</button>
   `;
   document.body.appendChild(bar);
@@ -1518,13 +1518,13 @@ function showRhythmComposer() {
     <h2 style="font-size:15px;margin-bottom:6px">Rhythm Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Time:</span>
-      <select id="rc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <select id="rc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(204,24,69,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
         ${['2/4','3/4','4/4','6/8'].map(v => `<option value="${v}" ${v==='4/4'?'selected':''}>${v}</option>`).join('')}
       </select>
     </div>
     <div style="margin-bottom:10px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Measures:</span>
-      <input type="number" id="rc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <input type="number" id="rc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(204,24,69,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
     </div>
     <button class="modal-btn primary" data-action="startRhythmComposer">Start Composing</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -1636,7 +1636,7 @@ function _enterRhythmMode() {
         </span>
         <span class="pal-lbl">Rest</span>
       </button>
-      <button class="pal-btn" style="background:rgba(227,96,26,0.1)" data-action="exitCompositionMode">
+      <button class="pal-btn" style="background:rgba(204,24,69,0.1)" data-action="exitCompositionMode">
         <span class="pal-sym" style="font-size:12px">✕</span>
         <span class="pal-lbl">Exit</span>
       </button>
@@ -1664,17 +1664,17 @@ function showMelodyComposer() {
     <h2 style="font-size:15px;margin-bottom:6px">Melody Composer</h2>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Key:</span>
-      <select id="mc-ks" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">${ksOpts}</select>
+      <select id="mc-ks" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(204,24,69,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">${ksOpts}</select>
     </div>
     <div style="margin-bottom:6px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Time:</span>
-      <select id="mc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <select id="mc-ts" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(204,24,69,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
         ${['2/4','3/4','4/4','6/8'].map(v => `<option value="${v}" ${v==='4/4'?'selected':''}>${v}</option>`).join('')}
       </select>
     </div>
     <div style="margin-bottom:10px">
       <span style="font-size:11px;color:var(--pauta-text-muted)">Measures:</span>
-      <input type="number" id="mc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(227,96,26,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
+      <input type="number" id="mc-meas" value="4" min="1" max="16" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(204,24,69,0.2);font-size:12px;background:transparent;color:var(--pauta-text);margin-left:6px">
     </div>
     <button class="modal-btn primary" data-action="startMelodyComposer">Start Composing</button>
     <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
@@ -1741,7 +1741,7 @@ function _enterMelodyMode(ks) {
       <button class="pal-btn" data-action="changeOctave" data-delta="-1"><span class="pal-sym" style="font-size:10px">−8</span><span class="pal-lbl">Oct ↓</span></button>
       <button class="pal-btn" data-action="changeOctave" data-delta="1"><span class="pal-sym" style="font-size:10px">+8</span><span class="pal-lbl">Oct ↑</span></button>
       <button class="pal-btn" data-action="insertRest"><span class="pal-sym" style="font-size:14px;font-family:var(--pauta-font-sans)">𝄽</span><span class="pal-lbl">Rest</span></button>
-      <button class="pal-btn" style="background:rgba(227,96,26,0.1)" data-action="exitCompositionMode"><span class="pal-sym" style="font-size:12px">✕</span><span class="pal-lbl">Exit</span></button>
+      <button class="pal-btn" style="background:rgba(204,24,69,0.1)" data-action="exitCompositionMode"><span class="pal-sym" style="font-size:12px">✕</span><span class="pal-lbl">Exit</span></button>
     </div>
     \x3C!-- Scale-degree note names --\x3E
     <div class="palette-row">${noteBtns}</div>

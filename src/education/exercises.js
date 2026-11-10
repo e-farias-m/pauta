@@ -258,7 +258,7 @@ function showCurriculumDialog() {
     const completedExercises = p.completed || 0;
     const pct = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
-    return `<div class="pauta-subtle-card pauta-mb-sm" style="background:${unlocked ? 'rgba(227,96,26,0.04)' : 'rgba(0,0,0,0.03)'};border:1px solid ${unlocked ? 'rgba(227,96,26,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
+    return `<div class="pauta-subtle-card pauta-mb-sm" style="background:${unlocked ? 'rgba(204,24,69,0.04)' : 'rgba(0,0,0,0.03)'};border:1px solid ${unlocked ? 'rgba(204,24,69,0.15)' : 'rgba(0,0,0,0.06)'};${!unlocked ? 'opacity:0.5' : ''}">
       <div class="pauta-row" style="gap:10px;margin-bottom:6px">
         <span style="font-size:24px">${grade.icon}</span>
         <div class="pauta-grow">

@@ -444,7 +444,7 @@ function showExportPDFDialog() {
     <h2>Export Engraved PDF</h2>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Page size</div>
-      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(227,96,26,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(204,24,69,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
         <option value="a4">A4</option>
         <option value="letter">US Letter</option>
       </select>
@@ -567,7 +567,7 @@ function _showNameModal(prename) {
       </div>
       <input id="welcome-name" type="text" placeholder="Your name..." maxlength="50" value="${prename.replace(/"/g, '&quot;')}"
         autocomplete="off" autocapitalize="words"
-        style="width:100%;box-sizing:border-box;padding:10px 12px;font-size:16px;border:1px solid rgba(227,96,26,0.3);border-radius:8px;font-family:var(--pauta-font-sans);text-align:center" />
+        style="width:100%;box-sizing:border-box;padding:10px 12px;font-size:16px;border:1px solid rgba(204,24,69,0.3);border-radius:8px;font-family:var(--pauta-font-sans);text-align:center" />
 
       <button class="modal-btn primary pauta-mb-sm" id="welcome-start" style="width:100%;padding:12px;font-size:15px;margin-top:12px">Start</button>
       <button class="modal-btn secondary pauta-mb-sm" id="welcome-skip" style="width:100%">Continue without a name</button>
@@ -615,7 +615,7 @@ function _updateDocTitle() {
   if (name) {
     badge.textContent = name;
     badge.title = 'Edit name';
-    badge.style.background = 'rgba(227,96,26,0.12)';
+    badge.style.background = 'rgba(204,24,69,0.12)';
     badge.style.color = 'var(--pauta-primary)';
     badge.style.display = '';
   } else {
@@ -1087,7 +1087,7 @@ function startPlayback() {
         if (elapsed > 0) {
           // Scroll ~10% slower than wall-clock so the highlight stays
           // readable instead of racing ahead of the audio.
-          const ratio = Math.min(elapsed / APP._playTotalMs, 1) * 0.9;
+          const ratio = Math.min(elapsed / APP._playTotalMs, 1) * 0.81;
           const target = Math.max(0, ratio * APP._playTotalWidth);
           const cur = cont.scrollLeft || 0;
           const diff = target - cur;
@@ -1230,7 +1230,7 @@ function updatePlayCursor(elapsedMs) {
       hl.setAttribute('width', 14);
       hl.setAttribute('height', (bot - top) + 8);
       hl.setAttribute('rx', 4);
-      hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
+      hl.setAttribute('fill', 'rgba(204,24,69,0.28)');
       hl.setAttribute('stroke', 'var(--pauta-primary)');
       hl.setAttribute('stroke-width', '1.4');
       hl.setAttribute('class', 'play-cursor');
@@ -1240,7 +1240,7 @@ function updatePlayCursor(elapsedMs) {
       dot.setAttribute('cx', nl.x);
       dot.setAttribute('cy', nl.y);
       dot.setAttribute('r', '5');
-      dot.setAttribute('fill', 'rgba(227,96,26,0.55)');
+      dot.setAttribute('fill', 'rgba(204,24,69,0.55)');
       dot.setAttribute('stroke', 'var(--pauta-primary)');
       dot.setAttribute('stroke-width', '1.2');
       dot.setAttribute('class', 'play-cursor');
@@ -1703,7 +1703,7 @@ function _showPracticeResults() {
       <div style="font-size:48px;font-weight:700;color:${color}">${accuracy}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted);margin-top:4px">Accuracy</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(227,96,26,0.1)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(204,24,69,0.1)">
       <div style="text-align:center"><b style="color:var(--pauta-success)">${stats.correct}</b><br><span style="color:var(--pauta-text-muted)">Correct</span></div>
       <div style="text-align:center"><b style="color:var(--pauta-error)">${stats.incorrect}</b><br><span style="color:var(--pauta-text-muted)">Incorrect</span></div>
       <div style="text-align:center"><b>${stats.maxStreak}</b><br><span style="color:var(--pauta-text-muted)">Best Streak</span></div>

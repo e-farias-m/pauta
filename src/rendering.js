@@ -735,7 +735,7 @@ function _renderStaveMeasure(rc, sm) {
     const lineTop = vfStave.getYForLine(0);
     const lineBot = vfStave.getYForLine(4);
     svgRect(svgEl2, {x: mx, y: lineTop - 2, w: mWidth, h: lineBot - lineTop + 4, rx: 4,
-      fill: 'rgba(227,96,26,0.18)', stroke: 'rgba(227,96,26,0.55)', strokeWidth: 2, cls: 'sel-overlay'});
+      fill: 'rgba(204,24,69,0.18)', stroke: 'rgba(204,24,69,0.55)', strokeWidth: 2, cls: 'sel-overlay'});
   }
 
   const measure = stave.measures[mi];
@@ -1048,7 +1048,7 @@ function _renderSelectionBody() {
   if (sl && APP.selectedMeasure >= 0) {
     svgRect(svgEl, {
       x: sl.x, y: sl.topLineY - 2, w: sl.w, h: sl.bottomY - sl.topLineY + 4, rx: 4,
-      fill: 'rgba(227,96,26,0.18)', stroke: 'rgba(227,96,26,0.55)', strokeWidth: 2, cls: 'sel-overlay'
+      fill: 'rgba(204,24,69,0.18)', stroke: 'rgba(204,24,69,0.55)', strokeWidth: 2, cls: 'sel-overlay'
     });
   }
 
@@ -1058,7 +1058,7 @@ function _renderSelectionBody() {
     if (nl) {
       svgCircle(svgEl, {
         cx: nl.x, cy: nl.y, r: 6,
-        fill: 'rgba(227,96,26,0.45)', stroke: 'var(--pauta-primary)', strokeWidth: 1.2, cls: 'sel-note'
+        fill: 'rgba(204,24,69,0.45)', stroke: 'var(--pauta-primary)', strokeWidth: 1.2, cls: 'sel-note'
       });
     }
   }
