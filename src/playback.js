@@ -1085,7 +1085,9 @@ function startPlayback() {
         if (!APP.playing || !APP.continuousView) return;
         const elapsed = Date.now() - APP._playNoteStartAt;
         if (elapsed > 0) {
-          const ratio = Math.min(elapsed / APP._playTotalMs, 1);
+          // Scroll ~10% slower than wall-clock so the highlight stays
+          // readable instead of racing ahead of the audio.
+          const ratio = Math.min(elapsed / APP._playTotalMs, 1) * 0.9;
           const target = Math.max(0, ratio * APP._playTotalWidth);
           const cur = cont.scrollLeft || 0;
           const diff = target - cur;
@@ -1219,11 +1221,26 @@ function updatePlayCursor(elapsedMs) {
   active.forEach(n => {
     const layouts = APP.noteLayout.filter(l => l.mi === n.mi && l.ni === n.ni);
     layouts.forEach(nl => {
+      const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
+      const top = Math.min(nl.y, tipY);
+      const bot = Math.max(nl.y, tipY);
+      const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hl.setAttribute('x', nl.x - 7);
+      hl.setAttribute('y', top - 4);
+      hl.setAttribute('width', 14);
+      hl.setAttribute('height', (bot - top) + 8);
+      hl.setAttribute('rx', 4);
+      hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
+      hl.setAttribute('stroke', 'var(--pauta-primary)');
+      hl.setAttribute('stroke-width', '1.4');
+      hl.setAttribute('class', 'play-cursor');
+      svg.appendChild(hl);
+      // keep a small dot on the notehead so the exact pitch still reads
       const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
       dot.setAttribute('cx', nl.x);
       dot.setAttribute('cy', nl.y);
-      dot.setAttribute('r', '6');
-      dot.setAttribute('fill', 'rgba(227,96,26,0.45)');
+      dot.setAttribute('r', '5');
+      dot.setAttribute('fill', 'rgba(227,96,26,0.55)');
       dot.setAttribute('stroke', 'var(--pauta-primary)');
       dot.setAttribute('stroke-width', '1.2');
       dot.setAttribute('class', 'play-cursor');
