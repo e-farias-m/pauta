@@ -444,7 +444,7 @@ function showExportPDFDialog() {
     <h2>Export Engraved PDF</h2>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Page size</div>
-      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(204,24,69,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
+      <select id="pdf-page-size" style="width:100%;padding:6px 8px;border:1px solid rgba(192,86,33,0.2);border-radius:5px;font-size:13px;background:transparent;color:#111">
         <option value="a4">A4</option>
         <option value="letter">US Letter</option>
       </select>
@@ -538,67 +538,44 @@ async function _exportPDF(pageSize) {
 }
 
 // ── Help & Onboarding ─────────────────────────────────────────────
-// Pauta no longer distinguishes Teacher/Student. All features are unlocked
-// and the first screen is a welcome + what's-your-name prompt (like
-// the Preludio apps). The name is only used for greeting; it lives in
-// localStorage as pauta_name.
-function getStudentName() { return (LS.getItem('pauta_name') || '').trim(); }
-function setStudentName(name) {
-  const clean = (name || '').trim();
-  if (clean) {
-    LS.setItem('pauta_name', clean);
-    LS.setItem('pauta_welcome_seen', '1');
-  }
-  _updateDocTitle();
-}
-
 function showWelcomeModal() {
-  if (getStudentName()) { LS.setItem('pauta_welcome_seen', '1'); return; }
-  _showNameModal(''); }
-function editNamePrompt() { _showNameModal(getStudentName()); }
-function _showNameModal(prename) {
+  const seen = LS.getItem('pauta_welcome_seen');
+  if (seen) return;
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
-      <img src="pauta_logo_hires.png" alt="Pauta" style="height:56px;width:auto;margin-bottom:12px" />
-      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:6px">Welcome!</div>
+      <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
+      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:18px">Welcome! What would you like to do today?</div>
 
-      <div class="pauta-text-subtle pauta-mt-sm" style="margin-bottom:12px">
-        <?> What's your name?
+      <button class="modal-btn primary pauta-mb-sm" data-action="startLearnerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="font-size:22px">&#9835;</span>
+        <span>I want to learn music!</span>
+      </button>
+
+      <button class="modal-btn secondary pauta-mb-sm" data-action="startComposerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="font-size:20px;font-weight:700">&#9998;</span>
+        <span>I want to write music!</span>
+      </button>
+
+      <div class="pauta-text-subtle pauta-mt-sm">
+        You can change your mind anytime in the View menu.
       </div>
-      <input id="welcome-name" type="text" placeholder="Your name..." maxlength="50" value="${prename.replace(/"/g, '&quot;')}"
-        autocomplete="off" autocapitalize="words"
-        style="width:100%;box-sizing:border-box;padding:10px 12px;font-size:16px;border:1px solid rgba(204,24,69,0.3);border-radius:8px;font-family:var(--pauta-font-sans);text-align:center" />
-
-      <button class="modal-btn primary pauta-mb-sm" id="welcome-start" style="width:100%;padding:12px;font-size:15px;margin-top:12px">Start</button>
-      <button class="modal-btn secondary pauta-mb-sm" id="welcome-skip" style="width:100%">Continue without a name</button>
     </div>
   `);
-
-  const input = document.getElementById('welcome-name');
-  const start = document.getElementById('welcome-start');
-  const skip = document.getElementById('welcome-skip');
-  const submit = () => {
-    const name = input?.value.trim();
-    if (!name) { input?.focus(); return; }
-    setStudentName(name);
-    UI.closeModal();
-    UI.showToast('Hi, ' + name + '!');
-  };
-  start?.addEventListener('click', submit);
-  input?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  skip?.addEventListener('click', () => { LS.setItem('pauta_welcome_seen', '1'); UI.closeModal(); });
-  setTimeout(() => input?.focus(), 100);
 }
 
-// Legacy onboarding entry points (kept for compatibility): the app no
-// longer distinguishes learning vs. composing, so both simply close.
 function startLearnerOnboarding() {
+  applyKit('recorder', 'beginner');
   LS.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_role', 'student');
+  if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
+  setTimeout(() => showExerciseDialog(), 300);
 }
 
 function startComposerOnboarding() {
   LS.setItem('pauta_welcome_seen', '1');
+  LS.setItem('pauta_role', 'teacher');
+  if (window.BUS) BUS.emit('role:changed');
   UI.closeModal();
 }
 
@@ -608,28 +585,29 @@ function closeWelcome() {
 }
 
 function _updateDocTitle() {
-  const name = getStudentName();
-  document.title = name ? `Pauta — ${name}` : 'Pauta — Score Editor';
+  const role = LS.getItem('pauta_role') || 'teacher';
+  document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
   const badge = document.getElementById('role-badge');
   if (!badge) return;
-  if (name) {
-    badge.textContent = name;
-    badge.title = 'Edit name';
-    badge.style.background = 'rgba(204,24,69,0.12)';
-    badge.style.color = 'var(--pauta-primary)';
+  if (role === 'student') {
+    badge.textContent = 'Student';
+    badge.style.background = 'rgba(34,197,94,0.15)';
+    badge.style.color = '#16a34a';
     badge.style.display = '';
   } else {
-    badge.style.display = 'none';
+    badge.textContent = 'Teacher';
+    badge.style.background = 'rgba(59,130,246,0.15)';
+    badge.style.color = '#2563eb';
+    badge.style.display = '';
   }
 }
 // Subscribe to role:changed so title updates without direct calls
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);
 
-// Teacher/Student roles are gone: every feature is unlocked for everyone.
-// Kept as a no-op so any old code or saved links don't break.
-function switchRole() {
-  LS.removeItem('pauta_role');
-  UI.showToast('All features are unlocked.');
+function switchRole(role) {
+  LS.setItem('pauta_role', role);
+  if (window.BUS) BUS.emit('role:changed');
+  UI.showToast(role === 'student' ? 'Switched to Student Mode' : 'Switched to Teacher Mode');
 }
 
 function getAudioCtx() {
@@ -1077,52 +1055,49 @@ function startPlayback() {
   const noteStartAt = startAt + countInOffset * 1000;
   APP._playNoteStartAt = noteStartAt;
 
-  // Continuous-view scrolling now follows the highlighted note's position
-  // (see updatePlayCursor), which tracks the actual tempo instead of a
-  // linear time ratio.
+  // Start continuous rAF-based horizontal scroll for continuous view
+  if (APP.continuousView && APP._playTotalWidth > 0) {
+    const cont = document.getElementById('score-svg');
+    if (cont) {
+      function scrollTick() {
+        if (!APP.playing || !APP.continuousView) return;
+        const elapsed = Date.now() - APP._playNoteStartAt;
+        if (elapsed > 0) {
+          const ratio = Math.min(elapsed / APP._playTotalMs, 1);
+          const target = Math.max(0, ratio * APP._playTotalWidth);
+          const cur = cont.scrollLeft || 0;
+          const diff = target - cur;
+          // Keep a small gap so the scroll feels responsive but smooth
+          if (Math.abs(diff) > 1) {
+            cont.scrollLeft = cur + diff * 0.22;
+            RENDER.positionAllDiagrams();
+          }
+        }
+        APP._playScrollRAF = requestAnimationFrame(scrollTick);
+      }
+      APP._playScrollRAF = requestAnimationFrame(scrollTick);
+    }
+  }
 
   function tick() {
     if (!APP.playing) return;
     const elapsed = (Date.now() - startAt) / 1000;
     const m = Math.floor(elapsed / 60);
     const s = Math.floor(elapsed % 60).toString().padStart(2,'0');
-    const posEl = document.getElementById('play-pos');
-    if (posEl) posEl.textContent = `${m}:${s}`;
-    // Update playback cursor (rAF-driven for smooth highlighting in both normal
-    // and continuous view).
+    document.getElementById('play-pos').textContent = `${m}:${s}`;
+    // Update playback cursor
     const cursorElapsed = Date.now() - noteStartAt;
-    if (cursorElapsed >= 0) {
-      updatePlayCursor(cursorElapsed);
-      _updatePlaybackDiagrams(cursorElapsed);
-      // Continuous view: smoothly follow the highlighted note horizontally.
-      if (APP.continuousView) {
-        const active = APP.playNoteTimeline.filter(n => n.isNote && cursorElapsed >= n.startMs && cursorElapsed < n.startMs + n.durMs);
-        const nl = active.length ? APP.noteLayout.find(l => l.mi === active[0].mi && l.ni === active[0].ni) : null;
-        if (nl) {
-          const cont = document.getElementById('score-svg');
-          if (cont) {
-            const viewW = cont.clientWidth || 1;
-            const target = Math.max(0, nl.x - viewW * 0.25);
-            const cur = cont.scrollLeft || 0;
-            const diff = target - cur;
-            if (Math.abs(diff) > 1) {
-              cont.scrollLeft = cur + diff * 0.2;
-            }
-          }
-        }
-      }
-    }
+    if (cursorElapsed >= 0) updatePlayCursor(cursorElapsed);
+    _updatePlaybackDiagrams(cursorElapsed);
     APP.playTimers.push(setTimeout(tick, 200));
   }
-  APP.playTimers.push(setTimeout(tick, 200));
+  tick();
 }
 
 function stopPlayback() {
   APP.playing = false;
   clearPlayCursor();
   if (APP._playScrollRAF) cancelAnimationFrame(APP._playScrollRAF);
-  if (APP._playTickRAF) cancelAnimationFrame(APP._playTickRAF);
-  APP._playTickRAF = null;
   // Stop all active audio nodes (oscillators, buffer sources) to prevent orphaned nodes
   if (APP._activeAudioNodes) {
     APP._activeAudioNodes.forEach(node => {
@@ -1205,6 +1180,7 @@ function updatePlayCursor(elapsedMs) {
   if (key !== APP._lastPlayKey && active[0]) {
     APP.selectedMeasure = active[0].mi;
     APP.selectedNoteIdx = active[0].ni;
+    // In continuous view, auto-scroll handles the scrolling during playback
     if (!APP.continuousView) RENDER.scrollToSelectedMeasure();
   }
   if (key === APP._lastPlayKey) return;
@@ -1224,17 +1200,16 @@ function updatePlayCursor(elapsedMs) {
       hl.setAttribute('width', 14);
       hl.setAttribute('height', (bot - top) + 8);
       hl.setAttribute('rx', 4);
-      hl.setAttribute('fill', 'rgba(204,24,69,0.28)');
+      hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
       hl.setAttribute('stroke', 'var(--pauta-primary)');
       hl.setAttribute('stroke-width', '1.4');
       hl.setAttribute('class', 'play-cursor');
       svg.appendChild(hl);
-      // keep a small dot on the notehead so the exact pitch still reads
       const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
       dot.setAttribute('cx', nl.x);
       dot.setAttribute('cy', nl.y);
       dot.setAttribute('r', '5');
-      dot.setAttribute('fill', 'rgba(204,24,69,0.55)');
+      dot.setAttribute('fill', 'rgba(227,96,26,0.55)');
       dot.setAttribute('stroke', 'var(--pauta-primary)');
       dot.setAttribute('stroke-width', '1.2');
       dot.setAttribute('class', 'play-cursor');
@@ -1697,7 +1672,7 @@ function _showPracticeResults() {
       <div style="font-size:48px;font-weight:700;color:${color}">${accuracy}%</div>
       <div style="font-size:13px;color:var(--pauta-text-muted);margin-top:4px">Accuracy</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(204,24,69,0.1)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid rgba(192,86,33,0.1)">
       <div style="text-align:center"><b style="color:var(--pauta-success)">${stats.correct}</b><br><span style="color:var(--pauta-text-muted)">Correct</span></div>
       <div style="text-align:center"><b style="color:var(--pauta-error)">${stats.incorrect}</b><br><span style="color:var(--pauta-text-muted)">Incorrect</span></div>
       <div style="text-align:center"><b>${stats.maxStreak}</b><br><span style="color:var(--pauta-text-muted)">Best Streak</span></div>
@@ -1710,7 +1685,7 @@ function _showPracticeResults() {
 // ── Assign playback functions to AUDIO namespace ─────────
 [navigateNote, insertMeasure, addMeasure, navigateStaff,
  pushUndo, undo, redo, showExportDialog, confirmExportAudio,
- showExportPDFDialog, confirmExportPDF, showWelcomeModal, editNamePrompt,
+ showExportPDFDialog, confirmExportPDF, showWelcomeModal,
  startLearnerOnboarding, startComposerOnboarding, closeWelcome,
  switchRole, togglePlayback, rewindPlayback, toggleCountIn,
  setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
