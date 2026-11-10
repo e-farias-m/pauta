@@ -7258,12 +7258,14 @@ function scrollToSelectedMeasure() {
   } else {
     const area = document.getElementById('score-area');
     if (!area) return;
+    const z = APP.zoom || 1;
     const scrollTop = area.scrollTop || 0;
     const viewH = area.clientHeight;
-    const measureTop = sl.y - 20;
-    const measureBot = sl.y + LAYOUT.STAVE_H + 20;
+    // sl.y is in SVG coords; the SVG is CSS-scaled by `zoom`, so convert.
+    const measureTop = sl.y * z - 20;
+    const measureBot = (sl.y + LAYOUT.STAVE_H + 20) * z;
     if (measureBot < scrollTop + viewH && measureTop > scrollTop) return;
-    const target = Math.max(0, sl.y - viewH * 0.35);
+    const target = Math.max(0, sl.y * z - viewH * 0.25);
     const dur = Math.max(80, Math.min(200, Math.abs(target - scrollTop) * 0.3));
     _smoothScroll(area, 'scrollTop', target, dur);
   }
