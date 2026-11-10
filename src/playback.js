@@ -1107,15 +1107,14 @@ function startPlayback() {
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
               cont.scrollLeft = cur + diff * 0.2;
-              RENDER.positionAllDiagrams();
             }
           }
         }
       }
     }
-    APP._playTickRAF = requestAnimationFrame(tick);
+    APP.playTimers.push(setTimeout(tick, 200));
   }
-  APP._playTickRAF = requestAnimationFrame(tick);
+  APP.playTimers.push(setTimeout(tick, 200));
 }
 
 function stopPlayback() {
