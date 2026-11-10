@@ -1055,30 +1055,6 @@ function startPlayback() {
   const noteStartAt = startAt + countInOffset * 1000;
   APP._playNoteStartAt = noteStartAt;
 
-  // Start continuous rAF-based horizontal scroll for continuous view
-  if (APP.continuousView && APP._playTotalWidth > 0) {
-    const cont = document.getElementById('score-svg');
-    if (cont) {
-      function scrollTick() {
-        if (!APP.playing || !APP.continuousView) return;
-        const elapsed = Date.now() - APP._playNoteStartAt;
-        if (elapsed > 0) {
-          const ratio = Math.min(elapsed / APP._playTotalMs, 1);
-          const target = Math.max(0, ratio * APP._playTotalWidth);
-          const cur = cont.scrollLeft || 0;
-          const diff = target - cur;
-          // Keep a small gap so the scroll feels responsive but smooth
-          if (Math.abs(diff) > 1) {
-            cont.scrollLeft = cur + diff * 0.22;
-            RENDER.positionAllDiagrams();
-          }
-        }
-        APP._playScrollRAF = requestAnimationFrame(scrollTick);
-      }
-      APP._playScrollRAF = requestAnimationFrame(scrollTick);
-    }
-  }
-
   // 200 ms cadence for DOM updates (timer, cursor, diagrams) — keeps the
   // main thread light so audio scheduling/rendering stays smooth.
   function tick() {
@@ -1115,11 +1091,6 @@ function startPlayback() {
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
               cont.scrollLeft = cur + diff * 0.2;
-              const now = Date.now();
-              if (!APP._lastDiagramUpdate || now - APP._lastDiagramUpdate > 100) {
-                RENDER.positionAllDiagrams();
-                APP._lastDiagramUpdate = now;
-              }
             }
           }
         }
