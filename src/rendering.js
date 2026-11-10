@@ -588,7 +588,7 @@ function _setupRender() {
 }
 
 function _renderSystems(rc) {
-  const { container, staves, ns, siOffset, allM, viewScale, systems, mNatW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS, ctx, multiRestGroups } = rc;
+  const { container, staves, ns, siOffset, allM, viewScale, systems, mNatW, usable, cW, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS, ctx, multiRestGroups } = rc;
   let sysY = LAYOUT.MARGIN_TOP;
   const pageH = APP.continuousView ? Infinity : getPageDimensions().h;
   let pageTop = 0;
