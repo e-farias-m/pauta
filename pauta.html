@@ -17981,31 +17981,9 @@ function startPlayback() {
   const noteStartAt = startAt + countInOffset * 1000;
   APP._playNoteStartAt = noteStartAt;
 
-  // Start continuous rAF-based horizontal scroll for continuous view
-  if (APP.continuousView && APP._playTotalWidth > 0) {
-    const cont = document.getElementById('score-svg');
-    if (cont) {
-      function scrollTick() {
-        if (!APP.playing || !APP.continuousView) return;
-        const elapsed = Date.now() - APP._playNoteStartAt;
-        if (elapsed > 0) {
-          // Scroll ~10% slower than wall-clock so the highlight stays
-          // readable instead of racing ahead of the audio.
-          const ratio = Math.min(elapsed / APP._playTotalMs, 1) * 0.81;
-          const target = Math.max(0, ratio * APP._playTotalWidth);
-          const cur = cont.scrollLeft || 0;
-          const diff = target - cur;
-          // Keep a small gap so the scroll feels responsive but smooth
-          if (Math.abs(diff) > 1) {
-            cont.scrollLeft = cur + diff * 0.22;
-            RENDER.positionAllDiagrams();
-          }
-        }
-        APP._playScrollRAF = requestAnimationFrame(scrollTick);
-      }
-      APP._playScrollRAF = requestAnimationFrame(scrollTick);
-    }
-  }
+  // Continuous-view scrolling now follows the highlighted note's position
+  // (see updatePlayCursor), which tracks the actual tempo instead of a
+  // linear time ratio.
 
   function tick() {
     if (!APP.playing) return;
@@ -18020,6 +17998,24 @@ function startPlayback() {
     if (cursorElapsed >= 0) {
       updatePlayCursor(cursorElapsed);
       _updatePlaybackDiagrams(cursorElapsed);
+      // Continuous view: smoothly follow the highlighted note horizontally.
+      if (APP.continuousView) {
+        const active = APP.playNoteTimeline.filter(n => n.isNote && cursorElapsed >= n.startMs && cursorElapsed < n.startMs + n.durMs);
+        const nl = active.length ? APP.noteLayout.find(l => l.mi === active[0].mi && l.ni === active[0].ni) : null;
+        if (nl) {
+          const cont = document.getElementById('score-svg');
+          if (cont) {
+            const viewW = cont.clientWidth || 1;
+            const target = Math.max(0, nl.x - viewW * 0.25);
+            const cur = cont.scrollLeft || 0;
+            const diff = target - cur;
+            if (Math.abs(diff) > 1) {
+              cont.scrollLeft = cur + diff * 0.12;
+              RENDER.positionAllDiagrams();
+            }
+          }
+        }
+      }
     }
     APP._playTickRAF = requestAnimationFrame(tick);
   }
@@ -18114,7 +18110,6 @@ function updatePlayCursor(elapsedMs) {
   if (key !== APP._lastPlayKey && active[0]) {
     APP.selectedMeasure = active[0].mi;
     APP.selectedNoteIdx = active[0].ni;
-    // In continuous view, auto-scroll handles the scrolling during playback
     if (!APP.continuousView) RENDER.scrollToSelectedMeasure();
   }
   if (key === APP._lastPlayKey) return;
