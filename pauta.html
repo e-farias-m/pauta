@@ -847,7 +847,7 @@ body{
   -webkit-overflow-scrolling:touch;position:relative;
 }
 #score-canvas-container{padding:12px;min-height:100%;}
-#score-svg{width:fit-content;max-width:none;border-radius:6px;touch-action:manipulation;margin:0 auto;}
+#score-svg{width:fit-content;max-width:none;border-radius:6px;touch-action:manipulation;margin:0 auto;box-shadow:0 2px 16px rgba(0,0,0,0.12);}
 #score-svg svg{display:block;max-width:none}
 
 /* ── Status Bar ── */
@@ -6789,7 +6789,7 @@ function _setupRender() {
   container.innerHTML = '';
   if (!APP.score) return null;
 
-  const viewScale = APP.continuousView ? 1 : 0.7;
+  const viewScale = APP.continuousView ? 1 : 0.85;
   LAYOUT.STAVE_H       = REND.STAVE_H;
   LAYOUT.STAVE_SPACING = REND.STAVE_SPACING;
   LAYOUT.SYS_SPACING   = REND.SYS_SPACING;
@@ -6826,14 +6826,38 @@ function _setupRender() {
 function _renderSystems(rc) {
   const { container, staves, ns, siOffset, allM, viewScale, systems, mNatW, usable, FIRST_EXTRA_GLOBAL, FIRST_EXTRA_SYS, ctx, multiRestGroups } = rc;
   let sysY = LAYOUT.MARGIN_TOP;
+  const pageH = APP.continuousView ? Infinity : getPageDimensions().h;
+  let pageTop = 0;
+  const pageBottom = () => pageTop + pageH - 40;
   // Page view is a fixed-width vertical flow (like a MuseScore page column).
-  // True per-page pagination is not attempted mid-render: drawing systems
-  // onto a second page inside one VexFlow canvas caused failures, so
-  // instead we draw one continuous tall canvas at the page width and add
-  // lightweight visual guides at page boundaries.
   const vfStaveRef = {};
 
   systems.forEach((system, sysIdx) => {
+    const sysH = (ns - 1) * LAYOUT.STAVE_SPACING + LAYOUT.STAVE_H + LAYOUT.SYS_SPACING + 8;
+    if (!APP.continuousView && sysY + sysH > pageBottom() && sysY > pageTop + LAYOUT.MARGIN_TOP) {
+      pageTop += pageH;
+      sysY = pageTop + LAYOUT.MARGIN_TOP;
+      // Visible page break: gray gap band + page number
+      const gapY = sysY - 36;
+      const gap = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      gap.setAttribute('x', 0); gap.setAttribute('y', gapY);
+      gap.setAttribute('width', cW); gap.setAttribute('height', 36);
+      gap.setAttribute('fill', 'var(--bg-score-area, #e8e8e8)');
+      container.querySelector('svg')?.appendChild(gap);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', LAYOUT.MARGIN_X); line.setAttribute('y1', sysY - 14);
+      line.setAttribute('x2', cW - LAYOUT.MARGIN_X); line.setAttribute('y2', sysY - 14);
+      line.setAttribute('stroke', 'rgba(0,0,0,0.3)'); line.setAttribute('stroke-width', '1.5');
+      container.querySelector('svg')?.appendChild(line);
+      const pl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      pl.setAttribute('x', cW / 2); pl.setAttribute('y', sysY - 18);
+      pl.setAttribute('text-anchor', 'middle');
+      pl.setAttribute('font-size', '10');
+      pl.setAttribute('fill', 'rgba(74,85,104,0.6)');
+      pl.setAttribute('font-family', 'var(--pauta-font-sans)');
+      pl.textContent = `— Page ${Math.round(pageTop / pageH)} —`;
+      container.querySelector('svg')?.appendChild(pl);
+    }
     const isFirstSysOfScore = sysIdx === 0;
     const firstExtra = isFirstSysOfScore
       ? (allM[0]?.pickup ? FIRST_EXTRA_SYS : FIRST_EXTRA_GLOBAL) : FIRST_EXTRA_SYS;
