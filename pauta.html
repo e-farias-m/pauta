@@ -7011,8 +7011,11 @@ function _renderStaveMeasure(rc, sm) {
   const gsi = si + siOffset;
   const mmrGroup = multiRestGroups.find(g => g.gsi === gsi && g.startMi <= mi && g.endMi >= mi);
 
+  let _prevStavenoteCount = 0;
   if (!mmrGroup && (allVF1.length || allVF2.length)) {
     try {
+      const svgEl0 = container.querySelector('svg');
+      if (svgEl0) _prevStavenoteCount = svgEl0.querySelectorAll('.vf-stavenote').length;
       const beams1 = buildBeams(vfNotes1, v1Notes, ts);
       const beams2 = buildBeams(vfNotes2, v2Notes, ts);
       const voices = [];
@@ -7056,7 +7059,25 @@ function _renderStaveMeasure(rc, sm) {
         } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
       });
 
-      // (note-tagging moved to playback time — see updatePlayCursor)
+      // Tag each drawn note's SVG group so playback can recolour the actual
+      // note (not a separate highlight shape). VexFlow wraps each note in a
+      // <g class="vf-stavenote">. Capture groups added by THIS draw only.
+      try {
+        const svgEl = container.querySelector('svg');
+        if (svgEl) {
+          const groups = Array.from(svgEl.querySelectorAll('.vf-stavenote'));
+          const newGroups = groups.slice(_prevStavenoteCount);
+          const fresh = APP.noteLayout.filter(nl => nl.mi === mi && nl.si === (si + siOffset) && !nl._el);
+          fresh.forEach((nl, idx) => {
+            if (idx < newGroups.length) {
+              nl._el = newGroups[idx];
+              newGroups[idx].setAttribute('data-mi', mi);
+              newGroups[idx].setAttribute('data-si', si + siOffset);
+              newGroups[idx].setAttribute('data-ni', nl.ni);
+            }
+          });
+        }
+      } catch(e) { if (DEBUG) console.warn('[Pauta] note-tag:', e.message); }
 
       [...beams1, ...beams2].forEach(b => vfSafe(() => b.setContext(ctx).draw(), 'beam'));
       const tups1 = buildTuplets(vfNotes1, v1Notes);
@@ -17980,7 +18001,6 @@ function startPlayback() {
     const cursorElapsed = Date.now() - noteStartAt;
     if (cursorElapsed >= 0) {
       updatePlayCursor(cursorElapsed);
-      _updatePlaybackDiagrams(cursorElapsed);
     }
     APP.playTimers.push(setTimeout(tick, 200));
   }

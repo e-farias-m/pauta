@@ -1067,7 +1067,6 @@ function startPlayback() {
     const cursorElapsed = Date.now() - noteStartAt;
     if (cursorElapsed >= 0) {
       updatePlayCursor(cursorElapsed);
-      _updatePlaybackDiagrams(cursorElapsed);
     }
     APP.playTimers.push(setTimeout(tick, 200));
   }

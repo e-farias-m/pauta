@@ -816,21 +816,18 @@ function _renderStaveMeasure(rc, sm) {
         } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
       });
 
-      // Tag each drawn note's SVG group with its mi/si/ni so the playback
-      // cursor can recolour the actual note instead of drawing a separate
-      // highlight shape on top of it.
+      // Tag each drawn note's SVG group so playback can recolour the actual
+      // note (not a separate highlight shape). VexFlow wraps each note in a
+      // <g class="vf-stavenote">. Capture groups added by THIS draw only.
       try {
         const svgEl = container.querySelector('svg');
         if (svgEl) {
           const groups = Array.from(svgEl.querySelectorAll('.vf-stavenote'));
-          // Only the groups added by THIS draw (indices >= _prevStavenoteCount).
           const newGroups = groups.slice(_prevStavenoteCount);
           const fresh = APP.noteLayout.filter(nl => nl.mi === mi && nl.si === (si + siOffset) && !nl._el);
-          // Match by order (VexFlow draws notes in document order).
           fresh.forEach((nl, idx) => {
             if (idx < newGroups.length) {
               nl._el = newGroups[idx];
-              newGroups[idx]._tagged = true;
               newGroups[idx].setAttribute('data-mi', mi);
               newGroups[idx].setAttribute('data-si', si + siOffset);
               newGroups[idx].setAttribute('data-ni', nl.ni);
