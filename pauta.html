@@ -7351,19 +7351,19 @@ function positionAllDiagrams(scrollOverride) {
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.6;
     const recCY = parseFloat(el.getAttribute('data-rec-cy')) || 0;
-    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 136 + scrollLeft},${recCY - 95 * recScale}) scale(${recScale}, -${recScale})`);
+    el.style.transform = `translate(${LAYOUT.MARGIN_X - 136 + scrollLeft}px, ${recCY - 95 * recScale}px) scale(${recScale}, -${recScale})`;
   });
   // Woodwind diagrams
   document.querySelectorAll('[data-instr-type="woodwind"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
-    el.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 190 + scrollLeft},${cy - 173}) scale(1.44)`);
+    el.style.transform = `translate(${LAYOUT.MARGIN_X - 190 + scrollLeft}px, ${cy - 173}px) scale(1.44)`;
   });
   // Brass diagrams
   document.querySelectorAll('[data-instr-type="brass"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
     const name = el.getAttribute('data-instr-name') || '';
     const brX = name === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176;
-    el.setAttribute('transform', `translate(${brX + scrollLeft},${cy - 101}) scale(1.44)`);
+    el.style.transform = `translate(${brX + scrollLeft}px, ${cy - 101}px) scale(1.44)`;
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
@@ -18026,6 +18026,11 @@ function startPlayback() {
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
               cont.scrollLeft = cur + diff * 0.25;
+              const now = Date.now();
+              if (!APP._lastDiagramUpdate || now - APP._lastDiagramUpdate > 100) {
+                RENDER.positionAllDiagrams();
+                APP._lastDiagramUpdate = now;
+              }
             }
           }
         }
