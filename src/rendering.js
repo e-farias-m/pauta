@@ -768,11 +768,8 @@ function _renderStaveMeasure(rc, sm) {
   const gsi = si + siOffset;
   const mmrGroup = multiRestGroups.find(g => g.gsi === gsi && g.startMi <= mi && g.endMi >= mi);
 
-  let _prevStavenoteCount = 0;
   if (!mmrGroup && (allVF1.length || allVF2.length)) {
     try {
-      const svgEl0 = container.querySelector('svg');
-      if (svgEl0) _prevStavenoteCount = svgEl0.querySelectorAll('.vf-stavenote').length;
       const beams1 = buildBeams(vfNotes1, v1Notes, ts);
       const beams2 = buildBeams(vfNotes2, v2Notes, ts);
       const voices = [];
@@ -802,7 +799,7 @@ function _renderStaveMeasure(rc, sm) {
           const ny = ys?.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
           const sLen = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
           const stemTipY = dirs1[i] === VF.Stem.UP ? ny - sLen : ny + sLen;
-          APP.noteLayout.push({ mi, si: si + siOffset, ni: v1Indices[i], x: nx, y: ny, stemDir: dirs1[i], stemTipY });
+          APP.noteLayout.push({ mi, si: si + siOffset, ni: v1Indices[i], x: nx, y: ny, stemDir: dirs1[i], stemTipY, _vfNote: vfn });
         } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v1:', e.message); }
       });
       vfNotes2.forEach((vfn, i) => {
@@ -812,28 +809,23 @@ function _renderStaveMeasure(rc, sm) {
           const ny = ys?.length ? ys[0] : (staveY + LAYOUT.STAVE_H / 2);
           const sLen = (vfStave.getYForLine(4) - vfStave.getYForLine(0)) * 0.875;
           const stemTipY = dirs2[i] === VF.Stem.UP ? ny - sLen : ny + sLen;
-          APP.noteLayout.push({ mi, si: si + siOffset, ni: v2Indices[i], x: nx, y: ny, stemDir: dirs2[i], stemTipY });
+          APP.noteLayout.push({ mi, si: si + siOffset, ni: v2Indices[i], x: nx, y: ny, stemDir: dirs2[i], stemTipY, _vfNote: vfn });
         } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
       });
 
-      // Tag each drawn note's SVG group so playback can recolour the actual
-      // note (not a separate highlight shape). VexFlow wraps each note in a
-      // <g class="vf-stavenote">. Capture groups added by THIS draw only.
+      // Keep a direct reference to each VexFlow note group. Matching the
+      // groups by draw order is unsafe because filler rests are drawn too.
       try {
-        const svgEl = container.querySelector('svg');
-        if (svgEl) {
-          const groups = Array.from(svgEl.querySelectorAll('.vf-stavenote'));
-          const newGroups = groups.slice(_prevStavenoteCount);
-          const fresh = APP.noteLayout.filter(nl => nl.mi === mi && nl.si === (si + siOffset) && !nl._el);
-          fresh.forEach((nl, idx) => {
-            if (idx < newGroups.length) {
-              nl._el = newGroups[idx];
-              newGroups[idx].setAttribute('data-mi', mi);
-              newGroups[idx].setAttribute('data-si', si + siOffset);
-              newGroups[idx].setAttribute('data-ni', nl.ni);
-            }
+        APP.noteLayout
+          .filter(nl => nl.mi === mi && nl.si === (si + siOffset) && nl._vfNote)
+          .forEach(nl => {
+            const group = nl._vfNote.getAttribute?.('el');
+            if (!group) return;
+            nl._el = group;
+            group.setAttribute('data-mi', mi);
+            group.setAttribute('data-si', si + siOffset);
+            group.setAttribute('data-ni', nl.ni);
           });
-        }
       } catch(e) { if (DEBUG) console.warn('[Pauta] note-tag:', e.message); }
 
       [...beams1, ...beams2].forEach(b => vfSafe(() => b.setContext(ctx).draw(), 'beam'));
@@ -993,16 +985,15 @@ function _renderScoreCompletions(rc) {
   renderNoteLabels();
 
   if (APP.continuousView) {
-    const svgContainer = document.getElementById('score-svg');
-    if (svgContainer) {
-      if (svgContainer._recScrollHandler) svgContainer.removeEventListener('scroll', svgContainer._recScrollHandler);
-      // No diagram repositioning during scroll — diagrams live in a fixed
-      // overlay (see positionDiagramOverlay) so they never jitter.
+    const scrollArea = document.getElementById('score-area');
+    if (scrollArea) {
+      if (scrollArea._recScrollHandler) scrollArea.removeEventListener('scroll', scrollArea._recScrollHandler);
+      const handler = () => positionAllDiagrams();
+      scrollArea._recScrollHandler = handler;
+      scrollArea.addEventListener('scroll', handler);
     }
   }
-  // Host the first-system fingering diagram in a fixed overlay so it stays
-  // put while the canvas scrolls.
-  positionDiagramOverlay();
+  positionAllDiagrams();
 }
 
 function positionDiagramOverlay() {
@@ -1073,7 +1064,7 @@ function scrollToSelectedMeasure() {
   if (!sl) return;
 
   if (APP.continuousView) {
-    const container = document.getElementById('score-svg');
+    const container = document.getElementById('score-area');
     if (!container) return;
     const scrollLeft = container.scrollLeft || 0;
     const viewWidth  = container.clientWidth;
@@ -1141,9 +1132,9 @@ function renderSelection() {
 
 // Keep diagram SVGs fixed during horizontal scroll in continuous view
 function positionAllDiagrams(scrollOverride) {
-  const container = document.getElementById('score-svg');
-  if (!container) return;
-  const scrollLeft = scrollOverride !== undefined ? scrollOverride : (container.scrollLeft || 0);
+  const scrollArea = document.getElementById('score-area');
+  if (!scrollArea) return;
+  const scrollLeft = scrollOverride !== undefined ? scrollOverride : (scrollArea.scrollLeft || 0);
   // Recorder diagrams
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.6;

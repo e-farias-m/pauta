@@ -1212,47 +1212,40 @@ function updatePlayCursor(elapsedMs) {
   active.forEach(n => {
     const layouts = APP.noteLayout.filter(l => l.mi === n.mi && l.ni === n.ni);
     layouts.forEach(nl => {
-      // Try to colour the actual note element red.
+      // Colour the actual note element red (prefer stored _el from render).
       let coloured = false;
-      try {
-        const groups = svg.querySelectorAll('.vf-stavenote');
-        for (const g of groups) {
-          const tr = g.getAttribute('transform') || '';
-          const m = tr.match(/translate\(\s*([\d.+-]+)[ ,]+([\d.+-]+)/);
-          if (m) {
-            const gx = parseFloat(m[1]);
-            if (Math.abs(gx - nl.x) < 8) {
-              g.querySelectorAll('path, ellipse, circle, rect').forEach(el => {
-                if (!el._origFill) el._origFill = el.getAttribute('fill');
-                if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
-                el.setAttribute('fill', '#e53935');
-                el.setAttribute('stroke', '#e53935');
-              });
-              g.querySelectorAll('line').forEach(el => {
-                if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
-                el.setAttribute('stroke', '#e53935');
-              });
-              APP._playHighlightEls.push(g);
-              coloured = true;
-              break;
-            }
-          }
-        }
-      } catch(e) {}
+      let g = nl._el;
+      if (!g) {
+        try {
+          g = svg.querySelector(`.vf-stavenote[data-mi="${nl.mi}"][data-si="${nl.si}"][data-ni="${nl.ni}"]`);
+        } catch(e) {}
+      }
+      if (g) {
+        try {
+          g.querySelectorAll('path, ellipse, circle, rect').forEach(el => {
+            if (!el._origFill) el._origFill = el.getAttribute('fill');
+            if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
+            el.setAttribute('fill', '#e53935');
+            el.setAttribute('stroke', '#e53935');
+          });
+          g.querySelectorAll('line').forEach(el => {
+            if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
+            el.setAttribute('stroke', '#e53935');
+          });
+          APP._playHighlightGroups = APP._playHighlightGroups || [];
+          APP._playHighlightGroups.push(g);
+          coloured = true;
+        } catch(e) {}
+      }
       if (!coloured) {
-        // Fallback: draw a red rect covering the note.
-        const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
-        const top = Math.min(nl.y, tipY);
-        const bot = Math.max(nl.y, tipY);
-        const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
-        hl.setAttribute('x', nl.x - 7);
-        hl.setAttribute('y', top - 4);
-        hl.setAttribute('width', 14);
-        hl.setAttribute('height', (bot - top) + 8);
-        hl.setAttribute('rx', 4);
+        // Last-resort notehead halo; a stem-sized rectangle obscures notation.
+        const hl = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        hl.setAttribute('cx', nl.x);
+        hl.setAttribute('cy', nl.y);
+        hl.setAttribute('r', '9');
         hl.setAttribute('fill', 'rgba(229,57,53,0.30)');
         hl.setAttribute('stroke', '#e53935');
-        hl.setAttribute('stroke-width', '1.6');
+        hl.setAttribute('stroke-width', '1.5');
         hl.setAttribute('class', 'play-cursor');
         svg.appendChild(hl);
         APP._playHighlightEls.push(hl);
@@ -1261,7 +1254,22 @@ function updatePlayCursor(elapsedMs) {
   });
 }
 function clearPlayCursor() {
-  // Remove by tracked references first (most reliable).
+  // Restore originally coloured note groups (do NOT remove them).
+  if (APP._playHighlightGroups) {
+    APP._playHighlightGroups.forEach(g => {
+      try {
+        g.querySelectorAll('path, ellipse, circle, rect').forEach(el => {
+          if (el._origFill != null) el.setAttribute('fill', el._origFill);
+          if (el._origStroke != null) el.setAttribute('stroke', el._origStroke);
+        });
+        g.querySelectorAll('line').forEach(el => {
+          if (el._origStroke != null) el.setAttribute('stroke', el._origStroke);
+        });
+      } catch(e) {}
+    });
+    APP._playHighlightGroups = [];
+  }
+  // Remove tracked highlight rects.
   if (APP._playHighlightEls) {
     APP._playHighlightEls.forEach(el => {
       try { el.remove(); } catch(e) {}

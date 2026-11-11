@@ -767,9 +767,12 @@ function insertNoteByName(name) {
     APP.curOctave = Math.floor(midi / 12) - 1;
     updateOctaveDisplay();
   } else {
-    // No previous note — use clef-appropriate default octave
-    midi = (defaultOct + 1) * 12 + pc;
-    APP.curOctave = defaultOct;
+    // No previous note in this measure — fall back to the current octave
+    // (e.g. after clicking a note) so palette input stays in range, then
+    // clef-appropriate default.
+    const oct = (typeof APP.curOctave === 'number') ? APP.curOctave : defaultOct;
+    midi = (oct + 1) * 12 + pc;
+    APP.curOctave = oct;
     updateOctaveDisplay();
   }
 
