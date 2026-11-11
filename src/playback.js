@@ -1090,7 +1090,7 @@ function startPlayback() {
             const cur = cont.scrollLeft || 0;
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
-              cont.scrollLeft = cur + diff * 0.2;
+              cont.scrollLeft = cur + diff * 0.25;
             }
           }
         }
