@@ -813,6 +813,35 @@ function _renderStaveMeasure(rc, sm) {
         } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
       });
 
+      // Tag each drawn note's SVG group with its mi/si/ni so the playback
+      // cursor can recolour the actual note instead of drawing a separate
+      // highlight shape on top of it.
+      try {
+        const svgEl = container.querySelector('svg');
+        if (svgEl) {
+          const groups = svgEl.querySelectorAll('.vf-stavenote');
+          const fresh = APP.noteLayout.filter(nl => nl.mi === mi && nl.si === (si + siOffset));
+          groups.forEach(g => {
+            const tr = g.getAttribute('transform') || '';
+            const m = tr.match(/translate\(\s*([\d.+-]+)\s*,?\s*([\d.+-]+)?\s*\)/);
+            if (!m) return;
+            const gx = parseFloat(m[1]);
+            let best = null, bestD = 12;
+            fresh.forEach(nl => {
+              if (nl._el) return;
+              const d = Math.abs(nl.x - gx);
+              if (d < bestD) { bestD = d; best = nl; }
+            });
+            if (best) {
+              best._el = g;
+              g.setAttribute('data-mi', mi);
+              g.setAttribute('data-si', si + siOffset);
+              g.setAttribute('data-ni', best.ni);
+            }
+          });
+        }
+      } catch(e) { if (DEBUG) console.warn('[Pauta] note-tag:', e.message); }
+
       [...beams1, ...beams2].forEach(b => vfSafe(() => b.setContext(ctx).draw(), 'beam'));
       const tups1 = buildTuplets(vfNotes1, v1Notes);
       const tups2 = buildTuplets(vfNotes2, v2Notes);

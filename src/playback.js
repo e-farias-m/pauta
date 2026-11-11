@@ -1195,40 +1195,45 @@ function updatePlayCursor(elapsedMs) {
   }
   if (key === APP._lastPlayKey) return;
   APP._lastPlayKey = key;
-  clearPlayCursor();
+  // Restore the previous note's original colour.
+  if (APP._playHighlightEl) {
+    APP._playHighlightEl.classList.remove('play-highlight');
+    APP._playHighlightEl = null;
+  }
   const svg = document.getElementById('score-svg')?.querySelector('svg');
   if (!svg) return;
   active.forEach(n => {
     const layouts = APP.noteLayout.filter(l => l.mi === n.mi && l.ni === n.ni);
     layouts.forEach(nl => {
-      const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
-      const top = Math.min(nl.y, tipY);
-      const bot = Math.max(nl.y, tipY);
-      const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      hl.setAttribute('x', nl.x - 7);
-      hl.setAttribute('y', top - 4);
-      hl.setAttribute('width', 14);
-      hl.setAttribute('height', (bot - top) + 8);
-      hl.setAttribute('rx', 4);
-      hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
-      hl.setAttribute('stroke', 'var(--pauta-primary)');
-      hl.setAttribute('stroke-width', '1.4');
-      hl.setAttribute('class', 'play-cursor');
-      svg.appendChild(hl);
-      const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      dot.setAttribute('cx', nl.x);
-      dot.setAttribute('cy', nl.y);
-      dot.setAttribute('r', '5');
-      dot.setAttribute('fill', 'rgba(227,96,26,0.55)');
-      dot.setAttribute('stroke', 'var(--pauta-primary)');
-      dot.setAttribute('stroke-width', '1.2');
-      dot.setAttribute('class', 'play-cursor');
-      svg.appendChild(dot);
+      if (nl._el) {
+        nl._el.classList.add('play-highlight');
+        APP._playHighlightEl = nl._el;
+      } else {
+        // Fallback: draw a rect covering the note (old behaviour).
+        const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
+        const top = Math.min(nl.y, tipY);
+        const bot = Math.max(nl.y, tipY);
+        const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        hl.setAttribute('x', nl.x - 7);
+        hl.setAttribute('y', top - 4);
+        hl.setAttribute('width', 14);
+        hl.setAttribute('height', (bot - top) + 8);
+        hl.setAttribute('rx', 4);
+        hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
+        hl.setAttribute('stroke', 'var(--pauta-primary)');
+        hl.setAttribute('stroke-width', '1.4');
+        hl.setAttribute('class', 'play-cursor');
+        svg.appendChild(hl);
+      }
     });
   });
 }
 function clearPlayCursor() {
   document.querySelectorAll('.play-cursor').forEach(el => el.remove());
+  if (APP._playHighlightEl) {
+    APP._playHighlightEl.classList.remove('play-highlight');
+    APP._playHighlightEl = null;
+  }
 }
 
 // ── Practice Mode ───────────────────────────────────────────────

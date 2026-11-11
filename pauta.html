@@ -849,6 +849,11 @@ body{
 #score-canvas-container{padding:12px;min-height:100%;}
 #score-svg{width:100%;border-radius:6px;touch-action:manipulation;box-shadow:0 2px 16px rgba(0,0,0,0.12);}
 #score-svg svg{display:block;max-width:none}
+.vf-stavenote.play-highlight path,
+.vf-stavenote.play-highlight ellipse,
+.vf-stavenote.play-highlight circle { fill: #e53935 !important; stroke: #e53935 !important; }
+.vf-stavenote.play-highlight .vf-stem { stroke: #e53935 !important; }
+.vf-stavenote.play-highlight .vf-notehead { fill: #e53935 !important; }
 
 /* ── Status Bar ── */
 #status-bar{
@@ -7048,6 +7053,35 @@ function _renderStaveMeasure(rc, sm) {
           APP.noteLayout.push({ mi, si: si + siOffset, ni: v2Indices[i], x: nx, y: ny, stemDir: dirs2[i], stemTipY });
         } catch(e) { if (DEBUG) console.warn('[Pauta] noteLayout v2:', e.message); }
       });
+
+      // Tag each drawn note's SVG group with its mi/si/ni so the playback
+      // cursor can recolour the actual note instead of drawing a separate
+      // highlight shape on top of it.
+      try {
+        const svgEl = container.querySelector('svg');
+        if (svgEl) {
+          const groups = svgEl.querySelectorAll('.vf-stavenote');
+          const fresh = APP.noteLayout.filter(nl => nl.mi === mi && nl.si === (si + siOffset));
+          groups.forEach(g => {
+            const tr = g.getAttribute('transform') || '';
+            const m = tr.match(/translate\(\s*([\d.+-]+)\s*,?\s*([\d.+-]+)?\s*\)/);
+            if (!m) return;
+            const gx = parseFloat(m[1]);
+            let best = null, bestD = 12;
+            fresh.forEach(nl => {
+              if (nl._el) return;
+              const d = Math.abs(nl.x - gx);
+              if (d < bestD) { bestD = d; best = nl; }
+            });
+            if (best) {
+              best._el = g;
+              g.setAttribute('data-mi', mi);
+              g.setAttribute('data-si', si + siOffset);
+              g.setAttribute('data-ni', best.ni);
+            }
+          });
+        }
+      } catch(e) { if (DEBUG) console.warn('[Pauta] note-tag:', e.message); }
 
       [...beams1, ...beams2].forEach(b => vfSafe(() => b.setContext(ctx).draw(), 'beam'));
       const tups1 = buildTuplets(vfNotes1, v1Notes);
@@ -18099,40 +18133,45 @@ function updatePlayCursor(elapsedMs) {
   }
   if (key === APP._lastPlayKey) return;
   APP._lastPlayKey = key;
-  clearPlayCursor();
+  // Restore the previous note's original colour.
+  if (APP._playHighlightEl) {
+    APP._playHighlightEl.classList.remove('play-highlight');
+    APP._playHighlightEl = null;
+  }
   const svg = document.getElementById('score-svg')?.querySelector('svg');
   if (!svg) return;
   active.forEach(n => {
     const layouts = APP.noteLayout.filter(l => l.mi === n.mi && l.ni === n.ni);
     layouts.forEach(nl => {
-      const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
-      const top = Math.min(nl.y, tipY);
-      const bot = Math.max(nl.y, tipY);
-      const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      hl.setAttribute('x', nl.x - 7);
-      hl.setAttribute('y', top - 4);
-      hl.setAttribute('width', 14);
-      hl.setAttribute('height', (bot - top) + 8);
-      hl.setAttribute('rx', 4);
-      hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
-      hl.setAttribute('stroke', 'var(--pauta-primary)');
-      hl.setAttribute('stroke-width', '1.4');
-      hl.setAttribute('class', 'play-cursor');
-      svg.appendChild(hl);
-      const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      dot.setAttribute('cx', nl.x);
-      dot.setAttribute('cy', nl.y);
-      dot.setAttribute('r', '5');
-      dot.setAttribute('fill', 'rgba(227,96,26,0.55)');
-      dot.setAttribute('stroke', 'var(--pauta-primary)');
-      dot.setAttribute('stroke-width', '1.2');
-      dot.setAttribute('class', 'play-cursor');
-      svg.appendChild(dot);
+      if (nl._el) {
+        nl._el.classList.add('play-highlight');
+        APP._playHighlightEl = nl._el;
+      } else {
+        // Fallback: draw a rect covering the note (old behaviour).
+        const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
+        const top = Math.min(nl.y, tipY);
+        const bot = Math.max(nl.y, tipY);
+        const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        hl.setAttribute('x', nl.x - 7);
+        hl.setAttribute('y', top - 4);
+        hl.setAttribute('width', 14);
+        hl.setAttribute('height', (bot - top) + 8);
+        hl.setAttribute('rx', 4);
+        hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
+        hl.setAttribute('stroke', 'var(--pauta-primary)');
+        hl.setAttribute('stroke-width', '1.4');
+        hl.setAttribute('class', 'play-cursor');
+        svg.appendChild(hl);
+      }
     });
   });
 }
 function clearPlayCursor() {
   document.querySelectorAll('.play-cursor').forEach(el => el.remove());
+  if (APP._playHighlightEl) {
+    APP._playHighlightEl.classList.remove('play-highlight');
+    APP._playHighlightEl = null;
+  }
 }
 
 // ── Practice Mode ───────────────────────────────────────────────
