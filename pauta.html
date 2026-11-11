@@ -156,7 +156,6 @@
     <div id="score-svg"></div>
     <div id="debug-overlay"></div>
   </div>
-  <div id="diagram-overlay" style="position:fixed;left:8px;top:0;pointer-events:none;z-index:5;display:none;"></div>
 </div>
 
 <!-- Note Palette -->
@@ -21799,7 +21798,6 @@ function instrGridBtn(name, count = 0, {action = 'selectNDInstr'} = {}) {
  renderChordSymbols, renderLyrics, _autosaveNow
 ].forEach(fn => { UI[fn.name] = fn; });
 window.UI = UI;
-window.__PD = { APP };
 })();
 
 
