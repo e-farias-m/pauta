@@ -1213,22 +1213,33 @@ function updatePlayCursor(elapsedMs) {
   active.forEach(n => {
     const layouts = APP.noteLayout.filter(l => l.mi === n.mi && l.ni === n.ni);
     layouts.forEach(nl => {
-      if (nl._el) {
-        // Colour the actual note element red (head + stem + notehead).
-        nl._el.classList.add('play-highlight');
-        // Also set inline styles as a backup (overrides VexFlow's attributes).
-        nl._el.querySelectorAll('path, ellipse, circle, rect').forEach(el => {
+      // Find the note's SVG group by position and colour it red.
+      let group = null;
+      try {
+        const groups = svg.querySelectorAll('.vf-stavenote');
+        let bestD = 12;
+        for (const g of groups) {
+          const tr = g.getAttribute('transform') || '';
+          const m = tr.match(/translate\(\s*([\d.+-]+)[ ,]+([\d.+-]+)/);
+          if (m) {
+            const gx = parseFloat(m[1]);
+            const d = Math.abs(gx - nl.x);
+            if (d < bestD) { bestD = d; group = g; }
+          }
+        }
+      } catch(e) {}
+      if (group) {
+        group.querySelectorAll('path, ellipse, circle, rect').forEach(el => {
           if (!el._origFill) el._origFill = el.getAttribute('fill');
           if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
           el.setAttribute('fill', '#e53935');
           el.setAttribute('stroke', '#e53935');
         });
-        // colour stems (lines)
-        nl._el.querySelectorAll('line').forEach(el => {
+        group.querySelectorAll('line').forEach(el => {
           if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
           el.setAttribute('stroke', '#e53935');
         });
-        APP._playHighlightEls.push(nl._el);
+        APP._playHighlightEls.push(group);
       } else {
         // Fallback: draw a red rect covering the note.
         const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
@@ -1251,17 +1262,17 @@ function updatePlayCursor(elapsedMs) {
   });
 }
 function clearPlayCursor() {
+  const svg = document.getElementById('score-svg');
+  if (svg) svg.querySelectorAll('.play-cursor').forEach(el => el.remove());
   document.querySelectorAll('.play-cursor').forEach(el => el.remove());
   if (APP._playHighlightEls) {
     APP._playHighlightEls.forEach(el => {
       try {
-        el.classList.remove('play-highlight');
+        if (el.classList) el.classList.remove('play-highlight');
         // Restore original colours.
-        el.querySelectorAll('path, ellipse, circle, rect').forEach(e2 => {
+        const targets = (typeof el.querySelectorAll === 'function') ? el.querySelectorAll('path, ellipse, circle, rect, line') : [];
+        targets.forEach(e2 => {
           if (e2._origFill) e2.setAttribute('fill', e2._origFill);
-          if (e2._origStroke) e2.setAttribute('stroke', e2._origStroke);
-        });
-        el.querySelectorAll('line').forEach(e2 => {
           if (e2._origStroke) e2.setAttribute('stroke', e2._origStroke);
         });
       } catch(e) {}
