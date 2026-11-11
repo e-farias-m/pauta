@@ -768,8 +768,11 @@ function _renderStaveMeasure(rc, sm) {
   const gsi = si + siOffset;
   const mmrGroup = multiRestGroups.find(g => g.gsi === gsi && g.startMi <= mi && g.endMi >= mi);
 
+  let _prevStavenoteCount = 0;
   if (!mmrGroup && (allVF1.length || allVF2.length)) {
     try {
+      const svgEl0 = container.querySelector('svg');
+      if (svgEl0) _prevStavenoteCount = svgEl0.querySelectorAll('.vf-stavenote').length;
       const beams1 = buildBeams(vfNotes1, v1Notes, ts);
       const beams2 = buildBeams(vfNotes2, v2Notes, ts);
       const voices = [];
@@ -819,24 +822,18 @@ function _renderStaveMeasure(rc, sm) {
       try {
         const svgEl = container.querySelector('svg');
         if (svgEl) {
-          const groups = svgEl.querySelectorAll('.vf-stavenote');
-          const fresh = APP.noteLayout.filter(nl => nl.mi === mi && nl.si === (si + siOffset));
-          groups.forEach(g => {
-            const tr = g.getAttribute('transform') || '';
-            const m = tr.match(/translate\(\s*([\d.+-]+)\s*,?\s*([\d.+-]+)?\s*\)/);
-            if (!m) return;
-            const gx = parseFloat(m[1]);
-            let best = null, bestD = 12;
-            fresh.forEach(nl => {
-              if (nl._el) return;
-              const d = Math.abs(nl.x - gx);
-              if (d < bestD) { bestD = d; best = nl; }
-            });
-            if (best) {
-              best._el = g;
-              g.setAttribute('data-mi', mi);
-              g.setAttribute('data-si', si + siOffset);
-              g.setAttribute('data-ni', best.ni);
+          const groups = Array.from(svgEl.querySelectorAll('.vf-stavenote'));
+          // Only the groups added by THIS draw (indices >= _prevStavenoteCount).
+          const newGroups = groups.slice(_prevStavenoteCount);
+          const fresh = APP.noteLayout.filter(nl => nl.mi === mi && nl.si === (si + siOffset) && !nl._el);
+          // Match by order (VexFlow draws notes in document order).
+          fresh.forEach((nl, idx) => {
+            if (idx < newGroups.length) {
+              nl._el = newGroups[idx];
+              newGroups[idx]._tagged = true;
+              newGroups[idx].setAttribute('data-mi', mi);
+              newGroups[idx].setAttribute('data-si', si + siOffset);
+              newGroups[idx].setAttribute('data-ni', nl.ni);
             }
           });
         }

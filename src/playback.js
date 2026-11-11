@@ -1091,11 +1091,6 @@ function startPlayback() {
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
               cont.scrollLeft = cur + diff * 0.25;
-              const now = Date.now();
-              if (!APP._lastDiagramUpdate || now - APP._lastDiagramUpdate > 100) {
-                RENDER.positionAllDiagrams();
-                APP._lastDiagramUpdate = now;
-              }
             }
           }
         }
@@ -1199,39 +1194,73 @@ function updatePlayCursor(elapsedMs) {
     if (!APP.continuousView) RENDER.scrollToSelectedMeasure();
   }
   if (key === APP._lastPlayKey) return;
-  APP._lastPlayKey = key;
-  // Always draw a red rect covering the whole note (head + stem). This is
-  // reliable across VexFlow versions and always clears properly via the
-  // _playHighlightEls array below.
   clearPlayCursor();
+  APP._lastPlayKey = key;
+  if (active[0]) {
+    APP.selectedMeasure = active[0].mi;
+    APP.selectedNoteIdx = active[0].ni;
+    _updatePlaybackDiagrams(elapsedMs);
+    if (!APP.continuousView) RENDER.scrollToSelectedMeasure();
+  }
   const svg = document.getElementById('score-svg')?.querySelector('svg');
   if (!svg) return;
   APP._playHighlightEls = APP._playHighlightEls || [];
   active.forEach(n => {
     const layouts = APP.noteLayout.filter(l => l.mi === n.mi && l.ni === n.ni);
     layouts.forEach(nl => {
-      const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
-      const top = Math.min(nl.y, tipY);
-      const bot = Math.max(nl.y, tipY);
-      const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      hl.setAttribute('x', nl.x - 7);
-      hl.setAttribute('y', top - 4);
-      hl.setAttribute('width', 14);
-      hl.setAttribute('height', (bot - top) + 8);
-      hl.setAttribute('rx', 4);
-      hl.setAttribute('fill', 'rgba(229,57,53,0.30)');
-      hl.setAttribute('stroke', '#e53935');
-      hl.setAttribute('stroke-width', '1.6');
-      hl.setAttribute('class', 'play-cursor');
-      svg.appendChild(hl);
-      APP._playHighlightEls.push(hl);
+      if (nl._el) {
+        // Colour the actual note element red (head + stem + notehead).
+        nl._el.classList.add('play-highlight');
+        // Also set inline styles as a backup (overrides VexFlow's attributes).
+        nl._el.querySelectorAll('path, ellipse, circle, rect').forEach(el => {
+          if (!el._origFill) el._origFill = el.getAttribute('fill');
+          if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
+          el.setAttribute('fill', '#e53935');
+          el.setAttribute('stroke', '#e53935');
+        });
+        // colour stems (lines)
+        nl._el.querySelectorAll('line').forEach(el => {
+          if (!el._origStroke) el._origStroke = el.getAttribute('stroke');
+          el.setAttribute('stroke', '#e53935');
+        });
+        APP._playHighlightEls.push(nl._el);
+      } else {
+        // Fallback: draw a red rect covering the note.
+        const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
+        const top = Math.min(nl.y, tipY);
+        const bot = Math.max(nl.y, tipY);
+        const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        hl.setAttribute('x', nl.x - 7);
+        hl.setAttribute('y', top - 4);
+        hl.setAttribute('width', 14);
+        hl.setAttribute('height', (bot - top) + 8);
+        hl.setAttribute('rx', 4);
+        hl.setAttribute('fill', 'rgba(229,57,53,0.30)');
+        hl.setAttribute('stroke', '#e53935');
+        hl.setAttribute('stroke-width', '1.6');
+        hl.setAttribute('class', 'play-cursor');
+        svg.appendChild(hl);
+        APP._playHighlightEls.push(hl);
+      }
     });
   });
 }
 function clearPlayCursor() {
   document.querySelectorAll('.play-cursor').forEach(el => el.remove());
   if (APP._playHighlightEls) {
-    APP._playHighlightEls.forEach(el => { try { el.remove(); } catch(e) {} });
+    APP._playHighlightEls.forEach(el => {
+      try {
+        el.classList.remove('play-highlight');
+        // Restore original colours.
+        el.querySelectorAll('path, ellipse, circle, rect').forEach(e2 => {
+          if (e2._origFill) e2.setAttribute('fill', e2._origFill);
+          if (e2._origStroke) e2.setAttribute('stroke', e2._origStroke);
+        });
+        el.querySelectorAll('line').forEach(e2 => {
+          if (e2._origStroke) e2.setAttribute('stroke', e2._origStroke);
+        });
+      } catch(e) {}
+    });
     APP._playHighlightEls = [];
   }
 }
