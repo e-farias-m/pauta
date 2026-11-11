@@ -850,7 +850,7 @@ body{
 #score-canvas-container{padding:12px;min-height:100%;}
 #score-svg{width:100%;border-radius:6px;touch-action:manipulation;box-shadow:0 2px 16px rgba(0,0,0,0.12);}
 #score-svg svg{display:block;max-width:none}
-[data-instr-type] { transition: transform 0.12s ease-out; }
+[data-instr-type] { transition: transform 0.5s ease-out; }
 .vf-stavenote.play-highlight path,
 .vf-stavenote.play-highlight ellipse,
 .vf-stavenote.play-highlight circle { fill: #e53935 !important; stroke: #e53935 !important; }
@@ -7239,12 +7239,53 @@ function _renderScoreCompletions(rc) {
     const svgContainer = document.getElementById('score-svg');
     if (svgContainer) {
       if (svgContainer._recScrollHandler) svgContainer.removeEventListener('scroll', svgContainer._recScrollHandler);
-      const handler = () => positionAllDiagrams();
-      svgContainer._recScrollHandler = handler;
-      svgContainer.addEventListener('scroll', handler);
+      // No diagram repositioning during scroll — diagrams live in a fixed
+      // overlay (see positionDiagramOverlay) so they never jitter.
     }
   }
-  positionAllDiagrams();
+  // Host the first-system fingering diagram in a fixed overlay so it stays
+  // put while the canvas scrolls.
+  positionDiagramOverlay();
+}
+
+function positionDiagramOverlay() {
+  const overlay = document.getElementById('diagram-overlay');
+  const svgContainer = document.getElementById('score-svg');
+  if (!overlay || !svgContainer) return;
+  const diag = svgContainer.querySelector('[data-instr-type]');
+  if (!diag || !APP.continuousView) {
+    overlay.style.display = 'none';
+    // restore any hidden diagrams
+    svgContainer.querySelectorAll('[data-instr-type]').forEach(el => { el.style.display = ''; });
+    return;
+  }
+  // hide the original in-SVG diagram (it's now in the overlay)
+  svgContainer.querySelectorAll('[data-instr-type]').forEach(el => { el.style.display = 'none'; });
+  const recScale = parseFloat(diag.getAttribute('data-rec-scale')) || 1.6;
+  const cy = parseFloat(diag.getAttribute('data-diagram-cy')) || 100;
+  const type = diag.getAttribute('data-instr-type');
+  const name = diag.getAttribute('data-instr-name') || '';
+  const brX = type === 'brass'
+    ? (name === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176)
+    : (type === 'recorder' ? LAYOUT.MARGIN_X - 136 : LAYOUT.MARGIN_X - 190);
+  // host svg — copy the diagram's original transform (without scrollLeft)
+  overlay.innerHTML = '';
+  const host = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  host.setAttribute('width', '180');
+  host.setAttribute('height', '280');
+  host.setAttribute('viewBox', '0 0 180 280');
+  const clone = diag.cloneNode(true);
+  clone.style.display = '';
+  // position the diagram inside the host (no scroll offset)
+  clone.setAttribute('transform', `translate(${brX}, ${cy - 95 * recScale}) scale(${recScale}, -${recScale})`);
+  host.appendChild(clone);
+  overlay.appendChild(host);
+  // vertical position: align with the stave (fixed, doesn't move during scroll)
+  const svgRect = svgContainer.getBoundingClientRect();
+  const _cy = parseFloat(diag.getAttribute('data-diagram-cy')) || 100;
+  const _rs = parseFloat(diag.getAttribute('data-rec-scale')) || 1.6;
+  overlay.style.top = Math.max(8, svgRect.top + (_cy - 95 * _rs)) + 'px';
+  overlay.style.display = 'block';
 }
 
 let _scrollAnim = null;
@@ -18024,6 +18065,11 @@ function startPlayback() {
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
               cont.scrollLeft = cur + diff * 0.25;
+              const now = Date.now();
+              if (!APP._lastDiagramUpdate || now - APP._lastDiagramUpdate > 100) {
+                RENDER.positionAllDiagrams();
+                APP._lastDiagramUpdate = now;
+              }
             }
           }
         }
