@@ -113,6 +113,7 @@ body{
 #score-canvas-container{padding:12px;min-height:100%;}
 #score-svg{width:100%;border-radius:6px;touch-action:manipulation;box-shadow:0 2px 16px rgba(0,0,0,0.12);}
 #score-svg svg{display:block;max-width:none}
+[data-instr-type] { transition: transform 0.12s ease-out; }
 .vf-stavenote.play-highlight path,
 .vf-stavenote.play-highlight ellipse,
 .vf-stavenote.play-highlight circle { fill: #e53935 !important; stroke: #e53935 !important; }

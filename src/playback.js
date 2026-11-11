@@ -1091,6 +1091,11 @@ function startPlayback() {
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
               cont.scrollLeft = cur + diff * 0.25;
+              const now = Date.now();
+              if (!APP._lastDiagramUpdate || now - APP._lastDiagramUpdate > 100) {
+                RENDER.positionAllDiagrams();
+                APP._lastDiagramUpdate = now;
+              }
             }
           }
         }
