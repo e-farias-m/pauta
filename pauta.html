@@ -18029,6 +18029,11 @@ function startPlayback() {
             const diff = target - cur;
             if (Math.abs(diff) > 1) {
               cont.scrollLeft = cur + diff * 0.25;
+              const now = Date.now();
+              if (!APP._lastDiagramUpdate || now - APP._lastDiagramUpdate > 100) {
+                RENDER.positionAllDiagrams();
+                APP._lastDiagramUpdate = now;
+              }
             }
           }
         }
@@ -18133,44 +18138,39 @@ function updatePlayCursor(elapsedMs) {
   }
   if (key === APP._lastPlayKey) return;
   APP._lastPlayKey = key;
-  // Restore the previous note's original colour.
-  if (APP._playHighlightEl) {
-    APP._playHighlightEl.classList.remove('play-highlight');
-    APP._playHighlightEl = null;
-  }
+  // Always draw a red rect covering the whole note (head + stem). This is
+  // reliable across VexFlow versions and always clears properly via the
+  // _playHighlightEls array below.
+  clearPlayCursor();
   const svg = document.getElementById('score-svg')?.querySelector('svg');
   if (!svg) return;
+  APP._playHighlightEls = APP._playHighlightEls || [];
   active.forEach(n => {
     const layouts = APP.noteLayout.filter(l => l.mi === n.mi && l.ni === n.ni);
     layouts.forEach(nl => {
-      if (nl._el) {
-        nl._el.classList.add('play-highlight');
-        APP._playHighlightEl = nl._el;
-      } else {
-        // Fallback: draw a rect covering the note (old behaviour).
-        const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
-        const top = Math.min(nl.y, tipY);
-        const bot = Math.max(nl.y, tipY);
-        const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
-        hl.setAttribute('x', nl.x - 7);
-        hl.setAttribute('y', top - 4);
-        hl.setAttribute('width', 14);
-        hl.setAttribute('height', (bot - top) + 8);
-        hl.setAttribute('rx', 4);
-        hl.setAttribute('fill', 'rgba(227,96,26,0.28)');
-        hl.setAttribute('stroke', 'var(--pauta-primary)');
-        hl.setAttribute('stroke-width', '1.4');
-        hl.setAttribute('class', 'play-cursor');
-        svg.appendChild(hl);
-      }
+      const tipY = (typeof nl.stemTipY === 'number') ? nl.stemTipY : nl.y;
+      const top = Math.min(nl.y, tipY);
+      const bot = Math.max(nl.y, tipY);
+      const hl = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hl.setAttribute('x', nl.x - 7);
+      hl.setAttribute('y', top - 4);
+      hl.setAttribute('width', 14);
+      hl.setAttribute('height', (bot - top) + 8);
+      hl.setAttribute('rx', 4);
+      hl.setAttribute('fill', 'rgba(229,57,53,0.30)');
+      hl.setAttribute('stroke', '#e53935');
+      hl.setAttribute('stroke-width', '1.6');
+      hl.setAttribute('class', 'play-cursor');
+      svg.appendChild(hl);
+      APP._playHighlightEls.push(hl);
     });
   });
 }
 function clearPlayCursor() {
   document.querySelectorAll('.play-cursor').forEach(el => el.remove());
-  if (APP._playHighlightEl) {
-    APP._playHighlightEl.classList.remove('play-highlight');
-    APP._playHighlightEl = null;
+  if (APP._playHighlightEls) {
+    APP._playHighlightEls.forEach(el => { try { el.remove(); } catch(e) {} });
+    APP._playHighlightEls = [];
   }
 }
 
