@@ -8708,7 +8708,7 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
   g.appendChild(inner);
 
   // ── Note name ─────────────────────────────────────────────────
-  diagNoteName(inner, noteName, 25, -60, { size: '11', flipY: true });
+  diagNoteName(inner, noteName, 25, -40, { size: '19', flipY: true });
 
   // ── Alternate-fingering click overlay ─────────────────────────
   diagAltOverlay(inner, 'recorder', fingArr, altIndex, 36, 280, updateRecorderDiagram, { x: '12', y: '-460', tx: '38', ty: '-240', fontSize: '8', flipY: true });
@@ -9432,7 +9432,7 @@ function renderWoodwindDiagram(fingArr, type, altIndex = 0, noteName = '', regAc
   });
 
   // ── Note name ────────────────────────────────────────────────
-  diagNoteName(svg, noteName, w / 2, isFlute ? 8 : 12);
+  diagNoteName(svg, noteName, w / 2, isFlute ? 0 : 4, { size: '17' });
 
   // ── Alternate-fingering click overlay ─────────────────────────
   diagAltOverlay(svg, 'woodwind', fingArr, altIndex, w, h, updateWoodwindDiagram,
@@ -9484,7 +9484,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   svg.appendChild(defs);
 
   // ── Note name ──────────────────────────────────────────────
-  diagNoteName(svg, noteName, w / 2, isTrombone ? 14 : 18, { size: isTrombone ? '9' : '10' });
+  diagNoteName(svg, noteName, w / 2, isTrombone ? 6 : 10, { size: isTrombone ? '17' : '18' });
 
   if (isTrombone) {
     // Trombone: horizontal slide positions 1-7
