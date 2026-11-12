@@ -985,12 +985,12 @@ function _renderScoreCompletions(rc) {
   renderNoteLabels();
 
   if (APP.continuousView) {
-    const scrollArea = document.getElementById('score-area');
-    if (scrollArea) {
-      if (scrollArea._recScrollHandler) scrollArea.removeEventListener('scroll', scrollArea._recScrollHandler);
+    const scrollContainer = document.getElementById('score-svg');
+    if (scrollContainer) {
+      if (scrollContainer._recScrollHandler) scrollContainer.removeEventListener('scroll', scrollContainer._recScrollHandler);
       const handler = () => positionAllDiagrams();
-      scrollArea._recScrollHandler = handler;
-      scrollArea.addEventListener('scroll', handler);
+      scrollContainer._recScrollHandler = handler;
+      scrollContainer.addEventListener('scroll', handler);
     }
   }
   positionAllDiagrams();
@@ -1064,7 +1064,7 @@ function scrollToSelectedMeasure() {
   if (!sl) return;
 
   if (APP.continuousView) {
-    const container = document.getElementById('score-area');
+    const container = document.getElementById('score-svg');
     if (!container) return;
     const scrollLeft = container.scrollLeft || 0;
     const viewWidth  = container.clientWidth;
@@ -1132,9 +1132,9 @@ function renderSelection() {
 
 // Keep diagram SVGs fixed during horizontal scroll in continuous view
 function positionAllDiagrams(scrollOverride) {
-  const scrollArea = document.getElementById('score-area');
-  if (!scrollArea) return;
-  const scrollLeft = scrollOverride !== undefined ? scrollOverride : (scrollArea.scrollLeft || 0);
+  const scrollContainer = document.getElementById('score-svg');
+  if (!scrollContainer) return;
+  const scrollLeft = scrollOverride !== undefined ? scrollOverride : (scrollContainer.scrollLeft || 0);
   // Recorder diagrams
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
     const recScale = parseFloat(el.getAttribute('data-rec-scale')) || 1.6;

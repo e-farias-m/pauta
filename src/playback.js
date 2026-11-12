@@ -1044,8 +1044,8 @@ function startPlayback() {
   // Store total continuous width for playback auto-scroll
   APP._playTotalMs = totalMs;
   if (APP.continuousView) {
-    const scrollArea = document.getElementById('score-area');
-    APP._playTotalWidth = scrollArea ? Math.max(scrollArea.scrollWidth - scrollArea.clientWidth, 0) : 0;
+    const scrollContainer = document.getElementById('score-svg');
+    APP._playTotalWidth = scrollContainer ? Math.max(scrollContainer.scrollWidth - scrollContainer.clientWidth, 0) : 0;
     // Cache each playback event's engraved x-position once. The scroll loop
     // can then interpolate the score position between events every frame.
     const xByNote = new Map();
@@ -1086,8 +1086,8 @@ function startPlayback() {
   // up at each note change. Interpolating between engraved note positions
   // keeps the motion continuous while staying aligned with the music.
   if (APP.continuousView) {
-    const scrollArea = document.getElementById('score-area');
-    if (scrollArea) {
+    const scrollContainer = document.getElementById('score-svg');
+    if (scrollContainer) {
       function scrollLoop() {
         if (!APP.playing || !APP.continuousView) return;
         const cursorElapsed = Date.now() - noteStartAt;
@@ -1109,9 +1109,9 @@ function startPlayback() {
               : 0;
             const nextX = typeof next?.scoreX === 'number' ? next.scoreX : current.scoreX;
             const scoreX = current.scoreX + (nextX - current.scoreX) * progress;
-            const anchorX = (scrollArea.clientWidth || 1) * 0.25;
-            const maxScroll = Math.max(0, scrollArea.scrollWidth - scrollArea.clientWidth);
-            scrollArea.scrollLeft = Math.max(0, Math.min(maxScroll, scoreX - anchorX));
+            const anchorX = (scrollContainer.clientWidth || 1) * 0.25;
+            const maxScroll = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
+            scrollContainer.scrollLeft = Math.max(0, Math.min(maxScroll, scoreX - anchorX));
           }
         }
         APP._playScrollRAF = requestAnimationFrame(scrollLoop);
