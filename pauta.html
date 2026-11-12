@@ -7413,7 +7413,13 @@ function ensureDiagramBackdrops() {
   document.querySelectorAll('#score-svg [data-instr-type]').forEach(diagram => {
     if (diagram.firstElementChild?.classList?.contains('diagram-backdrop')) return;
     try {
-      const box = diagram.getBBox();
+      let box;
+      if (diagram.getAttribute('data-instr-type') === 'brass') {
+        const isTrombone = diagram.getAttribute('data-instr-name') === 'trombone';
+        box = { x: 0, y: 0, width: isTrombone ? 200 : 110, height: isTrombone ? 80 : 190 };
+      } else {
+        box = diagram.getBBox();
+      }
       if (!box.width || !box.height) return;
       const pad = 8;
       const card = document.createElementNS(ns, 'rect');
