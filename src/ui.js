@@ -2529,7 +2529,6 @@ function bootApp() {
     APP.teachingKit = null;
     APP.teachingKitLevel = 'advanced';
     APP.uiProfile = 'advanced';
-    applyUIProfile('advanced');
   } catch(e) { console.warn('[Pauta]', e.message); }
 
   // Restore palette collapsed state
