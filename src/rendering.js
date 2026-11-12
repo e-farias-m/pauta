@@ -1172,19 +1172,22 @@ function ensureDiagramBackdrops() {
     if (diagram.firstElementChild?.classList?.contains('diagram-backdrop')) return;
     try {
       let box;
-      if (diagram.getAttribute('data-instr-type') === 'brass') {
+      const isBrass = diagram.getAttribute('data-instr-type') === 'brass';
+      if (isBrass) {
         const isTrombone = diagram.getAttribute('data-instr-name') === 'trombone';
         box = { x: 0, y: 0, width: isTrombone ? 200 : 110, height: isTrombone ? 80 : 190 };
       } else {
         box = diagram.getBBox();
       }
       if (!box.width || !box.height) return;
-      const pad = 8;
+      const padX = 8;
+      const padTop = isBrass ? 20 : 8;
+      const padBottom = 8;
       const card = document.createElementNS(ns, 'rect');
-      card.setAttribute('x', box.x - pad);
-      card.setAttribute('y', box.y - pad);
-      card.setAttribute('width', box.width + pad * 2);
-      card.setAttribute('height', box.height + pad * 2);
+      card.setAttribute('x', box.x - padX);
+      card.setAttribute('y', box.y - padTop);
+      card.setAttribute('width', box.width + padX * 2);
+      card.setAttribute('height', box.height + padTop + padBottom);
       card.setAttribute('rx', '8');
       card.setAttribute('fill', '#fff');
       card.setAttribute('stroke', '#d8dce2');
