@@ -1109,7 +1109,7 @@ function startPlayback() {
               : 0;
             const nextX = typeof next?.scoreX === 'number' ? next.scoreX : current.scoreX;
             const scoreX = current.scoreX + (nextX - current.scoreX) * progress;
-            const anchorX = (scrollContainer.clientWidth || 1) * 0.25;
+            const anchorX = (scrollContainer.clientWidth || 1) * 0.5;
             const maxScroll = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
             scrollContainer.scrollLeft = Math.max(0, Math.min(maxScroll, scoreX - anchorX));
           }

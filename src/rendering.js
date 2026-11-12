@@ -1134,6 +1134,7 @@ function renderSelection() {
 function positionAllDiagrams(scrollOverride) {
   const scrollContainer = document.getElementById('score-svg');
   if (!scrollContainer) return;
+  ensureDiagramBackdrops();
   const scrollLeft = scrollOverride !== undefined ? scrollOverride : (scrollContainer.scrollLeft || 0);
   // Recorder diagrams
   document.querySelectorAll('[data-instr-type="recorder"]').forEach(el => {
@@ -1161,6 +1162,31 @@ function positionAllDiagrams(scrollOverride) {
   });
 }
 window.addEventListener('beforeprint', () => positionAllDiagrams(0));
+
+function ensureDiagramBackdrops() {
+  const ns = 'http://www.w3.org/2000/svg';
+  document.querySelectorAll('#score-svg [data-instr-type]').forEach(diagram => {
+    if (diagram.firstElementChild?.classList?.contains('diagram-backdrop')) return;
+    try {
+      const box = diagram.getBBox();
+      if (!box.width || !box.height) return;
+      const pad = 8;
+      const card = document.createElementNS(ns, 'rect');
+      card.setAttribute('x', box.x - pad);
+      card.setAttribute('y', box.y - pad);
+      card.setAttribute('width', box.width + pad * 2);
+      card.setAttribute('height', box.height + pad * 2);
+      card.setAttribute('rx', '8');
+      card.setAttribute('fill', '#fff');
+      card.setAttribute('stroke', '#d8dce2');
+      card.setAttribute('stroke-width', '1');
+      card.setAttribute('vector-effect', 'non-scaling-stroke');
+      card.setAttribute('pointer-events', 'none');
+      card.setAttribute('class', 'diagram-backdrop');
+      diagram.insertBefore(card, diagram.firstChild);
+    } catch(e) { if (DEBUG) console.warn('[Pauta] diagram backdrop:', e.message); }
+  });
+}
 
 // Helper: find the VexFlow note object and its stave layout for a given mi/si/ni
 function findNoteVF(mi, si, ni) {
@@ -2456,6 +2482,7 @@ function updateDiagram(type, renderFn, fingeringFn, defaultName, opts) {
       el.setAttribute('data-fing-count', '1');
       el.setAttribute('data-last-pitch', '');
     });
+    ensureDiagramBackdrops();
   };
   if (mi < 0 || ni < 0) { empty(); return; }
   let si = APP.selectedStaff;
@@ -2474,6 +2501,7 @@ function updateDiagram(type, renderFn, fingeringFn, defaultName, opts) {
       const fresh = renderFn([''], name, 0, '', opts?.extra?.(name) ?? false);
       while (fresh.firstChild) el.appendChild(fresh.firstChild);
     });
+    ensureDiagramBackdrops();
     return;
   }
   const name = opts?.nameAttr ? els[0].getAttribute(opts.nameAttr) || defaultName : defaultName;
@@ -2495,6 +2523,7 @@ function updateDiagram(type, renderFn, fingeringFn, defaultName, opts) {
     el.setAttribute('data-fing-count', String(fingArr.length));
     el.setAttribute('data-last-pitch', String(pitch));
   });
+  ensureDiagramBackdrops();
 }
 
 function updateRecorderDiagram() {
