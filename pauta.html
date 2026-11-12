@@ -3084,30 +3084,6 @@ const SCORE_MEASURE_REF_RULES = [
 const SCORE_STAFF_REF_KEYS = ['slurs', 'hairpins'];
 
 // ── UI Difficulty Profiles ────────────────────────────────────────
-const UI_PROFILES = {
-  beginner: {
-    hideDurations: ['32', '64'],
-    hidePanels:    ['artic', 'lines', 'bars', 'tempo', 'clef', 'text'],
-    hideButtons:   ['btn-triplet', 'btn-voice2', 'btn-chord'],
-    maxMeasures:   8,
-    description:   'Beginner — simplified palette, limited measures',
-  },
-  intermediate: {
-    hideDurations: ['64'],
-    hidePanels:    ['bars'],
-    hideButtons:   ['btn-voice2'],
-    maxMeasures:   32,
-    description:   'Intermediate — most features, fewer limits',
-  },
-  advanced: {
-    hideDurations: [],
-    hidePanels:    [],
-    hideButtons:   [],
-    maxMeasures:   Infinity,
-    description:   'Advanced — full notation toolkit',
-  },
-};
-
 // ── Teaching Kits ─────────────────────────────────────────────────
 // Contextual presets that reconfigure the app for a specific
 // classroom use-case.  Manual composition remains unlimited;
@@ -3173,9 +3149,6 @@ function applyKit(kitName, level) {
   if (!kit.instruments[level]) { UI.showToast('Unknown level: ' + level); return; }
   APP.teachingKit = kitName;
   APP.teachingKitLevel = level;
-  // Optionally sync the UI profile to the kit's suggestion
-  const suggested = kit.suggestedProfile[level];
-  if (suggested && UI_PROFILES[suggested]) applyUIProfile(suggested);
   try { LS.setItem('pauta_kit', kitName); LS.setItem('pauta_kit_level', level); } catch(e) { console.warn('[Pauta]', e.message); }
   UI.showToast(`${kit.name} — ${level}`);
 }
@@ -3208,66 +3181,6 @@ function _kitExerciseKeys() {
   const kit = APP.teachingKit ? KIT_CONFIGS[APP.teachingKit] : null;
   if (!kit) return null;
   return kit.exerciseKeys[APP.teachingKitLevel] || null;
-}
-
-function applyUIProfile(profileName) {
-  const profile = UI_PROFILES[profileName] || UI_PROFILES.advanced;
-  const prev = UI_PROFILES[APP.uiProfile] || UI_PROFILES.advanced;
-  APP.uiProfile = profileName;
-
-  // Durations
-  document.querySelectorAll('.pal-btn[data-dur]').forEach(btn => {
-    btn.hidden = profile.hideDurations.includes(btn.dataset.dur);
-  });
-  // Specific buttons
-  profile.hideButtons.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.hidden = true;
-  });
-  // Unhide buttons not in the list
-  Object.keys(UI_PROFILES).forEach(k => {
-    if (k === profileName) return;
-    UI_PROFILES[k].hideButtons.forEach(id => {
-      if (!profile.hideButtons.includes(id)) {
-        const el = document.getElementById(id);
-        if (el) el.hidden = false;
-      }
-    });
-  });
-  // Side tabs (panels)
-  document.querySelectorAll('.side-tab').forEach(tab => {
-    const panel = tab.dataset.panel;
-    if (panel) {
-      tab.hidden = profile.hidePanels.includes(panel);
-    }
-  });
-  // If the currently open side panel is now hidden, close it
-  if (_activePanel && profile.hidePanels.includes(_activePanel)) {
-    togglePanel(_activePanel);
-  }
-
-  // Build explicit change summary for toast
-  const changes = [];
-  const durLabels = {w:'whole', h:'half', q:'quarter', '8':'eighth', '16':'16th', '32':'32nd', '64':'64th'};
-  const newlyHiddenDurs = profile.hideDurations.filter(d => !prev.hideDurations.includes(d));
-  const newlyShownDurs  = prev.hideDurations.filter(d => !profile.hideDurations.includes(d));
-  if (newlyHiddenDurs.length) changes.push('hiding ' + newlyHiddenDurs.map(d => durLabels[d] || d).join(', ') + ' notes');
-  if (newlyShownDurs.length)  changes.push('showing ' + newlyShownDurs.map(d => durLabels[d] || d).join(', ') + ' notes');
-  const newlyHiddenPanels = profile.hidePanels.filter(p => !prev.hidePanels.includes(p));
-  const newlyShownPanels  = prev.hidePanels.filter(p => !profile.hidePanels.includes(p));
-  if (newlyHiddenPanels.length) changes.push('hiding ' + newlyHiddenPanels.length + ' panel' + (newlyHiddenPanels.length > 1 ? 's' : ''));
-  if (newlyShownPanels.length)  changes.push('showing ' + newlyShownPanels.length + ' panel' + (newlyShownPanels.length > 1 ? 's' : ''));
-
-  let msg;
-  if (changes.length) {
-    msg = profileName.charAt(0).toUpperCase() + profileName.slice(1) + ' profile: ' + changes.join('; ');
-  } else {
-    msg = profileName.charAt(0).toUpperCase() + profileName.slice(1) + ' profile (no change)';
-  }
-  UI.showToast(msg, changes.length ? 2500 : 1200);
-
-  // Store preference
-  try { LS.setItem('pauta_ui_profile', profileName); } catch(e) { console.warn('[Pauta]', e.message); }
 }
 
 function togglePalette() {
@@ -20124,16 +20037,6 @@ function showTeachMenu(btn) {
     {header:'Tools'},
     {label:'Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
   ]);
-}
-
-function showProfileSubmenu() {
-  const profiles = ['beginner', 'intermediate', 'advanced'];
-  const current = APP.uiProfile || 'advanced';
-  const items = profiles.map(p => ({
-    label: `${p === current ? '✓' : '○'} ${UI_PROFILES[p].description}`,
-    fn: () => { applyUIProfile(p); showToast('Profile: ' + UI_PROFILES[p].description); }
-  }));
-  showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
 }
 
 function showAssignmentSubmenu() {

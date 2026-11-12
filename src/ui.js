@@ -1345,16 +1345,6 @@ function showTeachMenu(btn) {
   ]);
 }
 
-function showProfileSubmenu() {
-  const profiles = ['beginner', 'intermediate', 'advanced'];
-  const current = APP.uiProfile || 'advanced';
-  const items = profiles.map(p => ({
-    label: `${p === current ? '✓' : '○'} ${UI_PROFILES[p].description}`,
-    fn: () => { applyUIProfile(p); showToast('Profile: ' + UI_PROFILES[p].description); }
-  }));
-  showDropdown(document.querySelector('[data-action="showScoreMenu"]'), items);
-}
-
 function showAssignmentSubmenu() {
   const assignments = APP.score?.assignments || [];
   const studentAnswers = APP.score?.studentAnswers || {};
