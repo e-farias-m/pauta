@@ -320,6 +320,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         recG.setAttribute('id', diagramId);
         recG.setAttribute('data-recorder-type', instr.recorderType || 'soprano');
         recG.setAttribute('data-instr-type', 'recorder');
+        recG.setAttribute('data-instr-si', gsi0);
         recG.setAttribute('data-rec-scale', recScale);
         recG.setAttribute('data-rec-cy', diagramCY);
         svgEl2.appendChild(recG);
@@ -332,6 +333,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         wwG.setAttribute('transform', `translate(${LAYOUT.MARGIN_X - 190},${diagramCY - wwYOff}) scale(${scale})`);
         wwG.setAttribute('id', diagramId);
         wwG.setAttribute('data-instr-type', 'woodwind');
+        wwG.setAttribute('data-instr-si', gsi0);
         wwG.setAttribute('data-instr-name', shorthand);
         wwG.setAttribute('data-diagram-cy', diagramCY);
         svgEl2.appendChild(wwG);
@@ -344,6 +346,7 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         brG.setAttribute('transform', `translate(${brX},${diagramCY - 101}) scale(${scale})`);
         brG.setAttribute('id', diagramId);
         brG.setAttribute('data-instr-type', 'brass');
+        brG.setAttribute('data-instr-si', gsi0);
         brG.setAttribute('data-instr-name', shorthand);
         brG.setAttribute('data-diagram-cy', diagramCY);
         svgEl2.appendChild(brG);
@@ -2468,7 +2471,10 @@ function renderLargeRecorder(fingArr, type = 'soprano', altIndex = 0, noteName =
 }
 
 function updateDiagram(type, renderFn, fingeringFn, defaultName, opts) {
-  const els = document.querySelectorAll(`[data-instr-type="${type}"]`);
+  const allEls = Array.from(document.querySelectorAll(`[data-instr-type="${type}"]`));
+  const si = Number.isInteger(APP.selectedStaff) ? APP.selectedStaff : 0;
+  const staffEls = allEls.filter(el => Number(el.getAttribute('data-instr-si')) === si);
+  const els = staffEls.length ? staffEls : allEls;
   if (!els.length || !APP.score) return;
   const mi = APP.selectedMeasure;
   const ni = APP.selectedNoteIdx;
@@ -2485,15 +2491,7 @@ function updateDiagram(type, renderFn, fingeringFn, defaultName, opts) {
     ensureDiagramBackdrops();
   };
   if (mi < 0 || ni < 0) { empty(); return; }
-  let si = APP.selectedStaff;
-  let note = null;
-  for (const part of APP.score.parts) {
-    for (let s = 0; s < part.staves.length; s++) {
-      note = part.staves[s].measures[mi]?.notes[ni];
-      if (note) break;
-    }
-    if (note) break;
-  }
+  const note = getStaveBySI(si)?.measures?.[mi]?.notes?.[ni] || null;
   if (!note || note.type !== 'note') {
     els.forEach(el => {
       el.innerHTML = '';
