@@ -18173,7 +18173,9 @@ function _updatePlaybackDiagrams(elapsedMs) {
     for (let s = 0; s < part.staves.length; s++) {
       const si = gsi + s;
       const instr = getInstrForSI(si);
-      if (!instr || (!instr.recorder && !instr.woodwind && !instr.brass)) {
+      const isWoodwind = instr?.family === 'Woodwinds';
+      const isBrass = instr?.family === 'Brass';
+      if (!instr || (!instr.recorder && !isWoodwind && !isBrass)) {
         continue;
       }
       const active = _findNoteAtPlaybackTime(elapsedMs, part.staves[s], APP._playOrder);
@@ -18182,8 +18184,8 @@ function _updatePlaybackDiagrams(elapsedMs) {
         APP.selectedNoteIdx = active.ni;
         APP.selectedStaff = si;
         if (instr.recorder) RENDER.updateRecorderDiagram();
-        else if (instr.woodwind) RENDER.updateWoodwindDiagram();
-        else if (instr.brass) RENDER.updateBrassDiagram();
+        else if (isWoodwind) RENDER.updateWoodwindDiagram();
+        else if (isBrass) RENDER.updateBrassDiagram();
       }
     }
     gsi += part.staves.length;
