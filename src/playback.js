@@ -1044,8 +1044,17 @@ function startPlayback() {
   // Store total continuous width for playback auto-scroll
   APP._playTotalMs = totalMs;
   if (APP.continuousView) {
-    const container = document.getElementById('score-svg');
-    APP._playTotalWidth = container ? Math.max(container.scrollWidth - container.clientWidth, 1) : 0;
+    const scrollArea = document.getElementById('score-area');
+    APP._playTotalWidth = scrollArea ? Math.max(scrollArea.scrollWidth - scrollArea.clientWidth, 0) : 0;
+    // Cache each playback event's engraved x-position once. The scroll loop
+    // can then interpolate the score position between events every frame.
+    const xByNote = new Map();
+    APP.noteLayout.forEach(nl => {
+      if (nl.si === 0 && !xByNote.has(`${nl.mi}:${nl.ni}`)) xByNote.set(`${nl.mi}:${nl.ni}`, nl.x);
+    });
+    APP.playNoteTimeline.forEach(event => {
+      event.scoreX = xByNote.get(`${event.mi}:${event.ni}`);
+    });
   } else {
     APP._playTotalWidth = 0;
   }
@@ -1072,30 +1081,37 @@ function startPlayback() {
   }
   tick();
 
-  // Separate rAF loop for smooth horizontal scrolling only — no DOM
-  // manipulation beyond scrollLeft, so it won't starve the audio.
+  // Follow the score with a continuous, time-interpolated scroll. Chasing
+  // the active note with an easing factor made the viewport lag, then catch
+  // up at each note change. Interpolating between engraved note positions
+  // keeps the motion continuous while staying aligned with the music.
   if (APP.continuousView) {
-    const cont = document.getElementById('score-svg');
-    if (cont) {
+    const scrollArea = document.getElementById('score-area');
+    if (scrollArea) {
       function scrollLoop() {
         if (!APP.playing || !APP.continuousView) return;
         const cursorElapsed = Date.now() - noteStartAt;
-        if (cursorElapsed >= 0) {
-          const active = APP.playNoteTimeline.filter(n => n.isNote && cursorElapsed >= n.startMs && cursorElapsed < n.startMs + n.durMs);
-          const nl = active.length ? APP.noteLayout.find(l => l.mi === active[0].mi && l.ni === active[0].ni) : null;
-          if (nl) {
-            const viewW = cont.clientWidth || 1;
-            const target = Math.max(0, nl.x - viewW * 0.25);
-            const cur = cont.scrollLeft || 0;
-            const diff = target - cur;
-            if (Math.abs(diff) > 1) {
-              cont.scrollLeft = cur + diff * 0.25;
-              const now = Date.now();
-              if (!APP._lastDiagramUpdate || now - APP._lastDiagramUpdate > 100) {
-                RENDER.positionAllDiagrams();
-                APP._lastDiagramUpdate = now;
-              }
-            }
+        if (cursorElapsed >= 0 && APP.playNoteTimeline.length) {
+          const timeline = APP.playNoteTimeline;
+          // Find the event containing the current playback time.
+          let lo = 0;
+          let hi = timeline.length - 1;
+          while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (timeline[mid].startMs <= cursorElapsed) lo = mid;
+            else hi = mid - 1;
+          }
+          const current = timeline[lo];
+          const next = timeline[lo + 1];
+          if (typeof current.scoreX === 'number') {
+            const progress = next && current.durMs > 0
+              ? Math.max(0, Math.min(1, (cursorElapsed - current.startMs) / current.durMs))
+              : 0;
+            const nextX = typeof next?.scoreX === 'number' ? next.scoreX : current.scoreX;
+            const scoreX = current.scoreX + (nextX - current.scoreX) * progress;
+            const anchorX = (scrollArea.clientWidth || 1) * 0.25;
+            const maxScroll = Math.max(0, scrollArea.scrollWidth - scrollArea.clientWidth);
+            scrollArea.scrollLeft = Math.max(0, Math.min(maxScroll, scoreX - anchorX));
           }
         }
         APP._playScrollRAF = requestAnimationFrame(scrollLoop);
