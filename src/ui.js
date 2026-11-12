@@ -555,7 +555,7 @@ const HELP_TIPS = [
   { q: 'How do I transpose?', a: 'Score menu → Transpose, then choose the interval.' },
   { q: 'How do I add lyrics?', a: 'Select a note and tap Lyric in the palette, or use the Lyrics panel.' },
   { q: 'How do I use Practice Mode?', a: 'Tap the Practice button in the transport bar. Play each highlighted note on your MIDI keyboard or microphone.' },
-  { q: 'How do I export to PDF?', a: 'File → Export Engraved PDF. The score is rendered as a high-resolution image and saved as a PDF.' },
+  { q: 'How do I export to PDF?', a: 'Choose File → Print / Export PDF, then select standard printing or a high-resolution PDF.' },
   { q: 'How do assignments work?', a: 'Teach → Create Assignment to hide notes for students. Share the .mscz file. Students open it, fill in answers, and send it back.' },
   { q: 'What keyboard shortcuts are available?', a: 'See the Keyboard shortcuts table above — it covers note durations (1–7), note names (C–B), rests (0), and transport and editing keys.' },
   { q: 'How do I add a chord?', a: 'Select a note, tap Chord mode (the chord icon), then tap additional note names to stack them.' },
@@ -927,7 +927,6 @@ function showScoreMenu(btn) {
     {label:'Key Signature', fn:showKeySigDialog},
     {label:'Transpose…', fn:showTransposeDialog},
     {label:'Add Instrument', fn:showAddInstrumentDialog},
-    {label:'Mixer', fn:showMixer},
     {sep:true},
     {label:'Pickup Measure', fn:showPickupDialog},
     {sep:true},
@@ -1210,14 +1209,10 @@ function confirmGenerateScale() {
 }
 
 function showLearnMenu(btn) {
-  showDropdown(btn, [
-    {label:'Curriculum', fn:showCurriculumDialog},
-    {label:'Recorder Exercises', fn:showRecorderExercises},
-    {label:'Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
-  ]);
+  showLearnPracticeMenu(btn);
 }
 
-function showPracticeMenu(btn) {
+function showLearnPracticeMenu(btn) {
   const practiceLabel = APP.practiceMode ? 'Stop Practice' : 'Practice Mode';
   const sens = Math.round((APP.practiceSensitivity || 0.3) * 100);
   const tempo = APP.practiceTempo || 80;
@@ -1225,6 +1220,13 @@ function showPracticeMenu(btn) {
   const loopEnabled = APP.practiceLoop ? 'ON' : 'OFF';
   const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
+    {header:'Learn'},
+    {label:'Practice Gym', fn:showExerciseDialog},
+    {label:'Curriculum', fn:showCurriculumDialog},
+    {label:'Recorder Exercises', fn:showRecorderExercises},
+    {label:'My Progress', fn:showStudentProgress},
+    {sep:true},
+    {header:'Practice this score'},
     {label:practiceLabel, fn:togglePracticeMode},
     ...(APP.practiceMode ? [{
       label: `Mic Level: <div id="practice-mic-level" style="display:inline-block;width:80px;height:6px;background:var(--pauta-primary);border-radius:3px;vertical-align:middle;margin-left:8px"></div>`,
@@ -1255,6 +1257,10 @@ function showPracticeMenu(btn) {
     {header:'Melody'},
     {label:'Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
   ]);
+}
+
+function showPracticeMenu(btn) {
+  showLearnPracticeMenu(btn);
 }
 
 function showPracticeSettingsMenu(btn) {
@@ -1323,26 +1329,30 @@ function showPracticeSettingsMenu(btn) {
   }
 }
 
-function showTeachMenu(btn) {
+function showMoreMenu(btn) {
   const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
-    {header:'Content'},
+    {header:'Classroom'},
     {label:'Starter Assignments', fn:showStarterAssignmentsDialog},
     ...(hasAssignments || APP.assignmentMode
       ? [{label:'Assignment', fn:showAssignmentSubmenu}]
       : [{label:'Create Assignment', fn:showAssignmentDialog}]),
     {label:'Exercise Builder', fn:showExerciseBuilderDialog},
     {label:'Import Exercise Set', fn:importCustomExercise},
-    {header:'Compose'},
-    {label:'Rhythm Composer', fn:showRhythmComposer},
-    {label:'Melody Composer', fn:showMelodyComposer},
-    {header:'Monitor'},
-    {label:'My Progress', fn:showStudentProgress},
     {label:'Dashboard', fn:showTeacherDashboard},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
+    {header:'Compose'},
+    {label:'Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
+    {label:'Rhythm Composer', fn:showRhythmComposer},
+    {label:'Melody Composer', fn:showMelodyComposer},
     {header:'Tools'},
+    {label:'Mixer', fn:showMixer},
     {label:'Calibrate Audio Latency', fn:() => SESSION_MANAGER.showCalibrationDialog()},
   ]);
+}
+
+function showTeachMenu(btn) {
+  showMoreMenu(btn);
 }
 
 function showAssignmentSubmenu() {
@@ -1604,19 +1614,26 @@ function applyKeySig(ks) {
 // ── File Operations ───────────────────────────────────────────────
 function showFileMenu(btn) {
   showDropdown(btn, [
-    {label:'Open .mscz / .mscx', fn:openFile},
+    {header:'Score file'},
+    {label:'Open Score', fn:openFile},
+    {label:'Save as MuseScore (.mscz)', fn:saveMSCZ},
+    {label:'Save as MusicXML (.mscx)', fn:saveMSCX},
     {sep:true},
-    {label:'Save as .mscz', fn:saveMSCZ},
-    {label:'Save as .mscx (XML)', fn:saveMSCX},
-    {sep:true},
+    {header:'Share and export'},
     {label:'Export for Preludio (.musicxml)', fn:savePreludioPart},
-    {label:'Print / Save as PDF', fn:printScore},
-    {label:'Export Engraved PDF', fn:showExportPDFDialog},
+    {label:'Print / Export PDF…', fn:showPrintExportDialog},
     {label:'Export Audio', fn:showExportDialog},
-    {sep:true},
-    {label:'New Score', fn:showNewScoreDialog},
-    {label:'Score Info', fn:showScoreInfo},
   ]);
+}
+
+function showPrintExportDialog() {
+  makeModal(`
+    <h2>Print or Export PDF</h2>
+    <p class="dialog-hint">Choose how you want to share this score.</p>
+    <button class="modal-btn primary" data-action="printScore">Print / Save as PDF</button>
+    <button class="modal-btn secondary" data-action="showExportPDFDialog">Export high-resolution PDF</button>
+    <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
+  `);
 }
 
 // A MuseScore (.mscz) or compressed MusicXML (.mxl) file is a zip whose
@@ -2276,6 +2293,7 @@ function showDropdown(btnEl, items) {
   const rect = btnEl.getBoundingClientRect();
   requestAnimationFrame(() => {
     const ddW = dd.offsetWidth || 180;
+    dd.style.maxHeight = Math.max(120, window.innerHeight - rect.bottom - 8) + 'px';
     dd.style.top = (rect.bottom + 4) + 'px';
     dd.style.left = Math.max(4, Math.min(window.innerWidth - ddW - 4, rect.right - ddW)) + 'px';
   });
@@ -2756,6 +2774,7 @@ _registerAction('ndTSNumAdj', (e) => ndTSNumAdj(parseInt(e.target.closest('[data
 _registerAction('ndPickupToggle', () => ndPickupToggle());
 _registerAction('ndPickupSync', () => ndPickupSync());
 _registerAction('printScore', () => printScore());
+_registerAction('showExportPDFDialog', () => AUDIO.showExportPDFDialog());
 _registerAction('removePickupMeasure', () => removePickupMeasure());
 _registerAction('rewindPlayback', () => AUDIO.rewindPlayback());
 _registerAction('saveChordSymbol', () => saveChordSymbol());
@@ -2788,8 +2807,10 @@ _registerAction('showScoreInfo', () => showScoreInfo());
 _registerAction('showScoreMenu', (e) => showScoreMenu(e.target));
 _registerAction('showViewMenu', (e) => showViewMenu(e.target));
 _registerAction('showLearnMenu', (e) => showLearnMenu(e.target));
+_registerAction('showLearnPracticeMenu', (e) => showLearnPracticeMenu(e.target));
 _registerAction('showPracticeMenu', (e) => showPracticeMenu(e.target));
 _registerAction('showTeachMenu', (e) => showTeachMenu(e.target));
+_registerAction('showMoreMenu', (e) => showMoreMenu(e.target));
 _registerAction('applyKit', (e) => { applyKit(e.target.closest('[data-kit]')?.dataset.kit, e.target.closest('[data-level]')?.dataset.level); closeModal(); });
 _registerAction('clearKit', () => { clearKit(); closeModal(); });
 _registerAction('showAddInstrumentDialog', () => showAddInstrumentDialog());
