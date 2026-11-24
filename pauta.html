@@ -6482,8 +6482,10 @@ function renderInstrumentLabels(container, activeParts, system, sysY, siOffset, 
         const shorthand = type.includes('trumpet')?'trumpet':type.includes('horn')?'horn':type.includes('trombone')?'trombone':type.includes('euphonium')?'euphonium':'tuba';
         const brG = renderBrassDiagram([''], shorthand);
         const scale = 1.44;
-        const brX = shorthand === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176;
-        brG.setAttribute('transform', `translate(${brX},${diagramCY - 101}) scale(${scale})`);
+        // Vertical layout for the trombone slide column: narrow and tall.
+        const brX = shorthand === 'trombone' ? LAYOUT.MARGIN_X - 120 : LAYOUT.MARGIN_X - 176;
+        const brY = shorthand === 'trombone' ? diagramCY - 144 : diagramCY - 101;
+        brG.setAttribute('transform', `translate(${brX},${brY}) scale(${scale})`);
         brG.setAttribute('id', diagramId);
         brG.setAttribute('data-instr-type', 'brass');
         brG.setAttribute('data-instr-si', gsi0);
@@ -7157,13 +7159,13 @@ function positionDiagramOverlay() {
   const type = diag.getAttribute('data-instr-type');
   const name = diag.getAttribute('data-instr-name') || '';
   const brX = type === 'brass'
-    ? (name === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176)
+    ? (name === 'trombone' ? LAYOUT.MARGIN_X - 120 : LAYOUT.MARGIN_X - 176)
     : (type === 'recorder' ? LAYOUT.MARGIN_X - 136 : LAYOUT.MARGIN_X - 190);
   // host svg — copy the diagram's original transform (without scrollLeft)
   overlay.innerHTML = '';
   const host = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   host.setAttribute('width', '180');
-  host.setAttribute('height', '280');
+  host.setAttribute('height', '320');
   host.setAttribute('viewBox', '0 0 180 280');
   const clone = diag.cloneNode(true);
   clone.style.display = '';
@@ -7294,8 +7296,9 @@ function positionAllDiagrams(scrollOverride) {
   document.querySelectorAll('[data-instr-type="brass"]').forEach(el => {
     const cy = parseFloat(el.getAttribute('data-diagram-cy')) || 100;
     const name = el.getAttribute('data-instr-name') || '';
-    const brX = name === 'trombone' ? LAYOUT.MARGIN_X - 152 : LAYOUT.MARGIN_X - 176;
-    el.style.transform = `translate(${brX + scrollLeft}px, ${cy - 101}px) scale(1.44)`;
+    const brX = name === 'trombone' ? LAYOUT.MARGIN_X - 120 : LAYOUT.MARGIN_X - 176;
+    const brY = name === 'trombone' ? cy - 144 : cy - 101;
+    el.style.transform = `translate(${brX + scrollLeft}px, ${brY}px) scale(1.44)`;
   });
   // Instrument name labels
   document.querySelectorAll('.instrument-label').forEach(el => {
@@ -7315,7 +7318,7 @@ function ensureDiagramBackdrops() {
       const isBrass = diagram.getAttribute('data-instr-type') === 'brass';
       if (isBrass) {
         const isTrombone = diagram.getAttribute('data-instr-name') === 'trombone';
-        box = { x: 0, y: 0, width: isTrombone ? 200 : 110, height: isTrombone ? 80 : 190 };
+        box = { x: 0, y: 0, width: isTrombone ? 80 : 110, height: isTrombone ? 200 : 190 };
       } else {
         box = diagram.getBBox();
       }
@@ -9360,8 +9363,8 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   const has4Valves = isHorn;
   const nValves = has4Valves ? 4 : 3;
 
-  const w = isTrombone ? 200 : 110;
-  const h = isTrombone ? 80 : 190;
+  const w = isTrombone ? 80 : 110;
+  const h = isTrombone ? 200 : 190;
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -9388,44 +9391,45 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   diagNoteName(svg, noteName, w / 2, isTrombone ? 6 : 10, { size: isTrombone ? '17' : '18' });
 
   if (isTrombone) {
-    // Trombone: horizontal slide positions 1-7
+    // Trombone: vertical slide positions 1-7. A narrow column fits in the
+    // left gutter without covering the staff.
     const slidePos = parseInt(fing) || 1;
-    const startX = 16;
-    const endX = w - 16;
-    const spacing = (endX - startX) / 6;
-    const cy = 40;
+    const x = w / 2;
+    const startY = 30;
+    const endY = 182;
+    const spacing = (endY - startY) / 6;
 
-    // Position markers
+    const rail = document.createElementNS(ns, 'line');
+    rail.setAttribute('x1', x); rail.setAttribute('y1', startY);
+    rail.setAttribute('x2', x); rail.setAttribute('y2', endY);
+    rail.setAttribute('stroke', '#d0c8b8');
+    rail.setAttribute('stroke-width', 1);
+    svg.appendChild(rail);
+
     for (let i = 1; i <= 7; i++) {
-      const x = startX + (i - 1) * spacing;
+      const y = startY + (i - 1) * spacing;
       const isActive = i === slidePos;
 
-      // Outer ring
       const outer = document.createElementNS(ns, 'circle');
-      outer.setAttribute('cx', x); outer.setAttribute('cy', cy);
+      outer.setAttribute('cx', x); outer.setAttribute('cy', y);
       outer.setAttribute('r', isActive ? 11 : 8);
       outer.setAttribute('fill', 'none');
       outer.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : 'var(--pauta-primary)') : '#d0c8b8');
       outer.setAttribute('stroke-width', isActive ? 2 : 1);
       svg.appendChild(outer);
 
-      // Main circle
       const circle = document.createElementNS(ns, 'circle');
-      circle.setAttribute('cx', x); circle.setAttribute('cy', cy);
+      circle.setAttribute('cx', x); circle.setAttribute('cy', y);
       circle.setAttribute('r', isActive ? 9 : 6);
       circle.setAttribute('fill', isActive ? (APP.playing ? '#ff5a4a' : 'var(--pauta-primary)') : '#fff');
       circle.setAttribute('stroke', isActive ? (APP.playing ? '#e04030' : 'var(--pauta-primary)') : '#d0c8b8');
       circle.setAttribute('stroke-width', isActive ? 2 : 1.5);
       svg.appendChild(circle);
 
-      // Metallic highlight
-      if (isActive) {
-        diagHighlight(svg, x, cy, 9, APP.playing);
-      }
+      if (isActive) diagHighlight(svg, x, y, 9, APP.playing);
 
-      // Position number
       const num = document.createElementNS(ns, 'text');
-      num.setAttribute('x', x); num.setAttribute('y', cy + 3);
+      num.setAttribute('x', x); num.setAttribute('y', y + 3);
       num.setAttribute('text-anchor', 'middle');
       num.setAttribute('font-size', isActive ? '10' : '9');
       num.setAttribute('font-weight', isActive ? '700' : '500');
