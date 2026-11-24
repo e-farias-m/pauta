@@ -1339,7 +1339,6 @@ function showMoreMenu(btn) {
       : [{label:'Create Assignment', fn:showAssignmentDialog}]),
     {label:'Exercise Builder', fn:showExerciseBuilderDialog},
     {label:'Import Exercise Set', fn:importCustomExercise},
-    {label:'Dashboard', fn:showTeacherDashboard},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
     {header:'Compose'},
     {label:'Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
@@ -2752,8 +2751,7 @@ _registerAction('confirmGenerateScale', () => confirmGenerateScale());
 _registerAction('confirmExportPDF', () => AUDIO.confirmExportPDF());
 _registerAction('showHelpPanel', () => showHelpPanel());
 _registerAction('closeWelcome', () => AUDIO.closeWelcome());
-_registerAction('startLearnerOnboarding', () => AUDIO.startLearnerOnboarding());
-_registerAction('startComposerOnboarding', () => AUDIO.startComposerOnboarding());
+_registerAction('closeWelcome', () => AUDIO.closeWelcome());
 _registerAction('switchRole', (e) => { const role = e.target.closest('[data-role]')?.dataset.role; if (role) AUDIO.switchRole(role); });
 _registerAction('loadRecorderExercise', (e) => loadRecorderExercise(e.target.closest('[data-key]')?.dataset.key));
 _registerAction('showRecorderExercises', () => showRecorderExercises());

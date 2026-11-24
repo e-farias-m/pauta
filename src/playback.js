@@ -5,7 +5,7 @@
  * Provides: navigateNote, insertMeasure, addMeasure, navigateStaff,
  * pushUndo, undo, redo, showExportDialog, confirmExportAudio,
  * showExportPDFDialog, confirmExportPDF, showWelcomeModal,
- * startLearnerOnboarding, startComposerOnboarding, closeWelcome,
+ * closeWelcome,
  * switchRole, togglePlayback, rewindPlayback, toggleCountIn,
  * setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
 
@@ -541,42 +541,24 @@ async function _exportPDF(pageSize) {
 function showWelcomeModal() {
   const seen = LS.getItem('pauta_welcome_seen');
   if (seen) return;
+  const existing = LS.getItem('pauta_student_name') || '';
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
       <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
-      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:18px">Welcome! What would you like to do today?</div>
-
-      <button class="modal-btn primary pauta-mb-sm" data-action="startLearnerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
-        <span style="font-size:22px">&#9835;</span>
-        <span>I want to learn music!</span>
-      </button>
-
-      <button class="modal-btn secondary pauta-mb-sm" data-action="startComposerOnboarding" style="width:100%;padding:18px 20px;font-size:16px;border-radius:var(--pauta-radius-lg);display:flex;align-items:center;justify-content:center;gap:10px">
-        <span style="font-size:20px;font-weight:700">&#9998;</span>
-        <span>I want to write music!</span>
-      </button>
-
-      <div class="pauta-text-subtle pauta-mt-sm">
-        You can change your mind anytime in the View menu.
-      </div>
+      <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:16px">What should we call you?</div>
+      <input id="pauta-welcome-name" type="text" class="pauta-modal-input" maxlength="40" value="${escapeHtml(existing)}" placeholder="Your name…" style="width:80%;padding:8px 12px;border-radius:8px;border:1px solid var(--pauta-border, #d0d5dd);font-size:16px" />
+      <button id="pauta-welcome-go" class="modal-btn primary pauta-mt-sm" style="width:100%;padding:14px 20px;font-size:16px;border-radius:var(--pauta-radius-lg)">Start</button>
     </div>
   `);
-}
-
-function startLearnerOnboarding() {
-  applyKit('recorder', 'beginner');
-  LS.setItem('pauta_welcome_seen', '1');
-  LS.setItem('pauta_role', 'student');
-  if (window.BUS) BUS.emit('role:changed');
-  UI.closeModal();
-  setTimeout(() => showExerciseDialog(), 300);
-}
-
-function startComposerOnboarding() {
-  LS.setItem('pauta_welcome_seen', '1');
-  LS.setItem('pauta_role', 'teacher');
-  if (window.BUS) BUS.emit('role:changed');
-  UI.closeModal();
+  const inp = document.getElementById('pauta-welcome-name');
+  const go = document.getElementById('pauta-welcome-go');
+  const submit = () => {
+    const name = (inp.value || '').trim();
+    if (name) { LS.setItem('pauta_student_name', name); LS.setItem('pauta_welcome_seen', '1'); AUDIO._updateDocTitle(); }
+    UI.closeModal();
+  };
+  go.addEventListener('click', submit);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
 }
 
 function closeWelcome() {
@@ -585,21 +567,9 @@ function closeWelcome() {
 }
 
 function _updateDocTitle() {
-  const role = LS.getItem('pauta_role') || 'teacher';
-  document.title = role === 'student' ? 'Pauta — Student Mode' : 'Pauta — Teacher Mode';
+  document.title = 'Pauta';
   const badge = document.getElementById('role-badge');
-  if (!badge) return;
-  if (role === 'student') {
-    badge.textContent = 'Student';
-    badge.style.background = 'rgba(34,197,94,0.15)';
-    badge.style.color = '#16a34a';
-    badge.style.display = '';
-  } else {
-    badge.textContent = 'Teacher';
-    badge.style.background = 'rgba(59,130,246,0.15)';
-    badge.style.color = '#2563eb';
-    badge.style.display = '';
-  }
+  if (badge) badge.style.display = 'none';
 }
 // Subscribe to role:changed so title updates without direct calls
 if (window.BUS) BUS.on('role:changed', _updateDocTitle);
@@ -1767,7 +1737,7 @@ function _showPracticeResults() {
 [navigateNote, insertMeasure, addMeasure, navigateStaff,
  pushUndo, undo, redo, showExportDialog, confirmExportAudio,
  showExportPDFDialog, confirmExportPDF, showWelcomeModal,
- startLearnerOnboarding, startComposerOnboarding, closeWelcome,
+ closeWelcome,
  switchRole, togglePlayback, rewindPlayback, toggleCountIn,
  setMetronomeSubdivision, toggleMetronome, togglePracticeMode,
  stopPlayback, _checkPracticeNote, _updateDocTitle
