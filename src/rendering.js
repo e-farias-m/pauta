@@ -3248,7 +3248,7 @@ function renderBrassDiagram(fingArr, type, altIndex = 0, noteName = '') {
   svg.appendChild(defs);
 
   // ── Note name ──────────────────────────────────────────────
-  diagNoteName(svg, noteName, w / 2, isTrombone ? 6 : 10, { size: isTrombone ? '17' : '18' });
+  diagNoteName(svg, noteName, w / 2, isTrombone ? 10 : 12, { size: isTrombone ? '16' : '18' });
 
   if (isTrombone) {
     // Trombone: vertical slide positions 1-7. A narrow column fits in the
