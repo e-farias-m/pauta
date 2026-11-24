@@ -1337,8 +1337,6 @@ function showMoreMenu(btn) {
     ...(hasAssignments || APP.assignmentMode
       ? [{label:'Assignment', fn:showAssignmentSubmenu}]
       : [{label:'Create Assignment', fn:showAssignmentDialog}]),
-    {label:'Exercise Builder', fn:showExerciseBuilderDialog},
-    {label:'Import Exercise Set', fn:importCustomExercise},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
     {header:'Compose'},
     {label:'Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
@@ -2898,10 +2896,6 @@ _registerAction('closeModalExercise', () => closeModalExercise());
 _registerAction('restartExerciseSession', () => restartExerciseSession());
   _registerAction('reviewExerciseSession', () => reviewExerciseSession());
   _registerAction('showCurriculumDialog', () => showCurriculumDialog());
-  _registerAction('showExerciseBuilderDialog', () => showExerciseBuilderDialog());
-  _registerAction('importCustomExercise', () => importCustomExercise());
-  _registerAction('deleteCustomExercise', (e) => deleteCustomExercise(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
-  _registerAction('exportCustomExercise', (e) => exportCustomExercise(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
   _registerAction('startCurriculumGrade', (e) => {
     closeModal();
     const grade = e.target.closest('[data-grade]')?.dataset.grade;

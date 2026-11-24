@@ -15700,178 +15700,6 @@ function showStarterAssignmentsDialog() {
   `);
 }
 
-// ── Custom Exercise Builder ─────────────────────────────────────
-// Teachers can create custom exercise sets and export them for students.
-
-const CUSTOM_EXERCISES_KEY = 'pauta_custom_exercises';
-
-function _loadCustomExercises() {
-  try { return JSON.parse(LS.getItem(CUSTOM_EXERCISES_KEY)) || []; }
-  catch(e) { return []; }
-}
-
-function _saveCustomExercises(exercises) {
-  LS.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(exercises));
-}
-
-function showExerciseBuilderDialog() {
-  if (APP.exerciseMode) { UI.showToast('Finish your current exercise first'); return; }
-
-  const existing = _loadCustomExercises();
-
-  const typeOptions = [
-    { value: 'note_id', label: 'Note Identification' },
-    { value: 'interval_id', label: 'Interval Identification' },
-    { value: 'rhythm_read', label: 'Rhythm Reading' },
-    { value: 'rhythm_worksheet', label: 'Rhythm Dictation' },
-    { value: 'key_sig_id', label: 'Key Signature ID' },
-    { value: 'melody_dictation', label: 'Melody Dictation' },
-    { value: 'scale_id', label: 'Scale Identification' },
-  ];
-
-  const diffOptions = [
-    { value: 'beginner', label: 'Beginner' },
-    { value: 'intermediate', label: 'Intermediate' },
-    { value: 'advanced', label: 'Advanced' },
-  ];
-
-  const existingHtml = existing.length ? `
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:6px;font-weight:600">Your Custom Exercise Sets</div>
-      <div style="flex-shrink:0;max-height:150px;overflow-y:auto">
-        ${existing.map((ex, idx) => `
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(204,24,69,0.03);border-radius:6px;margin-bottom:4px">
-            <div style="flex:1">
-              <div style="font-weight:600;font-size:12px;color:var(--pauta-text)">${UI.escHtml(ex.name)}</div>
-              <div style="font-size:10px;color:rgba(74,85,104,0.6)">${ex.exercises.length} exercises · ${ex.difficulty}</div>
-            </div>
-            <button class="modal-btn secondary" data-action="exportCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px">Export</button>
-            <button class="modal-btn secondary" data-action="deleteCustomExercise" data-idx="${idx}" style="padding:3px 8px;font-size:10px;color:var(--pauta-primary-light)">Delete</button>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  ` : '';
-
-  UI.makeModal(`
-    <h2>Exercise Builder</h2>
-    ${existingHtml}
-    <div style="margin-bottom:12px">
-      <div class="pauta-dlg-section" style="margin:0 0 4px">Exercise Set Name</div>
-      <input id="exb-name" type="text" placeholder="e.g. Week 1: Treble Clef Basics" class="pauta-dlg-input">
-    </div>
-    <div class="pauta-dlg-grid2" style="margin-bottom:12px">
-      <div>
-        <div class="pauta-dlg-section" style="margin:0 0 4px">Difficulty</div>
-        <select id="exb-diff" class="pauta-dlg-select">
-          ${diffOptions.map(d => `<option value="${d.value}">${d.label}</option>`).join('')}
-        </select>
-      </div>
-      <div>
-        <div class="pauta-dlg-section" style="margin:0 0 4px">Exercises per set</div>
-        <select id="exb-count" class="pauta-dlg-select">
-          <option value="5">5</option>
-          <option value="10" selected>10</option>
-          <option value="15">15</option>
-          <option value="20">20</option>
-        </select>
-      </div>
-    </div>
-    <div id="exb-types" style="margin-bottom:12px">
-      <div class="pauta-dlg-section" style="margin:0 0 6px">Exercise Types (check to include)</div>
-      ${typeOptions.map((t, idx) => `
-        <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--pauta-text-muted);cursor:pointer">
-          <input type="checkbox" class="exb-type-check" value="${t.value}" ${idx < 2 ? 'checked' : ''} style="accent-color:var(--pauta-primary)">
-          ${t.label}
-        </label>
-      `).join('')}
-    </div>
-    <div class="pauta-dlg-input-group" style="gap:6px">
-      <button class="modal-btn primary" id="exb-save">Save Set</button>
-      <button class="modal-btn secondary" id="exb-export">Export JSON</button>
-      <button class="modal-btn secondary" data-action="closeModal">Cancel</button>
-    </div>
-  `);
-
-  setTimeout(() => {
-    const saveBtn = document.getElementById('exb-save');
-    const exportBtn = document.getElementById('exb-export');
-    if (saveBtn) saveBtn.addEventListener('click', () => {
-      const name = document.getElementById('exb-name')?.value?.trim();
-      if (!name) { UI.showToast('Enter a name for the set'); return; }
-      const difficulty = document.getElementById('exb-diff')?.value || 'beginner';
-      const count = parseInt(document.getElementById('exb-count')?.value || '10');
-      const types = Array.from(document.querySelectorAll('.exb-type-check:checked')).map(cb => cb.value);
-      if (!types.length) { UI.showToast('Select at least one exercise type'); return; }
-      const customEx = { name, difficulty, count, types, exercises: types.map(t => ({ type: t, count: Math.ceil(count / types.length) })) };
-      const all = _loadCustomExercises();
-      all.push(customEx);
-      _saveCustomExercises(all);
-      UI.showToast(`"${name}" saved`);
-      UI.closeModal();
-    });
-    if (exportBtn) exportBtn.addEventListener('click', () => {
-      const name = document.getElementById('exb-name')?.value?.trim() || 'Custom Exercise Set';
-      const difficulty = document.getElementById('exb-diff')?.value || 'beginner';
-      const count = parseInt(document.getElementById('exb-count')?.value || '10');
-      const types = Array.from(document.querySelectorAll('.exb-type-check:checked')).map(cb => cb.value);
-      if (!types.length) { UI.showToast('Select at least one exercise type'); return; }
-      const data = { version: 1, name, difficulty, count, types, exercises: types.map(t => ({ type: t, count: Math.ceil(count / types.length) })) };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `pauta-exercise-set-${Date.now()}.json`; a.click();
-      URL.revokeObjectURL(url);
-      UI.showToast('Exercise set exported');
-    });
-  }, 50);
-}
-
-function deleteCustomExercise(idx) {
-  const all = _loadCustomExercises();
-  if (!confirm(`Delete "${all[idx]?.name}"?`)) return;
-  all.splice(idx, 1);
-  _saveCustomExercises(all);
-  UI.closeModal();
-  showExerciseBuilderDialog();
-}
-
-function exportCustomExercise(idx) {
-  const all = _loadCustomExercises();
-  const ex = all[idx];
-  if (!ex) return;
-  const blob = new Blob([JSON.stringify(ex, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `pauta-exercise-${ex.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.json`; a.click();
-  URL.revokeObjectURL(url);
-  UI.showToast('Exercise set exported');
-}
-
-function importCustomExercise() {
-  UI.closeModal();
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = '.json';
-  input.addEventListener('change', e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (!data.name || !data.exercises) { UI.showToast('Invalid exercise set format'); return; }
-        const all = _loadCustomExercises();
-        all.push(data);
-        _saveCustomExercises(all);
-        UI.showToast(`Imported "${data.name}"`);
-        showExerciseBuilderDialog();
-      } catch(e) { UI.showToast('Could not read file: ' + e.message); }
-    };
-    reader.readAsText(file);
-  });
-  input.click();
-}
-
 function _genScaleAssignment(type, octaves) {
   const isMajorType = type === 'major' || type === 'major-arpeggio';
   let allKeys = isMajorType
@@ -19989,8 +19817,6 @@ function showMoreMenu(btn) {
     ...(hasAssignments || APP.assignmentMode
       ? [{label:'Assignment', fn:showAssignmentSubmenu}]
       : [{label:'Create Assignment', fn:showAssignmentDialog}]),
-    {label:'Exercise Builder', fn:showExerciseBuilderDialog},
-    {label:'Import Exercise Set', fn:importCustomExercise},
     {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
     {header:'Compose'},
     {label:'Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
@@ -21550,10 +21376,6 @@ _registerAction('closeModalExercise', () => closeModalExercise());
 _registerAction('restartExerciseSession', () => restartExerciseSession());
   _registerAction('reviewExerciseSession', () => reviewExerciseSession());
   _registerAction('showCurriculumDialog', () => showCurriculumDialog());
-  _registerAction('showExerciseBuilderDialog', () => showExerciseBuilderDialog());
-  _registerAction('importCustomExercise', () => importCustomExercise());
-  _registerAction('deleteCustomExercise', (e) => deleteCustomExercise(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
-  _registerAction('exportCustomExercise', (e) => exportCustomExercise(parseInt(e.target.closest('[data-idx]')?.dataset.idx)));
   _registerAction('startCurriculumGrade', (e) => {
     closeModal();
     const grade = e.target.closest('[data-grade]')?.dataset.grade;
