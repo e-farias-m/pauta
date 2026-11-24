@@ -1330,14 +1330,7 @@ function showPracticeSettingsMenu(btn) {
 }
 
 function showMoreMenu(btn) {
-  const hasAssignments = (APP.score?.assignments?.length || 0) > 0;
   showDropdown(btn, [
-    {header:'Classroom'},
-    {label:'Starter Assignments', fn:showStarterAssignmentsDialog},
-    ...(hasAssignments || APP.assignmentMode
-      ? [{label:'Assignment', fn:showAssignmentSubmenu}]
-      : [{label:'Create Assignment', fn:showAssignmentDialog}]),
-    {label:'Diagnostic Assessment', fn:showDiagnosticDialog},
     {header:'Compose'},
     {label:'Generate Scale / Arpeggio', fn:showScaleGeneratorDialog},
     {label:'Rhythm Composer', fn:showRhythmComposer},
