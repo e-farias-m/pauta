@@ -2327,6 +2327,43 @@ function showRhythmDictationDialog() {
     finish();
   });
 }
+
+// ── Sight Reading ─────────────────────────────────────────────
+const _SR_NAMES = ['C4','D4','E4','F4','G4','A4','B4'];
+function showSightReadingDialog() {
+  const s = LS.getItem('sight_reading') ? JSON.parse(LS.getItem('sight_reading')) : { count: 6, tempo: 110 };
+  UI.makeModal(`
+    <h2>Sight Reading</h2>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="modal-btn primary" id="sr-gen" data-action="closeModal" style="flex:1">🎲 Generate New</button>
+      <button class="modal-btn secondary" id="sr-count" style="padding:8px 14px">N: ${s.count}</button>
+    </div>
+    <div id="sr-notes" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px"></div>
+    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:4px">Tempo ${s.tempo}</div>
+    <input type="range" id="sr-tempo" min="40" max=200" value="${s.tempo}" style="width:100%">
+  `);
+  let seq = [];
+  function gen() {
+    const count = parseInt(document.getElementById('sr-count')?.dataset.val || s.count);
+    seq = [];
+    const scale = ['C4','D4','E4','F4','G4'];
+    const idxs = scale.map(n => _SR_NAMES.indexOf(n));
+    for (let i = 0; i < count; i++) seq.push(idxs[Math.floor(Math.random() * idxs.length)]);
+    renderSrNotes();
+    try { const ctx = getAudioCtx(); if (ctx.state==='suspended') ctx.resume(); const t0=ctx.currentTime+0.05; const bd=60/parseInt(document.getElementById('sr-tempo')?.value||s.tempo); for (const midi of seq) scheduleNote(ctx, midi+60, t0, 0.4, 'sine', 0.5); } catch(e) {}
+  }
+  function renderSrNotes() {
+    const el = document.getElementById('sr-notes');
+    if (!el) return;
+    el.innerHTML = '';
+    seq.forEach(i => { const d=document.createElement('button'); d.textContent=_SR_NAMES[i]; d.className='pauta-badge'; d.style.cursor='default'; el.appendChild(d); });
+  }
+  setTimeout(() => {
+    const genBtn = document.getElementById('sr-gen');
+    if (genBtn) genBtn.addEventListener('click', gen);
+    gen();
+  }, 0);
+}
 function _rwGetSettings() {
   try { const _s = LS.getItem('pauta_rhythm_workout'); return _s ? JSON.parse(_s) : JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
   catch(e) { return JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }

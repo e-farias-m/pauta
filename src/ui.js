@@ -1223,6 +1223,7 @@ function showLearnPracticeMenu(btn) {
     {header:'Learn'},
     {label:'Poison Rhythm', fn:showPoisonRhythmDialog},
     {label:'Curriculum', fn:showCurriculumDialog},
+    {label:'Sight Reading', fn:showSightReadingDialog},
     {label:'Recorder Exercises', fn:showRecorderExercises},
     {label:'My Progress', fn:showStudentProgress},
     {sep:true},
@@ -2890,6 +2891,7 @@ _registerAction('closeModalExercise', () => closeModalExercise());
 _registerAction('restartExerciseSession', () => restartExerciseSession());
   _registerAction('reviewExerciseSession', () => reviewExerciseSession());
   _registerAction('showCurriculumDialog', () => showCurriculumDialog());
+  _registerAction('showSightReadingDialog', () => showSightReadingDialog());
   _registerAction('startCurriculumGrade', (e) => {
     closeModal();
     const grade = e.target.closest('[data-grade]')?.dataset.grade;
