@@ -1221,7 +1221,7 @@ function showLearnPracticeMenu(btn) {
   const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
     {header:'Learn'},
-    {label:'Practice Gym', fn:showExerciseDialog},
+    {label:'Poison Rhythm', fn:showPoisonRhythmDialog},
     {label:'Curriculum', fn:showCurriculumDialog},
     {label:'Recorder Exercises', fn:showRecorderExercises},
     {label:'My Progress', fn:showStudentProgress},
@@ -1246,9 +1246,10 @@ function showLearnPracticeMenu(btn) {
       fn: showPracticeSettingsMenu
     },
     {header:'Rhythm'},
+    {label:'Randomizer', fn:showRhythmRandomizerDialog},
     {label:'Workout', fn:showRhythmWorkoutDialog},
     {label:'Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
-    {label:'Dictation', fn:showRhythmWorksheetDialog},
+    {label:'Dictation', fn:showRhythmDictationDialog},
     {header:'Aural Skills'},
     {label:'Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
