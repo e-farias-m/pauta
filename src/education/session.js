@@ -1795,13 +1795,14 @@ function _updateScoreDisplay() {
   }
 }
 
-function _setExerciseUI(enabled) {
+function _setExerciseUI(enabled, type) {
   document.body.classList.toggle('exercise-mode', enabled);
   const transport = document.getElementById('transport-bar');
   if (transport) transport.style.opacity = enabled ? '0.5' : '';
-  // Hide entire palette during exercises to reduce distraction
+  // Hide the palette during other exercises to reduce distraction, but keep
+  // it visible during Melody Dictation so the user can input notes.
   const pal = document.getElementById('palette');
-  if (pal) pal.style.display = enabled ? 'none' : '';
+  if (pal) pal.style.display = (enabled && type !== EXERCISE_TYPES.MELODY_DICT) ? 'none' : '';
   // Score display
   let scoreEl = document.getElementById('exercise-score');
   if (enabled && !scoreEl) {
