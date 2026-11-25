@@ -7066,7 +7066,7 @@ function _renderRhythmCounting() {
       }
       const nl = APP.noteLayout.find(l => l.mi === sl.mi && l.si === sl.si && l.ni === ni);
       if (nl) {
-        svgText(svgEl, {x: nl.x, y: sl.bottomY + 24, text: label, fontSize: 9, fontWeight: '500', fill: '#555', anchor: 'middle', font: _DEFAULT_FONT});
+        svgText(svgEl, {x: nl.x, y: sl.bottomY + 24, text: label, fontSize: 11, fontWeight: '700', fill: '#555', anchor: 'middle', font: _DEFAULT_FONT});
       }
       beatPos += beats;
     }
