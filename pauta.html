@@ -14919,6 +14919,26 @@ function showSightReadingDialog() {
     gen();
   }, 0);
 }
+
+// ── Poison Solfège ────────────────────────────────────────────
+let _psInit = false;
+function showPoisonSolfegeDialog() {
+  const storage = LS.getItem('poison_solfege') ? JSON.parse(LS.getItem('poison_solfege')) : { num:0, den:4, tempo:110, includePoison:false, poisonHz:0, play:true };
+  const steps = [ ['S4',264], ['M4',297], ['L4',330], ['K4',347], ['D4',369], ['L3',218], ['S3',198], ['F3',174], ['M3',277], ['K5',440], ['D5',587] ];
+  let seq=[], isPoison=false;
+  function gen() { seq=[]; isPoison=false; const n=4+Math.floor(Math.random()*4); for(let i=0;i<n;i++){ if(i===2 && Math.random()<0.5){ isPoison=true; seq.push({name:'POISON', hz:261.6}); } else { const s=steps[Math.floor(Math.random()*steps.length)]; seq.push({name:s[0], hz:s[1]}); } } play(); render(); }
+  function play(){ try { const ctx=getAudioCtx(); if(ctx.state==='suspended') ctx.resume(); const t=ctx.currentTime+0.1; for(const n of seq) scheduleNote(ctx, 69, t, 0.5, 'sine', 0.5); } catch(e){} }
+  function render(){ const el=document.getElementById('ps-list'); if(el){ el.innerHTML=''; seq.forEach(n=>{ const b=document.createElement('button'); b.textContent=n.name; b.className='pauta-badge'; b.style.cursor='default'; el.appendChild(b); }); } }
+  UI.makeModal(`<h2>Poison Solfège</h2>
+    <div id="ps-list" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0"></div>
+    <div style="display:flex;gap:8px"><button class="modal-btn primary" id="ps-play" data-action="closeModal">🎵 Play</button><button class="modal-btn secondary" id="ps-new" data-action="closeModal">🎲 New</button></div>`);
+  setTimeout(() => {
+    const play=document.getElementById('ps-play'); if(play) play.addEventListener('click', playSeq);
+    const nw=document.getElementById('ps-new'); if(nw) nw.addEventListener('click', gen);
+    gen();
+  },0);
+  function playSeq(){ try { const ctx=getAudioCtx(); if(ctx.state==='suspended') ctx.resume(); const t=ctx.currentTime+0.1; seq.forEach((n,i)=>{ scheduleNote(ctx, 69, t + i*0.4, 0.4, 'sine', 0.5); }); } catch(e){} }
+}
 function _rwGetSettings() {
   try { const _s = LS.getItem('pauta_rhythm_workout'); return _s ? JSON.parse(_s) : JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
   catch(e) { return JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
@@ -19881,6 +19901,7 @@ function showLearnPracticeMenu(btn) {
     {label:'Poison Rhythm', fn:showPoisonRhythmDialog},
     {label:'Curriculum', fn:showCurriculumDialog},
     {label:'Sight Reading', fn:showSightReadingDialog},
+    {label:'Poison Solfège', fn:showPoisonSolfegeDialog},
     {label:'Recorder Exercises', fn:showRecorderExercises},
     {label:'My Progress', fn:showStudentProgress},
     {sep:true},
@@ -21549,6 +21570,7 @@ _registerAction('restartExerciseSession', () => restartExerciseSession());
   _registerAction('reviewExerciseSession', () => reviewExerciseSession());
   _registerAction('showCurriculumDialog', () => showCurriculumDialog());
   _registerAction('showSightReadingDialog', () => showSightReadingDialog());
+  _registerAction('showPoisonSolfegeDialog', () => showPoisonSolfegeDialog());
   _registerAction('startCurriculumGrade', (e) => {
     closeModal();
     const grade = e.target.closest('[data-grade]')?.dataset.grade;
