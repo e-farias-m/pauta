@@ -2228,34 +2228,100 @@ function _poisonPlaySequence(seq) {
   } catch(e) {}
 }
 function showPoisonRhythmDialog() {
-  const s = LS.getItem('poison_rhythm') ? JSON.parse(LS.getItem('poison_rhythm')) : { beats: 4, tempo: 100 };
+  const s = LS.getItem('poison_rhythm') ? JSON.parse(LS.getItem('poison_rhythm')) : { beats: 4, tempo: 100, diff: 'different', freq: 'sometimes' };
+  let score = 0, poisonMiss = 0;
+  let _prCurrentRhythm = null;
+  let currentIsPoison = false;
+  let poisonRhythm = null;
+
+  function genRhythm(beats) {
+    const units = beats * 4;
+    const seq = [];
+    let t = 0;
+    while (t < units) {
+      const choices = [1, 2, 4];
+      let dur = choices[Math.floor(Math.random() * choices.length)];
+      if (t + dur > units) dur = units - t;
+      seq.push(dur);
+      t += dur;
+    }
+    return seq;
+  }
+  function genPoison(beats, diff) {
+    const r = genRhythm(beats);
+    if (diff === 'tricky' && r.length > 1) {
+      const i = Math.floor(Math.random() * r.length);
+      r[i] = r[i] === 1 ? 2 : 1;
+      if (r.reduce((a,b)=>a+b,0) !== beats*4) return genRhythm(beats);
+    }
+    return r;
+  }
+  function playRhythm(seq, cb) {
+    try {
+      const ctx = getAudioCtx(); if (ctx.state === 'suspended') ctx.resume();
+      const bd = 60 / s.tempo;
+      const t0 = ctx.currentTime + 0.1;
+      let tt = t0;
+      for (const d of seq) { scheduleNote(ctx, 72, tt, (d/4)*bd*0.9, 'noise', 0.4); tt += (d/4)*bd; }
+      setTimeout(() => { if (cb) cb(); }, (seq.reduce((a,b)=>a+b,0)/4)*bd*1000 + 100);
+    } catch(e) { if (cb) cb(); }
+  }
+  function render() {
+    const area = document.getElementById('pr-area'); if (!area) return;
+    area.innerHTML = '';
+    const h = document.createElement('div'); h.style.cssText = 'text-align:center;font-size:18px;font-weight:700;margin:8px 0'; h.textContent = state === 'idle' ? 'Press Start' : (state === 'playing' ? 'Listen…' : 'Echo now! (tap Space)');
+    area.appendChild(h);
+    const rhythm = document.createElement('div'); rhythm.style.cssText = 'text-align:center;font-size:14px;color:var(--pauta-text-muted);margin-bottom:8px'; rhythm.textContent = s.showPlay ? (_prCurrentRhythm ? _prCurrentRhythm.map(d=>d===1?'♪':d===2?'♪♪':'♩').join(' ') : '') : '';
+    area.appendChild(rhythm);
+    const score = document.createElement('div'); score.style.cssText = 'text-align:center;font-size:13px'; score.textContent = 'Score: ' + score + ' · Poison echoes: ' + poisonMiss;
+    area.appendChild(score);
+    if (state === 'echo') {
+      const btn = document.createElement('button'); btn.className='modal-btn primary'; btn.textContent='Tap to echo (Space)'; btn.style.marginTop='8px';
+      btn.addEventListener('click', echoTap);
+      area.appendChild(btn);
+    }
+  }
+  let state = 'idle';
+  function echoTap() {
+    if (currentIsPoison) { poisonMiss++; UI.showToast('Poison! You are out.'); state='idle'; render(); return; }
+    score++; UI.showToast('Good echo!');
+    state='idle'; render();
+    setTimeout(nextRound, 600);
+  }
+  function nextRound() {
+    const isPoison = (s.freq === 'often') ? (Math.random() < 0.35) : (Math.random() < 0.15);
+    if (isPoison) { _prCurrentRhythm = poisonRhythm; currentIsPoison = true; }
+    else { _prCurrentRhythm = genRhythm(s.beats); currentIsPoison = false; }
+    state='playing'; render();
+    playRhythm(_prCurrentRhythm, () => { state='echo'; render(); });
+  }
+  poisonRhythm = genPoison(s.beats, s.diff);
+
   UI.makeModal(`
     <h2>Poison Rhythm</h2>
-    <div style="font-size:12px;color:var(--pauta-text-muted)">Play a rhythm; don't clap the poison.</div>
-    <div style="display:flex;gap:6px;margin:10px 0">
-      ${[4,6,8].map(b => `<button class="modal-btn ${b===s.beats?'primary':'secondary'}" data-action="prSetBeats" data-b="${b}">${b} beats</button>`).join('')}
+    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">Echo every rhythm except the poison. Tap to echo.</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      ${[4,8].map(b=>`<button class="modal-btn ${b===s.beats?'primary':'secondary'}" data-action="prSetBeats" data-b="${b}">${b} beats</button>`).join('')}
+      <button class="modal-btn ${s.diff==='different'?'primary':'secondary'}" data-action="prSetDiff" data-d="different">Different</button>
+      <button class="modal-btn ${s.diff==='tricky'?'primary':'secondary'}" data-action="prSetDiff" data-d="tricky">Tricky</button>
+      <button class="modal-btn ${s.freq==='sometimes'?'primary':'secondary'}" data-action="prSetFreq" data-f="sometimes">Now and then</button>
+      <button class="modal-btn ${s.freq==='often'?'primary':'secondary'}" data-action="prSetFreq" data-f="often">Often</button>
     </div>
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-top:4px">Tempo: <span id="pr-tempo">${s.tempo}</span></div>
-    <input type="range" id="pr-tempo" min="50" max="150" value="${s.tempo}" style="width:100%;margin:4px 0">
-    <div style="display:flex;gap:6px;margin-top:4px">
-      <button class="modal-btn primary" id="pr-poison" data-action="closeModal" style="flex:1">▶ Poison</button>
-      <button class="modal-btn secondary" id="pr-new" data-action="closeModal" style="flex:1">🎲 New Game</button>
+    <div id="pr-area" style="min-height:120px"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="modal-btn primary" id="pr-start" style="flex:1">Start</button>
+      <button class="modal-btn secondary" id="pr-close" style="flex:1">Close</button>
     </div>
   `);
   setTimeout(() => {
-    const btn = document.getElementById('pr-poison');
-    if (btn) btn.addEventListener('click', () => {
-      const seq = _poisonGenRhythm(s.beats);
-      _poisonBeat = seq;
-      _poisonPlaySequence(seq);
-      const ctx = getAudioCtx();
-      setTimeout(() => { ctx.resume && ctx.resume(); }, 300);
-      UI.showToast('Poison rhythm playing — clap it back and you lose!');
-      UI.showToast('Keep going — you are safe while playing.');
-    });
-  }, 0);
+    document.querySelectorAll('[data-action="prSetBeats"]').forEach(b=>b.addEventListener('click',()=>{ s.beats=parseInt(b.dataset.b); LS.setItem('poison_rhythm',JSON.stringify(s)); showPoisonRhythmDialog(); }));
+    document.querySelectorAll('[data-action="prSetDiff"]').forEach(b=>b.addEventListener('click',()=>{ s.diff=b.dataset.d; LS.setItem('poison_rhythm',JSON.stringify(s)); showPoisonRhythmDialog(); }));
+    document.querySelectorAll('[data-action="prSetFreq"]').forEach(b=>b.addEventListener('click',()=>{ s.freq=b.dataset.f; LS.setItem('poison_rhythm',JSON.stringify(s)); showPoisonRhythmDialog(); }));
+    const st=document.getElementById('pr-start'); if(st) st.addEventListener('click',()=>{ score=0; poisonMiss=0; poisonRhythm=genPoison(s.beats,s.diff); nextRound(); });
+    const cl=document.getElementById('pr-close'); if(cl) cl.addEventListener('click',()=>UI.closeModal());
+    render();
+  },0);
 }
-
 // ── Rhythm Randomizer ─────────────────────────────────────────
 let _randRhythmLines = [[0,1,3,2]];
 function showRhythmRandomizerDialog() {
