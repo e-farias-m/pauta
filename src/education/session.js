@@ -2325,75 +2325,100 @@ function showPoisonRhythmDialog() {
 // ── Rhythm Randomizer ─────────────────────────────────────────
 let _randRhythmLines = [[0,1,3,2]];
 function showRhythmRandomizerDialog() {
-  const s = LS.getItem('rhythm_randomizer') ? JSON.parse(LS.getItem('rhythm_randomizer')) : { measures: 8, tempo: 110, seed: 1 };
+  const defaults = { measures: 4, tsNum: 4, tsDen: 4, tempo: 110, display: 'notation', syllable: 'takadimi', backing: 'click', countIn: true, showBeat: true, numberBeats: true, outlineBeat: false, startOn: 'any', endOn: 'q', largePictures: false, picture: false };
+  const s = Object.assign({}, defaults, LS.getItem('rhythm_randomizer') ? JSON.parse(LS.getItem('rhythm_randomizer')) : {});
+  const noteGroups = [
+    { key:'q', label:'♩ Quarter', dur:1, rest:false, dots:0 },
+    { key:'h', label:'𝅗𝅥 Half', dur:2, rest:false, dots:0 },
+    { key:'8', label:'♪♪ Two 8ths', dur:0.5, rest:false, dots:0, count:2 },
+    { key:'16', label:'♬ Four 16ths', dur:0.25, rest:false, dots:0, count:4 },
+    { key:'8r', label:'♪ 8th rest', dur:0.5, rest:true, dots:0 },
+    { key:'qr', label:'♩ Quarter rest', dur:1, rest:true, dots:0 },
+    { key:'qd', label:'♩. Dotted quarter', dur:1.5, rest:false, dots:1 },
+    { key:'8d', label:'♪. Dotted 8th+16th', dur:0.75, rest:false, dots:1 },
+    { key:'tri', label:'♪♪♪ Triplet', dur:1/3, rest:false, dots:0, count:3 },
+    { key:'sync', label:'Syncopa', dur:1.5, rest:false, dots:0 },
+  ];
+  const active = new Set(s.groups || ['q','8','16']);
+  let generated = null;
+  function gen() {
+    const beatsPerMeasure = (s.tsNum * 4) / s.tsDen;
+    const totalBeats = s.measures * beatsPerMeasure;
+    const units = totalBeats * 4; // sixteenths
+    const seq = [];
+    let t = 0;
+    const avail = noteGroups.filter(g => active.has(g.key));
+    if (!avail.length) { UI.showToast('Pick at least one rhythm'); return; }
+    while (t < units - 0.01) {
+      const g = avail[Math.floor(Math.random() * avail.length)];
+      const durU = Math.round(g.dur * 4);
+      if (t + durU > units) { if (units - t >= 1) { const qg = avail.find(x=>x.key==='q'); if(qg){ seq.push({g:qg, onset:t}); t+=4; } else break; } else break; continue; }
+      // end-on constraint
+      if (t + durU === units && s.endOn !== 'any') {
+        const endG = avail.find(x=>x.key===s.endOn);
+        if (endG && Math.round(endG.dur*4) === durU) { /* ok */ } else if (endG) { /* try endG */ if (t + Math.round(endG.dur*4) <= units) { seq.push({g:endG, onset:t}); t += Math.round(endG.dur*4); continue; } }
+      }
+      seq.push({g, onset:t});
+      t += durU;
+    }
+    generated = seq;
+    render();
+  }
+  function play() {
+    if (!generated) return;
+    try {
+      const ctx = getAudioCtx(); if (ctx.state === 'suspended') ctx.resume();
+      const bd = 60 / s.tempo;
+      const t0 = ctx.currentTime + (s.countIn ? 4*bd : 0.1);
+      if (s.countIn) { for (let i=0;i<4;i++) scheduleNote(ctx, 76, t0 - (4-i)*bd, 0.1, 'noise', 0.3); }
+      for (const n of generated) scheduleNote(ctx, 72, t0 + (n.onset/4)*bd, (n.g.dur)*bd*0.9, 'noise', 0.4);
+    } catch(e) {}
+  }
+  function render() {
+    const el = document.getElementById('rr-out'); if (!el) return;
+    el.innerHTML = '';
+    if (!generated) { el.textContent = 'Press Generate'; return; }
+    const div = document.createElement('div'); div.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;justify-content:center';
+    for (const n of generated) {
+      const b = document.createElement('span'); b.className='pauta-badge'; b.textContent = n.g.rest ? '𝄽' : (n.g.label.split(' ')[0]); b.style.fontSize='14px';
+      div.appendChild(b);
+    }
+    el.appendChild(div);
+    const info = document.createElement('div'); info.style.cssText='text-align:center;font-size:11px;color:var(--pauta-text-muted);margin-top:4px'; info.textContent = generated.length + ' notes · ' + s.measures + ' measures · ' + s.tsNum + '/' + s.tsDen;
+    el.appendChild(info);
+  }
   UI.makeModal(`
     <h2>Rhythm Randomizer</h2>
-    <div style="display:flex;gap:6px;margin:8px 0"><button class="modal-btn primary" id="rnd-gen" data-action="closeModal" style="flex:1">🎲 Generate</button><button class="modal-btn secondary" data-action="closeModal" style="flex:1">✕ Close</button></div>
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:4px">Measures</div>
-    <input type="range" id="rnd-measures" min="1" max="8" value="${s.measures}" style="width:100%">
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:4px">Tempo ${s.tempo}</div>
-    <input type="range" id="rnd-tempo" min="50" max="150" value="${s.tempo}" style="width:100%">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      ${[2,3,4,6].map(n=>`<button class="modal-btn ${s.tsNum===n?'primary':'secondary'}" data-action="rrTs" data-n="${n}" style="padding:4px 8px;font-size:11px">${n}/4</button>`).join('')}
+      ${[2,4,8].map(m=>`<button class="modal-btn ${s.measures===m?'primary':'secondary'}" data-action="rrMeas" data-m="${m}" style="padding:4px 8px;font-size:11px">${m}m</button>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Note values</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+      ${noteGroups.map(g=>`<button class="modal-btn ${active.has(g.key)?'primary':'secondary'}" data-action="rrToggle" data-k="${g.key}" style="padding:4px 8px;font-size:11px">${g.label}</button>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--pauta-text-muted);margin-bottom:4px">Display</div>
+    <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+      ${['notation','takadimi','counting','pictures'].map(d=>`<button class="modal-btn ${s.display===d?'primary':'secondary'}" data-action="rrDisp" data-d="${d}" style="padding:4px 8px;font-size:11px">${d}</button>`).join('')}
+    </div>
+    <div id="rr-out" style="min-height:60px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="modal-btn primary" id="rr-gen" style="flex:1">Generate</button>
+      <button class="modal-btn secondary" id="rr-play" style="flex:1">Play</button>
+      <button class="modal-btn secondary" id="rr-close" style="flex:1">Close</button>
+    </div>
   `);
   setTimeout(() => {
-    const gen = document.getElementById('rnd-gen');
-    if (gen) gen.addEventListener('click', () => {
-      const measures = parseInt(document.getElementById('rnd-measures')?.value || s.measures);
-      const tempo = parseInt(document.getElementById('rnd-tempo')?.value || s.tempo);
-      const seq = [];
-      for (let m = 0; m < measures; m++) {
-        let t = m * 4;
-        while (t < (m + 1) * 4) {
-          const dur = [1, 1, 2, 0.5, 0.25][Math.floor(Math.random() * 4)];
-          if (t + dur > (m + 1) * 4) continue;
-          seq.push({ onset: t, dur });
-          t += dur;
-          if (seq.length > measures * 12) break;
-        }
-      }
-      try {
-        const ctx = getAudioCtx(); if (ctx.state === 'suspended') ctx.resume();
-        const t0 = ctx.currentTime + 0.05;
-        const beatDur = 60 / tempo;
-        for (const n of seq) scheduleNote(ctx, 72, t0 + n.onset * beatDur, n.dur * beatDur * 0.9, 'noise', 0.35);
-      } catch(e) {}
-      UI.showToast('Generated random rhythm line');
-    });
-  }, 0);
+    document.querySelectorAll('[data-action="rrTs"]').forEach(b=>b.addEventListener('click',()=>{ s.tsNum=parseInt(b.dataset.n); LS.setItem('rhythm_randomizer',JSON.stringify(s)); showRhythmRandomizerDialog(); }));
+    document.querySelectorAll('[data-action="rrMeas"]').forEach(b=>b.addEventListener('click',()=>{ s.measures=parseInt(b.dataset.m); LS.setItem('rhythm_randomizer',JSON.stringify(s)); showRhythmRandomizerDialog(); }));
+    document.querySelectorAll('[data-action="rrToggle"]').forEach(b=>b.addEventListener('click',()=>{ if(active.has(b.dataset.k)) active.delete(b.dataset.k); else active.add(b.dataset.k); s.groups=Array.from(active); LS.setItem('rhythm_randomizer',JSON.stringify(s)); showRhythmRandomizerDialog(); }));
+    document.querySelectorAll('[data-action="rrDisp"]').forEach(b=>b.addEventListener('click',()=>{ s.display=b.dataset.d; LS.setItem('rhythm_randomizer',JSON.stringify(s)); showRhythmRandomizerDialog(); }));
+    const g=document.getElementById('rr-gen'); if(g) g.addEventListener('click', gen);
+    const p=document.getElementById('rr-play'); if(p) p.addEventListener('click', play);
+    const c=document.getElementById('rr-close'); if(c) c.addEventListener('click',()=>UI.closeModal());
+    gen();
+  },0);
 }
-
-function showRhythmDictationDialog() {
-  const seq = _poisonGenRhythm(8);
-  let tapIdx = -1;
-  try { const ctx = getAudioCtx(); if (ctx.state === 'suspended') ctx.resume(); const t0 = ctx.currentTime + 0.1; const bd = 0.35; for (const n of seq) scheduleNote(ctx, 72, t0 + n.onset * bd, n.dur * bd * 0.85, 'noise', 0.4); } catch(e) {}
-  let done = false;
-  function finish() { if (!done) { done = true; } UI.closeModal(); }
-  UI.makeModal(`
-    <h2>Rhythm Dictation</h2>
-    <div style="font-size:13px;color:var(--pauta-text-muted)">Hear the rhythm, then write it down. Tap each beat to mark it. Try to match the sound.</div>
-    <div id="rd-taps" style="margin:8px 0;display:flex;gap:2px;justify-content:center;max-width:280px;flex-wrap:wrap" style="border-bottom:2px solid rgba(204,24,69,0.4);padding:8px;width:90%"></div>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="modal-btn primary" id="rd-done" data-action="closeModal" style="flex:1">✓ Check Rhythm</button><button class="modal-btn secondary" data-action="closeModal" style="flex:1">Close</button></div>
-  `);
-  const tapsEl = document.getElementById('rd-taps');
-  const seqDur = Math.max(2, seq.reduce((a,n)=>a+n.dur,0));
-  for (let i = 0; i < Math.ceil(seqDur)+1; i++) {
-    const d = document.createElement('button');
-    d.textContent = '_';
-    d.style.cssText = 'padding:4px 8px;border-radius:50%;background:#eaeef2;border:1px solid #c8d5e0;font-size:11px';
-    tapsEl.appendChild(d);
-  }
-  const marks = tapsEl.querySelectorAll('button');
-  marks.forEach(m => m.addEventListener('click', () => {
-    const i = Array.from(marks).indexOf(m);
-    tapIdx = i;
-    m.style.background = 'var(--pauta-primary)';
-    m.style.color = '#fff';
-  }));
-  document.getElementById('rd-done').addEventListener('click', () => {
-    UI.showToast(tapIdx >= 0 ? 'Good listening!' : 'Try to clap the rhythm');
-    finish();
-  });
-}
-
 // ── Sight Reading ─────────────────────────────────────────────
 const _SR_NAMES = ['C4','D4','E4','F4','G4','A4','B4'];
 function showSightReadingDialog() {
