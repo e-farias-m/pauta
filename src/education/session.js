@@ -2390,8 +2390,9 @@ function _rgSvgEl(out, tag, attrs, text) {
 function _rgRender(host, piece, showCount) {
   host.innerHTML = '';
   const m = piece.meter, nM = piece.measures.length;
-  const W = Math.max(280, Math.min(host.clientWidth || 520, 760));
-  const perRow = nM === 1 ? 1 : (W >= 440 ? 2 : 1);
+  const W = Math.max(280, Math.min(host.clientWidth || 520, 1400));
+  const minM = m.units >= 16 ? 270 : (m.beat === 6 ? 240 : (m.units === 12 ? 210 : 150));
+  const perRow = Math.max(1, Math.min(4, nM, Math.floor(W / minM)));
   const rows = Math.ceil(nM / perRow), rowH = showCount ? 120 : 100;
   const out = { host, piece, marks: [], svg: null, showCount };
   try {
@@ -2529,6 +2530,21 @@ const _rgTapPad = () =>
 const _rgTempoRow = tempo =>
   `<div style="display:flex;align-items:center;gap:6px">${_rgChip('tempo', -5, '−', false)}<b id="rg-tempo" style="min-width:34px;text-align:center">${tempo}</b>${_rgChip('tempo', 5, '+', false)}</div>`;
 
+// Near-full-screen modal (iPad landscape, Chromebook, laptop) + re-layout on resize/rotation.
+function _rgBig(root) {
+  const m = root.closest('.pauta-modal'); if (!m) return;
+  [['width', '96vw'], ['max-width', '1400px'], ['max-height', '94vh'], ['overflow-y', 'auto'], ['box-sizing', 'border-box']].forEach(([k, v]) => m.style.setProperty(k, v, 'important'));
+}
+function _rgOnResize(id, fn) {
+  let t = 0;
+  const h = () => {
+    if (!document.getElementById(id)) { window.removeEventListener('resize', h); return; }
+    clearTimeout(t); t = setTimeout(fn, 150);
+  };
+  window.addEventListener('resize', h);
+}
+const _rgCss = id => `<style>#${id} .rg-set{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:2px 16px}#${id} .rg-pair{display:grid;grid-template-columns:minmax(300px,34%) 1fr;gap:12px;align-items:start}@media (max-width:900px){#${id} .rg-pair{grid-template-columns:1fr}}</style>`;
+
 // Wires the Space key (capture phase, so Pauta shortcuts don't fire) and cleanup. getRun() returns the active runner (or null).
 function _rgWireTap(id, getRun, onClose) {
   const key = ev => {
@@ -2542,16 +2558,17 @@ function _rgWireTap(id, getRun, onClose) {
 function showRhythmRandomizerDialog() {
   const KEY = 'pauta_rg_rand', id = 'rg-root-' + (++_rgDlgSeq);
   const s = _rgLoad(KEY, { ts: '4/4', measures: 2, tempo: 90, vals: ['h', 'q', '8', 'rq'], countIn: true, counting: true, hideEcho: true });
-  let piece = null, out = null, run = null, status = '';
+  let piece = null, out = null, run = null, status = '', setOpen = true, lastHits = null;
   const active = () => new Set(s.vals);
   const alive = () => !!document.getElementById(id);
   const stopRun = () => { if (run) { run.stop(); run = null; } };
 
   UI.makeModal(`<div id="${id}"></div>`);
   const root = document.getElementById(id);
+  _rgBig(root);
 
   function regen() {
-    stopRun();
+    stopRun(); lastHits = null;
     if (!s.vals.length) { s.vals = ['q']; }
     piece = _rgGenPiece(_RG_METERS[s.ts], active(), s.measures);
     status = _rgT('st_ready');
@@ -2560,14 +2577,20 @@ function showRhythmRandomizerDialog() {
   function paint() {
     const T = _rgT;
     root.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <h2 style="margin:0">${T('randTitle')}</h2><div style="display:flex;gap:4px">${_rgLangChips()}</div>
+      ${_rgCss(id)}
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+        <h2 style="margin:0">${T('randTitle')}</h2>
+        <div style="display:flex;gap:4px;align-items:center">${_rgLangChips()}<button class="modal-btn secondary" data-rg="close" style="padding:4px 12px;font-size:12px;margin-left:8px">${T('close')}</button></div>
       </div>
-      ${_rgRow(T('ts'), Object.keys(_RG_METERS).map(k => _rgChip('ts', k, k, s.ts === k)).join(''))}
-      ${_rgRow(T('meas'), [1, 2, 4, 8].map(n => _rgChip('meas', n, n, s.measures === n)).join(''))}
-      ${_rgRow(T('tempo'), _rgTempoRow(s.tempo))}
-      ${_rgRow(T('vals'), _rgValChips(s.vals))}
-      ${_rgRow(T('opts'), _rgChip('tog', 'countIn', T('countIn'), s.countIn) + _rgChip('tog', 'counting', T('counting'), s.counting) + _rgChip('tog', 'hideEcho', T('hideEcho'), s.hideEcho))}
+      <details id="rg-set" ${setOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:600;font-size:13px">${T('more')}</summary>
+        <div class="rg-set">
+          <div>${_rgRow(T('ts'), Object.keys(_RG_METERS).map(k => _rgChip('ts', k, k, s.ts === k)).join(''))}</div>
+          <div>${_rgRow(T('meas'), [1, 2, 4, 8].map(n => _rgChip('meas', n, n, s.measures === n)).join(''))}</div>
+          <div>${_rgRow(T('tempo'), _rgTempoRow(s.tempo))}</div>
+          <div>${_rgRow(T('opts'), _rgChip('tog', 'countIn', T('countIn'), s.countIn) + _rgChip('tog', 'counting', T('counting'), s.counting) + _rgChip('tog', 'hideEcho', T('hideEcho'), s.hideEcho))}</div>
+          <div style="grid-column:1/-1">${_rgRow(T('vals'), _rgValChips(s.vals))}</div>
+        </div>
+      </details>
       <div id="rg-notation" style="margin:10px 0 2px;overflow-x:auto"></div>
       <div id="rg-status" style="text-align:center;font-weight:700;min-height:22px">${status}</div>
       <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
@@ -2577,8 +2600,8 @@ function showRhythmRandomizerDialog() {
         <button class="modal-btn primary" data-rg="echo" style="flex:1">${T('echo')}</button>
         <button class="modal-btn secondary" data-rg="stop" style="flex:1">${T('stop')}</button>
       </div>
-      ${_rgTapPad()}
-      <button class="modal-btn secondary" data-rg="close" style="width:100%;margin-top:8px">${T('close')}</button>`;
+      ${_rgTapPad()}`;
+    const det = root.querySelector('#rg-set'); if (det) det.addEventListener('toggle', () => { setOpen = det.open; });
     const pad = root.querySelector('#rg-tap');
     if (pad) pad.addEventListener('pointerdown', e => { e.preventDefault(); if (run) run.tap(); });
     out = _rgRender(root.querySelector('#rg-notation'), piece, s.counting);
@@ -2586,7 +2609,7 @@ function showRhythmRandomizerDialog() {
   const setStatus = t => { status = t; const el = root.querySelector('#rg-status'); if (el) el.textContent = t; };
 
   function start(mode) {
-    stopRun(); _rgClearOv(out);
+    stopRun(); _rgClearOv(out); lastHits = null;
     root.querySelector('#rg-notation').style.visibility = 'visible';
     let lastPhase = '', lastIdx = -2;
     run = _rgRunner(piece, {
@@ -2607,7 +2630,7 @@ function showRhythmRandomizerDialog() {
         root.querySelector('#rg-notation').style.visibility = 'visible';
         if (mode === 'play') { _rgHL(out, -1); setStatus(_rgT('st_ready')); return; }
         const g = _rgGrade(piece, taps, us);
-        _rgMarkResults(out, g.hits);
+        lastHits = g.hits; _rgMarkResults(out, g.hits);
         setStatus(g.hit === g.total && !g.extra ? _rgT('perfect') : `${_rgT('hits')}: ${g.hit}/${g.total} · ${_rgT('extra')}: ${g.extra}`);
       }
     });
@@ -2634,6 +2657,7 @@ function showRhythmRandomizerDialog() {
     regen();
   });
   _rgWireTap(id, () => run, stopRun);
+  _rgOnResize(id, () => { if (run) return; out = _rgRender(root.querySelector('#rg-notation'), piece, s.counting); if (lastHits) _rgMarkResults(out, lastHits); });
   regen();
 }
 
@@ -2641,7 +2665,7 @@ function showRhythmRandomizerDialog() {
 function showPoisonRhythmDialog() {
   const KEY = 'pauta_rg_poison', id = 'rg-root-' + (++_rgDlgSeq), M = _RG_METERS['4/4'];
   const s = _rgLoad(KEY, { tempo: 90, beats: 4, other: 'different', freq: 'now', pause: true, msg: 'poison', custom: '', showPlay: true, showEcho: true, counting: true, vals: ['h', 'q', '8', 'rq'] });
-  let poison = null, run = null, game = null, pOut = null, rOut = null, status = '', waiting = false, cur = null;
+  let poison = null, run = null, game = null, pOut = null, rOut = null, status = '', waiting = false, cur = null, setOpen = true;
   const active = () => new Set(s.vals);
   const alive = () => !!document.getElementById(id);
   const stopRun = () => { if (run) { run.stop(); run = null; } };
@@ -2649,6 +2673,7 @@ function showPoisonRhythmDialog() {
 
   UI.makeModal(`<div id="${id}"></div>`);
   const root = document.getElementById(id);
+  _rgBig(root);
 
   function newPoison() {
     stopGame();
@@ -2672,15 +2697,31 @@ function showPoisonRhythmDialog() {
   function paint() {
     const T = _rgT;
     root.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <h2 style="margin:0">${T('poisonTitle')}</h2><div style="display:flex;gap:4px">${_rgLangChips()}</div>
+      ${_rgCss(id)}
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+        <h2 style="margin:0">${T('poisonTitle')}</h2>
+        <div style="display:flex;gap:4px;align-items:center">${_rgLangChips()}<button class="modal-btn secondary" data-rg="close" style="padding:4px 12px;font-size:12px;margin-left:8px">${T('close')}</button></div>
       </div>
-      <div style="border:2px solid #7b4fa3;background:#f1eaf7;border-radius:10px;padding:6px 8px;margin:8px 0">
-        <div style="font-weight:700;color:#5b3a82">☠ ${T('poisonTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
-        <div id="rg-poison" style="background:#fff;border-radius:6px;margin-top:4px;overflow-x:auto"></div>
+      <details id="rg-set" ${setOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:600;font-size:13px">${T('more')}</summary>
+        <div class="rg-set">
+          <div>${_rgRow(T('tempo'), _rgTempoRow(s.tempo))}</div>
+          <div>${_rgRow(T('len'), _rgChip('beats', 4, T('beats4'), s.beats === 4) + _rgChip('beats', 8, T('beats8'), s.beats === 8))}</div>
+          <div>${_rgRow(T('other'), _rgChip('other', 'different', T('o_diff'), s.other === 'different') + _rgChip('other', 'tricky', T('o_tricky'), s.other === 'tricky'))}</div>
+          <div>${_rgRow(T('freq'), _rgChip('freq', 'now', T('f_now'), s.freq === 'now') + _rgChip('freq', 'often', T('f_often'), s.freq === 'often'))}</div>
+          <div>${_rgRow(T('opts'), _rgChip('tog', 'pause', T('pause'), s.pause) + _rgChip('tog', 'showPlay', T('showPlay'), s.showPlay) + _rgChip('tog', 'showEcho', T('showEcho'), s.showEcho) + _rgChip('tog', 'counting', T('counting'), s.counting))}</div>
+          <div>${_rgRow(T('screen'), _rgChip('msg', 'sit', T('m_sit'), s.msg === 'sit') + _rgChip('msg', 'poison', T('m_poison'), s.msg === 'poison') + _rgChip('msg', 'custom', T('m_custom'), s.msg === 'custom'))}
+            ${s.msg === 'custom' ? `<input id="rg-custom" type="text" maxlength="60" placeholder="${T('customPh')}" value="${UI.escHtml(s.custom)}" style="width:100%;margin-top:4px;padding:6px;box-sizing:border-box">` : ''}</div>
+          <div style="grid-column:1/-1">${_rgRow(T('vals'), _rgValChips(s.vals))}</div>
+        </div>
+      </details>
+      <div class="rg-pair" style="margin-top:8px">
+        <div style="border:2px solid #7b4fa3;background:#f1eaf7;border-radius:10px;padding:6px 8px">
+          <div style="font-weight:700;color:#5b3a82">☠ ${T('poisonTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
+          <div id="rg-poison" style="background:#fff;border-radius:6px;margin-top:4px;overflow-x:auto"></div>
+        </div>
+        <div id="rg-notation" style="overflow-x:auto;min-height:20px"></div>
       </div>
-      <div id="rg-notation" style="margin:6px 0;overflow-x:auto;min-height:20px"></div>
-      <div id="rg-status" style="text-align:center;font-weight:700;min-height:22px">${status || T('learn')}</div>
+      <div id="rg-status" style="text-align:center;font-weight:700;min-height:22px;margin-top:6px">${status || T('learn')}</div>
       <div id="rg-score" style="text-align:center;font-size:12px;margin:4px 0">${scoreText()}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="modal-btn primary" data-rg="start" style="flex:1">${T('start')}</button>
@@ -2689,18 +2730,8 @@ function showPoisonRhythmDialog() {
         <button class="modal-btn secondary" data-rg="stop" style="flex:1">${T('stop')}</button>
       </div>
       <button id="rg-cont" class="modal-btn primary" data-rg="cont" style="width:100%;margin-top:6px;display:none">${T('cont')}</button>
-      ${_rgTapPad()}
-      <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">${T('more')}</summary>
-        ${_rgRow(T('tempo'), _rgTempoRow(s.tempo))}
-        ${_rgRow(T('vals'), _rgValChips(s.vals))}
-        ${_rgRow(T('other'), _rgChip('other', 'different', T('o_diff'), s.other === 'different') + _rgChip('other', 'tricky', T('o_tricky'), s.other === 'tricky'))}
-        ${_rgRow(T('freq'), _rgChip('freq', 'now', T('f_now'), s.freq === 'now') + _rgChip('freq', 'often', T('f_often'), s.freq === 'often'))}
-        ${_rgRow(T('len'), _rgChip('beats', 4, T('beats4'), s.beats === 4) + _rgChip('beats', 8, T('beats8'), s.beats === 8))}
-        ${_rgRow(T('opts'), _rgChip('tog', 'pause', T('pause'), s.pause) + _rgChip('tog', 'showPlay', T('showPlay'), s.showPlay) + _rgChip('tog', 'showEcho', T('showEcho'), s.showEcho) + _rgChip('tog', 'counting', T('counting'), s.counting))}
-        ${_rgRow(T('screen'), _rgChip('msg', 'sit', T('m_sit'), s.msg === 'sit') + _rgChip('msg', 'poison', T('m_poison'), s.msg === 'poison') + _rgChip('msg', 'custom', T('m_custom'), s.msg === 'custom'))}
-        ${s.msg === 'custom' ? `<input id="rg-custom" type="text" maxlength="60" placeholder="${T('customPh')}" value="${UI.escHtml(s.custom)}" style="width:100%;margin-top:4px;padding:6px;box-sizing:border-box">` : ''}
-      </details>
-      <button class="modal-btn secondary" data-rg="close" style="width:100%;margin-top:8px">${T('close')}</button>`;
+      ${_rgTapPad()}`;
+    const det = root.querySelector('#rg-set'); if (det) det.addEventListener('toggle', () => { setOpen = det.open; });
     const pad = root.querySelector('#rg-tap');
     if (pad) pad.addEventListener('pointerdown', e => { e.preventDefault(); if (run) run.tap(); });
     const ci = root.querySelector('#rg-custom');
@@ -2789,6 +2820,7 @@ function showPoisonRhythmDialog() {
     paint();
   });
   _rgWireTap(id, () => run, stopGame);
+  _rgOnResize(id, () => { if (run) return; pOut = _rgRender(root.querySelector('#rg-poison'), poison, s.counting); if (cur) rOut = _rgRender(noteHost(), cur.piece, s.counting); });
   newPoison();
 }
 
