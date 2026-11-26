@@ -15809,7 +15809,18 @@ function _rdCellSVG(cell) {
       parts.push('<line x1="' + a + '" y1="9" x2="' + b + '" y2="9" stroke="#111" stroke-width="3"/>');
       let run = [];
       const endRun = () => {
-        if (run.length > 1) parts.push('<line x1="' + run[0].x + '" y1="13" x2="' + run[run.length - 1].x + '" y2="13" stroke="#111" stroke-width="3"/>');
+        if (run.length > 1) {
+          parts.push('<line x1="' + run[0].x + '" y1="13" x2="' + run[run.length - 1].x + '" y2="13" stroke="#111" stroke-width="3"/>');
+        } else if (run.length === 1) {
+          // An isolated sixteenth (e.g. 16-8-16) gets a partial second beam,
+          // not a full beam that would wrongly beam the eighth note twice.
+          const n = run[0], i = group.indexOf(n);
+          const left = group.slice(0, i).some(x => x.sixteenth);
+          const right = group.slice(i + 1).some(x => x.sixteenth);
+          const frag = Math.min(14, step * 0.6);
+          if (left) parts.push('<line x1="' + (n.x - frag) + '" y1="13" x2="' + n.x + '" y2="13" stroke="#111" stroke-width="3"/>');
+          if (right) parts.push('<line x1="' + n.x + '" y1="13" x2="' + (n.x + frag) + '" y2="13" stroke="#111" stroke-width="3"/>');
+        }
         run = [];
       };
       group.forEach(n => { if (!n.sixteenth) endRun(); else run.push(n); });
