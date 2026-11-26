@@ -1251,7 +1251,7 @@ function showLearnPracticeMenu(btn) {
     {label:'Randomizer', fn:showRhythmRandomizerDialog},
     {label:'Workout', fn:showRhythmWorkoutDialog},
     {label:'Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
-    {label:'Dictation', fn:showRhythmDictationDialog},
+    {label:'Dictation', fn:() => typeof showRhythmDictationDialog === 'function' ? showRhythmDictationDialog() : showToast('Rhythm Dictation: coming soon')},
     {header:'Aural Skills'},
     {label:'Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
