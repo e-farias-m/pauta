@@ -11,5 +11,6 @@
   "scripts": {
     "test": "node test-score-model.js",
     "test:all": "node test-score-model.js && node test-interactions.js"
-  }
+  },
+  "license": "SEE LICENSE IN LICENSE"
 }
