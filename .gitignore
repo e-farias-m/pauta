@@ -1,2 +1,6 @@
 node_modules/
 .DS_Store
+
+# Legal documents: review with counsel before committing.
+/LICENSE
+/THIRD_PARTY_NOTICES.md

@@ -1100,11 +1100,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   pointer-events: none;
   z-index: 40;
 }
-.app-version a {
-  color: var(--pauta-primary);
-  pointer-events: auto;
-  text-decoration: underline;
-}
 
 /* ── PAUTA LOGO (loading screen) ─────────────────────────────────────── */
 .pauta-logo {

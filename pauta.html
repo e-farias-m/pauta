@@ -713,15 +713,7 @@
     </p>
   </div>
 
-  <footer class="app-version">
-    Pauta v1.0.0 · © 2026 Eduardo de Farias Machado. All rights reserved.
-    <a href="LICENSE">Licence</a> · <a href="THIRD_PARTY_NOTICES.md">Third-party notices</a>
-  </footer>
-  <script>
-    // Keep the legal footer outside transformed panels so it remains visible.
-    var legalFooter = document.querySelector('.app-version');
-    if (legalFooter && legalFooter.parentElement !== document.body) document.body.appendChild(legalFooter);
-  </script>
+  <footer class="app-version">Pauta v1.0.0</footer>
 
   
 <style>
@@ -1826,11 +1818,6 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   opacity: 0.7;
   pointer-events: none;
   z-index: 40;
-}
-.app-version a {
-  color: var(--pauta-primary);
-  pointer-events: auto;
-  text-decoration: underline;
 }
 
 /* ── PAUTA LOGO (loading screen) ─────────────────────────────────────── */
