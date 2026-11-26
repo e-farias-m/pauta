@@ -79,7 +79,7 @@ const {
 } = A;
 const {
   _RG_METERS, _RG_CELLS, _RG_CELLS2, _rgBuild, _rgCellOk,
-  _rdTiles, _rdKeyOf, _rdGlyphs, _rdPics, _rdWord, _rdWordFn,
+  _rdTiles, _rdKeyOf, _rdGlyphs, _rdPics, _rdCellSVG, _rdWord, _rdWordFn,
   _rdClose, _rdGenTarget, _rdBuildAnswer, _rdBeatMarks,
 } = A;
 
@@ -2047,6 +2047,10 @@ assertEq(_rdKeyOf([[2, 0], [2, 0]]), '2-2', 'cell key joins durations');
 assert(_rdKeyOf([[4, 1]]) !== _rdKeyOf([[4, 0]]), 'rest and note cells have different keys');
 assertEq(_rdGlyphs([[4, 0], [2, 0], [2, 0]]), '♩♪♪', 'glyphs map quarter + two eighths');
 assertEq(_rdPics([[4, 1]]), '😴', 'rest picture is the sleeper');
+const rdSVG = _rdCellSVG([[2, 0], [2, 0], [1, 0], [1, 0]]);
+assert(rdSVG.startsWith('<svg') && rdSVG.includes('<ellipse'), 'beat cells draw their own SVG notation');
+assert(!/[𝅗𝅥𝅘𝅯𝄽𝄾]/.test(rdSVG), 'beat cells contain no unsupported Unicode music glyphs');
+assert((rdSVG.match(/stroke-width="3"/g) || []).length === 2, 'sixteenths get two beams');
 assertEq(_rdWord(rdM4, [[2, 0], [2, 0]], 0, 'count'), '1 +', 'counting labels follow the beat');
 assertEq(_rdWord(rdM4, [[4, 0]], 0, 'syll'), 'ta', 'syllable label for a quarter');
 assertEq(_rdWordFn('hide'), null, 'no words when hidden');
@@ -2087,6 +2091,7 @@ A.showRhythmDictationDialog();
 const rdModal = A.document.querySelector('.pauta-modal');
 assert(!!rdModal, 'Rhythm Dictation opens a modal');
 assert(rdModal.querySelectorAll('.rd-tile').length >= 2, 'dictation renders a tile palette');
+assertEq(rdModal.querySelectorAll('.rd-tile svg').length, rdModal.querySelectorAll('.rd-tile').length, 'every tile uses SVG notation');
 assertEq(rdModal.querySelectorAll('.rd-cell').length, 4, 'dictation renders four beat cells in 4/4');
 assert(!!rdModal.querySelector('#rd-staff'), 'dictation renders a notation host');
 const rdTileBtn = rdModal.querySelector('.rd-tile');

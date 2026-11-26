@@ -2509,9 +2509,9 @@ function _rgRunner(piece, o) {
     if (o.alive && !o.alive()) { api.stop(); return; }
     while (qi < q.length && q[qi].t < ctx.currentTime + 0.25) {
       const x = q[qi++];
-      if (x.click) scheduleNote(ctx, 76, x.t, 0.06, 'noise', x.acc ? 0.4 : 0.22);
+      if (x.click) scheduleNote(ctx, 76, x.t, 0.07, 'noise', (x.acc ? 0.45 : 0.26) * (o.clickBoost || 1));
       else if (x.midi) scheduleNote(ctx, x.midi, x.t, x.d, 'sine', 0.5);
-      else scheduleNote(ctx, 72, x.t, x.d, 'noise', 0.4);
+      else scheduleNote(ctx, x.midi || 72, x.t, x.d, o.noteOsc || 'noise', o.noteVol ?? 0.4);
     }
   }, 30);
   const frame = () => {
@@ -3222,6 +3222,50 @@ function _rdTiles(meter, active) {
 function _rdKeyOf(c) { return c.map(([u, r]) => u + (r ? 'r' : '')).join('-'); }
 function _rdGlyphs(cell) { return cell.map(([u, r]) => r ? (_RD_REST[u] || '𝄽') : (_RD_GLYPH[u] || '♩')).join(''); }
 function _rdPics(cell) { return cell.map(([u, r]) => r ? '😴' : (_RD_PIC[u] || '🚶')).join(''); }
+// Self-contained SVG notation for a beat cell. Unicode music glyphs are not
+// installed on many systems and render as tofu, so tiles draw their own notes.
+function _rdCellSVG(cell) {
+  const W = 130, H = 44, base = 28;
+  const total = cell.reduce((a, [u]) => a + u, 0) || 4;
+  const step = (W - 18) / total;
+  const stems = [], parts = [];
+  let x = 9;
+  cell.forEach(([u, r]) => {
+    const w = u * step, cx = x + w / 2;
+    if (r) {
+      parts.push('<path d="M' + (cx - 4) + ' ' + (base - 11) + ' L' + (cx + 4) + ' ' + (base - 11) +
+        ' L' + (cx - 2) + ' ' + (base - 2) + ' L' + (cx + 4) + ' ' + (base + 6) +
+        ' L' + (cx - 4) + ' ' + (base + 10) + '" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>');
+    } else {
+      const open = u >= 6;
+      parts.push('<ellipse cx="' + cx + '" cy="' + base + '" rx="5.4" ry="4" fill="' + (open ? '#fff' : '#111') + '" stroke="#111" stroke-width="1.6"/>');
+      const sx = cx + 5;
+      parts.push('<line x1="' + sx + '" y1="' + base + '" x2="' + sx + '" y2="9" stroke="#111" stroke-width="1.8"/>');
+      if (u === 6) parts.push('<circle cx="' + (cx + 10) + '" cy="' + (base - 1) + '" r="1.5" fill="#111"/>');
+      if (u <= 2) stems.push({ x: sx, sixteenth: u === 1 });
+    }
+    x += w;
+  });
+  // Beam consecutive short notes; the second beam spans only sixteenth pairs.
+  let group = [];
+  const flush = () => {
+    if (group.length > 1) {
+      const a = group[0].x, b = group[group.length - 1].x;
+      parts.push('<line x1="' + a + '" y1="9" x2="' + b + '" y2="9" stroke="#111" stroke-width="3"/>');
+      let run = [];
+      const endRun = () => {
+        if (run.length > 1) parts.push('<line x1="' + run[0].x + '" y1="13" x2="' + run[run.length - 1].x + '" y2="13" stroke="#111" stroke-width="3"/>');
+        run = [];
+      };
+      group.forEach(n => { if (!n.sixteenth) endRun(); else run.push(n); });
+      endRun();
+    }
+    group = [];
+  };
+  stems.forEach(n => { if (group.length && Math.abs(n.x - group[group.length - 1].x) > step * 3.2) flush(); group.push(n); });
+  flush();
+  return '<svg class="rd-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' + parts.join('') + '</svg>';
+}
 function _rdWord(meter, cell, startUnit, say) {
   if (say === 'hide') return '';
   let on = startUnit;
@@ -3319,7 +3363,8 @@ const _rdCss = id => `<style>
 #${id} .rd-tile:hover{border-color:var(--pauta-primary)}
 #${id} .rd-tile.is-sel{border-color:var(--pauta-primary);background:rgba(204,24,69,.08)}
 #${id} .rd-face{display:flex;align-items:center;justify-content:center;gap:3px;min-height:24px}
-#${id} .rd-glyph{font-size:20px;line-height:1}
+#${id} .rd-svg{display:block;width:100%;max-width:120px;height:38px}
+#${id} .rd-cell .rd-svg{height:34px}
 #${id} .rd-pic{font-size:19px;line-height:1}
 #${id} .rd-word{font-size:11px;color:var(--pauta-text-muted)}
 #${id} .rd-measure{display:grid;gap:6px;margin-bottom:8px}
@@ -3380,8 +3425,9 @@ function showRhythmDictationDialog() {
   }
   function face(tile, cell, startUnit) {
     const word = _rdWord(meter(), cell, startUnit, s.say);
-    return `<span class="rd-face">${s.view === 'notation' ? `<span class="rd-glyph">${_rdGlyphs(cell)}</span>` : ''}${s.view !== 'notation' ? `<span class="rd-pic">${_rdPics(cell)}</span>` : ''}</span>` +
-      (word ? `<span class="rd-word">${word}</span>` : '');
+    const notation = s.view !== 'pictures' ? _rdCellSVG(cell) : '';
+    const picture = s.view !== 'notation' ? `<span class="rd-pic">${_rdPics(cell)}</span>` : '';
+    return `<span class="rd-face">${notation}${picture}</span>` + (word ? `<span class="rd-word">${word}</span>` : '');
   }
 
   function paintPalette() {
@@ -3523,7 +3569,7 @@ function showRhythmDictationDialog() {
       const ctx = getAudioCtx(); if (ctx.state === 'suspended') ctx.resume();
       const now = ctx.currentTime + 0.02, step = (60 / s.tempo) / 4;
       let off = 0;
-      t.c.forEach(([u, r]) => { if (!r) scheduleNote(ctx, 72, now + off, Math.max(0.06, u * step * 0.8), 'noise', 0.4); off += u * step; });
+      t.c.forEach(([u, r]) => { if (!r) scheduleNote(ctx, 72, now + off, Math.max(0.06, u * step * 0.8), 'triangle', 0.75); off += u * step; });
     } catch (e) {}
   }
   function selectTile(i) {
@@ -3604,6 +3650,7 @@ function showRhythmDictationDialog() {
     let last = -2;
     run = _rgRunner(target, {
       tempo: s.tempo, mode: 'play', countIn: s.countIn, alive,
+      noteOsc: 'triangle', noteVol: 0.85, clickBoost: 1.6,
       onFrame(phase, unit, beat) {
         setStatus(phase === 'count' ? T('st_count') + ' ' + (beat + 1) : T('st_listen'));
         if (solOut) {
@@ -3622,6 +3669,7 @@ function showRhythmDictationDialog() {
     let last = -2;
     run = _rgRunner(p, {
       tempo: s.tempo, mode: 'play', countIn: s.countIn, alive,
+      noteOsc: 'triangle', noteVol: 0.85, clickBoost: 1.6,
       onFrame(phase, unit, beat) {
         setStatus(phase === 'count' ? T('st_count') + ' ' + (beat + 1) : T('st_mine'));
         if (phase !== 'count' && ansOut) {

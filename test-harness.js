@@ -144,7 +144,7 @@ const APP_EXPORT_NAMES = [
   '_ACTION_MAP',
   // Rhythm Dictation internals (pure helpers, exercised in test-interactions.js).
   '_RG_METERS', '_RG_CELLS', '_RG_CELLS2', '_rgBuild', '_rgCellOk',
-  '_rdTiles', '_rdKeyOf', '_rdGlyphs', '_rdPics', '_rdWord', '_rdWordFn',
+  '_rdTiles', '_rdKeyOf', '_rdGlyphs', '_rdPics', '_rdCellSVG', '_rdWord', '_rdWordFn',
   '_rdClose', '_rdGenTarget', '_rdBuildAnswer', '_rdBeatMarks',
   'showRhythmDictationDialog',
   // Real archive reading/writing (exercised against the npm JSZip below).
