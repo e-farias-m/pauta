@@ -3219,7 +3219,7 @@ function showRhythmDictationDialog() {
       const t0 = ctx.currentTime + (s.countIn ? 4*bd : 0.1);
       if (s.countIn) { for (let i=0;i<4;i++) scheduleNote(ctx, 76, t0 - (4-i)*bd, 0.1, 'noise', 0.3); }
       let tt = t0;
-      for (const g of target) { if (!g.rest) scheduleNote(ctx, 72, tt, g.dur*bd*0.9, 'noise', 0.4); tt += g.dur*bd; }
+      for (const g of target) { if (!g.rest) scheduleNote(ctx, 72, tt, g.dur*bd*0.9, 'triangle', 0.6); tt += g.dur*bd; }
     } catch(e) {}
   }
   function render() {
@@ -3260,6 +3260,21 @@ function showRhythmDictationDialog() {
   }
   UI.makeModal(`
     <h2>Rhythm Dictation</h2>
+    <details style="margin-bottom:8px">
+      <summary style="cursor:pointer;font-size:12px;color:var(--pauta-text-muted)">Settings</summary>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
+        ${[2,3,4].map(n=>`<button class="modal-btn ${s.tsNum===n?'primary':'secondary'}" data-action="rdTs" data-n="${n}" style="padding:4px 8px;font-size:11px">${n}/4</button>`).join('')}
+        ${[1,2].map(m=>`<button class="modal-btn ${s.measures===m?'primary':'secondary'}" data-action="rdMeas" data-m="${m}" style="padding:4px 8px;font-size:11px">${m}m</button>`).join('')}
+        <button class="modal-btn ${s.countIn?'primary':'secondary'}" data-action="rdToggle" data-k="countIn" style="padding:4px 8px;font-size:11px">Count-in</button>
+        <button class="modal-btn ${s.showPictures?'primary':'secondary'}" data-action="rdToggle" data-k="showPictures" style="padding:4px 8px;font-size:11px">Pictures</button>
+        <button class="modal-btn ${s.showCounting?'primary':'secondary'}" data-action="rdToggle" data-k="showCounting" style="padding:4px 8px;font-size:11px">Counting</button>
+      </div>
+      <div style="font-size:11px;color:var(--pauta-text-muted);margin-top:4px">Tempo <span id="rd-tempo">${s.tempo}</span></div>
+      <input type="range" id="rd-tempo-slider" min="50" max="160" value="${s.tempo}" style="width:100%">
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+        ${noteGroups.map(g=>`<button class="modal-btn ${active.has(g.key)?'primary':'secondary'}" data-action="rdToggleGroup" data-k="${g.key}" style="padding:4px 8px;font-size:11px">${g.label}</button>`).join('')}
+      </div>
+    </details>
     <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">Hear the rhythm, then place notes on the beats.</div>
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
       <button class="modal-btn primary" id="rd-play" style="flex:1">▶ Play</button>
@@ -3270,6 +3285,11 @@ function showRhythmDictationDialog() {
     <div id="rd-area" style="min-height:120px"></div>
   `);
   setTimeout(() => {
+    document.querySelectorAll('[data-action="rdTs"]').forEach(b=>b.addEventListener('click',()=>{ s.tsNum=parseInt(b.dataset.n); s.tsDen=4; LS.setItem('rhythm_dictation',JSON.stringify(s)); showRhythmDictationDialog(); }));
+    document.querySelectorAll('[data-action="rdMeas"]').forEach(b=>b.addEventListener('click',()=>{ s.measures=parseInt(b.dataset.m); LS.setItem('rhythm_dictation',JSON.stringify(s)); showRhythmDictationDialog(); }));
+    document.querySelectorAll('[data-action="rdToggle"]').forEach(b=>b.addEventListener('click',()=>{ s[b.dataset.k]=!s[b.dataset.k]; LS.setItem('rhythm_dictation',JSON.stringify(s)); showRhythmDictationDialog(); }));
+    document.querySelectorAll('[data-action="rdToggleGroup"]').forEach(b=>b.addEventListener('click',()=>{ if(active.has(b.dataset.k)) active.delete(b.dataset.k); else active.add(b.dataset.k); s.groups=Array.from(active); LS.setItem('rhythm_dictation',JSON.stringify(s)); showRhythmDictationDialog(); }));
+    const sl=document.getElementById('rd-tempo-slider'); if(sl) sl.addEventListener('input',()=>{ s.tempo=parseInt(sl.value); const t=document.getElementById('rd-tempo'); if(t) t.textContent=s.tempo; LS.setItem('rhythm_dictation',JSON.stringify(s)); });
     const play=document.getElementById('rd-play'); if(play) play.addEventListener('click', play);
     const check=document.getElementById('rd-check'); if(check) check.addEventListener('click', ()=>{ checked=true; render(); });
     const tryb=document.getElementById('rd-try'); if(tryb) tryb.addEventListener('click', gen);
