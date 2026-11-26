@@ -15733,6 +15733,105 @@ function showSightReadingDialog() {
     melody = _srGenMelody(s); render();
   },0);
 }
+
+// ── Rhythm Dictation (musicroomtools style) ─────────────────
+function showRhythmDictationDialog() {
+  const s = Object.assign({ measures:1, tsNum:4, tsDen:4, tempo:100, countIn:true, showPictures:false, showCounting:false, groups:['q','8'] }, LS.getItem('rhythm_dictation') ? JSON.parse(LS.getItem('rhythm_dictation')) : {});
+  const noteGroups = [
+    { key:'q', label:'♩', dur:1, rest:false },
+    { key:'8', label:'♪', dur:0.5, rest:false, count:2 },
+    { key:'h', label:'𝅗𝅥', dur:2, rest:false },
+    { key:'16', label:'♬', dur:0.25, rest:false, count:4 },
+    { key:'qr', label:'𝄽', dur:1, rest:true },
+    { key:'8r', label:'𝄽', dur:0.5, rest:true },
+  ];
+  const active = new Set(s.groups || ['q','8']);
+  let target = null; // array of durations per beat slot
+  let answer = []; // user placements
+  let checked = false;
+  const beatsPerMeasure = (s.tsNum*4)/s.tsDen;
+  const totalBeats = s.measures * beatsPerMeasure;
+  function gen() {
+    target = [];
+    answer = new Array(totalBeats).fill(null);
+    checked = false;
+    let t = 0;
+    const units = totalBeats * 4;
+    const avail = noteGroups.filter(g=>active.has(g.key));
+    while (t < units) {
+      const g = avail[Math.floor(Math.random()*avail.length)];
+      const durU = Math.round(g.dur*4);
+      if (t + durU > units) { if (units-t>=1) { const qg=avail.find(x=>x.key==='q'); if(qg){ target.push(qg); t+=4; } else break; } else break; continue; }
+      target.push(g); t += durU;
+    }
+    render();
+  }
+  function play() {
+    if (!target) return;
+    try {
+      const ctx = getAudioCtx(); if (ctx.state==='suspended') ctx.resume();
+      const bd = 60 / s.tempo;
+      const t0 = ctx.currentTime + (s.countIn ? 4*bd : 0.1);
+      if (s.countIn) { for (let i=0;i<4;i++) scheduleNote(ctx, 76, t0 - (4-i)*bd, 0.1, 'noise', 0.3); }
+      let tt = t0;
+      for (const g of target) { if (!g.rest) scheduleNote(ctx, 72, tt, g.dur*bd*0.9, 'noise', 0.4); tt += g.dur*bd; }
+    } catch(e) {}
+  }
+  function render() {
+    const area = document.getElementById('rd-area'); if (!area) return;
+    area.innerHTML = '';
+    const slots = document.createElement('div'); slots.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px';
+    for (let i = 0; i < totalBeats; i++) {
+      const slot = document.createElement('div');
+      slot.style.cssText = 'width:44px;height:44px;border:2px dashed #c8d5e0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;background:#fff';
+      if (answer[i]) { slot.textContent = answer[i].label; slot.style.borderStyle='solid'; slot.style.borderColor='var(--pauta-primary)'; }
+      if (checked) {
+        const ok = answer[i] && answer[i].key === target[i]?.key;
+        slot.style.borderColor = ok ? 'var(--pauta-success)' : 'var(--pauta-error)';
+        slot.style.background = ok ? 'rgba(34,197,94,0.1)' : 'rgba(224,104,80,0.1)';
+      }
+      slot.addEventListener('click', () => {
+        if (checked) return;
+        const sel = document.querySelector('.rd-sel');
+        if (sel) { answer[i] = noteGroups.find(g=>g.key===sel.dataset.key); render(); }
+        else { answer[i] = null; render(); }
+      });
+      slots.appendChild(slot);
+    }
+    area.appendChild(slots);
+    if (checked) {
+      const correct = answer.filter((a,i)=>a && a.key===target[i]?.key).length;
+      const info = document.createElement('div'); info.style.cssText='text-align:center;font-size:13px;font-weight:600'; info.textContent = correct + ' / ' + totalBeats + ' correct';
+      area.appendChild(info);
+    }
+    // palette
+    const pal = document.createElement('div'); pal.style.cssText = 'display:flex;gap:4px;justify-content:center;margin-top:8px';
+    for (const g of noteGroups.filter(x=>active.has(x.key))) {
+      const b = document.createElement('button'); b.className='modal-btn secondary rd-sel'; b.dataset.key=g.key; b.textContent=g.label; b.style.padding='4px 10px;font-size:14px';
+      b.addEventListener('click', () => { document.querySelectorAll('.rd-sel').forEach(x=>x.classList.remove('primary')); b.classList.add('primary'); b.classList.remove('secondary'); });
+      pal.appendChild(b);
+    }
+    area.appendChild(pal);
+  }
+  UI.makeModal(`
+    <h2>Rhythm Dictation</h2>
+    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:8px">Hear the rhythm, then place notes on the beats.</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="modal-btn primary" id="rd-play" style="flex:1">▶ Play</button>
+      <button class="modal-btn secondary" id="rd-check" style="flex:1">✓ Check</button>
+      <button class="modal-btn secondary" id="rd-try" style="flex:1">Try again</button>
+      <button class="modal-btn secondary" id="rd-close" style="flex:1">Close</button>
+    </div>
+    <div id="rd-area" style="min-height:120px"></div>
+  `);
+  setTimeout(() => {
+    const play=document.getElementById('rd-play'); if(play) play.addEventListener('click', play);
+    const check=document.getElementById('rd-check'); if(check) check.addEventListener('click', ()=>{ checked=true; render(); });
+    const tryb=document.getElementById('rd-try'); if(tryb) tryb.addEventListener('click', gen);
+    const cl=document.getElementById('rd-close'); if(cl) cl.addEventListener('click',()=>UI.closeModal());
+    gen();
+  },0);
+}
 function _rwGetSettings() {
   try { const _s = LS.getItem('pauta_rhythm_workout'); return _s ? JSON.parse(_s) : JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
   catch(e) { return JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
