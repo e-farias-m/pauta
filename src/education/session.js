@@ -2196,11 +2196,11 @@ const RHYTHM_WORKOUT_DEFAULTS = {
 const _RG_I18N = {
   en: {
     randTitle:'Rhythm Randomizer', poisonTitle:'Poison Rhythm', close:'Close',
-    gen:'New rhythm', play:'Play', tapAlong:'Tap along', echo:'Echo', stop:'Stop', tapBtn:'TAP',
+    gen:'New rhythm', echo:'Echo', stop:'Stop', tapBtn:'TAP',
     ts:'Time signature', meas:'Measures', tempo:'Tempo (BPM)', vals:'Note values', opts:'Options',
     countIn:'Count-in', counting:'Show counting', hideEcho:'Hide notation while echoing', more:'More settings',
     v_h:'Half', v_dq:'Dotted quarter', v_q:'Quarter', v_8:'Eighth', v_16:'Sixteenth', v_rq:'Quarter rest', v_r8:'Eighth rest',
-    st_ready:'Ready', st_count:'Count-in', st_listen:'Listen…', st_play:'Playing…', st_tap:'Tap along!', st_echo:'Your turn — echo!', st_stopped:'Stopped',
+    st_ready:'Ready', st_count:'Count-in', st_listen:'Listen…', st_play:'Playing…', st_echo:'Your turn — echo!', st_stopped:'Stopped',
     hits:'Hits', extra:'Extra taps', perfect:'Perfect!',
     poisonTag:"Don't echo this one!", learn:'Learn the poison rhythm, then press Start.',
     start:'Start', hear:'Hear poison', newPoison:'New poison',
@@ -2215,11 +2215,11 @@ const _RG_I18N = {
   },
   pt: {
     randTitle:'Ritmo Aleatório', poisonTitle:'Ritmo Veneno', close:'Fechar',
-    gen:'Novo ritmo', play:'Ouvir', tapAlong:'Bater junto', echo:'Eco', stop:'Parar', tapBtn:'BATER',
+    gen:'Novo ritmo', echo:'Eco', stop:'Parar', tapBtn:'BATER',
     ts:'Compasso', meas:'Compassos', tempo:'Andamento (BPM)', vals:'Figuras', opts:'Opções',
     countIn:'Contagem inicial', counting:'Mostrar contagem', hideEcho:'Ocultar partitura durante o eco', more:'Mais configurações',
     v_h:'Mínima', v_dq:'Semínima pontuada', v_q:'Semínima', v_8:'Colcheia', v_16:'Semicolcheia', v_rq:'Pausa de semínima', v_r8:'Pausa de colcheia',
-    st_ready:'Pronto', st_count:'Contagem', st_listen:'Escute…', st_play:'Tocando…', st_tap:'Bata junto!', st_echo:'Sua vez — eco!', st_stopped:'Parado',
+    st_ready:'Pronto', st_count:'Contagem', st_listen:'Escute…', st_play:'Tocando…', st_echo:'Sua vez — eco!', st_stopped:'Parado',
     hits:'Acertos', extra:'Toques extras', perfect:'Perfeito!',
     poisonTag:'Não faça eco deste!', learn:'Aprenda o ritmo veneno e aperte Iniciar.',
     start:'Iniciar', hear:'Ouvir veneno', newPoison:'Novo veneno',
@@ -2234,11 +2234,11 @@ const _RG_I18N = {
   },
   fr: {
     randTitle:'Rythme aléatoire', poisonTitle:'Rythme poison', close:'Fermer',
-    gen:'Nouveau rythme', play:'Écouter', tapAlong:'Frapper avec', echo:'Écho', stop:'Arrêter', tapBtn:'FRAPPER',
+    gen:'Nouveau rythme', echo:'Écho', stop:'Arrêter', tapBtn:'FRAPPER',
     ts:'Mesure', meas:'Mesures', tempo:'Tempo (BPM)', vals:'Valeurs', opts:'Options',
     countIn:'Décompte', counting:'Afficher le comptage', hideEcho:'Masquer la partition pendant l’écho', more:'Plus de réglages',
     v_h:'Blanche', v_dq:'Noire pointée', v_q:'Noire', v_8:'Croche', v_16:'Double-croche', v_rq:'Soupir', v_r8:'Demi-soupir',
-    st_ready:'Prêt', st_count:'Décompte', st_listen:'Écoutez…', st_play:'Lecture…', st_tap:'Frappez avec !', st_echo:'À vous — écho !', st_stopped:'Arrêté',
+    st_ready:'Prêt', st_count:'Décompte', st_listen:'Écoutez…', st_play:'Lecture…', st_echo:'À vous — écho !', st_stopped:'Arrêté',
     hits:'Réussis', extra:'Frappes en trop', perfect:'Parfait !',
     poisonTag:'Ne pas répéter celui-ci !', learn:'Apprenez le rythme poison, puis appuyez sur Démarrer.',
     start:'Démarrer', hear:'Écouter le poison', newPoison:'Nouveau poison',
@@ -2458,7 +2458,8 @@ function _rgMarkResults(out, hits) {
 }
 
 // ── Audio runner: count-in → pattern → (echo window) with tap capture ──
-// mode: 'play' (hear it), 'tap' (read + tap along to the click), 'echo' (hear it, then tap it back).
+// mode: 'play' (just hear it) or 'echo' (hear it, then tap it back). With o.echoCountIn, a second
+// count-in separates the pattern from the echo window.
 // Uses a short look-ahead scheduler so Stop is immediate.
 function _rgRunner(piece, o) {
   const ctx = getAudioCtx(); if (ctx.state === 'suspended') ctx.resume();
@@ -2467,13 +2468,15 @@ function _rgRunner(piece, o) {
   const t0 = ctx.currentTime + 0.2;
   const cin = o.countIn ? m.units : 0;
   const patT = t0 + cin * us;
-  const winT = o.mode === 'echo' ? patT + piece.len * us : patT;
+  const gap = (o.mode === 'echo' && o.echoCountIn) ? cin : 0;
+  const patEnd = patT + piece.len * us;
+  const winT = o.mode === 'echo' ? patEnd + gap * us : patT;
   const endT = winT + piece.len * us;
   const q = [];
   for (let u = 0; u < cin; u += m.beat) q.push({ t: t0 + u * us, click: true, acc: u === 0 });
-  const clickLen = o.mode === 'echo' ? 2 * piece.len : piece.len;
+  const clickLen = o.mode === 'echo' ? 2 * piece.len + gap : piece.len;
   for (let u = 0; u < clickLen; u += m.beat) q.push({ t: patT + u * us, click: true, acc: u % m.units === 0 });
-  if (o.mode !== 'tap') piece.events.forEach(e => { if (!e.rest) q.push({ t: patT + e.on * us, d: e.u * us * (e.midi ? 0.95 : 0.9), midi: e.midi }); });
+  piece.events.forEach(e => { if (!e.rest) q.push({ t: patT + e.on * us, d: e.u * us * (e.midi ? 0.95 : 0.9), midi: e.midi }); });
   q.sort((a, b) => a.t - b.t);
   let qi = 0, stopped = false, finished = false, raf = 0, endTimer = 0;
   const taps = [];
@@ -2491,8 +2494,9 @@ function _rgRunner(piece, o) {
     const now = ctx.currentTime - lat;
     const winEnd = o.mode === 'echo' ? winT : endT;
     if (now < patT) o.onFrame('count', 0, Math.max(0, Math.floor((now - t0) / (m.beat * us))));
+    else if (gap && now >= patEnd && now < winT) o.onFrame('count2', 0, Math.floor((now - patEnd) / (m.beat * us)));
     else if (o.mode === 'echo' && now >= winT) o.onFrame('echo', (now - winT) / us, 0);
-    else if (now < winEnd) o.onFrame(o.mode === 'tap' ? 'tap' : (o.mode === 'play' ? 'play' : 'listen'), (now - patT) / us, 0);
+    else if (now < winEnd) o.onFrame(o.mode === 'play' ? 'play' : 'listen', (now - patT) / us, 0);
     raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);
@@ -2597,8 +2601,6 @@ function showRhythmRandomizerDialog() {
       <div id="rg-status" style="text-align:center;font-weight:700;min-height:22px">${status}</div>
       <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
         <button class="modal-btn secondary" data-rg="gen" style="flex:1">${T('gen')}</button>
-        <button class="modal-btn primary" data-rg="play" style="flex:1">${T('play')}</button>
-        <button class="modal-btn primary" data-rg="tapalong" style="flex:1">${T('tapAlong')}</button>
         <button class="modal-btn primary" data-rg="echo" style="flex:1">${T('echo')}</button>
         <button class="modal-btn secondary" data-rg="stop" style="flex:1">${T('stop')}</button>
       </div>
@@ -2610,27 +2612,30 @@ function showRhythmRandomizerDialog() {
   }
   const setStatus = t => { status = t; const el = root.querySelector('#rg-status'); if (el) el.textContent = t; };
 
-  function start(mode) {
+  function start() {
     stopRun(); _rgClearOv(out); lastHits = null;
-    root.querySelector('#rg-notation').style.visibility = 'visible';
+    const host = root.querySelector('#rg-notation');
+    host.style.visibility = 'visible';
     let lastPhase = '', lastIdx = -2;
     run = _rgRunner(piece, {
-      tempo: s.tempo, mode, countIn: s.countIn, alive,
+      tempo: s.tempo, mode: 'echo', echoCountIn: true, countIn: s.countIn, alive,
       onFrame(phase, unit, beat) {
+        if (phase === 'count' || phase === 'count2') {
+          setStatus(_rgT('st_count') + ' ' + (beat + 1));
+          host.style.visibility = (phase === 'count2' && s.hideEcho) ? 'hidden' : 'visible';
+          if (phase !== lastPhase) { _rgHL(out, -1); lastIdx = -2; }
+          lastPhase = phase; return;
+        }
         if (phase !== lastPhase) {
           lastPhase = phase;
-          setStatus(phase === 'count' ? _rgT('st_count') + ' ' + (beat + 1) : _rgT({ listen: 'st_listen', play: 'st_play', tap: 'st_tap', echo: 'st_echo' }[phase]));
-          root.querySelector('#rg-notation').style.visibility = (phase === 'echo' && s.hideEcho) ? 'hidden' : 'visible';
-          if (phase === 'count') lastIdx = -2;
-        } else if (phase === 'count') setStatus(_rgT('st_count') + ' ' + (beat + 1));
-        if (phase === 'count') return;
+          setStatus(_rgT(phase === 'echo' ? 'st_echo' : 'st_listen'));
+          host.style.visibility = (phase === 'echo' && s.hideEcho) ? 'hidden' : 'visible';
+        }
         const idx = (phase === 'echo' && s.hideEcho) ? -1 : _rgEvAt(piece, unit);
         if (idx !== lastIdx) { lastIdx = idx; _rgHL(out, idx); }
       },
       onDone({ taps, us }) {
-        run = null;
-        root.querySelector('#rg-notation').style.visibility = 'visible';
-        if (mode === 'play') { _rgHL(out, -1); setStatus(_rgT('st_ready')); return; }
+        run = null; host.style.visibility = 'visible';
         const g = _rgGrade(piece, taps, us);
         lastHits = g.hits; _rgMarkResults(out, g.hits);
         setStatus(g.hit === g.total && !g.extra ? _rgT('perfect') : `${_rgT('hits')}: ${g.hit}/${g.total} · ${_rgT('extra')}: ${g.extra}`);
@@ -2646,7 +2651,7 @@ function showRhythmRandomizerDialog() {
       root.querySelector('#rg-tempo').textContent = s.tempo; return;
     }
     if (a === 'gen') { regen(); return; }
-    if (a === 'play' || a === 'tapalong' || a === 'echo') { start(a === 'tapalong' ? 'tap' : a); return; }
+    if (a === 'echo') { start(); return; }
     if (a === 'stop') { stopRun(); _rgClearOv(out); root.querySelector('#rg-notation').style.visibility = 'visible'; setStatus(_rgT('st_stopped')); return; }
     if (a === 'close') { stopRun(); UI.closeModal(); return; }
     stopRun();
@@ -2826,21 +2831,21 @@ function showPoisonRhythmDialog() {
   newPoison();
 }
 
-// ── Poison Solfège (fixed do) ─────────────────────────────────────
+// ── Poison Melody (fixed-do solfège) ─────────────────────────────────────
 // No student input: the teacher judges. A melody round plays, the class sings it back
 // (echo window), and the poison melody is the one they must NOT sing.
 Object.assign(_RG_I18N.en, {
-  solfTitle:'Poison Solfège', learnS:'Learn the poison melody, then press Start.', o_trickyS:'Tricky: one note off',
+  solfTitle:'Poison Melody', m_silly:'Silly: “it was the poison!”', silly:['Ha ha! That was the poison! 😈','Gotcha! That was the poison! 🤪','Mwahaha! The poison strikes again! ☠️','Oops… that one was poison! 🙈'], learnS:'Learn the poison melody, then press Start.', o_trickyS:'Tricky: one note off',
   clef:'Clef', treble:'Treble', bass:'Bass', range:'Range', rhythm:'Rhythm', rh_q:'Quarter notes only', rh_mix:'Quarters + a half',
   plen:'Notes in the poison', syl:'Show syllables', solf:['Do','Re','Mi','Fa','Sol','La','Ti']
 });
 Object.assign(_RG_I18N.pt, {
-  solfTitle:'Solfejo Veneno', learnS:'Aprenda a melodia veneno e aperte Iniciar.', o_trickyS:'Difíceis: uma nota diferente',
+  solfTitle:'Melodia Veneno', m_silly:'Boba: “era o veneno!”', silly:['Rá rá! Era o veneno! 😈','Peguei! Era o veneno! 🤪','Muahaha! O veneno atacou de novo! ☠️','Ops… essa era o veneno! 🙈'], learnS:'Aprenda a melodia veneno e aperte Iniciar.', o_trickyS:'Difíceis: uma nota diferente',
   clef:'Clave', treble:'Clave de sol', bass:'Clave de fá', range:'Extensão', rhythm:'Ritmo', rh_q:'Só semínimas', rh_mix:'Semínimas + uma mínima',
   plen:'Notas no veneno', syl:'Mostrar sílabas', solf:['Do','Re','Mi','Fa','Sol','La','Si']
 });
 Object.assign(_RG_I18N.fr, {
-  solfTitle:'Solfège poison', learnS:'Apprenez la mélodie poison, puis appuyez sur Démarrer.', o_trickyS:'Pièges : une note change',
+  solfTitle:'Mélodie poison', m_silly:'Rigolo : « c’était le poison ! »', silly:['Ha ha ! C’était le poison ! 😈','Gagné ! C’était le poison ! 🤪','Mouahaha ! Le poison a encore frappé ! ☠️','Oups… c’était le poison ! 🙈'], learnS:'Apprenez la mélodie poison, puis appuyez sur Démarrer.', o_trickyS:'Pièges : une note change',
   clef:'Clé', treble:'Clé de sol', bass:'Clé de fa', range:'Étendue', rhythm:'Rythme', rh_q:'Noires seulement', rh_mix:'Noires + une blanche',
   plen:'Notes dans le poison', syl:'Afficher les syllabes', solf:['Do','Ré','Mi','Fa','Sol','La','Si']
 });
@@ -2933,7 +2938,7 @@ function showPoisonSolfegeDialog() {
   let poison = null, run = null, game = null, pOut = null, rOut = null, status = '', waiting = false, cur = null, setOpen = true;
   const alive = () => !!document.getElementById(id);
   const stopRun = () => { if (run) { run.stop(); run = null; } };
-  const stopGame = () => { stopRun(); if (game) game.running = false; waiting = false; };
+  const stopGame = () => { stopRun(); if (game) game.running = false; waiting = false; delete root.dataset.playing; };
 
   UI.makeModal(`<div id="${id}"></div>`);
   const root = document.getElementById(id);
@@ -2949,11 +2954,16 @@ function showPoisonSolfegeDialog() {
     }
     return _psGen(s, 4);
   }
-  const msgText = () => s.msg === 'sit' ? _rgT('msgSit') : (s.msg === 'custom' && s.custom ? s.custom : _rgT('msgPoison'));
+  const msgText = () => {
+    if (s.msg === 'sit') return _rgT('msgSit');
+    if (s.msg === 'custom' && s.custom) return s.custom;
+    const l = _RG_I18N[_rgLang()].silly; return l[Math.floor(Math.random() * l.length)];
+  };
   function paint() {
     const T = _rgT, chip = _rgChip;
     root.innerHTML = `
       ${_rgCss(id)}
+      <style>#${id}[data-playing] .rg-pbox{display:none}#${id}[data-playing] .rg-pair{grid-template-columns:1fr}@keyframes rgpop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}</style>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
         <h2 style="margin:0">${T('solfTitle')}</h2>
         <div style="display:flex;gap:4px;align-items:center">${_rgLangChips()}<button class="modal-btn secondary" data-rg="close" style="padding:4px 12px;font-size:12px;margin-left:8px">${T('close')}</button></div>
@@ -2968,12 +2978,12 @@ function showPoisonSolfegeDialog() {
           <div>${_rgRow(T('other'), chip('other', 'different', T('o_diff'), s.other === 'different') + chip('other', 'tricky', T('o_trickyS'), s.other === 'tricky'))}</div>
           <div>${_rgRow(T('freq'), chip('freq', 'now', T('f_now'), s.freq === 'now') + chip('freq', 'often', T('f_often'), s.freq === 'often'))}</div>
           <div>${_rgRow(T('opts'), chip('tog', 'countIn', T('countIn'), s.countIn) + chip('tog', 'pause', T('pause'), s.pause) + chip('tog', 'showPlay', T('showPlay'), s.showPlay) + chip('tog', 'showEcho', T('showEcho'), s.showEcho) + chip('tog', 'syl', T('syl'), s.syl))}</div>
-          <div>${_rgRow(T('screen'), chip('msg', 'sit', T('m_sit'), s.msg === 'sit') + chip('msg', 'poison', T('m_poison'), s.msg === 'poison') + chip('msg', 'custom', T('m_custom'), s.msg === 'custom'))}
+          <div>${_rgRow(T('screen'), chip('msg', 'sit', T('m_sit'), s.msg === 'sit') + chip('msg', 'poison', T('m_silly'), s.msg === 'poison') + chip('msg', 'custom', T('m_custom'), s.msg === 'custom'))}
             ${s.msg === 'custom' ? `<input id="rg-custom" type="text" maxlength="60" placeholder="${T('customPh')}" value="${UI.escHtml(s.custom)}" style="width:100%;margin-top:4px;padding:6px;box-sizing:border-box">` : ''}</div>
         </div>
       </details>
       <div class="rg-pair" style="margin-top:8px">
-        <div style="border:2px solid #7b4fa3;background:#f1eaf7;border-radius:10px;padding:6px 8px">
+        <div class="rg-pbox" style="border:2px solid #7b4fa3;background:#f1eaf7;border-radius:10px;padding:6px 8px">
           <div style="font-weight:700;color:#5b3a82">☠ ${T('solfTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
           <div id="rg-poison" style="background:#fff;border-radius:6px;margin-top:4px;overflow-x:auto"></div>
         </div>
@@ -2993,7 +3003,11 @@ function showPoisonSolfegeDialog() {
     pOut = _rgRenderMelody(root.querySelector('#rg-poison'), poison, s.syl);
     rOut = null;
   }
-  const setStatus = t => { status = t; const el = root.querySelector('#rg-status'); if (el) el.textContent = t; };
+  const setStatus = (t, big) => {
+    status = t; const el = root.querySelector('#rg-status'); if (!el) return;
+    el.textContent = t; el.style.fontSize = big ? '30px' : ''; el.style.color = big ? '#7b4fa3' : ''; el.style.animation = 'none';
+    if (big) { void el.offsetWidth; el.style.animation = 'rgpop .45s ease-out'; }
+  };
   const noteHost = () => root.querySelector('#rg-notation');
 
   function hear() {
@@ -3005,7 +3019,7 @@ function showPoisonSolfegeDialog() {
       onDone() { run = null; _rgHL(pOut, -1); setStatus(_rgT('learnS')); }
     });
   }
-  function startGame() { stopGame(); game = { running: true, round: 0, last: false }; nextRound(); }
+  function startGame() { stopGame(); game = { running: true, round: 0, last: false }; root.dataset.playing = '1'; nextRound(); }
   function nextRound() {
     if (!alive() || !game || !game.running) return;
     const wantPoison = game.round > 0 && !game.last && Math.random() < (s.freq === 'often' ? 0.4 : 0.2);
@@ -3026,7 +3040,7 @@ function showPoisonSolfegeDialog() {
       onDone() {
         run = null; noteHost().style.visibility = 'visible'; _rgHL(rOut, -1);
         if (cur.isPoison) {
-          setStatus('☠ ' + msgText());
+          setStatus('☠ ' + msgText(), true);
           if (s.pause) { waiting = true; root.querySelector('#rg-cont').style.display = 'block'; return; }
           setTimeout(nextRound, 1800); return;
         }

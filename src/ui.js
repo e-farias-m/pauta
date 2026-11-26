@@ -1224,7 +1224,7 @@ function showLearnPracticeMenu(btn) {
     {label:'Poison Rhythm', fn:showPoisonRhythmDialog},
     {label:'Curriculum', fn:showCurriculumDialog},
     {label:'Sight Reading', fn:showSightReadingDialog},
-    {label:'Poison Solfège', fn:showPoisonSolfegeDialog},
+    {label:'Poison Melody', fn:showPoisonSolfegeDialog},
     {label:'Recorder Exercises', fn:showRecorderExercises},
     {label:'My Progress', fn:showStudentProgress},
     {sep:true},
