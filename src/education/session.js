@@ -3074,40 +3074,110 @@ function showPoisonSolfegeDialog() {
 // ── Sight Reading ─────────────────────────────────────────────
 const _SR_NAMES = ['C4','D4','E4','F4','G4','A4','B4'];
 function showSightReadingDialog() {
-  const s = LS.getItem('sight_reading') ? JSON.parse(LS.getItem('sight_reading')) : { count: 6, tempo: 110 };
+  const s = Object.assign({ measures:2, tsNum:4, tsDen:4, key:'C', range:'do-sol', clef:'treble', transpose:'concert', tempo:110, countIn:true, showSyllables:false, showNames:false, showCounting:false }, LS.getItem('sight_reading') ? JSON.parse(LS.getItem('sight_reading')) : {});
+  let melody = null;
+  let mediaRecorder = null, chunks = [], recording = false, recordedUrl = null;
+  function gen() {
+    melody = _srGenMelody(s);
+    render();
+  }
+  function render() {
+    const area = document.getElementById('sr-area'); if (!area) return;
+    area.innerHTML = '';
+    if (!melody) { area.textContent = 'Press Generate'; return; }
+    const div = document.createElement('div'); div.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px';
+    const key = _SR_KEYS.find(k=>k.key===s.key) || _SR_KEYS[0];
+    const scale = key.type==='minor' ? ['do','re','me','fa','sol','le','ti'] : ['do','re','mi','fa','sol','la','ti'];
+    const degs = s.range==='do-sol' ? scale.slice(0,5) : scale.slice(0,8);
+    for (const n of melody) {
+      const wrap = document.createElement('div'); wrap.style.cssText = 'text-align:center;min-width:28px';
+      if (n.rest) {
+        const r = document.createElement('div'); r.textContent = '𝄽'; r.style.fontSize='18px'; wrap.appendChild(r);
+      } else {
+        const note = document.createElement('div'); note.textContent = '♩'; note.style.fontSize='18px'; wrap.appendChild(note);
+        if (s.showSyllables) { const sy = document.createElement('div'); sy.textContent = degs[n.deg]; sy.style.fontSize='10px'; sy.style.color='var(--pauta-primary)'; wrap.appendChild(sy); }
+        if (s.showNames) { const nm = document.createElement('div'); nm.textContent = _srMidiToName(n.midi); nm.style.fontSize='9px'; nm.style.color='var(--pauta-text-muted)'; wrap.appendChild(nm); }
+      }
+      if (s.showCounting) { const c = document.createElement('div'); c.textContent = (n.onset/4+1).toFixed(0); c.style.fontSize='9px'; c.style.color='#888'; wrap.appendChild(c); }
+      div.appendChild(wrap);
+    }
+    area.appendChild(div);
+    const info = document.createElement('div'); info.style.cssText='text-align:center;font-size:11px;color:var(--pauta-text-muted)'; info.textContent = melody.length + ' notes · ' + s.measures + ' measures · ' + s.tsNum + '/' + s.tsDen + ' · ' + s.key + ' · ' + s.clef;
+    area.appendChild(info);
+  }
+  function playMelody() {
+    if (!melody) return;
+    try {
+      const ctx = getAudioCtx(); if (ctx.state==='suspended') ctx.resume();
+      const bd = 60 / s.tempo;
+      const t0 = ctx.currentTime + (s.countIn ? 4*bd : 0.1);
+      if (s.countIn) { for (let i=0;i<4;i++) scheduleNote(ctx, 76, t0 - (4-i)*bd, 0.1, 'noise', 0.3); }
+      for (const n of melody) { if (!n.rest) { const semi = _SR_TRANSPOSE[s.transpose] || 0; scheduleNote(ctx, n.midi + semi, t0 + (n.onset/4)*bd, (n.dur/4)*bd*0.9, 'sine', 0.5); } }
+    } catch(e) {}
+  }
+  function startRec() {
+    if (recording) {
+      if (mediaRecorder) mediaRecorder.stop();
+      recording = false; document.getElementById('sr-rec').textContent = 'Record it';
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) { UI.showToast('No microphone'); return; }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {
+      mediaRecorder = new MediaRecorder(stream);
+      chunks = [];
+      mediaRecorder.ondataavailable = e => { if (e.data.size>0) chunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(t=>t.stop());
+        const blob = new Blob(chunks, {type:'audio/webm'});
+        if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+        recordedUrl = URL.createObjectURL(blob);
+        const audio = document.getElementById('sr-audio');
+        if (audio) { audio.src = recordedUrl; audio.style.display=''; }
+      };
+      mediaRecorder.start();
+      recording = true;
+      document.getElementById('sr-rec').textContent = 'Stop recording';
+    }).catch(()=>UI.showToast('Mic unavailable'));
+  }
   UI.makeModal(`
     <h2>Sight Reading</h2>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button class="modal-btn primary" id="sr-gen" data-action="closeModal" style="flex:1">🎲 Generate New</button>
-      <button class="modal-btn secondary" id="sr-count" style="padding:8px 14px">N: ${s.count}</button>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      ${[1,2,4,8].map(m=>`<button class="modal-btn ${s.measures===m?'primary':'secondary'}" data-action="srMeas" data-m="${m}" style="padding:4px 8px;font-size:11px">${m}m</button>`).join('')}
+      ${['2/4','3/4','4/4','6/8'].map(ts=>{const [a,b]=ts.split('/'); return `<button class="modal-btn ${s.tsNum==+a&&s.tsDen==+b?'primary':'secondary'}" data-action="srTs" data-n="${a}" data-d="${b}" style="padding:4px 8px;font-size:11px">${ts}</button>`;}).join('')}
     </div>
-    <div id="sr-notes" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px"></div>
-    <div style="font-size:12px;color:var(--pauta-text-muted);margin-bottom:4px">Tempo ${s.tempo}</div>
-    <input type="range" id="sr-tempo" min="40" max=200" value="${s.tempo}" style="width:100%">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <select id="sr-key" style="padding:4px 6px;font-size:11px">${_SR_KEYS.map(k=>`<option value="${k.key}" ${s.key===k.key?'selected':''}>${k.label}</option>`).join('')}</select>
+      <select id="sr-range" style="padding:4px 6px;font-size:11px"><option value="do-sol" ${s.range==='do-sol'?'selected':''}>Do–Sol</option><option value="do-do" ${s.range==='do-do'?'selected':''}>Do–Do</option></select>
+      <select id="sr-clef" style="padding:4px 6px;font-size:11px">${_SR_CLEFS.map(c=>`<option value="${c}" ${s.clef===c?'selected':''}>${c}</option>`).join('')}</select>
+      <select id="sr-trans" style="padding:4px 6px;font-size:11px">${Object.keys(_SR_TRANSPOSE).map(t=>`<option value="${t}" ${s.transpose===t?'selected':''}>${t}</option>`).join('')}</select>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      ${['showSyllables','showNames','showCounting'].map(k=>`<button class="modal-btn ${s[k]?'primary':'secondary'}" data-action="srToggle" data-k="${k}" style="padding:4px 8px;font-size:11px">${k.replace('show','')}</button>`).join('')}
+    </div>
+    <div id="sr-area" style="min-height:80px;margin-bottom:8px"></div>
+    <audio id="sr-audio" style="display:none;width:100%" controls></audio>
+    <div style="display:flex;gap:8px">
+      <button class="modal-btn primary" id="sr-gen" style="flex:1">Generate</button>
+      <button class="modal-btn secondary" id="sr-hear" style="flex:1">Hear it</button>
+      <button class="modal-btn secondary" id="sr-rec" style="flex:1">Record it</button>
+      <button class="modal-btn secondary" id="sr-close" style="flex:1">Close</button>
+    </div>
   `);
-  let seq = [];
-  function gen() {
-    const count = parseInt(document.getElementById('sr-count')?.dataset.val || s.count);
-    seq = [];
-    const scale = ['C4','D4','E4','F4','G4'];
-    const idxs = scale.map(n => _SR_NAMES.indexOf(n));
-    for (let i = 0; i < count; i++) seq.push(idxs[Math.floor(Math.random() * idxs.length)]);
-    renderSrNotes();
-    try { const ctx = getAudioCtx(); if (ctx.state==='suspended') ctx.resume(); const t0=ctx.currentTime+0.05; const bd=60/parseInt(document.getElementById('sr-tempo')?.value||s.tempo); for (const midi of seq) scheduleNote(ctx, midi+60, t0, 0.4, 'sine', 0.5); } catch(e) {}
-  }
-  function renderSrNotes() {
-    const el = document.getElementById('sr-notes');
-    if (!el) return;
-    el.innerHTML = '';
-    seq.forEach(i => { const d=document.createElement('button'); d.textContent=_SR_NAMES[i]; d.className='pauta-badge'; d.style.cursor='default'; el.appendChild(d); });
-  }
   setTimeout(() => {
-    const genBtn = document.getElementById('sr-gen');
-    if (genBtn) genBtn.addEventListener('click', gen);
-    gen();
-  }, 0);
+    document.querySelectorAll('[data-action="srMeas"]').forEach(b=>b.addEventListener('click',()=>{ s.measures=parseInt(b.dataset.m); LS.setItem('sight_reading',JSON.stringify(s)); showSightReadingDialog(); }));
+    document.querySelectorAll('[data-action="srTs"]').forEach(b=>b.addEventListener('click',()=>{ s.tsNum=parseInt(b.dataset.n); s.tsDen=parseInt(b.dataset.d); LS.setItem('sight_reading',JSON.stringify(s)); showSightReadingDialog(); }));
+    document.querySelectorAll('[data-action="srToggle"]').forEach(b=>b.addEventListener('click',()=>{ s[b.dataset.k]=!s[b.dataset.k]; LS.setItem('sight_reading',JSON.stringify(s)); showSightReadingDialog(); }));
+    const keySel=document.getElementById('sr-key'); if(keySel) keySel.addEventListener('change',()=>{ s.key=keySel.value; LS.setItem('sight_reading',JSON.stringify(s)); showSightReadingDialog(); });
+    const rangeSel=document.getElementById('sr-range'); if(rangeSel) rangeSel.addEventListener('change',()=>{ s.range=rangeSel.value; LS.setItem('sight_reading',JSON.stringify(s)); showSightReadingDialog(); });
+    const clefSel=document.getElementById('sr-clef'); if(clefSel) clefSel.addEventListener('change',()=>{ s.clef=clefSel.value; LS.setItem('sight_reading',JSON.stringify(s)); showSightReadingDialog(); });
+    const transSel=document.getElementById('sr-trans'); if(transSel) transSel.addEventListener('change',()=>{ s.transpose=transSel.value; LS.setItem('sight_reading',JSON.stringify(s)); showSightReadingDialog(); });
+    const gen=document.getElementById('sr-gen'); if(gen) gen.addEventListener('click',()=>{ melody=_srGenMelody(s); render(); });
+    const hear=document.getElementById('sr-hear'); if(hear) hear.addEventListener('click',playMelody);
+    const rec=document.getElementById('sr-rec'); if(rec) rec.addEventListener('click',startRec);
+    const cl=document.getElementById('sr-close'); if(cl) cl.addEventListener('click',()=>UI.closeModal());
+    melody = _srGenMelody(s); render();
+  },0);
 }
-
 function _rwGetSettings() {
   try { const _s = LS.getItem('pauta_rhythm_workout'); return _s ? JSON.parse(_s) : JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
   catch(e) { return JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }

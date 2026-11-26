@@ -2893,6 +2893,7 @@ _registerAction('restartExerciseSession', () => restartExerciseSession());
   _registerAction('reviewExerciseSession', () => reviewExerciseSession());
   _registerAction('showCurriculumDialog', () => showCurriculumDialog());
   _registerAction('showSightReadingDialog', () => showSightReadingDialog());
+  _registerAction('showSightReadingDialog', () => showSightReadingDialog());
   _registerAction('showPoisonSolfegeDialog', () => showPoisonSolfegeDialog());
   _registerAction('startCurriculumGrade', (e) => {
     closeModal();
