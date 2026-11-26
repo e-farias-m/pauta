@@ -15028,7 +15028,7 @@ function _rgRunner(piece, o) {
   for (let u = 0; u < cin; u += m.beat) q.push({ t: t0 + u * us, click: true, acc: u === 0 });
   const clickLen = o.mode === 'echo' ? 2 * piece.len : piece.len;
   for (let u = 0; u < clickLen; u += m.beat) q.push({ t: patT + u * us, click: true, acc: u % m.units === 0 });
-  if (o.mode !== 'tap') piece.events.forEach(e => { if (!e.rest) q.push({ t: patT + e.on * us, d: e.u * us * 0.9 }); });
+  if (o.mode !== 'tap') piece.events.forEach(e => { if (!e.rest) q.push({ t: patT + e.on * us, d: e.u * us * (e.midi ? 0.95 : 0.9), midi: e.midi }); });
   q.sort((a, b) => a.t - b.t);
   let qi = 0, stopped = false, finished = false, raf = 0, endTimer = 0;
   const taps = [];
@@ -15037,6 +15037,7 @@ function _rgRunner(piece, o) {
     while (qi < q.length && q[qi].t < ctx.currentTime + 0.25) {
       const x = q[qi++];
       if (x.click) scheduleNote(ctx, 76, x.t, 0.06, 'noise', x.acc ? 0.4 : 0.22);
+      else if (x.midi) scheduleNote(ctx, x.midi, x.t, x.d, 'sine', 0.5);
       else scheduleNote(ctx, 72, x.t, x.d, 'noise', 0.4);
     }
   }, 30);
@@ -15104,6 +15105,7 @@ const _rgCss = id => `<style>#${id} .rg-set{display:grid;grid-template-columns:r
 function _rgWireTap(id, getRun, onClose) {
   const key = ev => {
     if (!document.getElementById(id)) { document.removeEventListener('keydown', key, true); if (onClose) onClose(); return; }
+    if (ev.target && /^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
     if (ev.code === 'Space' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); const r = getRun(); if (!ev.repeat && r) r.tap(); }
   };
   document.addEventListener('keydown', key, true);
@@ -15379,6 +15381,237 @@ function showPoisonRhythmDialog() {
   newPoison();
 }
 
+// ── Poison Solfège (fixed do) ─────────────────────────────────────
+// No student input: the teacher judges. A melody round plays, the class sings it back
+// (echo window), and the poison melody is the one they must NOT sing.
+Object.assign(_RG_I18N.en, {
+  solfTitle:'Poison Solfège', learnS:'Learn the poison melody, then press Start.', o_trickyS:'Tricky: one note off',
+  clef:'Clef', treble:'Treble', bass:'Bass', range:'Range', rhythm:'Rhythm', rh_q:'Quarter notes only', rh_mix:'Quarters + a half',
+  plen:'Notes in the poison', syl:'Show syllables', solf:['Do','Re','Mi','Fa','Sol','La','Ti']
+});
+Object.assign(_RG_I18N.pt, {
+  solfTitle:'Solfejo Veneno', learnS:'Aprenda a melodia veneno e aperte Iniciar.', o_trickyS:'Difíceis: uma nota diferente',
+  clef:'Clave', treble:'Clave de sol', bass:'Clave de fá', range:'Extensão', rhythm:'Ritmo', rh_q:'Só semínimas', rh_mix:'Semínimas + uma mínima',
+  plen:'Notas no veneno', syl:'Mostrar sílabas', solf:['Do','Re','Mi','Fa','Sol','La','Si']
+});
+Object.assign(_RG_I18N.fr, {
+  solfTitle:'Solfège poison', learnS:'Apprenez la mélodie poison, puis appuyez sur Démarrer.', o_trickyS:'Pièges : une note change',
+  clef:'Clé', treble:'Clé de sol', bass:'Clé de fa', range:'Étendue', rhythm:'Rythme', rh_q:'Noires seulement', rh_mix:'Noires + une blanche',
+  plen:'Notes dans le poison', syl:'Afficher les syllabes', solf:['Do','Ré','Mi','Fa','Sol','La','Si']
+});
+const _rgSyl = d => _RG_I18N[_rgLang()].solf[d % 7];
+const _PS_STEPS = [0, 2, 4, 5, 7, 9, 11];
+const _PS_NAMES = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
+
+// Piece = one 4/4 measure. deg 0..7 (0 = Do, 7 = high Do); treble Do = C4, bass Do = C3.
+function _psNote(deg, clef) {
+  const oct = (clef === 'bass' ? 3 : 4) + Math.floor(deg / 7);
+  return { deg, key: _PS_NAMES[deg % 7] + '/' + oct, midi: 12 * (oct + 1) + _PS_STEPS[deg % 7] };
+}
+function _psBuild(degs, durs, clef) {
+  const events = []; let on = 0;
+  degs.forEach((d, i) => { const n = _psNote(d, clef); events.push(Object.assign({ u: durs[i], rest: false, on, deg: d }, n)); on += durs[i]; });
+  if (on < 16) events.push({ u: 16 - on, rest: true, on, deg: -1 });
+  return { meter: _RG_METERS['4/4'], events, len: 16, clef };
+}
+const _psSig = p => p.events.map(e => (e.rest ? 'r' : e.deg) + ':' + e.u).join(',');
+function _psDurs(n, mixed) {
+  if (n === 4) return [4, 4, 4, 4];
+  if (mixed) { const a = [[8,4,4], [4,8,4], [4,4,8]]; return a[Math.floor(Math.random() * 3)]; }
+  return [4, 4, 4];
+}
+function _psGen(s, n) {
+  const max = s.range === 'octave' ? 7 : 4;
+  for (let tries = 0; tries < 50; tries++) {
+    const degs = [Math.floor(Math.random() * (max + 1))];
+    while (degs.length < n) {
+      let d; do { d = Math.max(0, Math.min(max, degs[degs.length - 1] + Math.floor(Math.random() * 7) - 3)); } while (d === degs[degs.length - 1]);
+      degs.push(d);
+    }
+    if (new Set(degs).size > 1) return _psBuild(degs, _psDurs(n, s.rhythm === 'mixed'), s.clef);
+  }
+  return _psBuild([0, 2, 4].slice(0, n), _psDurs(n, false), s.clef);
+}
+function _psTricky(base, s) {
+  const max = s.range === 'octave' ? 7 : 4, idx = [];
+  base.events.forEach((e, i) => { if (!e.rest) idx.push(i); });
+  for (let i = 0; i < 30; i++) {
+    const k = idx[Math.floor(Math.random() * idx.length)], d = Math.floor(Math.random() * (max + 1));
+    if (d === base.events[k].deg) continue;
+    const degs = [], durs = [];
+    base.events.forEach((e, j) => { if (!e.rest) { degs.push(j === k ? d : e.deg); durs.push(e.u); } });
+    const p = _psBuild(degs, durs, s.clef);
+    if (_psSig(p) !== _psSig(base)) return p;
+  }
+  return null;
+}
+
+function _rgRenderMelody(host, piece, showSyl) {
+  host.innerHTML = '';
+  const out = { host, piece, marks: [], svg: null };
+  const W = Math.max(260, Math.min(host.clientWidth || 420, 600));
+  try {
+    const r = new VF.Renderer(host, VF.Renderer.Backends.SVG);
+    r.resize(W, 170);
+    const ctx = r.getContext(); out.svg = ctx.svg;
+    const stave = new VF.Stave(4, 30, W - 8);
+    stave.addClef(piece.clef).addTimeSignature('4/4'); stave.setContext(ctx).draw();
+    const restKey = piece.clef === 'bass' ? 'd/3' : 'b/4';
+    const notes = piece.events.map(e => new VF.StaveNote({
+      keys: [e.rest ? restKey : e.key], duration: (e.u === 8 ? 'h' : 'q') + (e.rest ? 'r' : ''), clef: piece.clef, auto_stem: true }));
+    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 }).setStrict(false);
+    voice.addTickables(notes);
+    new VF.Formatter().joinVoices([voice]).format([voice], Math.max(80, stave.getWidth() - (stave.getNoteStartX() - stave.getX()) - 20));
+    voice.draw(ctx, stave);
+    const top = stave.getYForLine(0), bot = stave.getYForLine(4);
+    notes.forEach((n, i) => {
+      const x = n.getAbsoluteX(), e = piece.events[i];
+      out.marks.push({ x, top, bot });
+      if (showSyl && !e.rest) {
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.setAttribute('x', x + 6); t.setAttribute('y', bot + 58); t.setAttribute('text-anchor', 'middle');
+        t.setAttribute('font-size', '15'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#333');
+        t.textContent = _rgSyl(e.deg); ctx.svg.appendChild(t);
+      }
+    });
+  } catch (err) {
+    console.warn('Melody render failed:', err);
+    host.textContent = piece.events.map(e => e.rest ? '𝄽' : _rgSyl(e.deg)).join(' ');
+    out.svg = null; out.marks = [];
+  }
+  return out;
+}
+
+function showPoisonSolfegeDialog() {
+  const KEY = 'pauta_rg_solfege', id = 'rg-root-' + (++_rgDlgSeq);
+  const s = _rgLoad(KEY, { tempo: 80, clef: 'treble', range: 'dosol', rhythm: 'quarters', plen: 3, other: 'different', freq: 'now', pause: true, msg: 'poison', custom: '', showPlay: true, showEcho: true, syl: true, countIn: true });
+  let poison = null, run = null, game = null, pOut = null, rOut = null, status = '', waiting = false, cur = null, setOpen = true;
+  const alive = () => !!document.getElementById(id);
+  const stopRun = () => { if (run) { run.stop(); run = null; } };
+  const stopGame = () => { stopRun(); if (game) game.running = false; waiting = false; };
+
+  UI.makeModal(`<div id="${id}"></div>`);
+  const root = document.getElementById(id);
+  _rgBig(root);
+
+  function newPoison() {
+    stopGame(); poison = _psGen(s, s.plen); game = null; cur = null; status = ''; paint();
+  }
+  function makeOther() {
+    for (let i = 0; i < 20; i++) {
+      const p = (s.other === 'tricky' ? _psTricky(poison, s) : null) || _psGen(s, 3 + Math.floor(Math.random() * 2));
+      if (_psSig(p) !== _psSig(poison)) return p;
+    }
+    return _psGen(s, 4);
+  }
+  const msgText = () => s.msg === 'sit' ? _rgT('msgSit') : (s.msg === 'custom' && s.custom ? s.custom : _rgT('msgPoison'));
+  function paint() {
+    const T = _rgT, chip = _rgChip;
+    root.innerHTML = `
+      ${_rgCss(id)}
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+        <h2 style="margin:0">${T('solfTitle')}</h2>
+        <div style="display:flex;gap:4px;align-items:center">${_rgLangChips()}<button class="modal-btn secondary" data-rg="close" style="padding:4px 12px;font-size:12px;margin-left:8px">${T('close')}</button></div>
+      </div>
+      <details id="rg-set" ${setOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:600;font-size:13px">${T('more')}</summary>
+        <div class="rg-set">
+          <div>${_rgRow(T('clef'), chip('clef', 'treble', '𝄞 ' + T('treble'), s.clef === 'treble') + chip('clef', 'bass', '𝄢 ' + T('bass'), s.clef === 'bass'))}</div>
+          <div>${_rgRow(T('range'), chip('range', 'dosol', 'Do–Sol', s.range === 'dosol') + chip('range', 'octave', 'Do–Do', s.range === 'octave'))}</div>
+          <div>${_rgRow(T('rhythm'), chip('rhythm', 'quarters', T('rh_q'), s.rhythm === 'quarters') + chip('rhythm', 'mixed', T('rh_mix'), s.rhythm === 'mixed'))}</div>
+          <div>${_rgRow(T('plen'), chip('plen', 3, '3', s.plen === 3) + chip('plen', 4, '4', s.plen === 4))}</div>
+          <div>${_rgRow(T('tempo'), _rgTempoRow(s.tempo))}</div>
+          <div>${_rgRow(T('other'), chip('other', 'different', T('o_diff'), s.other === 'different') + chip('other', 'tricky', T('o_trickyS'), s.other === 'tricky'))}</div>
+          <div>${_rgRow(T('freq'), chip('freq', 'now', T('f_now'), s.freq === 'now') + chip('freq', 'often', T('f_often'), s.freq === 'often'))}</div>
+          <div>${_rgRow(T('opts'), chip('tog', 'countIn', T('countIn'), s.countIn) + chip('tog', 'pause', T('pause'), s.pause) + chip('tog', 'showPlay', T('showPlay'), s.showPlay) + chip('tog', 'showEcho', T('showEcho'), s.showEcho) + chip('tog', 'syl', T('syl'), s.syl))}</div>
+          <div>${_rgRow(T('screen'), chip('msg', 'sit', T('m_sit'), s.msg === 'sit') + chip('msg', 'poison', T('m_poison'), s.msg === 'poison') + chip('msg', 'custom', T('m_custom'), s.msg === 'custom'))}
+            ${s.msg === 'custom' ? `<input id="rg-custom" type="text" maxlength="60" placeholder="${T('customPh')}" value="${UI.escHtml(s.custom)}" style="width:100%;margin-top:4px;padding:6px;box-sizing:border-box">` : ''}</div>
+        </div>
+      </details>
+      <div class="rg-pair" style="margin-top:8px">
+        <div style="border:2px solid #7b4fa3;background:#f1eaf7;border-radius:10px;padding:6px 8px">
+          <div style="font-weight:700;color:#5b3a82">☠ ${T('solfTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
+          <div id="rg-poison" style="background:#fff;border-radius:6px;margin-top:4px;overflow-x:auto"></div>
+        </div>
+        <div id="rg-notation" style="overflow-x:auto;min-height:20px"></div>
+      </div>
+      <div id="rg-status" style="text-align:center;font-weight:700;min-height:22px;margin-top:6px">${status || T('learnS')}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        <button class="modal-btn primary" data-rg="start" style="flex:1">${T('start')}</button>
+        <button class="modal-btn secondary" data-rg="hear" style="flex:1">${T('hear')}</button>
+        <button class="modal-btn secondary" data-rg="new" style="flex:1">${T('newPoison')}</button>
+        <button class="modal-btn secondary" data-rg="stop" style="flex:1">${T('stop')}</button>
+      </div>
+      <button id="rg-cont" class="modal-btn primary" data-rg="cont" style="width:100%;margin-top:6px;display:none">${T('cont')}</button>`;
+    const det = root.querySelector('#rg-set'); if (det) det.addEventListener('toggle', () => { setOpen = det.open; });
+    const ci = root.querySelector('#rg-custom');
+    if (ci) ci.addEventListener('input', () => { s.custom = ci.value; _rgSave(KEY, s); });
+    pOut = _rgRenderMelody(root.querySelector('#rg-poison'), poison, s.syl);
+    rOut = null;
+  }
+  const setStatus = t => { status = t; const el = root.querySelector('#rg-status'); if (el) el.textContent = t; };
+  const noteHost = () => root.querySelector('#rg-notation');
+
+  function hear() {
+    stopGame(); _rgClearOv(pOut);
+    let lastIdx = -2;
+    run = _rgRunner(poison, {
+      tempo: s.tempo, mode: 'play', countIn: s.countIn, alive,
+      onFrame(phase, unit) { setStatus(_rgT(phase === 'count' ? 'st_count' : 'st_play')); if (phase === 'count') return; const i = _rgEvAt(poison, unit); if (i !== lastIdx) { lastIdx = i; _rgHL(pOut, i); } },
+      onDone() { run = null; _rgHL(pOut, -1); setStatus(_rgT('learnS')); }
+    });
+  }
+  function startGame() { stopGame(); game = { running: true, round: 0, last: false }; nextRound(); }
+  function nextRound() {
+    if (!alive() || !game || !game.running) return;
+    const wantPoison = game.round > 0 && !game.last && Math.random() < (s.freq === 'often' ? 0.4 : 0.2);
+    const piece = wantPoison ? poison : makeOther();
+    cur = { piece, isPoison: wantPoison };
+    game.last = wantPoison; game.round++;
+    rOut = _rgRenderMelody(noteHost(), piece, s.syl);
+    let lastPhase = '', lastIdx = -2;
+    run = _rgRunner(piece, {
+      tempo: s.tempo, mode: 'echo', countIn: s.countIn, alive,
+      onFrame(phase, unit, beat) {
+        if (phase !== lastPhase) { lastPhase = phase; noteHost().style.visibility = ((phase === 'listen' && !s.showPlay) || (phase === 'echo' && !s.showEcho)) ? 'hidden' : 'visible'; }
+        if (phase === 'count') { setStatus(_rgT('st_count') + ' ' + (beat + 1)); return; }
+        setStatus(_rgT(phase === 'echo' ? 'st_echo' : 'st_listen'));
+        const i = (noteHost().style.visibility === 'hidden') ? -1 : _rgEvAt(piece, unit);
+        if (i !== lastIdx) { lastIdx = i; _rgHL(rOut, i); }
+      },
+      onDone() {
+        run = null; noteHost().style.visibility = 'visible'; _rgHL(rOut, -1);
+        if (cur.isPoison) {
+          setStatus('☠ ' + msgText());
+          if (s.pause) { waiting = true; root.querySelector('#rg-cont').style.display = 'block'; return; }
+          setTimeout(nextRound, 1800); return;
+        }
+        setTimeout(nextRound, 900);
+      }
+    });
+  }
+
+  root.addEventListener('click', e => {
+    const b = e.target.closest('[data-rg]'); if (!b) return;
+    const a = b.dataset.rg, v = b.dataset.v;
+    if (a === 'tempo') { s.tempo = Math.max(40, Math.min(160, s.tempo + parseInt(v))); _rgSave(KEY, s); root.querySelector('#rg-tempo').textContent = s.tempo; return; }
+    if (a === 'start') { startGame(); return; }
+    if (a === 'hear') { hear(); return; }
+    if (a === 'cont') { if (waiting) { waiting = false; b.style.display = 'none'; nextRound(); } return; }
+    if (a === 'stop') { stopGame(); _rgClearOv(rOut); noteHost().style.visibility = 'visible'; setStatus(_rgT('st_stopped')); return; }
+    if (a === 'close') { stopGame(); UI.closeModal(); return; }
+    if (a === 'new') { newPoison(); return; }
+    stopGame();
+    if (a === 'lang') { try { LS.setItem('pauta_lang', v); } catch (err) {} paint(); return; }
+    if (a === 'tog') { s[v] = !s[v]; _rgSave(KEY, s); paint(); return; }
+    if (a === 'other' || a === 'freq' || a === 'msg') { s[a] = v; _rgSave(KEY, s); paint(); return; }
+    // clef / range / rhythm / plen change the poison itself → new poison
+    s[a] = (a === 'plen') ? parseInt(v) : v; _rgSave(KEY, s); newPoison();
+  });
+  _rgOnResize(id, () => { if (run) return; pOut = _rgRenderMelody(root.querySelector('#rg-poison'), poison, s.syl); if (cur) rOut = _rgRenderMelody(noteHost(), cur.piece, s.syl); });
+  _rgWireTap(id, () => null, stopGame);
+  newPoison();
+}
+
 // ── Sight Reading ─────────────────────────────────────────────
 const _SR_NAMES = ['C4','D4','E4','F4','G4','A4','B4'];
 function showSightReadingDialog() {
@@ -15416,25 +15649,6 @@ function showSightReadingDialog() {
   }, 0);
 }
 
-// ── Poison Solfège ────────────────────────────────────────────
-let _psInit = false;
-function showPoisonSolfegeDialog() {
-  const storage = LS.getItem('poison_solfege') ? JSON.parse(LS.getItem('poison_solfege')) : { num:0, den:4, tempo:110, includePoison:false, poisonHz:0, play:true };
-  const steps = [ ['S4',264], ['M4',297], ['L4',330], ['K4',347], ['D4',369], ['L3',218], ['S3',198], ['F3',174], ['M3',277], ['K5',440], ['D5',587] ];
-  let seq=[], isPoison=false;
-  function gen() { seq=[]; isPoison=false; const n=4+Math.floor(Math.random()*4); for(let i=0;i<n;i++){ if(i===2 && Math.random()<0.5){ isPoison=true; seq.push({name:'POISON', hz:261.6}); } else { const s=steps[Math.floor(Math.random()*steps.length)]; seq.push({name:s[0], hz:s[1]}); } } play(); render(); }
-  function play(){ try { const ctx=getAudioCtx(); if(ctx.state==='suspended') ctx.resume(); const t=ctx.currentTime+0.1; for(const n of seq) scheduleNote(ctx, 69, t, 0.5, 'sine', 0.5); } catch(e){} }
-  function render(){ const el=document.getElementById('ps-list'); if(el){ el.innerHTML=''; seq.forEach(n=>{ const b=document.createElement('button'); b.textContent=n.name; b.className='pauta-badge'; b.style.cursor='default'; el.appendChild(b); }); } }
-  UI.makeModal(`<h2>Poison Solfège</h2>
-    <div id="ps-list" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0"></div>
-    <div style="display:flex;gap:8px"><button class="modal-btn primary" id="ps-play" data-action="closeModal">🎵 Play</button><button class="modal-btn secondary" id="ps-new" data-action="closeModal">🎲 New</button></div>`);
-  setTimeout(() => {
-    const play=document.getElementById('ps-play'); if(play) play.addEventListener('click', playSeq);
-    const nw=document.getElementById('ps-new'); if(nw) nw.addEventListener('click', gen);
-    gen();
-  },0);
-  function playSeq(){ try { const ctx=getAudioCtx(); if(ctx.state==='suspended') ctx.resume(); const t=ctx.currentTime+0.1; seq.forEach((n,i)=>{ scheduleNote(ctx, 69, t + i*0.4, 0.4, 'sine', 0.5); }); } catch(e){} }
-}
 function _rwGetSettings() {
   try { const _s = LS.getItem('pauta_rhythm_workout'); return _s ? JSON.parse(_s) : JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
   catch(e) { return JSON.parse(JSON.stringify(RHYTHM_WORKOUT_DEFAULTS)); }
