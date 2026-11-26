@@ -255,6 +255,7 @@ const IMPORTED_KEY = 'pauta_imported_reports';
 const TYPE_LABELS = {
   note_id: 'Note Drills', interval_id: 'Interval Training', rhythm_read: 'Rhythm Reading',
   melody_dictation: 'Ear Training', key_sig_id: 'Key Sig Drills', rhythm_worksheet: 'Rhythm Dictation',
+  rhythm_dictation: 'Rhythm Dictation',
   scale_id: 'Scale Gym', rhythm_workout: 'Rhythm Workout',
 };
 

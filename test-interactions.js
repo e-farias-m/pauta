@@ -77,6 +77,11 @@ const {
   _freqToMidi, _autocorrelatePitch, _getSubdivisionInfo,
   _findNoteAtPlaybackTime, audioBufferToWav,
 } = A;
+const {
+  _RG_METERS, _RG_CELLS, _RG_CELLS2, _rgBuild, _rgCellOk,
+  _rdTiles, _rdKeyOf, _rdGlyphs, _rdPics, _rdWord, _rdWordFn,
+  _rdClose, _rdGenTarget, _rdBuildAnswer, _rdBeatMarks,
+} = A;
 
 // A few tests touch the DOM directly; point the globals at the harness
 // document so they exercise the same tree the modules rendered into.
@@ -2029,6 +2034,72 @@ const _slashBlob = await buildMSCZBlob();
 const _slashZip = await JSZip.loadAsync(await _slashBlob.arrayBuffer());
 assertEq(Object.keys(_slashZip.files)[0], 'Etudes_Book_1.mscx',
   'slashes and spaces in the title are sanitised in the entry name');
+
+// ── 24. Rhythm Dictation helpers ─────────────────────────────────
+const rdM4 = _RG_METERS['4/4'], rdM68 = _RG_METERS['6/8'];
+const rdQ8 = new Set(['q', '8']);
+
+assert(_rdTiles(rdM4, rdQ8).length >= 2, 'dictation has tiles for quarter + eighth');
+assert(_rdTiles(rdM4, rdQ8).every(t => t.span === 1), 'no half-note tile without the half value');
+assert(_rdTiles(rdM4, new Set(['q', '8', 'h'])).some(t => t.span === 2), 'half-note tile spans two beats when enabled');
+assert(_rdTiles(rdM68, rdQ8).every(t => t.span === 1), '6/8 never uses two-beat tiles');
+assertEq(_rdKeyOf([[2, 0], [2, 0]]), '2-2', 'cell key joins durations');
+assert(_rdKeyOf([[4, 1]]) !== _rdKeyOf([[4, 0]]), 'rest and note cells have different keys');
+assertEq(_rdGlyphs([[4, 0], [2, 0], [2, 0]]), '♩♪♪', 'glyphs map quarter + two eighths');
+assertEq(_rdPics([[4, 1]]), '😴', 'rest picture is the sleeper');
+assertEq(_rdWord(rdM4, [[2, 0], [2, 0]], 0, 'count'), '1 +', 'counting labels follow the beat');
+assertEq(_rdWord(rdM4, [[4, 0]], 0, 'syll'), 'ta', 'syllable label for a quarter');
+assertEq(_rdWordFn('hide'), null, 'no words when hidden');
+assertEq(typeof _rdWordFn('syll'), 'function', 'syllable word function exists');
+assertEq(_rdClose(rdM4, rdQ8)[0][0], 4, '4/4 phrase closes on a quarter note');
+assertEq(_rdClose(rdM68, new Set(['dq']))[0][0], 6, '6/8 phrase closes on a dotted quarter');
+
+const rdTarget = _rdGenTarget(rdM4, rdQ8, 1);
+assert(rdTarget && rdTarget.len === 16, 'generated 4/4 dictation phrase is one measure');
+assert(!rdTarget.events[0].rest, 'phrase does not start on a rest');
+assert(!rdTarget.events[rdTarget.events.length - 1].rest, 'phrase ends on a note');
+function rdItems(piece) {
+  const nB = piece.meter.units / piece.meter.beat, items = [];
+  let beat = 0;
+  piece.slots[0].forEach(sl => { items.push({ m: 0, beat, span: sl.span, c: sl.c }); beat += sl.span; });
+  return items;
+}
+const rdAll = rdItems(rdTarget);
+const rdSame = _rdBeatMarks(rdTarget, _rdBuildAnswer(rdM4, rdAll, 1), rdM4);
+assertEq(rdSame.length, 4, 'four beat marks in 4/4');
+assert(rdSame.every(Boolean), 'an identical answer marks every beat correct');
+const rdBlank = _rdBeatMarks(rdTarget, _rdBuildAnswer(rdM4, [], 1), rdM4);
+assert(!rdBlank[0], 'an empty beat is wrong even when the target starts with a note');
+const rdPartial = rdAll.slice(1);
+const rdPartialMarks = _rdBeatMarks(rdTarget, _rdBuildAnswer(rdM4, rdPartial, 1), rdM4);
+assert(!rdPartialMarks[0], 'leaving the first beat empty marks it wrong');
+assert(rdPartialMarks.slice(rdAll[0].span).every(Boolean), 'the remaining beats still match');
+
+const rdRestTarget = _rgBuild(rdM4, [[{ span: 1, c: [[4, 1]] }, { span: 1, c: [[4, 0]] }, { span: 1, c: [[4, 0]] }, { span: 1, c: [[4, 0]] }]]);
+const rdRestMarks = _rdBeatMarks(rdRestTarget, _rdBuildAnswer(rdM4, [{ m: 0, beat: 0, span: 1, c: [[4, 1]] }], 1), rdM4);
+assert(rdRestMarks[0], 'a placed quarter rest matches a quarter rest in the target');
+const rdBlankRest = _rdBeatMarks(rdRestTarget, _rdBuildAnswer(rdM4, [], 1), rdM4);
+assert(!rdBlankRest[0], 'an empty beat does not count as a placed rest');
+
+// The dialog itself renders against the real page DOM (notation falls back
+// to text in the headless harness, which is fine for an interaction smoke test).
+A.showRhythmDictationDialog();
+const rdModal = A.document.querySelector('.pauta-modal');
+assert(!!rdModal, 'Rhythm Dictation opens a modal');
+assert(rdModal.querySelectorAll('.rd-tile').length >= 2, 'dictation renders a tile palette');
+assertEq(rdModal.querySelectorAll('.rd-cell').length, 4, 'dictation renders four beat cells in 4/4');
+assert(!!rdModal.querySelector('#rd-staff'), 'dictation renders a notation host');
+const rdTileBtn = rdModal.querySelector('.rd-tile');
+const rdCellBtn = rdModal.querySelector('.rd-cell');
+rdTileBtn.click(); rdCellBtn.click();
+assert(rdModal.querySelectorAll('.rd-cell.is-filled').length === 1, 'tapping a tile then a beat places it');
+rdModal.querySelector('[data-rd="check"]').click();
+assert(/\d\/\d/.test(rdModal.querySelector('#rd-status').textContent), 'check reports a beat score');
+rdModal.querySelector('[data-rd="show"]').click();
+assert(rdModal.querySelector('#rd-solution').style.display !== 'none', 'Show answer reveals the solution');
+rdModal.querySelector('[data-rd="next"]').click();
+assertEq(rdModal.querySelectorAll('.rd-cell.is-filled').length, 0, 'Next phrase clears the answer');
+UI.closeModal();
 
 // ── Summary ─────────────────────────────────────────────────────
 console.log(`\n${_pass} passed, ${_fail} failed`);
