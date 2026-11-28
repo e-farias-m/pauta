@@ -1292,6 +1292,10 @@ function _startPracticeMode() {
   APP.practiceWaiting = true;
   stopPlayback();
 
+  // Restore audio gains that stopPlayback() muted
+  if (APP.masterGain) APP.masterGain.gain.value = APP.masterVolume;
+  if (APP.metronomeGain) APP.metronomeGain.gain.value = APP.metronomeVolume;
+
   // Init session stats
   APP._practiceStats = {
     correct: 0,
@@ -1382,7 +1386,10 @@ function _practiceAdvance() {
   const container = document.getElementById('score-svg');
   if (container) {
     const svg = container.querySelector('svg');
-    if (svg) svg.querySelectorAll('.practice-feedback-circle').forEach(el => el.remove());
+    if (svg) {
+      svg.querySelectorAll('.practice-feedback-circle').forEach(el => el.remove());
+      svg.querySelectorAll('.practice-target-circle').forEach(el => el.remove());
+    }
   }
 
   const loopEnabled = APP.practiceLoop;
@@ -1422,6 +1429,7 @@ function _practiceAdvance() {
       APP._practiceTargetPitch = note.pitch;
       RENDER.renderScore();
       APP.practiceWaiting = true;
+      _showPracticeTarget();
       return true;
     }
     // Skip rests, grace notes, etc.
@@ -1549,6 +1557,37 @@ function _showPracticeFeedback(assessment, targetPitch) {
   text.textContent = label;
 
   // Persist until next note (cleared in _practiceAdvance)
+}
+
+// Draw a target ring around the current note so the player knows what to play.
+function _showPracticeTarget() {
+  const container = document.getElementById('score-svg');
+  if (!container) return;
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+
+  // Remove any existing target
+  svg.querySelectorAll('.practice-target-circle').forEach(el => el.remove());
+
+  const nl = APP.noteLayout.find(l =>
+    l.mi === APP.selectedMeasure && l.si === (APP.selectedStaff || 0) && l.ni === APP.selectedNoteIdx
+  );
+  if (!nl) return;
+
+  const circle = _svgCreate('circle', {
+    cx: nl.x, cy: nl.y, r: 14,
+    fill: 'none', stroke: 'var(--pauta-primary)',
+    'stroke-width': 3, opacity: 0.9,
+    class: 'practice-target-circle',
+  }, svg);
+
+  // Subtle pulse via CSS animation is not available inline; use a slightly larger ring
+  const ring = _svgCreate('circle', {
+    cx: nl.x, cy: nl.y, r: 20,
+    fill: 'none', stroke: 'var(--pauta-primary)',
+    'stroke-width': 1, opacity: 0.4,
+    class: 'practice-target-circle',
+  }, svg);
 }
 
 // ════════════════════════════════════════════════════════════════════
