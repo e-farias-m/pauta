@@ -544,7 +544,7 @@ function showWelcomeModal() {
   const existing = LS.getItem('pauta_student_name') || '';
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
-      <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
+      <img src="pauta_logo_hires.png" alt="Pauta" class="pauta-dialog-logo" style="margin-bottom:10px" />
       <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:16px">What should we call you?</div>
       <input id="pauta-welcome-name" type="text" class="pauta-modal-input" maxlength="40" value="${UI.escHtml(existing)}" placeholder="Your name…" style="width:80%;padding:8px 12px;border-radius:8px;border:1px solid var(--pauta-border, #d0d5dd);font-size:16px" />
       <button id="pauta-welcome-go" class="modal-btn primary pauta-mt-sm" style="width:100%;padding:14px 20px;font-size:16px;border-radius:var(--pauta-radius-lg)">Start</button>

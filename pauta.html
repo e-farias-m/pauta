@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 
 <div id="loading">
-  <img src="logo.svg" alt="Pauta" class="pauta-logo" />
+  <img src="pauta_logo_hires.png" alt="Pauta" class="pauta-logo" />
   <div class="loading-spinner"></div>
   <p>Loading notation engine…</p>
 </div>
@@ -86,7 +86,7 @@
   </button>
   <div id="score-title" title="Double-tap to edit">Untitled Score</div>
   <button class="btn-top" data-action="showHelpPanel" title="Help & tips (?)" style="margin-left:auto;margin-right:4px">?</button>
-  <img src="logo.svg" alt="Pauta" class="pauta-topbar-logo" />
+  <img src="pauta_logo_hires.png" alt="Pauta" class="pauta-topbar-logo" />
 </div>
 
 <!-- Transport Bar -->
@@ -18847,7 +18847,7 @@ function showWelcomeModal() {
   const existing = LS.getItem('pauta_student_name') || '';
   UI.makeModal(`
     <div class="pauta-text-center" style="padding:4px 0">
-      <div style="font-size:36px;font-weight:700;color:var(--pauta-primary);margin-bottom:4px">&#9835; Pauta</div>
+      <img src="pauta_logo_hires.png" alt="Pauta" class="pauta-dialog-logo" style="margin-bottom:10px" />
       <div class="pauta-text-muted-sm" style="font-size:14px;margin-bottom:16px">What should we call you?</div>
       <input id="pauta-welcome-name" type="text" class="pauta-modal-input" maxlength="40" value="${UI.escHtml(existing)}" placeholder="Your name…" style="width:80%;padding:8px 12px;border-radius:8px;border:1px solid var(--pauta-border, #d0d5dd);font-size:16px" />
       <button id="pauta-welcome-go" class="modal-btn primary pauta-mt-sm" style="width:100%;padding:14px 20px;font-size:16px;border-radius:var(--pauta-radius-lg)">Start</button>
@@ -21932,7 +21932,7 @@ function _renderNewScoreDialog(restoreScroll) {
   makeModal(`
     <div class="pauta-row between pauta-mb-sm" style="align-items:baseline">
       <h2 class="pauta-mb0">New Score</h2>
-      <img src="logo.svg" alt="Pauta" class="pauta-dialog-logo" />
+      <img src="pauta_logo_hires.png" alt="Pauta" class="pauta-dialog-logo" />
     </div>
 
     \x3C!-- Quick Start --\x3E
