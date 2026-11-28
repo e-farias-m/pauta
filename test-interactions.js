@@ -79,7 +79,7 @@ const {
 } = A;
 const {
   _RG_METERS, _RG_CELLS, _RG_CELLS2, _rgBuild, _rgCellOk,
-  _rdTiles, _rdKeyOf, _rdGlyphs, _rdPics, _rdCellSVG, _rdWord, _rdWordFn,
+  _rdTiles, _rdKeyOf, _rdGlyphs, _rdCellSVG, _rdWord, _rdWordFn,
   _rdClose, _rdGenTarget, _rdBuildAnswer, _rdBeatMarks,
 } = A;
 
@@ -2046,7 +2046,6 @@ assert(_rdTiles(rdM68, rdQ8).every(t => t.span === 1), '6/8 never uses two-beat 
 assertEq(_rdKeyOf([[2, 0], [2, 0]]), '2-2', 'cell key joins durations');
 assert(_rdKeyOf([[4, 1]]) !== _rdKeyOf([[4, 0]]), 'rest and note cells have different keys');
 assertEq(_rdGlyphs([[4, 0], [2, 0], [2, 0]]), '♩♪♪', 'glyphs map quarter + two eighths');
-assertEq(_rdPics([[4, 1]]), '😴', 'rest picture is the sleeper');
 const rdRestSVG = _rdCellSVG([[4, 1]]);
 assert(rdRestSVG.includes('<g transform=') && rdRestSVG.includes('fill="#111"'), 'rests use the score glyph paths');
 assert(!rdRestSVG.includes('stroke-linejoin'), 'rests no longer use the hand-drawn zigzag');

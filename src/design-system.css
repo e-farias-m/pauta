@@ -24,12 +24,12 @@
   --pauta-cat-ear: #22c55e;
   --pauta-cat-theory: #4a5568;
 
-  /* ── Kid-Friendly Accent Palette ────────────────────────────── */
-  --pauta-kid-pink: #ec4899;
-  --pauta-kid-blue: #3b82f6;
-  --pauta-kid-lime: #84cc16;
-  --pauta-kid-yellow: #facc15;
-  --pauta-kid-purple: #a855f7;
+  /* ── Muted Accent Palette ─────────────────────────────────────── */
+  --pauta-kid-pink: #b96a8a;
+  --pauta-kid-blue: #5b8fa8;
+  --pauta-kid-lime: #8a9a60;
+  --pauta-kid-yellow: #c9a855;
+  --pauta-kid-purple: #9a7a9d;
 
   /* ── Spacing ────────────────────────────────────────────────── */
   --pauta-space-xs: 4px;

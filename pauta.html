@@ -1896,12 +1896,12 @@ body.exercise-mode #side-tabs { opacity: 0.3; pointer-events: none; }
   --pauta-cat-ear: #22c55e;
   --pauta-cat-theory: #4a5568;
 
-  /* ── Kid-Friendly Accent Palette ────────────────────────────── */
-  --pauta-kid-pink: #ec4899;
-  --pauta-kid-blue: #3b82f6;
-  --pauta-kid-lime: #84cc16;
-  --pauta-kid-yellow: #facc15;
-  --pauta-kid-purple: #a855f7;
+  /* ── Muted Accent Palette ─────────────────────────────────────── */
+  --pauta-kid-pink: #b96a8a;
+  --pauta-kid-blue: #5b8fa8;
+  --pauta-kid-lime: #8a9a60;
+  --pauta-kid-yellow: #c9a855;
+  --pauta-kid-purple: #9a7a9d;
 
   /* ── Spacing ────────────────────────────────────────────────── */
   --pauta-space-xs: 4px;
@@ -14750,80 +14750,80 @@ const RHYTHM_WORKOUT_DEFAULTS = {
 // ── i18n (EN / PT / FR) ───────────────────────────────────────────
 const _RG_I18N = {
   en: {
-    randTitle:'Rhythm Randomizer', poisonTitle:'Poison Rhythm', close:'Close',
+    randTitle:'Rhythm Randomizer', poisonTitle:'Forbidden Rhythm', close:'Close',
     gen:'New rhythm', echo:'Echo', stop:'Stop', tapBtn:'TAP',
     ts:'Time signature', meas:'Measures', tempo:'Tempo (BPM)', vals:'Note values', opts:'Options',
     countIn:'Count-in', counting:'Show counting', hideEcho:'Hide notation while echoing', more:'More settings',
     v_h:'Half', v_dq:'Dotted quarter', v_q:'Quarter', v_8:'Eighth', v_16:'Sixteenth', v_rq:'Quarter rest', v_r8:'Eighth rest',
     st_ready:'Ready', st_count:'Count-in', st_listen:'Listen…', st_play:'Playing…', st_echo:'Your turn — echo!', st_stopped:'Stopped',
     hits:'Hits', extra:'Extra taps', perfect:'Perfect!',
-    poisonTag:"Don't echo this one!", learn:'Learn the poison rhythm, then press Start.',
-    start:'Start', hear:'Hear poison', newPoison:'New poison',
+    poisonTag:"Don't echo this one!", learn:'Learn the rhythm, then press Start.',
+    start:'Start', hear:'Hear it', newPoison:'New rhythm',
     other:'The other rhythms are', o_diff:'Different', o_tricky:'Tricky: one beat off',
-    freq:'The poison comes', f_now:'Now and then', f_often:'Often',
+    freq:'The round comes', f_now:'Now and then', f_often:'Often',
     len:'Length of each rhythm', beats4:'4 beats', beats8:'8 beats',
-    pause:'Pause after the poison', screen:'When the poison comes up, the screen says',
-    m_sit:'Tell them to sit down', m_poison:'Just say it was the poison', m_custom:'My own message', customPh:'Your message',
-    msgPoison:'That was the poison!', msgSit:'Sit down!', showPlay:'Show rhythm while it plays', showEcho:'Show rhythm while echoing', cont:'Continue',
-    sc_echoed:'Echoed', sc_missed:'Missed', sc_poison:'Poison tapped', sc_avoided:'Poison avoided',
-    r_good:'Good echo!', r_miss:'Not quite', r_avoid:'Poison avoided!',
+    pause:'Pause after the round', screen:'When the round comes up, the screen says',
+    m_sit:'Ask them to stop', m_poison:'Just say it was the forbidden one', m_custom:'My own message', customPh:'Your message',
+    msgPoison:'That was the forbidden one!', msgSit:'Stop!', showPlay:'Show rhythm while it plays', showEcho:'Show rhythm while echoing', cont:'Continue',
+    sc_echoed:'Echoed', sc_missed:'Missed', sc_poison:'Forbidden tapped', sc_avoided:'Forbidden avoided',
+    r_good:'Good echo!', r_miss:'Not quite', r_avoid:'Forbidden avoided!',
     dictTitle:'Rhythm Dictation', dictHelp:'Listen, then place the rhythm on the beats.',
     playPhrase:'Play the phrase', playMine:'Play my answer', check:'Check', showAnswer:'Show answer', nextPhrase:'Next phrase', clear:'Clear',
     st_mine:'Playing your answer…', st_readyD:'Listen, then write what you heard.', st_checked:'Checked', st_empty:'Place some tiles first.',
     beatsCorrect:'beats correct', allCorrect:'All correct!', session:'Session', phrases:'phrases',
-    view:'Show', viewNotation:'Notation', viewPictures:'Pictures', viewBoth:'Both',
+    view:'Show', viewNotation:'Notation',
     sayWith:'Say with', sayCount:'Counting', saySyll:'Syllables', sayHide:'Hide',
     hint:'Give the first beat as a hint', yourAnswer:'Your answer', correctAnswer:'Correct rhythm', tileTip:'Tap a tile, then tap a beat.', rdHint:'Hint'
   },
   pt: {
-    randTitle:'Ritmo Aleatório', poisonTitle:'Ritmo Veneno', close:'Fechar',
+    randTitle:'Ritmo Aleatório', poisonTitle:'Ritmo Proibido', close:'Fechar',
     gen:'Novo ritmo', echo:'Eco', stop:'Parar', tapBtn:'BATER',
     ts:'Compasso', meas:'Compassos', tempo:'Andamento (BPM)', vals:'Figuras', opts:'Opções',
     countIn:'Contagem inicial', counting:'Mostrar contagem', hideEcho:'Ocultar partitura durante o eco', more:'Mais configurações',
     v_h:'Mínima', v_dq:'Semínima pontuada', v_q:'Semínima', v_8:'Colcheia', v_16:'Semicolcheia', v_rq:'Pausa de semínima', v_r8:'Pausa de colcheia',
     st_ready:'Pronto', st_count:'Contagem', st_listen:'Escute…', st_play:'Tocando…', st_echo:'Sua vez — eco!', st_stopped:'Parado',
     hits:'Acertos', extra:'Toques extras', perfect:'Perfeito!',
-    poisonTag:'Não faça eco deste!', learn:'Aprenda o ritmo veneno e aperte Iniciar.',
-    start:'Iniciar', hear:'Ouvir veneno', newPoison:'Novo veneno',
+    poisonTag:'Não faça eco deste!', learn:'Aprenda o ritmo e aperte Iniciar.',
+    start:'Iniciar', hear:'Ouvir', newPoison:'Novo ritmo',
     other:'Os outros ritmos são', o_diff:'Diferentes', o_tricky:'Difíceis: um tempo diferente',
-    freq:'O veneno aparece', f_now:'De vez em quando', f_often:'Com frequência',
+    freq:'A rodada aparece', f_now:'De vez em quando', f_often:'Com frequência',
     len:'Duração de cada ritmo', beats4:'4 tempos', beats8:'8 tempos',
-    pause:'Pausar após o veneno', screen:'Quando o veneno aparece, a tela diz',
-    m_sit:'Mandar sentar', m_poison:'Só dizer que era o veneno', m_custom:'Minha mensagem', customPh:'Sua mensagem',
-    msgPoison:'Era o veneno!', msgSit:'Sente-se!', showPlay:'Mostrar o ritmo ao tocar', showEcho:'Mostrar o ritmo durante o eco', cont:'Continuar',
-    sc_echoed:'Ecos certos', sc_missed:'Erros', sc_poison:'Veneno batido', sc_avoided:'Veneno evitado',
-    r_good:'Bom eco!', r_miss:'Quase', r_avoid:'Veneno evitado!',
+    pause:'Pausar após a rodada', screen:'Quando a rodada aparece, a tela diz',
+    m_sit:'Peça para parar', m_poison:'Só dizer que era o proibido', m_custom:'Minha mensagem', customPh:'Sua mensagem',
+    msgPoison:'Era o proibido!', msgSit:'Pare!', showPlay:'Mostrar o ritmo ao tocar', showEcho:'Mostrar o ritmo durante o eco', cont:'Continuar',
+    sc_echoed:'Ecos certos', sc_missed:'Erros', sc_poison:'Proibido batido', sc_avoided:'Proibido evitado',
+    r_good:'Bom eco!', r_miss:'Quase', r_avoid:'Proibido evitado!',
     dictTitle:'Ditado Rítmico', dictHelp:'Escute e coloque o ritmo nos tempos.',
     playPhrase:'Ouvir a frase', playMine:'Ouvir minha resposta', check:'Verificar', showAnswer:'Mostrar resposta', nextPhrase:'Próxima frase', clear:'Limpar',
     st_mine:'Tocando sua resposta…', st_readyD:'Escute e escreva o que ouviu.', st_checked:'Verificado', st_empty:'Coloque algumas peças primeiro.',
     beatsCorrect:'tempos certos', allCorrect:'Tudo certo!', session:'Sessão', phrases:'frases',
-    view:'Mostrar', viewNotation:'Notação', viewPictures:'Figuras', viewBoth:'Ambos',
+    view:'Mostrar', viewNotation:'Notação',
     sayWith:'Dizer com', sayCount:'Contagem', saySyll:'Sílabas', sayHide:'Ocultar',
     hint:'Dar o primeiro tempo como dica', yourAnswer:'Sua resposta', correctAnswer:'Ritmo correto', tileTip:'Toque numa peça e depois num tempo.', rdHint:'Dica'
   },
   fr: {
-    randTitle:'Rythme aléatoire', poisonTitle:'Rythme poison', close:'Fermer',
+    randTitle:'Rythme aléatoire', poisonTitle:'Rythme interdit', close:'Fermer',
     gen:'Nouveau rythme', echo:'Écho', stop:'Arrêter', tapBtn:'FRAPPER',
     ts:'Mesure', meas:'Mesures', tempo:'Tempo (BPM)', vals:'Valeurs', opts:'Options',
     countIn:'Décompte', counting:'Afficher le comptage', hideEcho:'Masquer la partition pendant l’écho', more:'Plus de réglages',
     v_h:'Blanche', v_dq:'Noire pointée', v_q:'Noire', v_8:'Croche', v_16:'Double-croche', v_rq:'Soupir', v_r8:'Demi-soupir',
     st_ready:'Prêt', st_count:'Décompte', st_listen:'Écoutez…', st_play:'Lecture…', st_echo:'À vous — écho !', st_stopped:'Arrêté',
     hits:'Réussis', extra:'Frappes en trop', perfect:'Parfait !',
-    poisonTag:'Ne pas répéter celui-ci !', learn:'Apprenez le rythme poison, puis appuyez sur Démarrer.',
-    start:'Démarrer', hear:'Écouter le poison', newPoison:'Nouveau poison',
+    poisonTag:'Ne pas répéter celui-ci !', learn:'Apprenez le rythme, puis appuyez sur Démarrer.',
+    start:'Démarrer', hear:'Écouter', newPoison:'Nouveau rythme',
     other:'Les autres rythmes sont', o_diff:'Différents', o_tricky:'Pièges : un temps change',
-    freq:'Le poison arrive', f_now:'De temps en temps', f_often:'Souvent',
+    freq:'La ronde arrive', f_now:'De temps en temps', f_often:'Souvent',
     len:'Durée de chaque rythme', beats4:'4 temps', beats8:'8 temps',
-    pause:'Pause après le poison', screen:'Quand le poison arrive, l’écran dit',
-    m_sit:'Dire de s’asseoir', m_poison:'Dire que c’était le poison', m_custom:'Mon message', customPh:'Votre message',
-    msgPoison:'C’était le poison !', msgSit:'Assis !', showPlay:'Afficher le rythme pendant la lecture', showEcho:'Afficher le rythme pendant l’écho', cont:'Continuer',
-    sc_echoed:'Échos réussis', sc_missed:'Ratés', sc_poison:'Poison frappé', sc_avoided:'Poison évité',
-    r_good:'Bon écho !', r_miss:'Presque', r_avoid:'Poison évité !',
+    pause:'Pause après la ronde', screen:'Quand la ronde arrive, l’écran dit',
+    m_sit:'Demandez d’arrêter', m_poison:'Dire que c’était l’interdit', m_custom:'Mon message', customPh:'Votre message',
+    msgPoison:'C’était l’interdit !', msgSit:'Arrêtez !', showPlay:'Afficher le rythme pendant la lecture', showEcho:'Afficher le rythme pendant l’écho', cont:'Continuer',
+    sc_echoed:'Échos réussis', sc_missed:'Ratés', sc_poison:'Interdit frappé', sc_avoided:'Interdit évité',
+    r_good:'Bon écho !', r_miss:'Presque', r_avoid:'Interdit évité !',
     dictTitle:'Dictée rythmique', dictHelp:'Écoutez, puis placez le rythme sur les temps.',
     playPhrase:'Écouter la phrase', playMine:'Écouter ma réponse', check:'Vérifier', showAnswer:'Montrer la réponse', nextPhrase:'Phrase suivante', clear:'Effacer',
     st_mine:'Lecture de votre réponse…', st_readyD:'Écoutez et écrivez ce que vous entendez.', st_checked:'Vérifié', st_empty:'Placez d’abord des tuiles.',
     beatsCorrect:'temps justes', allCorrect:'Tout est juste !', session:'Séance', phrases:'phrases',
-    view:'Afficher', viewNotation:'Notation', viewPictures:'Images', viewBoth:'Les deux',
+    view:'Afficher', viewNotation:'Notation',
     sayWith:'Dire avec', sayCount:'Comptage', saySyll:'Syllabes', sayHide:'Masquer',
     hint:'Donner le premier temps comme indice', yourAnswer:'Votre réponse', correctAnswer:'Rythme correct', tileTip:'Touchez une tuile, puis un temps.', rdHint:'Indice'
   }
@@ -15279,7 +15279,7 @@ function showPoisonRhythmDialog() {
   const msgText = () => s.msg === 'sit' ? _rgT('msgSit') : (s.msg === 'custom' && s.custom ? s.custom : _rgT('msgPoison'));
   function scoreText() {
     const g = game || { echoed: 0, missed: 0, poisonTapped: 0, avoided: 0 };
-    return `${_rgT('sc_echoed')}: ${g.echoed} · ${_rgT('sc_missed')}: ${g.missed} · ☠ ${_rgT('sc_poison')}: ${g.poisonTapped} · ${_rgT('sc_avoided')}: ${g.avoided}`;
+    return `${_rgT('sc_echoed')}: ${g.echoed} · ${_rgT('sc_missed')}: ${g.missed} · ${_rgT('sc_poison')}:${g.poisonTapped} · ${_rgT('sc_avoided')}: ${g.avoided}`;
   }
   function paint() {
     const T = _rgT;
@@ -15303,7 +15303,7 @@ function showPoisonRhythmDialog() {
       </details>
       <div class="rg-pair" style="margin-top:8px">
         <div style="border:2px solid #7b4fa3;background:#f1eaf7;border-radius:10px;padding:6px 8px">
-          <div style="font-weight:700;color:#5b3a82">☠ ${T('poisonTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
+          <div style="font-weight:700;color:#5b3a82">${T('poisonTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
           <div id="rg-poison" style="background:#fff;border-radius:6px;margin-top:4px;overflow-x:auto"></div>
         </div>
         <div id="rg-notation" style="overflow-x:auto;min-height:20px"></div>
@@ -15371,7 +15371,7 @@ function showPoisonRhythmDialog() {
       _rgHL(rOut, -1);
       if (taps.length > 0) {
         game.poisonTapped++; setScore();
-        setStatus('☠ ' + msgText());
+        setStatus(msgText());
         if (s.pause) { waiting = true; root.querySelector('#rg-cont').style.display = 'block'; return; }
         setTimeout(nextRound, 1800); return;
       }
@@ -15415,17 +15415,17 @@ function showPoisonRhythmDialog() {
 // No student input: the teacher judges. A melody round plays, the class sings it back
 // (echo window), and the poison melody is the one they must NOT sing.
 Object.assign(_RG_I18N.en, {
-  solfTitle:'Poison Melody', m_silly:'Silly: “it was the poison!”', silly:['Ha ha! That was the poison! 😈','Gotcha! That was the poison! 🤪','Mwahaha! The poison strikes again! ☠️','Oops… that one was poison! 🙈'], learnS:'Learn the poison melody, then press Start.', o_trickyS:'Tricky: one note off',
+  solfTitle:'Forbidden Melody', m_silly:'Forbidden: “that was the one!”', silly:['That was the forbidden one!','That was the one to avoid!','Careful — that was the forbidden one!','That one was the forbidden one!'], learnS:'Learn the melody, then press Start.', o_trickyS:'Tricky: one note off',
   clef:'Clef', treble:'Treble', bass:'Bass', range:'Range', rhythm:'Rhythm', rh_q:'Quarter notes only', rh_mix:'Quarters + a half',
   plen:'Notes in the poison', syl:'Show syllables', solf:['Do','Re','Mi','Fa','Sol','La','Ti']
 });
 Object.assign(_RG_I18N.pt, {
-  solfTitle:'Melodia Veneno', m_silly:'Boba: “era o veneno!”', silly:['Rá rá! Era o veneno! 😈','Peguei! Era o veneno! 🤪','Muahaha! O veneno atacou de novo! ☠️','Ops… essa era o veneno! 🙈'], learnS:'Aprenda a melodia veneno e aperte Iniciar.', o_trickyS:'Difíceis: uma nota diferente',
+  solfTitle:'Melodia Proibida', m_silly:'Proibida: “essa era a que não devia!”', silly:['Essa era a que não devia!','Cuidado — essa era a proibida!','Essa era a proibida!','Não devia ter cantado essa!'], learnS:'Aprenda a melodia e aperte Iniciar.', o_trickyS:'Difíceis: uma nota diferente',
   clef:'Clave', treble:'Clave de sol', bass:'Clave de fá', range:'Extensão', rhythm:'Ritmo', rh_q:'Só semínimas', rh_mix:'Semínimas + uma mínima',
   plen:'Notas no veneno', syl:'Mostrar sílabas', solf:['Do','Re','Mi','Fa','Sol','La','Si']
 });
 Object.assign(_RG_I18N.fr, {
-  solfTitle:'Mélodie poison', m_silly:'Rigolo : « c’était le poison ! »', silly:['Ha ha ! C’était le poison ! 😈','Gagné ! C’était le poison ! 🤪','Mouahaha ! Le poison a encore frappé ! ☠️','Oups… c’était le poison ! 🙈'], learnS:'Apprenez la mélodie poison, puis appuyez sur Démarrer.', o_trickyS:'Pièges : une note change',
+  solfTitle:'Mélodie interdite', m_silly:'Interdite : « c’était celle-là ! »', silly:['C’était celle-là !','Attention — c’était l’interdite !','C’était l’interdite !','Il ne fallait pas la chanter !'], learnS:'Apprenez la mélodie, puis appuyez sur Démarrer.', o_trickyS:'Pièges : une note change',
   clef:'Clé', treble:'Clé de sol', bass:'Clé de fa', range:'Étendue', rhythm:'Rythme', rh_q:'Noires seulement', rh_mix:'Noires + une blanche',
   plen:'Notes dans le poison', syl:'Afficher les syllabes', solf:['Do','Ré','Mi','Fa','Sol','La','Si']
 });
@@ -15564,7 +15564,7 @@ function showPoisonSolfegeDialog() {
       </details>
       <div class="rg-pair" style="margin-top:8px">
         <div class="rg-pbox" style="border:2px solid #7b4fa3;background:#f1eaf7;border-radius:10px;padding:6px 8px">
-          <div style="font-weight:700;color:#5b3a82">☠ ${T('solfTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
+          <div style="font-weight:700;color:#5b3a82">${T('solfTitle')} — <span style="font-weight:500">${T('poisonTag')}</span></div>
           <div id="rg-poison" style="background:#fff;border-radius:6px;margin-top:4px;overflow-x:auto"></div>
         </div>
         <div id="rg-notation" style="overflow-x:auto;min-height:20px"></div>
@@ -15620,7 +15620,7 @@ function showPoisonSolfegeDialog() {
       onDone() {
         run = null; noteHost().style.visibility = 'visible'; _rgHL(rOut, -1);
         if (cur.isPoison) {
-          setStatus('☠ ' + msgText(), true);
+          setStatus(msgText(), true);
           if (s.pause) { waiting = true; root.querySelector('#rg-cont').style.display = 'block'; return; }
           setTimeout(nextRound, 1800); return;
         }
@@ -15765,7 +15765,6 @@ function showSightReadingDialog() {
 const _RD_KEY = 'pauta_rg_dict';
 const _RD_GLYPH = { 8: '𝅗𝅥', 6: '♩.', 4: '♩', 2: '♪', 1: '𝅘𝅥𝅯' };
 const _RD_REST = { 8: '𝄽', 6: '𝄽', 4: '𝄽', 2: '𝄾', 1: '𝄿' };
-const _RD_PIC = { 8: '🐢', 6: '🐢', 4: '🚶', 2: '🐇', 1: '🐝' };
 // VexFlow rest glyph paths, normalised to their bounding boxes. Reusing the
 // score's own shapes keeps the tile notation identical to the staff notation.
 const _RD_RESTS = {
@@ -15788,7 +15787,6 @@ function _rdTiles(meter, active) {
 }
 function _rdKeyOf(c) { return c.map(([u, r]) => u + (r ? 'r' : '')).join('-'); }
 function _rdGlyphs(cell) { return cell.map(([u, r]) => r ? (_RD_REST[u] || '𝄽') : (_RD_GLYPH[u] || '♩')).join(''); }
-function _rdPics(cell) { return cell.map(([u, r]) => r ? '😴' : (_RD_PIC[u] || '🚶')).join(''); }
 // Self-contained SVG notation for a beat cell. Unicode music glyphs are not
 // installed on many systems and render as tofu, so tiles draw their own notes.
 function _rdCellSVG(cell) {
@@ -16004,9 +16002,7 @@ function showRhythmDictationDialog() {
   }
   function face(tile, cell, startUnit) {
     const word = _rdWord(meter(), cell, startUnit, s.say);
-    const notation = s.view !== 'pictures' ? _rdCellSVG(cell) : '';
-    const picture = s.view !== 'notation' ? `<span class="rd-pic">${_rdPics(cell)}</span>` : '';
-    return `<span class="rd-face">${notation}${picture}</span>` + (word ? `<span class="rd-word">${word}</span>` : '');
+    return `<span class="rd-face">${_rdCellSVG(cell)}</span>` + (word ? `<span class="rd-word">${word}</span>` : '');
   }
 
   function paintPalette() {
@@ -16080,7 +16076,7 @@ function showRhythmDictationDialog() {
         <div>${_rgRow(T('meas'), [1, 2].map(n => _rgChip('rdMeas', n, n, s.measures === n)).join(''))}</div>
         <div>${_rgRow(T('tempo'), _rgTempoRow(s.tempo))}</div>
         <div>${_rgRow(T('opts'), _rgChip('rdTog', 'countIn', T('countIn'), s.countIn) + _rgChip('rdTog', 'hint', T('hint'), s.hint))}</div>
-        <div>${_rgRow(T('view'), ['notation', 'pictures', 'both'].map(v => _rgChip('rdView', v, T('view' + v[0].toUpperCase() + v.slice(1)), s.view === v)).join(''))}</div>
+        <div>${_rgRow(T('view'), ['notation'].map(v => _rgChip('rdView', v, T('view' + v[0].toUpperCase() + v.slice(1)), s.view === v)).join(''))}</div>
         <div>${_rgRow(T('sayWith'), ['hide', 'count', 'syll'].map(v => _rgChip('rdSay', v, T(v === 'hide' ? 'sayHide' : v === 'count' ? 'sayCount' : 'saySyll'), s.say === v)).join(''))}</div>
         <div style="grid-column:1/-1">${_rgRow(T('vals'), _rgValChips(s.vals))}</div>
       </div>`.replace(/data-rg=/g, 'data-rd=');
