@@ -21274,14 +21274,6 @@ function showLearnPracticeMenu(btn) {
   const loopEnabled = APP.practiceLoop ? 'ON' : 'OFF';
   const transposition = APP.practiceTranspose || 0;
   showDropdown(btn, [
-    {header:'Learn'},
-    {label:'Poison Rhythm', fn:showPoisonRhythmDialog},
-    {label:'Curriculum', fn:showCurriculumDialog},
-    {label:'Sight Reading', fn:showSightReadingDialog},
-    {label:'Poison Melody', fn:showPoisonSolfegeDialog},
-    {label:'Recorder Exercises', fn:showRecorderExercises},
-    {label:'My Progress', fn:showStudentProgress},
-    {sep:true},
     {header:'Practice this score'},
     {label:practiceLabel, fn:togglePracticeMode},
     ...(APP.practiceMode ? [{
@@ -21296,23 +21288,30 @@ function showLearnPracticeMenu(btn) {
         showPracticeMenu(btn);
       }
     }] : []),
-    {header:'Settings'},
     {
       label: `Tempo ${tempo}  ·  Metronome ${metronome}  ·  Loop ${loopEnabled}  ·  Transpose ${transposition >= 0 ? '+' : ''}${transposition}`,
       fn: showPracticeSettingsMenu
     },
-    {header:'Rhythm'},
-    {label:'Randomizer', fn:showRhythmRandomizerDialog},
-    {label:'Workout', fn:showRhythmWorkoutDialog},
-    {label:'Reading', fn:() => startExerciseSession('rhythm_read', APP.exerciseDifficulty || 'beginner')},
-    {label:'Dictation', fn:() => typeof showRhythmDictationDialog === 'function' ? showRhythmDictationDialog() : showToast('Rhythm Dictation: coming soon')},
-    {header:'Aural Skills'},
+    {sep:true},
+    {header:'Learn'},
+    {label:'Sight Reading', fn:showSightReadingDialog},
+    {label:'Rhythm Dictation', fn:() => typeof showRhythmDictationDialog === 'function' ? showRhythmDictationDialog() : showToast('Rhythm Dictation: coming soon')},
+    {label:'Rhythm Randomizer', fn:showRhythmRandomizerDialog},
+    {label:'Rhythm Workout', fn:showRhythmWorkoutDialog},
+    {label:'Recorder Exercises', fn:showRecorderExercises},
+    {label:'Curriculum', fn:showCurriculumDialog},
+    {sep:true},
+    {header:'Ear Training'},
     {label:'Note Drills', fn:() => startExerciseSession('note_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Interval Training', fn:() => startExerciseSession('interval_id', APP.exerciseDifficulty || 'beginner')},
-    {label:'Key Sig Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
     {label:'Scale Gym', fn:() => startExerciseSession('scale_id', APP.exerciseDifficulty || 'beginner')},
-    {header:'Melody'},
-    {label:'Dictation', fn:() => startExerciseSession('melody_dictation', APP.exerciseDifficulty || 'beginner')},
+    {label:'Key Signature Drills', fn:() => startExerciseSession('key_sig_id', APP.exerciseDifficulty || 'beginner')},
+    {sep:true},
+    {header:'Games'},
+    {label:'Poison Rhythm', fn:showPoisonRhythmDialog},
+    {label:'Poison Melody', fn:showPoisonSolfegeDialog},
+    {sep:true},
+    {label:'My Progress', fn:showStudentProgress},
   ]);
 }
 
